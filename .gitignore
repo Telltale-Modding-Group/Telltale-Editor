@@ -1,0 +1,14 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/VSWorkspaceState.json
+/.vs/TelltaleEditor/v17/Browse.VC.opendb
+/.vs/TelltaleEditor/v17/Browse.VC.db-wal
+/.vs/TelltaleEditor/v17/Browse.VC.db-shm
+/.vs/TelltaleEditor/v17/Browse.VC.db
+/.vs/TelltaleEditor/v17/.wsuo
+/.vs/TelltaleEditor/FileContentIndex/read.lock
+/.vs/TelltaleEditor/FileContentIndex/f535d998-b139-4bec-9844-ff49b378210a.vsidx
+/.vs/TelltaleEditor/FileContentIndex/da7cbec8-e246-47a6-8e53-6291ff10b7cf.vsidx
+/.vs/slnx.sqlite
