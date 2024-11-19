@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Source\TestExport.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Source\zlib\adler32.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -153,6 +150,12 @@
     <ClCompile Include="Source\lua52\lzio.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Meta\Meta.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Scheduler\JobScheduler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\zlib\crc32.h">
@@ -261,6 +264,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\Config.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Meta\Meta.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Scheduler\JobScheduler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

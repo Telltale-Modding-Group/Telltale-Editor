@@ -99,7 +99,8 @@
     <ClCompile Include="Source\lua52\lundump.c" />
     <ClCompile Include="Source\lua52\lvm.c" />
     <ClCompile Include="Source\lua52\lzio.c" />
-    <ClCompile Include="Source\TestExport.cpp" />
+    <ClCompile Include="Source\Meta\Meta.cpp" />
+    <ClCompile Include="Source\Scheduler\JobScheduler.cpp" />
     <ClCompile Include="Source\zlib\adler32.c" />
     <ClCompile Include="Source\zlib\compress.c" />
     <ClCompile Include="Source\zlib\crc32.c" />
@@ -114,6 +115,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Include\Config.hpp" />
+    <ClInclude Include="Include\Meta\Meta.hpp" />
+    <ClInclude Include="Include\Scheduler\JobScheduler.hpp" />
     <ClInclude Include="Source\lua52\lapi.h" />
     <ClInclude Include="Source\lua52\lauxlib.h" />
     <ClInclude Include="Source\lua52\lcode.h" />
