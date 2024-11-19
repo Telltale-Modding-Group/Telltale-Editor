@@ -13,6 +13,7 @@
 /* Begin PBXFileReference section */
 		FD7B884A2CEBFC23005BCD20 /* libEditorLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libEditorLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		FDD9A3812CEC011900B5800B /* TestExport.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TestExport.cpp; sourceTree = "<group>"; };
+		FDE047BE2CECB3ED008274A9 /* Config.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Config.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -46,6 +47,7 @@
 			isa = PBXGroup;
 			children = (
 				FDD9A3812CEC011900B5800B /* TestExport.cpp */,
+				FDE047BE2CECB3ED008274A9 /* Config.hpp */,
 			);
 			path = Source;
 			sourceTree = "<group>";
@@ -240,6 +242,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					MACOS,
+					DEBUG,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};
@@ -250,6 +256,10 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				EXECUTABLE_PREFIX = lib;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					RELEASE,
+					MACOS,
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 			};

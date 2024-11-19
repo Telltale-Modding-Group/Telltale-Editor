@@ -1,8 +1,8 @@
-#include <stdio.h>
+#include "Config.hpp"
 
-int ExportFn();
+U32 ExportFn();
 
 int main(){
-    printf("Exported function returned %d!", ExportFn());
+    TTE_LOG("Exported function returned %d! Running TTE Version %s\n", ExportFn(), TTE_VERSION);
     return 0;
 }

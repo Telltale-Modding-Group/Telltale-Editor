@@ -253,6 +253,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					MACOS,
+					DEBUG,
+				);
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../EditorLibrary/Source";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -261,6 +266,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					RELEASE,
+					MACOS,
+				);
+				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../EditorLibrary/Source";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Testing;
