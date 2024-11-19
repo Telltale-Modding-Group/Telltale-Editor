@@ -5,6 +5,9 @@
 #include <queue>
 #include <mutex>
 
+// Number of threads
+#define NUM_SCHEDULER_THREADS 8
+
 /// <summary>
 /// This JobScheduler is what a lot of the Meta system builds upon.
 /// A Job is posted in the Scheduler and this job can be waited on and queried. It is completed asyncronously
@@ -16,6 +19,7 @@
 /// 
 /// </summary>
 class JobScheduler;
+struct JobThread;
 
 // Job Priorities
 enum JobPriority {
@@ -29,7 +33,7 @@ enum JobPriority {
 // Job Results
 enum JobResult : U32 {
 	// No result. Used for unchained-jobs, where there was no previous job.
-	JOB_RESULT_NONE = -1,
+	JOB_RESULT_NONE = (U32)-1,
 	// This job completed with no errors
 	JOB_RESULT_OK = 0,
 	// This job failed to execute.
@@ -198,7 +202,7 @@ private:
 
 	static void _JobThreadFn(JobScheduler& scheduler, U32 threadIndex);
 
-	std::vector<JobThread> _threads;// thread array
+	JobThread _threads[NUM_SCHEDULER_THREADS];// thread array
 
 	std::priority_queue<Job> _pendingJobs;
 	std::mutex _jobsLock; // Jobs array protector.
