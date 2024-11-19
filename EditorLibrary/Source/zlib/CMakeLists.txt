@@ -12,5 +12,5 @@ set(SOURCES # define a list of sources
     zutil.c
 )
 
-target_include_directories(editorlib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}) # Add header files
-target_sources(editorlib PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCES}) # Add sources to library
+target_include_directories(${module} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}) # Add header files
+target_sources(${module} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/${SOURCES}) # Add sources to library

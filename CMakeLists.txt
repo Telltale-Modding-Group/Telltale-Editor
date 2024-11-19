@@ -15,3 +15,4 @@ add_subdirectory(EditorUI/Source) # Add EditorUI CMakeLists.txt
 
 target_link_libraries(editor editorlib) # Link editor library to executable
 target_compile_options(editor PRIVATE -Wall -Werror=vla) # Show all warnings and prohibit variable-length arrays
+target_compile_options(editorlib PRIVATE -Wall -Werror=vla)
