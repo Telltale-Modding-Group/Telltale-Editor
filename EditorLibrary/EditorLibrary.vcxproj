@@ -51,6 +51,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;DEBUG</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)EditorLibrary/Include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -60,6 +61,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Testing|x64'">
     <ClCompile>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;RELEASE</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)EditorLibrary/Include</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -111,6 +113,7 @@
     <ClCompile Include="Source\zlib\zutil.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Include\Config.hpp" />
     <ClInclude Include="Source\lua52\lapi.h" />
     <ClInclude Include="Source\lua52\lauxlib.h" />
     <ClInclude Include="Source\lua52\lcode.h" />
