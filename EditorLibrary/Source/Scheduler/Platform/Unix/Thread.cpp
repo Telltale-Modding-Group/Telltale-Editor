@@ -5,7 +5,8 @@
 
 void ThreadSleep(U64 milliseconds)
 {
-    (void)sleep(milliseconds / 1000);
+    struct timespec time = {.tv_sec = static_cast<time_t>(milliseconds / 1000), .tv_nsec = static_cast<time_t>((milliseconds % 1000) * 1000000)};
+    (void)nanosleep(&time, nullptr);
 }
 
 void SetThreadName(const String &tName)
