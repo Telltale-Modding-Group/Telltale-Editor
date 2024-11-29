@@ -117,6 +117,8 @@
   <ItemGroup>
     <ClInclude Include="Include\Config.hpp" />
     <ClInclude Include="Include\Meta\Meta.hpp" />
+    <ClInclude Include="Include\Platform\Linux.hpp" />
+    <ClInclude Include="Include\Platform\MacOS.hpp" />
     <ClInclude Include="Include\Platform\Win64.hpp" />
     <ClInclude Include="Include\Scheduler\JobScheduler.hpp" />
     <ClInclude Include="Source\lua52\lapi.h" />

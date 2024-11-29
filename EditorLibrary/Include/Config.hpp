@@ -20,8 +20,8 @@
 #ifdef DEBUG
 
 // In DEBUG, simply log any messages simply to the console. Adds a newline character. This is a workaround so empty VA_ARGS works ok. If changing printf, change assert to.
-#define _TTE_LOG(fmt, ...) printf(fmt "%s", __VA_ARGS__);
-#define TTE_LOG(...) _TTE_LOG(__VA_ARGS__, "\n")
+#define _TTE_LOG(fmt, ...) ::printf(fmt "\n", __VA_ARGS__)
+#define TTE_LOG(...) _TTE_LOG(__VA_ARGS__, "")
 
 #else
 
@@ -35,7 +35,7 @@
 #ifdef DEBUG
 
 // First argument is expression to test, second is format string (optional) then optional format string arguments
-#define TTE_ASSERT(EXPR, ...) if(!(EXPR)) { _TTE_LOG(__VA_ARGS__, "\n"); DEBUG_BREAK(); }
+#define TTE_ASSERT(EXPR, ...) if(!(EXPR)) { TTE_LOG(__VA_ARGS__, ""); DEBUG_BREAK(); }
 
 #else
 

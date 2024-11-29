@@ -50,6 +50,6 @@ int main(){
     // Arguments printed to console will always be in order 0 then 1. check! ensures order constraints of code.
     Test();
 
-    TTE_LOG("Running TTE Version %s\n", TTE_VERSION);
+    TTE_LOG("Running TTE Version %s", TTE_VERSION);
     return 0;
 }

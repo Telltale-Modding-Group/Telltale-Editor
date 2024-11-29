@@ -1,4 +1,5 @@
 #pragma once
+#pragma warning(disable : 4474 6271)
 
 #ifndef _WIN64
 #error "Must be building in Windows64 to be able to include this header"
