@@ -156,6 +156,9 @@
     <ClCompile Include="Source\Scheduler\JobScheduler.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Platform\Win64.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\zlib\crc32.h">
@@ -270,6 +273,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\Scheduler\JobScheduler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\Platform\Win64.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

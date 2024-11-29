@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string>
+#include <queue>
 
 // =================================================================== LIBRARY CONFIGURATION ===================================================================
 
@@ -18,8 +19,8 @@
 
 #ifdef DEBUG
 
-// In DEBUG, simply log any messages simply to the console.
-#define TTE_LOG(MESSAGE, ...) ::printf(MESSAGE, __VA_ARGS__)
+// In DEBUG, simply log any messages simply to the console. Adds a newline character.
+#define TTE_LOG(MESSAGE, ...) ::printf(MESSAGE "\n", __VA_ARGS__)
 
 #else
 
@@ -28,23 +29,16 @@
 
 #endif
 
-// ===================================================================   PLATFORM SPECIFICS   ===================================================================
+// ===================================================================        ASSERTS        ===================================================================
 
-#if defined(_WIN64)
+#ifdef DEBUG
 
-// Windows Platform Specifics
-
-#elif defined(MACOS)
-
-// MacOS Platform Specifics
-
-#elif defined(LINUX)
-
-// Linux Platform Specifics | TODO PROTON
+#define TTE_ASSERT(EXPR, MESSAGE, ...) if(!(EXPR)) { TTE_LOG(MESSAGE, __VA_ARGS__); DEBUG_BREAK(); }
 
 #else
 
-#error "Unknown platform!"
+// In RELEASE, ignore assertions.
+#define TTE_ASSERT(EXPR, MESSAGE, ...) ;
 
 #endif
 
@@ -64,3 +58,51 @@ using Float = float;
 using String = std::string;
 
 using Bool = bool;
+
+// ===================================================================   PLATFORM SPECIFICS   ===================================================================
+
+#if defined(_WIN64)
+
+// Windows Platform Specifics
+#include "Platform/Win64.hpp"
+
+#elif defined(MACOS)
+
+// MacOS Platform Specifics
+#include "Platform/MacOS.hpp"
+
+#elif defined(LINUX)
+
+// Linux Platform Specifics | TODO PROTON
+#include "Platform/Linux.hpp"
+
+#else
+
+#error "Unknown platform!"
+
+#endif
+
+// ===================================================================         UTILS         ===================================================================
+
+#define MAX(A,B) (((A) > (B)) ? (A) : (B))
+
+#define MIN(A,B) (((A) < (B)) ? (A) : (B))
+
+// Helper class. std::priority_queue normally does not let us access by finding elements. Little hack to bypass and get internal vector container.
+template<typename T>
+class hacked_priority_queue : public std::priority_queue<T> { // Note applying library convention, see this as an 'extension' to std::
+public:
+
+	std::vector<T>& get_container() {
+		return this->c;
+	}
+
+	const std::vector<T>& get_container() const {
+		return this->c;
+	}
+
+	auto get_cmp() {
+		return this->comp;
+	}
+
+};
