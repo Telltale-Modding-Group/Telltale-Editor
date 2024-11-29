@@ -1,28 +1,30 @@
-#include "Config.hpp"
-
-#include "Scheduler/JobScheduler.hpp"
+#include <Config.hpp>
+#include <Scheduler/JobScheduler.hpp>
+#include <Scheduler/Thread.hpp>
 
 // ============================ TEMPORARY STUFF ============================
 
 std::atomic<U32> c{}; // At the last call, this should be 1001 (1 parent, 1000 enqueued). the order of enqueued jobs executed is random.
 
 // test job function. takes in running thread, previous job tesult
-Bool TestJobFn(const JobThread& thrd, void* pUserArgA, void* pUserArgB){
-    THREAD_SLEEP(1); // Sleep to dispurse thread work, assume this is a heavy function!
-    printf("Hello from %s! Counter: %d\n",thrd.ThreadName.c_str(), ++c); // printf is thread safe
-    return true; // If were to return false from any of these jobs, we would print 'whoops' instead of succeed.
+Bool TestJobFn(const JobThread &thrd, void *pUserArgA, void *pUserArgB)
+{
+    ThreadSleep(1);                                                       // Sleep to dispurse thread work, assume this is a heavy function!
+    printf("Hello from %s! Counter: %d\n", thrd.ThreadName.c_str(), ++c); // printf is thread safe
+    return true;                                                          // If were to return false from any of these jobs, we would print 'whoops' instead of succeed.
 }
 
 // Test to show job system working.
-void Test(){
+void Test()
+{
     JobScheduler::Initialise();
 
     JobHandle parentJob = JobScheduler::Instance->Post(MakeJob(&TestJobFn, 0, 0)); // post normal job which the rest will be executed after
 
-    //for(U32 i = 0; i < 10; i++) // stress test. note this is bad, see below.
-    //    h = JobScheduler::Instance->EnqueueOne(h, MakeJob(&TestJobFn, (void*)i, 0)); // enqueue job. this could be done on this thread easily.
+    // for(U32 i = 0; i < 10; i++) // stress test. note this is bad, see below.
+    //     h = JobScheduler::Instance->EnqueueOne(h, MakeJob(&TestJobFn, (void*)i, 0)); // enqueue job. this could be done on this thread easily.
 
-	// the way above assumes all jobs depend on the previous one, ie they need to be in that order (so pointless using jobs). exactly from i to 1000.
+    // the way above assumes all jobs depend on the previous one, ie they need to be in that order (so pointless using jobs). exactly from i to 1000.
     // if we only care about order after the first job, we can use EnqueueAll. Lets run these after the previous ones finish. Watch speed diff.
 
     std::vector<JobDescriptor> descriptors{};
@@ -30,8 +32,8 @@ void Test(){
         descriptors.push_back(MakeJob(&TestJobFn, 0, 0));
 
     auto Queued = JobScheduler::Instance->EnqueueAll(parentJob, descriptors); // In one call, enqueue them all.
-    
-    //Lets cancel one of the enqueued jobs such that we print 1000 instead of 1001
+
+    // Lets cancel one of the enqueued jobs such that we print 1000 instead of 1001
     JobScheduler::Instance->Cancel(Queued[69], false);
 
     JobResult Result = JobScheduler::Instance->Wait(Queued); // wait for array of handles to all finish. Set breakpoint to ensure they ran successfully
@@ -45,7 +47,8 @@ void Test(){
 
 // ========================================================================
 
-int main(){
+int main()
+{
 
     // Arguments printed to console will always be in order 0 then 1. check! ensures order constraints of code.
     Test();

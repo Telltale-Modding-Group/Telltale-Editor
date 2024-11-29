@@ -35,7 +35,12 @@
 #ifdef DEBUG
 
 // First argument is expression to test, second is format string (optional) then optional format string arguments
-#define TTE_ASSERT(EXPR, ...) if(!(EXPR)) { _TTE_LOG(__VA_ARGS__, "\n"); DEBUG_BREAK(); }
+#define TTE_ASSERT(EXPR, ...)        \
+	if (!(EXPR))                     \
+	{                                \
+		_TTE_LOG(__VA_ARGS__, "\n"); \
+		DebugBreak();                \
+	}
 
 #else
 
@@ -86,25 +91,27 @@ using Bool = bool;
 
 // ===================================================================         UTILS         ===================================================================
 
-#define MAX(A,B) (((A) > (B)) ? (A) : (B))
+#define MAX(A, B) (((A) > (B)) ? (A) : (B))
 
-#define MIN(A,B) (((A) < (B)) ? (A) : (B))
+#define MIN(A, B) (((A) < (B)) ? (A) : (B))
 
 // Helper class. std::priority_queue normally does not let us access by finding elements. Little hack to bypass and get internal vector container.
-template<typename T>
-class hacked_priority_queue : public std::priority_queue<T> { // Note applying library convention, see this as an 'extension' to std::
+template <typename T>
+class hacked_priority_queue : public std::priority_queue<T>
+{ // Note applying library convention, see this as an 'extension' to std::
 public:
-
-	std::vector<T>& get_container() {
+	std::vector<T> &get_container()
+	{
 		return this->c;
 	}
 
-	const std::vector<T>& get_container() const {
+	const std::vector<T> &get_container() const
+	{
 		return this->c;
 	}
 
-	auto get_cmp() {
+	auto get_cmp()
+	{
 		return this->comp;
 	}
-
 };
