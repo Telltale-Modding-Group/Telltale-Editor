@@ -717,7 +717,7 @@ void JobList::Dequeue(Job& destJob)
 			Singular = std::move(singularJob);
 		}
 	}
-	else if (NumQueued = 1) {
+	else if (NumQueued == 1) {
 		NumQueued = 0;
 		destJob = std::move(Singular);
 	} // No jobs to dequeue

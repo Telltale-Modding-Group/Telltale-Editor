@@ -6,6 +6,7 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <thread>
 
 // Number of worker threads
 #define NUM_SCHEDULER_THREADS 8
@@ -13,6 +14,7 @@
 #define WAIT_INTERNVAL_MS 30 
 
 /// <summary>
+///
 /// This JobScheduler is what a lot of the Meta system builds upon.
 /// A Job is posted in the Scheduler and this job can be waited on and queried. It is completed asyncronously
 /// on one of the worker threads backend. Jobs can be chained in the scheduler, such that when one finished the next
@@ -26,6 +28,7 @@
 /// 
 /// </summary>
 class JobScheduler;
+
 struct JobThread;
 
 // Job Priorities
@@ -53,10 +56,8 @@ enum JobResult : U32 {
 	JOB_RESULT_FAIL = 1,
 	// The job was cancelled due to shutdown.
 	JOB_RESULT_CANCELLED = 2,
-	// The job wait timed-out
-	JOB_RESULT_TIMEOUT = 3,
 	// The job is still running
-	JOB_RESULT_RUNNING = 4,
+	JOB_RESULT_RUNNING = 3,
 };
 
 /// <summary>
@@ -195,7 +196,7 @@ struct JobCounter {
 
 /// <summary>
 /// Used internally. When jobs are queued this struct acts as a small vector class (See folly/Boost) as a commonly only 1 job will
-/// be queued after a job, so an vector will have a lot of overhead in comparison. Adds minimal complexity, if 
+/// be queued after a job, so an vector will have a lot of overhead in comparison. Adds minimal complexity
 /// </summary>
 struct JobList {
 

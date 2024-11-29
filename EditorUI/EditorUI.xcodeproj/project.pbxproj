@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FD1F23342CFA52D300B3E32B /* libEditorLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FD1F23332CFA52D300B3E32B /* libEditorLibrary.a */; };
 		FDD9A3842CEC014000B5800B /* Main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FDD9A3832CEC013F00B5800B /* Main.cpp */; };
-		FDD9A3872CEC019800B5800B /* libEditorLibrary.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FDD9A3862CEC019800B5800B /* libEditorLibrary.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -24,9 +24,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		FDD9A36F2CEC00AC00B5800B /* EditorUI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = EditorUI; sourceTree = BUILT_PRODUCTS_DIR; };
+		FD1F227C2CFA47BE00B3E32B /* EditorUI */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; name = EditorUI; path = /Debug/EditorUI; sourceTree = "<absolute>"; };
+		FD1F23332CFA52D300B3E32B /* libEditorLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libEditorLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		FDD9A3832CEC013F00B5800B /* Main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Main.cpp; sourceTree = "<group>"; };
-		FDD9A3862CEC019800B5800B /* libEditorLibrary.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libEditorLibrary.a; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -34,28 +34,28 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FDD9A3872CEC019800B5800B /* libEditorLibrary.a in Frameworks */,
+				FD1F23342CFA52D300B3E32B /* libEditorLibrary.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		FD1F23322CFA52D300B3E32B /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				FD1F23332CFA52D300B3E32B /* libEditorLibrary.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		FDD9A3662CEC00AC00B5800B = {
 			isa = PBXGroup;
 			children = (
+				FDE047C02CECFA62008274A9 /* Include */,
 				FDD9A37F2CEC00E800B5800B /* Source */,
-				FDD9A3702CEC00AC00B5800B /* Products */,
-				FDD9A3852CEC019800B5800B /* Frameworks */,
+				FD1F23322CFA52D300B3E32B /* Frameworks */,
 			);
-			sourceTree = "<group>";
-		};
-		FDD9A3702CEC00AC00B5800B /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				FDD9A36F2CEC00AC00B5800B /* EditorUI */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 		FDD9A37F2CEC00E800B5800B /* Source */ = {
@@ -66,12 +66,11 @@
 			path = Source;
 			sourceTree = "<group>";
 		};
-		FDD9A3852CEC019800B5800B /* Frameworks */ = {
+		FDE047C02CECFA62008274A9 /* Include */ = {
 			isa = PBXGroup;
 			children = (
-				FDD9A3862CEC019800B5800B /* libEditorLibrary.a */,
 			);
-			name = Frameworks;
+			path = Include;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -91,7 +90,7 @@
 			);
 			name = EditorUI;
 			productName = EditorUI;
-			productReference = FDD9A36F2CEC00AC00B5800B /* EditorUI */;
+			productReference = FD1F227C2CFA47BE00B3E32B /* EditorUI */;
 			productType = "com.apple.product-type.tool";
 		};
 /* End PBXNativeTarget section */
@@ -117,7 +116,7 @@
 				Base,
 			);
 			mainGroup = FDD9A3662CEC00AC00B5800B;
-			productRefGroup = FDD9A3702CEC00AC00B5800B /* Products */;
+			productRefGroup = FDD9A3662CEC00AC00B5800B;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -257,7 +256,10 @@
 					MACOS,
 					DEBUG,
 				);
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../EditorLibrary/Source";
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../EditorLibrary/Include",
+					"$(PROJECT_DIR)/Include",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -270,7 +272,10 @@
 					RELEASE,
 					MACOS,
 				);
-				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../EditorLibrary/Source";
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../EditorLibrary/Include",
+					"$(PROJECT_DIR)/Include",
+				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Testing;
