@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 project(TelltaleEditor)
 
 set(CMAKE_BUILD_TYPE Debug)
-set (CMAKE_CXX_STANDARD 23) # Use C++23
+set (CMAKE_CXX_STANDARD 17) # Use C++17
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g") # debug info compiler flag
 set(CMAKE_CXX_FLAGS_RELEASE "-O3") # optimization compiler flag
