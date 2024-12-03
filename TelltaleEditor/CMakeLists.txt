@@ -20,5 +20,5 @@ elseif(WIN32)
 endif()
 
 add_subdirectory(3rdparty) # Add the dependencies/libraries
-add_subdirectory(Source/TelltaleToolLib) # Add the Source Directory for both the library and UI
+add_subdirectory(Source/ToolLibrary) # Add the Source Directory for both the library and UI
 add_subdirectory(Source/Editor) # Add the Source Directory for both the library and UI

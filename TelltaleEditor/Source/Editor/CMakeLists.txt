@@ -9,10 +9,10 @@ add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES})
 
 target_link_libraries(${TARGET_NAME} PUBLIC lua)
 target_link_libraries(${TARGET_NAME} PUBLIC zlib)
-target_link_libraries(${TARGET_NAME} PUBLIC TelltaleToolLib)
+target_link_libraries(${TARGET_NAME} PUBLIC ToolLibrary)
 
 set_target_properties(${TARGET_NAME} PROPERTIES CXX_STANDARD 17 OUTPUT_NAME "TelltaleEditor")
-set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Editor")
+set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "TelltaleEditor")
 
 target_compile_definitions(Editor PRIVATE
     RELEASE
