@@ -10,7 +10,7 @@ endif()
 
 if(UNIX) # Setting cmake variables depending on platform
     set(TTE_TARGET_PLATFORM Unix)
-    if(Apple)
+    if(APPLE)
         set(TTE_TARGET_UNIX MacOS)
     else()
         set(TTE_TARGET_UNIX Linux)
@@ -29,7 +29,7 @@ endfunction()
 
 function(set_platform_type target) # Enable platform specific defines
     if(UNIX)
-        if(Apple)
+        if(APPLE)
             target_compile_definitions(${target} PRIVATE MACOS=1)
         else()
             target_compile_definitions(${target} PRIVATE LINUX=1)
