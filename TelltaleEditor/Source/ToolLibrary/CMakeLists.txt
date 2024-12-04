@@ -7,6 +7,8 @@ set(TELLTALE_LIB_SOURCES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 add_library(ToolLibrary STATIC
     ${TELLTALE_LIB_HEADERS_DIR}/Meta/Meta.hpp
     ${TELLTALE_LIB_HEADERS_DIR}/Platform/Win64.hpp
+    ${TELLTALE_LIB_HEADERS_DIR}/Platform/MacOS.hpp
+    ${TELLTALE_LIB_HEADERS_DIR}/Platform/Linux.hpp
     ${TELLTALE_LIB_HEADERS_DIR}/Scheduler/JobScheduler.hpp
     ${TELLTALE_LIB_HEADERS_DIR}/Config.hpp
     ${TELLTALE_LIB_SOURCES_DIR}/Platform/Win64.cpp
