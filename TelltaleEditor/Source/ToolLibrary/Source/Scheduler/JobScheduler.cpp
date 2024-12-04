@@ -393,7 +393,7 @@ void JobScheduler::_RegisterJobs(U32 nJobs, JobDescriptor* pJobDescriptors, JobH
 
 }
 
-JobScheduler::JobScheduler() : _jobThreadNotifierCount(0), _cancelJobs(false), _running(true), _runningID(0)
+JobScheduler::JobScheduler() : _jobThreadNotifierCount(0),  _running(true), _cancelJobs(false), _runningID(0)
 {
 	// Job thread notifier counter is 0 to begin with, ie threads will wait until jobs come.
 

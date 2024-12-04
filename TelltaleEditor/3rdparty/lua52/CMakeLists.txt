@@ -37,3 +37,4 @@ ${lua_SOURCE_DIR}/lzio.c
 )
 
 target_include_directories(lua PUBLIC ${lua_SOURCE_DIR}) 
+ignore_warnings(lua)

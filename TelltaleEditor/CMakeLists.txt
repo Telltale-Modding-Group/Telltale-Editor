@@ -39,6 +39,10 @@ function(set_platform_type target) # Enable platform specific defines
     endif()
 endfunction()
 
+function (ignore_warnings target) # ignore specific warnings, but disallow vla
+	target_compile_options(${target} PRIVATE "-Wno-reorder;-Wno-format-extra-args;-Wno-deprecated;-Wvla-extension")
+endfunction()
+
 add_subdirectory(3rdparty) # Add the dependencies/libraries
 add_subdirectory(Source/ToolLibrary) # Add the Source Directory for both the library and UI
 add_subdirectory(Source/Editor) # Add the Source Directory for both the library and UI

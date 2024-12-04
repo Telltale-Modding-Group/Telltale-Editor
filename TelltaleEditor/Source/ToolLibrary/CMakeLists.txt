@@ -17,6 +17,8 @@ add_library(ToolLibrary STATIC
 set_build_type(${TARGET_NAME})
 set_platform_type(${TARGET_NAME})
 
+ignore_warnings(${TARGET_NAME})
+
 set_target_properties(ToolLibrary PROPERTIES FOLDER "TelltaleEditor")
 
 target_include_directories(ToolLibrary PUBLIC ${TELLTALE_LIB_HEADERS_DIR} ${CMAKE_CURRENT_SOURCE_DIR})

@@ -79,7 +79,7 @@ struct Job {
 	U32 JobID;
 
 	// Default Constructor
-	inline Job() : RunnableFunction(0), UserArgA(0), UserArgB(0), JobID(0), Priority(JobPriority::JOB_PRIORITY_NORMAL) {}
+	inline Job() : RunnableFunction(0), UserArgA(0), UserArgB(0), Priority(JobPriority::JOB_PRIORITY_NORMAL), JobID(0) {}
 
 	// Comparison operator for the priority queue.
 	inline bool operator<(const Job& rhs) const {
@@ -208,10 +208,10 @@ struct JobList {
 	U32 NumQueued; // Number of queued jobs
 
 	// Initialises to size of 1.
-	inline JobList(Job&& queued) : NumQueued(1), Singular(std::move(queued)) {}
+	inline JobList(Job&& queued) : Singular(std::move(queued)), NumQueued(1) {}
 
 	// Initialises to size of 0.
-	inline JobList() : NumQueued(0), Singular() {}
+	inline JobList() : Singular(), NumQueued(0) {}
 
 	//Appends a job to the list.
 	void Append(Job&& job);
