@@ -40,7 +40,7 @@ function(set_platform_type target) # Enable platform specific defines
 endfunction()
 
 function (ignore_warnings target) # ignore specific warnings, but disallow vla
-	target_compile_options(${target} PRIVATE "-Wno-reorder;-Wno-format-extra-args;-Wno-deprecated;-Wvla-extension")
+	target_compile_options(${target} PRIVATE "-Wno-reorder;-Wno-format-extra-args;-Wno-deprecated;-Werror=vla")
 endfunction()
 
 add_subdirectory(3rdparty) # Add the dependencies/libraries
