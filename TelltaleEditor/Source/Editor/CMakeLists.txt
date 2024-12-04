@@ -13,8 +13,8 @@ target_link_libraries(${TARGET_NAME} PUBLIC ToolLibrary)
 set_target_properties(${TARGET_NAME} PROPERTIES CXX_STANDARD 17 OUTPUT_NAME "TelltaleEditor")
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "TelltaleEditor")
 
-# target_compile_options(Editor PRIVATE -Wall -Werror=vla) # Show all warnings and prohibit variable-length arrays
-# target_compile_options(ToolLibrary PRIVATE -Wall -Werror=vla)
+target_compile_options(Editor PRIVATE -Wall) # Show all warnings and prohibit variable-length arrays
+target_compile_options(ToolLibrary PRIVATE -Wall)
 
 # Enable platform specific defines
 set_build_type(${TARGET_NAME})
