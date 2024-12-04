@@ -43,7 +43,9 @@ function (ignore_warnings target is_cpp) # ignore specific warnings, but disallo
 	set(FINAL_WARNINGS "")
 
 	if(is_cpp EQUAL 1) # cpp specific all platform warnings
-		set(FINAL_WARNINGS "${FINAL_WARNINGS}-Wno-reorder;")
+		if(UNIX)
+			set(FINAL_WARNINGS "${FINAL_WARNINGS}-Wno-reorder;")
+		endif()
 	endif()
 
 	if(UNIX)
