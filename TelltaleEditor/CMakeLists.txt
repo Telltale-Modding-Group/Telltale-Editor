@@ -19,23 +19,23 @@ elseif(WIN32)
     set(TTE_TARGET_PLATFORM Win64)
 endif()
 
-function(set_build_type type) # Set the build type
+function(set_build_type target) # Set the build type
     if(CMAKE_BUILD_TYPE STREQUAL "Debug") # Define DEBUG and RELEASE macros depending on cmake build type 
-        target_compile_definitions(${type} PRIVATE DEBUG=1)
+        target_compile_definitions(${target} PRIVATE DEBUG=1)
     else()
-        target_compile_definitions(${type}  PRIVATE RELEASE=1)
+        target_compile_definitions(${target} PRIVATE RELEASE=1)
     endif()
 endfunction()
 
-function(set_platform_type type) # Enable platform specific defines
+function(set_platform_type target) # Enable platform specific defines
     if(UNIX)
         if(Apple)
-            target_compile_definitions(${type}  PRIVATE MACOS=1)
+            target_compile_definitions(${target} PRIVATE MACOS=1)
         else()
-            target_compile_definitions(${type}  PRIVATE LINUX=1)
+            target_compile_definitions(${target} PRIVATE LINUX=1)
         endif()
     elseif(WIN32)
-        target_compile_definitions(${type}  PRIVATE _WIN64=1)
+        target_compile_definitions(${target} PRIVATE _WIN64=1)
     endif()
 endfunction()
 

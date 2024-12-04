@@ -20,5 +20,4 @@ set(CMAKE_INSTALL_PREFIX "${TELLTALE_EDITOR_ROOT_DIR}/bin")
 set(BINARY_ROOT_DIR "${CMAKE_INSTALL_PREFIX}/")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON) # Enable IDE folders
-
 add_subdirectory(TelltaleEditor)
