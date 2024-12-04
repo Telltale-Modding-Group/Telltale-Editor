@@ -4,4 +4,4 @@
 
 void ThreadSleep(U64 milliseconds);
 void SetThreadName(const String &tName);
-void DebugBreak();
+void DebugBreakpoint();

@@ -11,4 +11,4 @@ void ThreadSleep(U64 milliseconds)
 
 void SetThreadName(const String &tName) { (void)pthread_setname_np(tName.c_str()); }
 
-void DebugBreak() { (void)raise(SIGINT); }
+void DebugBreakpoint() { (void)raise(SIGINT); }

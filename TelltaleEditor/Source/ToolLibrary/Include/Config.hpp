@@ -43,7 +43,7 @@
     if (!(EXPR))                                                                                                                                     \
     {                                                                                                                                                \
         TTE_LOG(__VA_ARGS__, "");                                                                                                                    \
-        DebugBreak();                                                                                                                                \
+        DebugBreakpoint();                                                                                                                           \
     }
 
 #else

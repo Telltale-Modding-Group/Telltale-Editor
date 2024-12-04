@@ -35,6 +35,6 @@ void SetThreadName(const String &tName)
 
 void ThreadSleep(U64 milliseconds) { ::Sleep(milliseconds); }
 
-void DebugBreak() { __debugbreak(); }
+void DebugBreakpoint() { __debugbreak(); }
 
 // =============================================================================================================
