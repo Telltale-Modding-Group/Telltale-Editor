@@ -1,1 +1,1 @@
-target_sources(${TARGET_NAME} PRIVATE Thread.cpp)
+add_subdirectory(${TTE_TARGET_UNIX})
