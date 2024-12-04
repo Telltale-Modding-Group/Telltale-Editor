@@ -26,6 +26,6 @@ else
     exit 1
 fi
 
-cmake -S . -B build -G "Xcode"
+cmake -S . -B build -G "Xcode" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 
-cmake --build build --config "${CONFIG}"
+cmake --build build --config "${CONFIG}" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
