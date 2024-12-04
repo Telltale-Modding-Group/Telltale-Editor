@@ -14,4 +14,4 @@ ${zlib_SOURCE_DIR}/trees.c
 )
 
 target_include_directories(zlib PUBLIC ${zlib_SOURCE_DIR}) 
-ignore_warnings(zlib)
+ignore_warnings(zlib 0)

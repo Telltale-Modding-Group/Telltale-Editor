@@ -17,7 +17,7 @@ add_library(ToolLibrary STATIC
 set_build_type(${TARGET_NAME})
 set_platform_type(${TARGET_NAME})
 
-ignore_warnings(${TARGET_NAME})
+ignore_warnings(${TARGET_NAME} 1)
 
 set_target_properties(ToolLibrary PROPERTIES FOLDER "TelltaleEditor")
 

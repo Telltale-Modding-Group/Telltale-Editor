@@ -39,8 +39,24 @@ function(set_platform_type target) # Enable platform specific defines
     endif()
 endfunction()
 
-function (ignore_warnings target) # ignore specific warnings, but disallow vla
-	target_compile_options(${target} PRIVATE "-Wno-reorder;-Wno-format-extra-args;-Wno-deprecated;-Werror=vla")
+function (ignore_warnings target is_cpp) # ignore specific warnings, but disallow vla
+	set(FINAL_WARNINGS "")
+
+	if(is_cpp EQUAL 1) # cpp specific all platform warnings
+		set(FINAL_WARNINGS "${FINAL_WARNINGS}-Wno-reorder;")
+	endif()
+
+	if(UNIX)
+		if(APPLE)
+			set(FINAL_WARNINGS "${FINAL_WARNINGS}-Wno-format-extra-args;-Wno-deprecated;-Werror=vla;")
+		else()
+            		set(FINAL_WARNINGS "${FINAL_WARNINGS}-Wno-format-extra-args;-Wno-deprecated;-Werror=vla;")
+		endif()
+	elseif(WIN32)
+		set(FINAL_WARNINGS "${FINAL_WARNINGS}") # any msvc specific stuff in the future
+	endif()
+
+	target_compile_options(${target} PRIVATE ${FINAL_WARNINGS})
 endfunction()
 
 add_subdirectory(3rdparty) # Add the dependencies/libraries

@@ -17,4 +17,4 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "TelltaleEditor")
 set_build_type(${TARGET_NAME})
 set_platform_type(${TARGET_NAME})
 
-ignore_warnings(${TARGET_NAME})
+ignore_warnings(${TARGET_NAME} 1)
