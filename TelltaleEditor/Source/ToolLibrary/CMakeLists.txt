@@ -14,22 +14,9 @@ add_library(ToolLibrary STATIC
 )
 
 # Enable platform specific defines
-if(UNIX)
-    if(Apple)
-        target_compile_definitions(ToolLibrary PRIVATE MACOS=1)
-    else()
-        target_compile_definitions(ToolLibrary PRIVATE LINUX=1)
-    endif()
-elseif(WIN32)
-    target_compile_definitions(ToolLibrary PRIVATE _WIN64=1)
-endif()
+set_build_type(${TARGET_NAME})
+set_platform_type(${TARGET_NAME})
 
 set_target_properties(ToolLibrary PROPERTIES FOLDER "TelltaleEditor")
 
 target_include_directories(ToolLibrary PUBLIC ${TELLTALE_LIB_HEADERS_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
-
-if(CMAKE_BUILD_TYPE STREQUAL "Debug") # Define DEBUG and RELEASE macros depending on cmake build type 
-    target_compile_definitions(ToolLibrary PRIVATE DEBUG=1)
-else()
-    target_compile_definitions(ToolLibrary PRIVATE RELEASE=1)
-endif()
