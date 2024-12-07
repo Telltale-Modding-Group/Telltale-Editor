@@ -11,7 +11,7 @@ This project uses CMake and to build everything you can use the build scripts. S
 
 This project was made possible by lots of work done by various people. 
 
-#### [Asil ('Proton')](github.com/asilz)
-#### [Ivan ('DarkShadow')](github.com/iMrShadow)
-#### [Lucas Saragosa](github.com/LucasSaragosa)
-#### [David M.](github.com/frostbone25)
+#### [Asil ('Proton')](https://github.com/asilz)
+#### [Ivan ('DarkShadow')](https://github.com/iMrShadow)
+#### [Lucas Saragosa](https://github.com/LucasSaragosa)
+#### [David M.](https://github.com/frostbone25)
