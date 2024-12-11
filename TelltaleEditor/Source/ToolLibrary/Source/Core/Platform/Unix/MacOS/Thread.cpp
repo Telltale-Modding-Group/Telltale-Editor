@@ -1,4 +1,4 @@
-#include <Config.hpp>
+#include <Core/Config.hpp>
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>

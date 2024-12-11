@@ -1,4 +1,4 @@
-#include <Config.hpp>
+#include <Core/Config.hpp>
 #include <Windows.h>
 
 // Windows workaround for set thread name. See below link =========================================================
