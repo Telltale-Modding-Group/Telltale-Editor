@@ -1,0 +1,1 @@
+add_subdirectory(Platform/${TTE_TARGET_PLATFORM})
