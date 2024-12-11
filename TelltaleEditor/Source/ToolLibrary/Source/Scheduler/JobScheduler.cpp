@@ -1,5 +1,5 @@
+#include <Core/Thread.hpp>
 #include <Scheduler/JobScheduler.hpp>
-#include <Scheduler/Thread.hpp>
 
 JobScheduler *JobScheduler::Instance = 0;
 

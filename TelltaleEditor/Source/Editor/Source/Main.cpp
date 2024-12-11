@@ -1,6 +1,6 @@
-#include <Config.hpp>
+#include <Core/Config.hpp>
+#include <Core/Thread.hpp>
 #include <Scheduler/JobScheduler.hpp>
-#include <Scheduler/Thread.hpp>
 
 // ============================ TEMPORARY STUFF ============================
 

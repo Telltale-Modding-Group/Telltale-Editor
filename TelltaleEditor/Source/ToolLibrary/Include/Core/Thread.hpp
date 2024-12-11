@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Config.hpp>
+#include <Core/Config.hpp>
 
 /**
  * @brief Sleeps the current thread for @p milliseconds time

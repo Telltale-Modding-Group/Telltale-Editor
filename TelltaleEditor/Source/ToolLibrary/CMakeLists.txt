@@ -7,6 +7,7 @@ set(TELLTALE_LIB_SOURCES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 add_library(${TARGET_NAME} STATIC)
 
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Scheduler)
+add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Core)
 
 # Enable platform specific defines
 set_build_type(${TARGET_NAME})

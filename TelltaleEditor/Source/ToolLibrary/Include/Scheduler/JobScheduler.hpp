@@ -1,4 +1,4 @@
-#include "Config.hpp"
+#include <Core/Config.hpp>
 
 #include <atomic>
 #include <condition_variable>
