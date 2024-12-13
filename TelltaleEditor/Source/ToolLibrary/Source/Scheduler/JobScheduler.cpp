@@ -76,7 +76,7 @@ JobThreadWaitResult JobScheduler::_JobThreadRunJob(JobScheduler &scheduler, JobT
     }
 
     // Decrement the references to it, as now the scheduler doesn't need to know about it - we have gone through all enqueued ones to run here.
-    scheduler._DecrementRefs(jobID);
+    scheduler._DecrementRefs(jobID, true);
 
     return JOB_THREAD_RESULT_OK; // No need to exit.
 }
@@ -165,46 +165,50 @@ void JobScheduler::_IncrementRefs(U32 job)
         it->second.Refs++;
 }
 
-void JobScheduler::_DecrementRefs(U32 job)
+void JobScheduler::_DecrementRefs(U32 job, Bool bReleaseScheduler)
 {
     _aliveJobsLock.lock();
     auto it = _jobCounters.find(job);
-    if (it != _jobCounters.end() && ((--it->second.Refs) == 0))
+    if (it != _jobCounters.end())
     {
-        // No more references, so free it.
-        _jobCounters.erase(it);
-        // There may still be enqueued jobs in the array. Move the array to the pending jobs array.
-        auto it = _enqueuedJobs.find(job);
-        if (it != _enqueuedJobs.end())
-        {
-            auto jobList = std::move(it->second);
-            _enqueuedJobs.erase(it);
-
-            // Finished with enqueued job array, so release lock and now lock jobs array so append the local jobList to it
-            _aliveJobsLock.unlock();
-
-            _jobsLock.lock();
-
-            // Append the jobs
-            if (jobList.NumQueued == 1)
-            { // Only one in the array
-                _pendingJobs.push(std::move(jobList.Singular));
-                jobList.Singular.~Job();
-            }
-            else if (jobList.NumQueued > 1)
-            { // Multiple, append all.
-                while (jobList.Queued.size())
-                {
-                    _pendingJobs.push(std::move(const_cast<Job &>(jobList.Queued.top())));
-                    jobList.Queued.pop();
+        if(bReleaseScheduler)
+            it->second.SchedulerReleased = true;
+        if((--it->second.Refs) == 0){
+            // No more references, so free it.
+            _jobCounters.erase(it);
+            // There may still be enqueued jobs in the array. Move the array to the pending jobs array.
+            auto it = _enqueuedJobs.find(job);
+            if (it != _enqueuedJobs.end())
+            {
+                auto jobList = std::move(it->second);
+                _enqueuedJobs.erase(it);
+                
+                // Finished with enqueued job array, so release lock and now lock jobs array so append the local jobList to it
+                _aliveJobsLock.unlock();
+                
+                _jobsLock.lock();
+                
+                // Append the jobs
+                if (jobList.NumQueued == 1)
+                { // Only one in the array
+                    _pendingJobs.push(std::move(jobList.Singular));
+                    jobList.Singular.~Job();
                 }
-                jobList.Queued.~hacked_priority_queue();
+                else if (jobList.NumQueued > 1)
+                { // Multiple, append all.
+                    while (jobList.Queued.size())
+                    {
+                        _pendingJobs.push(std::move(const_cast<Job &>(jobList.Queued.top())));
+                        jobList.Queued.pop();
+                    }
+                    jobList.Queued.~hacked_priority_queue();
+                }
+                jobList.NumQueued = 0;
+                
+                _jobsLock.unlock();
+                
+                return; // No more unlocks needed
             }
-            jobList.NumQueued = 0;
-
-            _jobsLock.unlock();
-
-            return; // No more unlocks needed
         }
     }
     _aliveJobsLock.unlock();
@@ -348,17 +352,19 @@ void JobScheduler::_RegisterJobs(U32 nJobs, JobDescriptor *pJobDescriptors, JobH
     if (bHasParent)
     {
 
-        std::lock_guard<std::mutex> _Guard(_aliveJobsLock); // Accessing enqueued jobs array
+        std::unique_lock<std::mutex> _Guard(_aliveJobsLock); // Accessing enqueued jobs array
 
         // If we are enqueuing them after another, ensure parent exists and then allocate job array
         auto it = _enqueuedJobs.find(parent);
         if (it == _enqueuedJobs.end())
         {
 
-            // Two cases. The job is alive and has no previous enqueued jobs (_enqueuedJobs doesn't contain it) or job isn't alive. Check alive
+            // Two cases. The job is alive and has no previous enqueued jobs (_enqueuedJobs doesn't contain it) or job isn't alive. Check alive, or scheduler has released its ref.
             auto checkAliveIt = _jobCounters.find(parent);
-            if (checkAliveIt == _jobCounters.end())
+            if (checkAliveIt == _jobCounters.end() || checkAliveIt->second.SchedulerReleased){
+                _Guard.unlock();
                 return _RegisterJobs(nJobs, pJobDescriptors, pOutHandles); // Job not found (parent), so is finished! Run normally.
+            }
 
             // Add enqueued mapping
             it = _enqueuedJobs.insert(std::make_pair(parent, JobList{})).first;
