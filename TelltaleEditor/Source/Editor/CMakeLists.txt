@@ -6,7 +6,9 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${EDITOR_HEADERS} ${EDITOR
 
 add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES})
 
-target_link_libraries(${TARGET_NAME} PUBLIC lua)
+target_link_libraries(${TARGET_NAME} PUBLIC lua523)
+target_link_libraries(${TARGET_NAME} PUBLIC lua514)
+target_link_libraries(${TARGET_NAME} PUBLIC lua502)
 target_link_libraries(${TARGET_NAME} PUBLIC zlib)
 target_link_libraries(${TARGET_NAME} PUBLIC ToolLibrary)
 

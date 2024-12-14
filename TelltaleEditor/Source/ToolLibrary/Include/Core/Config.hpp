@@ -95,6 +95,11 @@ using Bool = bool;
 
 #endif
 
+/**
+ * @brief Sets a breakpoint
+ */
+void DebugBreakpoint();
+
 // ===================================================================         UTILS
 // ===================================================================
 
@@ -112,3 +117,12 @@ template <typename T> class hacked_priority_queue : public std::priority_queue<T
 
     auto get_cmp() { return this->comp; }
 };
+
+// ===================================================================         MEMORY
+// ===================================================================
+
+// Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by changing these macros.
+
+#define TTE_NEW(_Type) new _Type()
+
+#define TTE_DEL(_Inst) delete _Inst

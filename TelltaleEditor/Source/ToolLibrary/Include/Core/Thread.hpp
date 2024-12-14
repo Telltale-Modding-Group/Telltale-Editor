@@ -15,8 +15,3 @@ void ThreadSleep(U64 milliseconds);
  * @param tName name
  */
 void SetThreadName(const String &tName);
-
-/**
- * @brief Sets a breakpoint
- */
-void DebugBreakpoint();

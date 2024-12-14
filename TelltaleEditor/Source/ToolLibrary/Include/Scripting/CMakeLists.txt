@@ -1,0 +1,1 @@
+target_sources(${TARGET_NAME} PRIVATE ScriptManager.hpp LuaManager.hpp)
