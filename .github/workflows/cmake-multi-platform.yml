@@ -1,4 +1,4 @@
-name: CMake on multiple platforms
+name: TelltaleEditor - Win/MacOS/Linux
 
 on:
   push:
