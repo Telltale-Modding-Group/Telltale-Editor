@@ -41,7 +41,7 @@
 */
 
 /* an unsigned integer to hold hash values */
-typedef unsigned int lu_hash;
+typedef size_t lu_hash;
 /* its signed equivalent */
 typedef int ls_hash;
 

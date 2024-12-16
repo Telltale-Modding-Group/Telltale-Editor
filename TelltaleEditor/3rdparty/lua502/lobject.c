@@ -144,7 +144,7 @@ const char *luaO_pushvfstring (lua_State *L, const char *fmt, va_list argp) {
     fmt = e+2;
   }
   pushstr(L, fmt);
-  luaV_concat(L, n+1, L->top - L->base - 1);
+  luaV_concat(L, n+1, (int)(L->top - L->base - 1));
   L->top -= n;
   return svalue(L->top - 1);
 }
@@ -170,7 +170,7 @@ void luaO_chunkid (char *out, const char *source, int bufflen) {
       int l;
       source++;  /* skip the `@' */
       bufflen -= sizeof(" `...' ");
-      l = strlen(source);
+      l = (int)strlen(source);
       strcpy(out, "");
       if (l>bufflen) {
         source += (l-bufflen);  /* get last part of file name */
@@ -179,7 +179,7 @@ void luaO_chunkid (char *out, const char *source, int bufflen) {
       strcat(out, source);
     }
     else {  /* out = [string "string"] */
-      int len = strcspn(source, "\n");  /* stop at first newline */
+      int len = (int)strcspn(source, "\n");  /* stop at first newline */
       bufflen -= sizeof(" [string \"...\"] ");
       if (len > bufflen) len = bufflen;
       strcpy(out, "[string \"");

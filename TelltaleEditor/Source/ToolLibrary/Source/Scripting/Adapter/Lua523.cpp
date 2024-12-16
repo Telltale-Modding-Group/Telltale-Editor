@@ -3,15 +3,15 @@
 // Include 5.2.3 headers
 #include <lua523/lua.hpp>
 
-
-// Helper macro to get the lua_State type variable inside the adapter class to pass into the lua c api.
-#define LSTATE (lua_State*)_State
-
 void LuaAdapter_523::Shutdown(LuaManager &manager) {
-    lua_close(LSTATE);
+    lua_close(_State);
 }
 
 
 void LuaAdapter_523::Initialise(LuaManager &manager) {
     _State = luaL_newstate();
+}
+
+void LuaAdapter_502::RunChunk(U8* Chunk, U32 Len, Bool IsCompiled){
+    luaL_dostring(<#L#>, <#s#>)
 }

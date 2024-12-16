@@ -8,12 +8,8 @@ extern "C" {
     
 }
 
-
-// Helper macro to get the lua_State type variable inside the adapter class to pass into the lua c api.
-#define LSTATE (lua_State*)_State
-
 void LuaAdapter_514::Shutdown(LuaManager &manager) {
-    lua_close(LSTATE);
+    lua_close(_State);
 }
 
 

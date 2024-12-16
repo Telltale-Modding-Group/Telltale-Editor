@@ -40,7 +40,7 @@ static int ezgetc (LoadState* S)
 
 static void ezread (LoadState* S, void* b, int n)
 {
- int r=luaZ_read(S->Z,b,n);
+ int r=(int)luaZ_read(S->Z,b,n);
  if (r!=0) unexpectedEOZ(S);
 }
 
@@ -49,11 +49,11 @@ static void LoadBlock (LoadState* S, void* b, size_t size)
  if (S->swap)
  {
   char* p=(char*) b+size-1;
-  int n=size;
+  int n=(int)size;
   while (n--) *p--=(char)ezgetc(S);
  }
  else
-  ezread(S,b,size);
+  ezread(S,b,(int)size);
 }
 
 static void LoadVector (LoadState* S, void* b, int m, size_t size)
@@ -64,13 +64,13 @@ static void LoadVector (LoadState* S, void* b, int m, size_t size)
   while (m--)
   {
    char* p=q+size-1;
-   int n=size;
+   int n=(int)size;
    while (n--) *p--=(char)ezgetc(S);
    q+=size;
   }
  }
  else
-  ezread(S,b,m*size);
+  ezread(S,b,(int)(m*size));
 }
 
 static int LoadInt (LoadState* S)
@@ -103,7 +103,7 @@ static TString* LoadString (LoadState* S)
  else
  {
   char* s=luaZ_openspace(S->L,S->b,size);
-  ezread(S,s,size);
+  ezread(S,s,(int)size);
   return luaS_newlstr(S->L,s,size-1);		/* remove trailing '\0' */
  }
 }

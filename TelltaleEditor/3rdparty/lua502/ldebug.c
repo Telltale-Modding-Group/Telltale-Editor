@@ -107,7 +107,7 @@ LUA_API int lua_getstack (lua_State *L, int level, lua_Debug *ar) {
   }
   else {
     status = 1;
-    ar->i_ci = ci - L->base_ci;
+      ar->i_ci = (int)(ci - L->base_ci);
   }
   lua_unlock(L);
   return status;
@@ -436,7 +436,7 @@ static Instruction luaG_symbexec (const Proto *pt, int lastpc, int reg) {
 
 
 int luaG_checkcode (const Proto *pt) {
-  return luaG_symbexec(pt, pt->sizecode, NO_REG);
+  return (int)luaG_symbexec(pt, pt->sizecode, NO_REG);
 }
 
 
@@ -516,7 +516,7 @@ void luaG_typeerror (lua_State *L, const TObject *o, const char *op) {
   const char *name = NULL;
   const char *t = luaT_typenames[ttype(o)];
   const char *kind = (isinstack(L->ci, o)) ?
-                         getobjname(L->ci, o - L->base, &name) : NULL;
+                         getobjname(L->ci, (int)(o - L->base), &name) : NULL;
   if (kind)
     luaG_runerror(L, "attempt to %s %s `%s' (a %s value)",
                 op, kind, name, t);

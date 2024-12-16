@@ -1,8 +1,10 @@
+#pragma once
+
 #include <Core/Config.hpp>
 
 // This is the low level LUA API. This deals with calls to the lua library for compilation and running of scripts. Decompilation is also managed here in terms of luadec.
 
-// IMPORTANT: *NO* lua C headers are to be included anywhere APART from the adapter translation units (Scripting/Adapter/Lua***.cpp)!
+// IMPORTANT: *NO* lua C headers are to be included anywhere APART from the adapter translation units (Scripting/Adapter/Lua5**.cpp)!
 
 // Supported LUA versions which telltale use in release games.
 enum class LuaVersion {
@@ -12,7 +14,11 @@ enum class LuaVersion {
     LUA_5_0_2 // Lua 5.0.2
 };
 
+// For use below
 class LuaAdapterBase;
+
+// Used interally for lua states for defined in each Lua version.
+struct lua_State;
 
 // Lua Manager class for managing lua calling and versioning. Like most parts of this library, it is not thread safe unless explicity said.
 class LuaManager {
@@ -20,14 +26,15 @@ public:
     
     // Initialises, must be called after construction, the lua manager with the given version. Only one instance can run per version!
     void Initialise(LuaVersion Vers);
+    
+    // Runs a chunk of uncompiled lua source. Pass in the C string and its length.
+    void RunText(CString Code, U32 Len);
 
     // Default constructor.
     LuaManager() = default;
     
-    // Destructor shuts down everything necessary.
-    inline ~LuaManager(){
-        _Shutdown();
-    }
+    // Releases lua.
+    ~LuaManager();
     
     // Gets the version of this lua manager.
     inline LuaVersion GetVersion() {
@@ -35,14 +42,10 @@ public:
     }
     
 private:
-    
-    // Shutdown called by dtor
-    void _Shutdown();
-    
-    
+
     LuaVersion _Version = LuaVersion::LUA_NONE; // This lua version
     
-    LuaAdapterBase* _Adapter = NULL; // Adapter for the version, see below
+    LuaAdapterBase* _Adapter = nullptr; // Adapter for the version, see below
     
 };
 
@@ -50,13 +53,15 @@ private:
 class LuaAdapterBase {
 protected:
     
-    void* _State = NULL; // lua_State specific to the verison.
+    lua_State* _State = NULL; // lua_State specific to the verison.
     
 public:
     
     virtual void Initialise(LuaManager& manager) = 0;
     
     virtual void Shutdown(LuaManager& manager) = 0;
+    
+    virtual void RunChunk(U8* Chunk, U32 Len, Bool IsCompiled) = 0;
     
     inline virtual ~LuaAdapterBase() {}
     
@@ -70,6 +75,9 @@ public:
     
     void Shutdown(LuaManager &manager) override;
     
+    void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled) override;
+    
+    
 };
 
 // For Lua 5.1.4
@@ -80,6 +88,9 @@ public:
     
     void Shutdown(LuaManager &manager) override;
     
+    void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled) override;
+    
+    
 };
 
 // For Lua 5.0.2
@@ -89,5 +100,8 @@ public:
     void Initialise(LuaManager &manager) override;
     
     void Shutdown(LuaManager &manager) override;
+    
+    void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled) override;
+    
     
 };

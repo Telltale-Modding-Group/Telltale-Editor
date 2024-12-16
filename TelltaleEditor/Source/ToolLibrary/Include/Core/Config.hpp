@@ -68,6 +68,7 @@ using I64 = int64_t;
 using Float = float;
 
 using String = std::string;
+using CString = const char*;
 
 using Bool = bool;
 

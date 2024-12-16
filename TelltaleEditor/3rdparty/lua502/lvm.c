@@ -742,7 +742,7 @@ StkId luaV_execute (lua_State *L) {
         if (GET_OPCODE(i) == OP_SETLIST)
           n = (bc&(LFIELDS_PER_FLUSH-1)) + 1;
         else {
-          n = L->top - ra - 1;
+          n = (int)(L->top - ra - 1);
           L->top = L->ci->top;
         }
         bc &= ~(LFIELDS_PER_FLUSH-1);  /* bc = bc - bc%FPF */
