@@ -6,6 +6,7 @@ ${lua523_SOURCE_DIR}/lapi.c
 ${lua523_SOURCE_DIR}/lauxlib.c
 ${lua523_SOURCE_DIR}/lbaselib.c
 ${lua523_SOURCE_DIR}/lcode.c
+${lua523_SOURCE_DIR}/lbitlib.c
 ${lua523_SOURCE_DIR}/lcorolib.c
 ${lua523_SOURCE_DIR}/lctype.c
 ${lua523_SOURCE_DIR}/ldblib.c

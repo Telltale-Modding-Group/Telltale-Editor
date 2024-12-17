@@ -27,8 +27,8 @@ public:
     // Initialises, must be called after construction, the lua manager with the given version. Only one instance can run per version!
     void Initialise(LuaVersion Vers);
     
-    // Runs a chunk of uncompiled lua source. Pass in the C string and its length.
-    void RunText(CString Code, U32 Len);
+    // Runs a chunk of uncompiled lua source. Pass in the C string and its length. Pass in the Name of the lua file as the optional last argument.
+    void RunText(CString Code, U32 Len, CString Name = "defaultrun.lua");
 
     // Default constructor.
     LuaManager() = default;
@@ -53,15 +53,18 @@ private:
 class LuaAdapterBase {
 protected:
     
-    lua_State* _State = NULL; // lua_State specific to the verison.
+    LuaManager& _Manager;
+    lua_State* _State = nullptr; // lua_State specific to the verison.
     
 public:
     
-    virtual void Initialise(LuaManager& manager) = 0;
+    virtual void Initialise() = 0;
     
-    virtual void Shutdown(LuaManager& manager) = 0;
+    virtual void Shutdown() = 0;
     
-    virtual void RunChunk(U8* Chunk, U32 Len, Bool IsCompiled) = 0;
+    virtual void RunChunk(U8* Chunk, U32 Len, Bool IsCompiled, CString Name) = 0;
+    
+    inline LuaAdapterBase(LuaManager& manager) : _Manager(manager) {}
     
     inline virtual ~LuaAdapterBase() {}
     
@@ -71,11 +74,13 @@ public:
 class LuaAdapter_523 : public LuaAdapterBase {
 public:
     
-    void Initialise(LuaManager &manager) override;
+    inline LuaAdapter_523(LuaManager& _Man) : LuaAdapterBase(_Man) {}
     
-    void Shutdown(LuaManager &manager) override;
+    void Initialise() override;
     
-    void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled) override;
+    void Shutdown() override;
+    
+    void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
     
 };
@@ -84,11 +89,13 @@ public:
 class LuaAdapter_514 : public LuaAdapterBase {
 public:
     
-    void Initialise(LuaManager &manager) override;
+    inline LuaAdapter_514(LuaManager& _Man) : LuaAdapterBase(_Man) {}
     
-    void Shutdown(LuaManager &manager) override;
+    void Initialise() override;
     
-    void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled) override;
+    void Shutdown() override;
+    
+    void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
     
 };
@@ -97,11 +104,13 @@ public:
 class LuaAdapter_502 : public LuaAdapterBase {
 public:
     
-    void Initialise(LuaManager &manager) override;
+    inline LuaAdapter_502(LuaManager& _Man) : LuaAdapterBase(_Man) {}
     
-    void Shutdown(LuaManager &manager) override;
+    void Initialise() override;
     
-    void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled) override;
+    void Shutdown() override;
+    
+    void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
     
 };

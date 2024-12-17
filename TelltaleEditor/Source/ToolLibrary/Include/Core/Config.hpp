@@ -79,16 +79,20 @@ using Bool = bool;
 
 // Windows Platform Specifics
 #define PLATFORM_NAME "Windows"
+// Lua library platform
+#define LUA_WIN
 
 #elif defined(MACOS)
 
 // MacOS Platform Specifics
 #define PLATFORM_NAME "MacOS"
+#define LUA_MACOSX
 
 #elif defined(LINUX)
 
 // Linux Platform Specifics
 #define PLATFORM_NAME "Linux"
+#define LUA_LINUX
 
 #else
 
@@ -124,6 +128,6 @@ template <typename T> class hacked_priority_queue : public std::priority_queue<T
 
 // Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by changing these macros.
 
-#define TTE_NEW(_Type) new _Type()
+#define TTE_NEW(_Type, ...) new _Type(__VA_ARGS__)
 
 #define TTE_DEL(_Inst) delete _Inst
