@@ -26,24 +26,26 @@ void LuaAdapter_502::Initialise() {
 }
 
 void LuaAdapter_502::RunChunk(U8* Chunk, U32 Len, Bool IsCompiled, CString Name){
-    int error = luaL_loadbuffer(_State, (const char*)Chunk, (size_t)Len, Name); // Load detected buffer
-    if(error == 0) // OK. Function now at top of stack, run.
+    int error = luaL_loadbuffer(_State, (const char*)Chunk, (size_t)Len, Name); // Load detected text buffer
+    if(error == 0){ // OK. Function now at top of stack, run.
         lua_pcall(_State, 0, 0, 0);
-    else{
-        if(error == LUA_ERRSYNTAX)
+    }else{
+        if(error == LUA_ERRSYNTAX){
             TTE_LOG("Running %s: syntax error(s) => %s", Name, lua_tostring(_State, 0));
-        else if(error == LUA_ERRMEM)
+        }else if(error == LUA_ERRMEM){
             TTE_LOG("Running %s: memory allocation error");
+        }
         lua_pop(_State, 1); // Pop the error message string
         return;
     }
     if(error == 0)
         return; // OK
-    if(error == LUA_ERRRUN)
+    if(error == LUA_ERRRUN){
         TTE_LOG("Running %s: runtime error(s) => %s", Name, lua_tostring(_State, 0));
-    else if(error == LUA_ERRMEM)
+    }else if(error == LUA_ERRMEM){
         TTE_LOG("Running %s: memory allocation error");
-    else if(error == LUA_ERRERR)
+    }else if(error == LUA_ERRERR){
         TTE_LOG("Running %s: error handle error");
+    }
     lua_pop(_State, 1); // Pop the error message string
 }
