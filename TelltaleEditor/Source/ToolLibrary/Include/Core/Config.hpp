@@ -29,7 +29,7 @@
 #else
 
 // In RELEASE, no logging.
-#define TTE_LOG(_, ...) ;
+#define TTE_LOG(_, ...)
 
 #endif
 
@@ -68,7 +68,7 @@ using I64 = int64_t;
 using Float = float;
 
 using String = std::string;
-using CString = const char*;
+using CString = const char *;
 
 using Bool = bool;
 
@@ -126,7 +126,8 @@ template <typename T> class hacked_priority_queue : public std::priority_queue<T
 // ===================================================================         MEMORY
 // ===================================================================
 
-// Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by changing these macros.
+// Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by
+// changing these macros.
 
 #define TTE_NEW(_Type, ...) new _Type(__VA_ARGS__)
 
