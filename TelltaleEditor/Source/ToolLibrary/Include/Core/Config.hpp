@@ -21,9 +21,24 @@
 
 #ifdef DEBUG
 
+// Helper logging functions, if VA_ARGS is empty overloading is used to not do anything. In the future make this more sophisticated, log to UI and files.
+inline void LogConsole() {}
+
+inline void LogConsole(const char* Msg, ...) {
+    va_list va{};
+    va_start(va, Msg);
+    vprintf(Msg, va);
+    va_end(va);
+    
+    // Check if we need a new line
+    size_t len = strlen(Msg);
+    if(len && Msg[len-1] != '\n')
+        printf("\n");
+}
+
 // In DEBUG, simply log any messages simply to the console. Adds a newline character. This is a workaround so empty VA_ARGS works ok. If changing
 // printf, change assert to.
-#define TTE_LOG(...) ::printf(__VA_ARGS__)
+#define TTE_LOG(...) LogConsole(__VA_ARGS__)
 
 #else
 
