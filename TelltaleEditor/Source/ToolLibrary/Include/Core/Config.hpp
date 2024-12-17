@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string>
 #include <cstring>
+#include <cstdarg>
 
 // =================================================================== LIBRARY CONFIGURATION
 // ===================================================================
