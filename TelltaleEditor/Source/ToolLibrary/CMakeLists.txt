@@ -6,6 +6,12 @@ set(TELLTALE_LIB_SOURCES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 # Create a library from the sources
 add_library(${TARGET_NAME} STATIC)
 
+# Link Libraries
+target_link_libraries(${TARGET_NAME} PUBLIC lua523)
+target_link_libraries(${TARGET_NAME} PUBLIC lua514)
+target_link_libraries(${TARGET_NAME} PUBLIC lua502)
+target_link_libraries(${TARGET_NAME} PUBLIC zlib)
+
 # SOURCE
 
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Scheduler)
