@@ -1,6 +1,7 @@
 #include <Core/Config.hpp>
 #include <Core/Thread.hpp>
 #include <Scheduler/JobScheduler.hpp>
+#include <Scripting/LuaManager.hpp>
 
 // ============================ TEMPORARY STUFF ============================
 
@@ -48,11 +49,24 @@ void Test()
 
 // ========================================================================
 
+void TestLua() {
+    LuaManager Man[3]; // test init each version
+    Man[0].Initialise(LuaVersion::LUA_5_2_3);
+    Man[1].Initialise(LuaVersion::LUA_5_1_4);
+    Man[2].Initialise(LuaVersion::LUA_5_0_2);
+    
+    std::string TestCode = "local aVar = 100\nprint(\"Did you see me\", aVar)";
+    for(int i = 0; i < 3; i++){
+        Man[i].RunText(TestCode.c_str(), (U32)TestCode.length());
+    }
+}
+
 int main()
 {
 
     // Arguments printed to console will always be in order 0 then 1. check! ensures order constraints of code.
-    Test();
+    //Test();
+    TestLua();
 
     TTE_LOG("Running TTE Version %s", TTE_VERSION);
     return 0;

@@ -1,0 +1,1 @@
+target_sources(${TARGET_NAME} PRIVATE Config.hpp Thread.hpp)
