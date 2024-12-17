@@ -23,8 +23,7 @@
 
 // In DEBUG, simply log any messages simply to the console. Adds a newline character. This is a workaround so empty VA_ARGS works ok. If changing
 // printf, change assert to.
-#define _TTE_LOG(fmt, ...) ::printf(fmt "\n", __VA_ARGS__)
-#define TTE_LOG(...) _TTE_LOG(__VA_ARGS__, "")
+#define TTE_LOG(...) ::printf(__VA_ARGS__)
 
 #else
 
@@ -42,14 +41,14 @@
 #define TTE_ASSERT(EXPR, ...)                                                                                                                        \
     if (!(EXPR))                                                                                                                                     \
     {                                                                                                                                                \
-        TTE_LOG(__VA_ARGS__, "");                                                                                                                    \
+        TTE_LOG(__VA_ARGS__);                                                                                                                    \
         DebugBreakpoint();                                                                                                                           \
     }
 
 #else
 
 // In RELEASE, ignore assertions.
-#define TTE_ASSERT(EXPR, MESSAGE, ...) ;
+#define TTE_ASSERT(EXPR, ...) ;
 
 #endif
 
