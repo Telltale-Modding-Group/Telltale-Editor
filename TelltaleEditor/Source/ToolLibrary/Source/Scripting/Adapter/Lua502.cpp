@@ -33,7 +33,7 @@ void LuaAdapter_502::RunChunk(U8* Chunk, U32 Len, Bool IsCompiled, CString Name)
         if(error == LUA_ERRSYNTAX){
             TTE_LOG("Running %s: syntax error(s) => %s", Name, lua_tostring(_State, 0));
         }else if(error == LUA_ERRMEM){
-            TTE_LOG("Running %s: memory allocation error");
+            TTE_LOG("Running %s: memory allocation error", Name);
         }
         lua_pop(_State, 1); // Pop the error message string
         return;
@@ -43,9 +43,9 @@ void LuaAdapter_502::RunChunk(U8* Chunk, U32 Len, Bool IsCompiled, CString Name)
     if(error == LUA_ERRRUN){
         TTE_LOG("Running %s: runtime error(s) => %s", Name, lua_tostring(_State, 0));
     }else if(error == LUA_ERRMEM){
-        TTE_LOG("Running %s: memory allocation error");
+        TTE_LOG("Running %s: memory allocation error", Name);
     }else if(error == LUA_ERRERR){
-        TTE_LOG("Running %s: error handle error");
+        TTE_LOG("Running %s: error handle error", Name);
     }
     lua_pop(_State, 1); // Pop the error message string
 }
