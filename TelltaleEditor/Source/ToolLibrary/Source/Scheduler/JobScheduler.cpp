@@ -658,7 +658,7 @@ JobResult JobScheduler::Wait(const std::vector<JobHandle> &jobHandles)
                 // Assign PostIncrement to local variable which will get incremented when the jobs finish.
                 it->second.PostIncrement = &LocalWaiter;
                 it->second.PostResult = &Result;
-                if (it->second.Result == JOB_RESULT_RUNNING)
+                if (it->second.Result == JOB_RESULT_RUNNING || it->second.Result == JOB_RESULT_NONE)
                 {
                     NumWaitingOn++;
                 }
