@@ -171,9 +171,10 @@ void JobScheduler::_DecrementRefs(U32 job, Bool bReleaseScheduler)
     auto it = _jobCounters.find(job);
     if (it != _jobCounters.end())
     {
-        if(bReleaseScheduler)
+        if (bReleaseScheduler)
             it->second.SchedulerReleased = true;
-        if((--it->second.Refs) == 0){
+        if ((--it->second.Refs) == 0)
+        {
             // No more references, so free it.
             _jobCounters.erase(it);
             // There may still be enqueued jobs in the array. Move the array to the pending jobs array.
@@ -182,12 +183,12 @@ void JobScheduler::_DecrementRefs(U32 job, Bool bReleaseScheduler)
             {
                 auto jobList = std::move(it->second);
                 _enqueuedJobs.erase(it);
-                
+
                 // Finished with enqueued job array, so release lock and now lock jobs array so append the local jobList to it
                 _aliveJobsLock.unlock();
-                
+
                 _jobsLock.lock();
-                
+
                 // Append the jobs
                 if (jobList.NumQueued == 1)
                 { // Only one in the array
@@ -204,9 +205,9 @@ void JobScheduler::_DecrementRefs(U32 job, Bool bReleaseScheduler)
                     jobList.Queued.~hacked_priority_queue();
                 }
                 jobList.NumQueued = 0;
-                
+
                 _jobsLock.unlock();
-                
+
                 return; // No more unlocks needed
             }
         }
@@ -359,9 +360,11 @@ void JobScheduler::_RegisterJobs(U32 nJobs, JobDescriptor *pJobDescriptors, JobH
         if (it == _enqueuedJobs.end())
         {
 
-            // Two cases. The job is alive and has no previous enqueued jobs (_enqueuedJobs doesn't contain it) or job isn't alive. Check alive, or scheduler has released its ref.
+            // Two cases. The job is alive and has no previous enqueued jobs (_enqueuedJobs doesn't contain it) or job isn't alive. Check alive, or
+            // scheduler has released its ref.
             auto checkAliveIt = _jobCounters.find(parent);
-            if (checkAliveIt == _jobCounters.end() || checkAliveIt->second.SchedulerReleased){
+            if (checkAliveIt == _jobCounters.end() || checkAliveIt->second.SchedulerReleased)
+            {
                 _Guard.unlock();
                 return _RegisterJobs(nJobs, pJobDescriptors, pOutHandles); // Job not found (parent), so is finished! Run normally.
             }
@@ -655,7 +658,10 @@ JobResult JobScheduler::Wait(const std::vector<JobHandle> &jobHandles)
                 // Assign PostIncrement to local variable which will get incremented when the jobs finish.
                 it->second.PostIncrement = &LocalWaiter;
                 it->second.PostResult = &Result;
-                NumWaitingOn++;
+                if (it->second.Result == JOB_RESULT_RUNNING || it->second.Result == JOB_RESULT_NONE)
+                {
+                    NumWaitingOn++;
+                }
             }
         }
     }
