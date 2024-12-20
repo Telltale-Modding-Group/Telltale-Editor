@@ -98,14 +98,30 @@ Bool FileRead(U64 Handle, U8 *Buffer, U64 Nbytes)
 
 U64 FileSize(U64 Handle)
 {
-    HANDLE file = (HANDLE)Handle;
+    /*HANDLE file = (HANDLE)Handle;
 
     LARGE_INTEGER size;
     BOOL success = GetFileSizeEx(file, &size);
 
     TTE_ASSERT(success, "Could not get file size. Windows error: %d", GetLastError());
 
+    return (U64)size.QuadPart;*/
+
+    HANDLE hFile = (HANDLE)Handle;
+    LARGE_INTEGER cur = {0};
+    LARGE_INTEGER size = {0};
+    
+    TTE_ASSERT(SetFilePointerEx(hFile, (LARGE_INTEGER){.QuadPart = 0}, &cur, FILE_CURRENT),
+               "Could not get current file pointer offset");
+
+    TTE_ASSERT(SetFilePointerEx(hFile, (LARGE_INTEGER){.QuadPart = 0}, &size, FILE_END),
+               "Could not seek to file end offset");
+
+    TTE_ASSERT(SetFilePointerEx(hFile, cur, NULL, FILE_BEGIN),
+               "Could not restore file pointer to original offset");
+
     return (U64)size.QuadPart;
+
 }
 
 U64 FileNull() { return (U64)INVALID_HANDLE_VALUE; }
