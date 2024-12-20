@@ -27,7 +27,7 @@ U64 FileOpen(CString path){
 }
 
 void FileClose(U64 Handle){
-    return close((int)Handle);
+    close((int)Handle);
 }
 
 Bool FileWrite(U64 Handle, const U8* Buffer, U64 Nbytes){
