@@ -72,7 +72,7 @@ public:
     
     // inequality operator
     inline bool operator!=(const ResourceURL& rhs) const {
-        return _Scheme != rhs._Scheme ||Symbol(_Path) != Symbol(rhs._Path);
+        return _Scheme != rhs._Scheme || Symbol(_Path) != Symbol(rhs._Path);
     }
     
     // Implicit bool converter, returns if valid.
@@ -165,7 +165,7 @@ private:
     
 protected:
     
-    virtual Bool _ReadPage(U32 index, U8* OutputBuffer, U64 Nbytes); // read the page. designed to be overriden to compression etc
+    virtual Bool _ReadPage(U64 index, U8* OutputBuffer, U64 Nbytes); // read the page. designed to be overriden to compression etc
     
     DataStreamMemory(const ResourceURL& url, U64 pageSize = MEMORY_STREAM_DEFAULT_PAGESIZE);
     

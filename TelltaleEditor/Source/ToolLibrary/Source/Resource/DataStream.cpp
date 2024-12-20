@@ -193,6 +193,12 @@ String ResourceURL::GetPath() const {
 ResourceURL::ResourceURL(const Symbol &symbol) { 
     ResourceURL resolved = DataStreamManager::GetInstance()->Resolve(symbol);
     *this = resolved;
+    if(GetScheme() == ResourceScheme::INVALID){
+        _Scheme = ResourceScheme::SYMBOL;
+        char tmp[32];
+        sprintf(tmp, "%llX", symbol.GetCRC64());
+        _Path = tmp;
+    }
 }
 
 ResourceURL::ResourceURL(const String &path) { 
@@ -273,7 +279,7 @@ Bool DataStreamMemory::Read(U8 *OutputBuffer, U64 Nbytes) {
     return true;
 }
 
-Bool DataStreamMemory::_ReadPage(U32 index, U8 *OutputBuffer, U64 Nbytes) {
+Bool DataStreamMemory::_ReadPage(U64 index, U8 *OutputBuffer, U64 Nbytes) {
     memcpy(OutputBuffer, _PageTable[_PageIdx], Nbytes);
     return true;
 }

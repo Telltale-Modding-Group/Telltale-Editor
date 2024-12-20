@@ -25,7 +25,7 @@ U64 CRC64LowerCase(const U8* Buffer, U32 BufferLength, U64 InitialCRC64) {
 U32 CRC32(const U8* Buffer, U32 BufferLength, U32 InitialCRC32) {
     InitialCRC32 = ~InitialCRC32; // Is inverted
     for(U32 i = 0; i < BufferLength; i++){
-        InitialCRC32 = CRC64_Table[(U32)(InitialCRC32 ^ Buffer[i]) & 0xFF] ^ (InitialCRC32 >> 8);
+        InitialCRC32 = CRC32_Table[(U32)(InitialCRC32 ^ Buffer[i]) & 0xFF] ^ (InitialCRC32 >> 8);
     }
     return ~InitialCRC32; // Inverted again
 }
