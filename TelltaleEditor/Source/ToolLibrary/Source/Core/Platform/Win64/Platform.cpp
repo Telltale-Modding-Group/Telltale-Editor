@@ -111,13 +111,13 @@ U64 FileSize(U64 Handle)
     LARGE_INTEGER cur = {0};
     LARGE_INTEGER size = {0};
     
-    TTE_ASSERT(SetFilePointerEx(hFile, (LARGE_INTEGER){.QuadPart = 0}, &cur, FILE_CURRENT),
+    TTE_ASSERT(SetFilePointerEx(hFile, LARGE_INTEGER{0}, &cur, FILE_CURRENT),
                "Could not get current file pointer offset");
 
-    TTE_ASSERT(SetFilePointerEx(hFile, (LARGE_INTEGER){.QuadPart = 0}, &size, FILE_END),
+    TTE_ASSERT(SetFilePointerEx(hFile, LARGE_INTEGER{0}, &size, FILE_END),
                "Could not seek to file end offset");
 
-    TTE_ASSERT(SetFilePointerEx(hFile, cur, NULL, FILE_BEGIN),
+    TTE_ASSERT(SetFilePointerEx(hFile, cur, nullptr, FILE_BEGIN),
                "Could not restore file pointer to original offset");
 
     return (U64)size.QuadPart;
