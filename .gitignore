@@ -6,5 +6,5 @@
 Bin/*
 build/*
 *.DS_Store
-CMakeFiles
+CMakeFiles/*
 CMakeCache.txt
