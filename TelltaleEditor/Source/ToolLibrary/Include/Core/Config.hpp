@@ -121,6 +121,23 @@ using Bool = bool;
  */
 void DebugBreakpoint();
 
+// Below are platform-defined file IO routines. U64 is casted to the relavent platform file handle.
+
+// Opens the given file in read-write mode. Returns a platform specific handle.
+U64 FileOpen(CString path);
+
+Bool FileWrite(U64 Handle, const U8* Buffer, U64 Nbytes);
+
+Bool FileRead(U64 Handle, U8* Buffer, U64 Nbytes);
+
+U64 FileSize(U64 Handle); // Returns total size
+
+void FileClose(U64 Handle);
+
+U64 FileNull(); // Return the invalid file handle.
+
+String FileNewTemp(); // Return path for available new temp file.
+
 // ===================================================================         UTILS
 // ===================================================================
 
@@ -130,7 +147,7 @@ void DebugBreakpoint();
 
 // Helper class. std::priority_queue normally does not let us access by finding elements. Little hack to bypass and get internal vector container.
 template <typename T> class hacked_priority_queue : public std::priority_queue<T>
-{ // Note applying library convention, see this as an 'extension' to std::
+{ // Not applying library convention, see this as an 'extension' to std::
   public:
     std::vector<T> &get_container() { return this->c; }
 
@@ -142,9 +159,20 @@ template <typename T> class hacked_priority_queue : public std::priority_queue<T
 // ===================================================================         MEMORY
 // ===================================================================
 
-// Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by
-// changing these macros.
+// Not an enum class for ease of use. Used in TTE_NEW.
+enum MemoryTag
+{
+    MEMORY_TAG_SCHEDULER, // Scheduler related allocation.
+    MEMORY_TAG_SCRIPTING, // Lua and Script Manager allocation
+    MEMORY_TAG_DATASTREAM, // DataStream allocation
+};
 
-#define TTE_NEW(_Type, ...) new _Type(__VA_ARGS__)
+// Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by changing these macros. Memory tags used for future use.
+
+#define TTE_NEW(_Type, _MemoryTag, ...) new _Type(__VA_ARGS__)
 
 #define TTE_DEL(_Inst) delete _Inst
+
+#define TTE_ALLOC(_NBytes, _MemoryTag) new U8[_NBytes]
+
+#define TTE_FREE(_ByteArray) delete[] ((U8*)_ByteArray)

@@ -6,7 +6,7 @@ JobScheduler *JobScheduler::Instance = 0;
 void JobScheduler::Initialise()
 {
     if (Instance == 0)
-        Instance = new JobScheduler();
+        Instance = TTE_NEW(JobScheduler, MEMORY_TAG_SCHEDULER);
 }
 
 void JobScheduler::Shutdown()

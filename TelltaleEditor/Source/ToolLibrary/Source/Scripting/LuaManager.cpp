@@ -15,11 +15,11 @@ void LuaManager::Initialise(LuaVersion Vers) {
     TTE_ASSERT(_Version == LuaVersion::LUA_NONE && Vers != LuaVersion::LUA_NONE, "Cannot re-initialise lua manager / version is invalid");
     _Version = Vers;
     if(Vers == LuaVersion::LUA_5_2_3)
-        _Adapter = TTE_NEW(LuaAdapter_523, *this);
+        _Adapter = TTE_NEW(LuaAdapter_523, MEMORY_TAG_SCRIPTING, *this);
     else if(Vers == LuaVersion::LUA_5_1_4)
-        _Adapter = TTE_NEW(LuaAdapter_514, *this);
+        _Adapter = TTE_NEW(LuaAdapter_514, MEMORY_TAG_SCRIPTING, *this);
     else if(Vers == LuaVersion::LUA_5_0_2)
-        _Adapter = TTE_NEW(LuaAdapter_502, *this);
+        _Adapter = TTE_NEW(LuaAdapter_502, MEMORY_TAG_SCRIPTING, *this);
     else
         TTE_ASSERT(false, "Invalid or unsupported lua version %d", (U32)Vers);
     _Adapter->Initialise();

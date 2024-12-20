@@ -1,1 +1,1 @@
-target_sources(${TARGET_NAME} PRIVATE Thread.cpp)
+target_sources(${TARGET_NAME} PRIVATE Platform.cpp)

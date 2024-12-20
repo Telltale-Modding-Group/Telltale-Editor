@@ -17,13 +17,14 @@ target_link_libraries(${TARGET_NAME} PUBLIC zlib)
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Scheduler)
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Core)
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Scripting)
-
+add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Resource)
 # INCLUDE
 
 add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Scheduler)
 add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Core)
 add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Meta)
 add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Scripting)
+add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Resource)
 
 # Enable platform specific defines
 set_build_type(${TARGET_NAME})
