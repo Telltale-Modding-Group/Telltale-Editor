@@ -185,7 +185,8 @@ struct JobCounter
     JobResult Result = JOB_RESULT_NONE; // Result of the job
     U32 *PostIncrement = NULL;          // Used in Wait(multiple jobs). Internally used to count how many jobs left to finish.
     JobResult *PostResult = NULL;       // If non-null, when job finishes if it failed then this is assigned to FAIL such that Wait knows the result.
-    Bool SchedulerReleased = false;     // When the Refs is decremented internally, this gets set to true - meaning the job is only tracked by external JobHandles
+    Bool SchedulerReleased =
+        false; // When the Refs is decremented internally, this gets set to true - meaning the job is only tracked by external JobHandles
 };
 
 /// <summary>
@@ -358,7 +359,8 @@ class JobScheduler
     void _IncrementRefs(U32 jobID);
 
     /// <summary>
-    /// Internal: Decrement the number of references to the Job. If its now zero, the internal counter is freed. The second argument is true if we are releasing the internal scheduler reference to the job. See JobCounter.
+    /// Internal: Decrement the number of references to the Job. If its now zero, the internal counter is freed. The second argument is true if we are
+    /// releasing the internal scheduler reference to the job. See JobCounter.
     /// </summary>
     void _DecrementRefs(U32 jobID, Bool bReleaseSched);
 
@@ -440,7 +442,7 @@ class JobScheduler
 
 JobHandle::~JobHandle()
 {
-    if (IsValid() && JobScheduler::Instance)            // Ensure scheduler is alive. If not, no need to decrement
+    if (IsValid() && JobScheduler::Instance)                   // Ensure scheduler is alive. If not, no need to decrement
         JobScheduler::Instance->_DecrementRefs(_jobID, false); // Handle is finished with, decrement number of references
 }
 
