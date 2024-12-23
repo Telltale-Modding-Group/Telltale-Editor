@@ -39,7 +39,7 @@ class ResourceURL
 
     // Constructs with the symbol scheme. The resource URL that points to that symbol. If GetScheme() is still symbol, it was not found.
     // You can still call open and another find attempt is made, so Open() may succeed if it now exists.
-    // nIf it is not this, then it was found and you can open it.
+    // If it is not this, then it was found and you can open it.
     ResourceURL(const Symbol &symbol);
 
     // Construct manually
@@ -89,14 +89,14 @@ class DataStream
     // Returns the size in bytes of this data stream
     virtual U64 GetSize() = 0;
 
+    virtual void SetPosition(U64 newPosition) = 0;
+
+    virtual U64 GetPosition() = 0;
+
     // Gets the resource URL of this data stream.
     inline virtual const ResourceURL &GetURL() { return _ResourceLocation; }
 
     inline virtual ~DataStream() {} // Virtual destructor
-    
-    inline virtual void SetPosition(U64 newPosition) { TTE_ASSERT(false, "DataStream not seekable"); }
-    
-    inline virtual U64 GetPosition() {TTE_ASSERT(false, "DataStream not seekable"); }
 
   protected:
     // Creates new data stream from a URL. Opens it.
@@ -105,7 +105,6 @@ class DataStream
     ResourceURL _ResourceLocation;
 
     friend class DataStreamManager; // Allow access to ctor
-    
 };
 
 // Useful alias for data stream pointer, which deallocates automagically when finished with.
@@ -118,14 +117,14 @@ class DataStreamFile : public DataStream
     virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
 
     virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
-    
+
     virtual void SetPosition(U64 newPosition) override;
-    
+
     virtual U64 GetPosition() override;
 
-    virtual ~DataStreamFile();
-
     virtual U64 GetSize() override;
+
+    virtual ~DataStreamFile();
 
   protected:
     DataStreamFile(const ResourceURL &url);
@@ -143,14 +142,14 @@ class DataStreamMemory : public DataStream
 
     virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
 
-    virtual ~DataStreamMemory();
-
     // Provide more functionality to move around the seek position. NOTE: a value larger than the current size will expand the memory.
     virtual void SetPosition(U64 newPosition) override;
-    
+
     inline virtual U64 GetPosition() override { return _PageIdx * _PageSize + _PagePos; }
 
     inline virtual U64 GetSize() override { return _Size; }
+
+    virtual ~DataStreamMemory();
 
   private:
     void _EnsureCap(U64 bytes);
@@ -172,62 +171,57 @@ class DataStreamMemory : public DataStream
 // Buffer data stream. A writable and readable statically sized buffer internally.
 class DataStreamBuffer : public DataStream
 {
-public:
-    
+  public:
     virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
-    
+
     virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
-    
-    virtual ~DataStreamBuffer();
-    
+
     // Provide more functionality to move around the seek position. NOTE: a value larger than the current size will expand the memory.
     virtual U64 GetPosition() override { return _Off; }
-    
-    virtual void SetPosition(U64 newposition) override;
-    
-    inline virtual U64 GetSize() override { return _Size; }
-    
-protected:
 
-    DataStreamBuffer(const ResourceURL &url, U64 size, U8* pBuffer = nullptr); // Optional buffer, if set will be deallocated with tte_free
-    
-    U8* _Buffer;
+    virtual void SetPosition(U64 newPosition) override;
+
+    inline virtual U64 GetSize() override { return _Size; }
+
+    virtual ~DataStreamBuffer();
+
+  protected:
+    DataStreamBuffer(const ResourceURL &url, U64 size, U8 *pBuffer = nullptr); // Optional buffer, if set will be deallocated with tte_free
+
+    U8 *_Buffer;
     U64 _Off;
     U64 _Size;
-    
+
     friend class DataStreamManager;
 };
 
 // Sub Stream. Reads and writes to a subsection of the parent stream.
 class DataStreamSubStream : public DataStream
 {
-public:
-    
+  public:
     virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
-    
+
     virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
-    
-    virtual ~DataStreamSubStream();
-    
+
     // Provide more functionality to move around the seek position. NOTE: a value larger than the current size will expand the memory.
     virtual U64 GetPosition() override { return _Off; }
-    
-    virtual void SetPosition(U64 newposition) override;
-    
+
+    virtual void SetPosition(U64 newPosition) override;
+
     inline virtual U64 GetSize() override { return _Size; }
-    
-protected:
-    
+
+    virtual ~DataStreamSubStream();
+
+  protected:
     // Parent stream must be seekable. Must be
-    DataStreamSubStream(const DataStreamRef& parent, U64 pos, U64 size); // Specify section of parent stream
-    
+    DataStreamSubStream(const DataStreamRef &parent, U64 pos, U64 size); // Specify section of parent stream
+
     U64 _BaseOff;
     U64 _Off;
     U64 _Size;
     DataStreamRef _Prnt;
-    
+
     friend class DataStreamManager;
-    
 };
 
 // This manages lifetimes of data streams, finding URLs, opening files, and everything related to sources and destinations of byte streams.
@@ -239,12 +233,12 @@ class DataStreamManager
 
     // Creates a file stream to a temporary file on disk.
     DataStreamRef CreateTempStream();
-    
+
     // Creates a memory stream that is a fixed size (DataStreamBuffer). Optionally pass a pre-allocated buffer, which will be TTE_FREE'd after.
-    DataStreamRef CreateBufferStream(const ResourceURL &path, U64 Size, U8* pPreAllocated = nullptr);
-    
+    DataStreamRef CreateBufferStream(const ResourceURL &path, U64 Size, U8 *pPreAllocated = nullptr);
+
     // Creates a sub stream which reads from the specific part of the parent stream. The parent stream must be seekable (ie not network etc).
-    DataStreamRef CreateSubStream(const DataStreamRef& parent, U64 offset, U64 size);
+    DataStreamRef CreateSubStream(const DataStreamRef &parent, U64 offset, U64 size);
 
     // Resolves a symbol. Will return the resource URL with the full path. If not, returns an invalid stream because it was not found.
     ResourceURL Resolve(const Symbol &sym);
@@ -266,11 +260,11 @@ class DataStreamManager
 
     // Makes a private cache memory stream publicly accessible by FindCache, adding it to the internal map if it doesn't exist already.
     void Publicise(std::shared_ptr<DataStreamMemory> &stream);
-    
+
     // Transfers bytes from the source stream to the destination stream in chunks. Ensure source and destination are correctly
     // positioned before this call such that you copy the data which you want. Set Nbytes to the number of bytes you want to copy.
     // Returns false if a Read or Write to source or dest failed.
-    Bool Transfer(DataStreamRef& src, DataStreamRef& dst, U64 Nbytes);
+    Bool Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nbytes);
 
     static void Initialise();
 
