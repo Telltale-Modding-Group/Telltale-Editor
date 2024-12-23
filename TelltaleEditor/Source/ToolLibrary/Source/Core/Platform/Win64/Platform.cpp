@@ -84,7 +84,7 @@ Bool FileRead(U64 Handle, U8 *Buffer, U64 Nbytes)
 {
     HANDLE file = (HANDLE)Handle;
 
-    DWORD bytes_read = 0;
+    DWORD bytes_read{0};
     BOOL success = ReadFile(file, Buffer, (DWORD)Nbytes, &bytes_read, NULL);
 
     if (!success)
@@ -99,20 +99,16 @@ Bool FileRead(U64 Handle, U8 *Buffer, U64 Nbytes)
 U64 FileSize(U64 Handle)
 {
     HANDLE hFile = (HANDLE)Handle;
-    LARGE_INTEGER cur = {0};
-    LARGE_INTEGER size = {0};
-    
-    TTE_ASSERT(SetFilePointerEx(hFile, LARGE_INTEGER{0}, &cur, FILE_CURRENT),
-               "Could not get current file pointer offset");
+    LARGE_INTEGER cur{0};
+    LARGE_INTEGER size{0};
 
-    TTE_ASSERT(SetFilePointerEx(hFile, LARGE_INTEGER{0}, &size, FILE_END),
-               "Could not seek to file end offset");
+    TTE_ASSERT(SetFilePointerEx(hFile, LARGE_INTEGER{0}, &cur, FILE_CURRENT), "Could not get current file pointer offset");
 
-    TTE_ASSERT(SetFilePointerEx(hFile, cur, nullptr, FILE_BEGIN),
-               "Could not restore file pointer to original offset");
+    TTE_ASSERT(SetFilePointerEx(hFile, LARGE_INTEGER{0}, &size, FILE_END), "Could not seek to file end offset");
+
+    TTE_ASSERT(SetFilePointerEx(hFile, cur, nullptr, FILE_BEGIN), "Could not restore file pointer to original offset");
 
     return (U64)size.QuadPart;
-
 }
 
 U64 FileNull() { return (U64)INVALID_HANDLE_VALUE; }
@@ -132,4 +128,26 @@ String FileNewTemp()
     WideCharToMultiByte(CP_UTF8, 0, temp_file, -1, utf8path.data(), utf8len, NULL, NULL);
 
     return String(utf8path.data());
+}
+
+U64 FilePos(U64 Handle)
+{
+    HANDLE hFile = (HANDLE)Handle;
+    LARGE_INTEGER zero{0};
+    LARGE_INTEGER pos{0};
+
+    BOOL success = SetFilePointerEx(hFile, zero, &pos, FILE_CURRENT);
+    TTE_ASSERT(success, "Could not get current file position. Windows error: %d", GetLastError());
+
+    return (U64)pos.QuadPart;
+}
+
+void FileSeek(U64 Handle, U64 Offset)
+{
+    HANDLE hFile = (HANDLE)Handle;
+    LARGE_INTEGER move;
+    move.QuadPart = Offset;
+
+    BOOL success = SetFilePointerEx(hFile, move, NULL, FILE_BEGIN);
+    TTE_ASSERT(success, "Could not set file position. Windows error: %d", GetLastError());
 }
