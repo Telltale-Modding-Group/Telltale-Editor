@@ -1,25 +1,21 @@
-#include <Core/Config.hpp>
-
-#include <Resource/DataStream.hpp>
-
-// ============================ TEMPORARY STUFF ============================
-
-// ========================================================================
+#include <Core/Context.hpp>
 
 int main()
 {
 
-    // check build/telltaleeditor/source/editor/debug
-    DataStreamManager::Initialise();
-
-    ResourceURL url{"file:test.txt"};
-
-    auto stream = url.Open();
-    stream->Write((const U8 *)"hello people", 12);
-
-    DataStreamManager::Shutdown();
-
-    TTE_LOG("Running TTE Version %s", TTE_VERSION);
+    {
+        
+        ToolContext Context{};
+        
+        Context.Switch({"TEXAS","PC",""});
+        
+        String src = Context.LoadLibraryStringResource("Meta.lua");
+        if(src.length() == 0)
+            TTE_LOG("Could not load meta.lua");
+        else
+            ScriptManager::RunText(Context.GetLibraryLVM(), src);
+        
+    }
 
     return 0;
 }

@@ -157,6 +157,8 @@ template <typename T> class hacked_priority_queue : public std::priority_queue<T
     auto get_cmp() { return this->comp; }
 };
 
+class ToolContext; // forward declaration. used a lot. see context.hpp
+
 // ===================================================================         MEMORY
 // ===================================================================
 
@@ -166,6 +168,7 @@ enum MemoryTag
     MEMORY_TAG_SCHEDULER, // Scheduler related allocation.
     MEMORY_TAG_SCRIPTING, // Lua and Script Manager allocation
     MEMORY_TAG_DATASTREAM, // DataStream allocation
+    MEMORY_TAG_TEMPORARY, // small timescale temp allocation
 };
 
 // Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by changing these macros. Memory tags used for future use.

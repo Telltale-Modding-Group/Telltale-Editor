@@ -18,6 +18,8 @@ add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Scheduler)
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Core)
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Scripting)
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Resource)
+add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Meta)
+
 # INCLUDE
 
 add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Scheduler)

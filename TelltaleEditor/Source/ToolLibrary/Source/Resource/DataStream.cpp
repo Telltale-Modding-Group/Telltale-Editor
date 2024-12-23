@@ -61,12 +61,12 @@ void DataStreamManager::Initialise()
 static void DataStreamDeleter(DataStream *Stream) { TTE_DEL(Stream); }
 
 // create using a custom deleter, function above. tagged allocation for tracking. must be a file url.
-std::shared_ptr<DataStream> DataStreamManager::CreateFileStream(const ResourceURL &path)
+DataStreamRef DataStreamManager::CreateFileStream(const ResourceURL &path)
 {
     TTE_ASSERT(path.GetScheme() == ResourceScheme::FILE, "Resource URL must be a file path");
 
     DataStreamFile *pDSFile = TTE_NEW(DataStreamFile, MEMORY_TAG_DATASTREAM, path);
-    return std::shared_ptr<DataStream>(pDSFile, &DataStreamDeleter);
+    return DataStreamRef(pDSFile, &DataStreamDeleter);
 }
 
 ResourceURL DataStreamManager::Resolve(const Symbol &unresolved)
@@ -123,7 +123,37 @@ std::shared_ptr<DataStreamMemory> DataStreamManager::FindCache(const String &pat
     }
 }
 
-std::shared_ptr<DataStream> DataStreamManager::CreateTempStream() { return CreateFileStream(ResourceURL(ResourceScheme::FILE, FileNewTemp())); }
+DataStreamRef DataStreamManager::CreateTempStream() { return CreateFileStream(ResourceURL(ResourceScheme::FILE, FileNewTemp())); }
+
+//transfer blocked.
+Bool DataStreamManager::Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nbytes) {
+    if(src && dst && Nbytes){
+        
+        U8* Tmp = TTE_ALLOC(MAX(0x10000, Nbytes), MEMORY_TAG_TEMPORARY);
+        U64 Nblocks = (Nbytes+0xFFFF)/0x10000;
+        
+        Bool Result = true;
+        
+        for(U64 i = 0; i < Nblocks; i++)
+        {
+            
+            Result = src->Read(Tmp, 0x10000);
+            if(!Result)
+                break;
+            
+            Result = dst->Write(Tmp, 0x10000);
+            if(!Result)
+                break;
+            
+        }
+        
+        TTE_FREE(Tmp);
+        
+        return Result;
+        
+    }else return false; // invalid input arguments.
+}
+
 
 // ===================================================================         FILE DATA STREAM
 // ===================================================================
@@ -161,7 +191,7 @@ U64 DataStreamFile::GetSize() { return _Handle == FileNull() ? 0 : FileSize(_Han
 // ===================================================================         RESOURCE URL
 // ===================================================================
 
-std::shared_ptr<DataStream> ResourceURL::Open()
+DataStreamRef ResourceURL::Open()
 {
     if (_Scheme == ResourceScheme::INVALID)
         return nullptr; // Invalid, so always return null.
@@ -196,6 +226,7 @@ std::shared_ptr<DataStream> ResourceURL::Open()
             }
             else
                 return nullptr; // No errors, it just could not be resolved.
+            
         }
         catch (const std::invalid_argument &e)
         {
@@ -257,8 +288,8 @@ void ResourceURL::_Normalise()
     _Path.erase(std::remove_if(_Path.begin(), _Path.end(), [&validChars](char c) { return validChars.find(c) == std::string::npos; }), _Path.end());
 
     // remove leading/trailing whitespace 'trim'
-    _Path.erase(0, _Path.find_first_not_of(" \t\n\r"));
-    _Path.erase(_Path.find_last_not_of(" \t\n\r") + 1);
+    _Path.erase(0, _Path.find_first_not_of(" \t\n\r/"));
+    _Path.erase(_Path.find_last_not_of(" \t\n\r/") + 1);
 }
 
 // ===================================================================         MEMORY DATA STREAM

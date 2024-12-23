@@ -101,7 +101,11 @@ class DataStream
     ResourceURL _ResourceLocation;
 
     friend class DataStreamManager; // Allow access to ctor
+    
 };
+
+// Useful alias for data stream pointer, which deallocates automagically when finished with.
+using DataStreamRef = std::shared_ptr<DataStream>;
 
 // File specific data stream
 class DataStreamFile : public DataStream
@@ -160,10 +164,10 @@ class DataStreamManager
 {
   public:
     // Creates a file stream from the given resource URL.
-    std::shared_ptr<DataStream> CreateFileStream(const ResourceURL &path);
+    DataStreamRef CreateFileStream(const ResourceURL &path);
 
     // Creates a file stream to a temporary file on disk.
-    std::shared_ptr<DataStream> CreateTempStream();
+    DataStreamRef CreateTempStream();
 
     // Resolves a symbol. Will return the resource URL with the full path. If not, returns an invalid stream because it was not found.
     ResourceURL Resolve(const Symbol &sym);
@@ -185,6 +189,11 @@ class DataStreamManager
 
     // Makes a private cache memory stream publicly accessible by FindCache, adding it to the internal map if it doesn't exist already.
     void Publicise(std::shared_ptr<DataStreamMemory> &stream);
+    
+    // Transfers bytes from the source stream to the destination stream in chunks. Ensure source and destination are correctly
+    // positioned before this call such that you copy the data which you want. Set Nbytes to the number of bytes you want to copy.
+    // Returns false if a Read or Write to source or dest failed.
+    Bool Transfer(DataStreamRef& src, DataStreamRef& dst, U64 Nbytes);
 
     static void Initialise();
 
