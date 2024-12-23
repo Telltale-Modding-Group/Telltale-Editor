@@ -4,7 +4,8 @@
 #include <algorithm>
 #include <stdexcept>
 
-// ===================================================================         SCHEMES
+// ===================================================================
+// SCHEMES
 // ===================================================================
 
 String SchemeToString(ResourceScheme scheme)
@@ -35,7 +36,8 @@ ResourceScheme StringToScheme(const String &scheme)
     }
 }
 
-// ===================================================================         MANAGER
+// ===================================================================
+// MANAGER
 // ===================================================================
 
 DataStreamManager *DataStreamManager::Instance = nullptr;
@@ -125,47 +127,51 @@ std::shared_ptr<DataStreamMemory> DataStreamManager::FindCache(const String &pat
 
 DataStreamRef DataStreamManager::CreateTempStream() { return CreateFileStream(ResourceURL(ResourceScheme::FILE, FileNewTemp())); }
 
-DataStreamRef DataStreamManager::CreateBufferStream(const ResourceURL& url,U64 size, U8* b){
+DataStreamRef DataStreamManager::CreateBufferStream(const ResourceURL &url, U64 size, U8 *b)
+{
     DataStreamBuffer *pDSFile = TTE_NEW(DataStreamBuffer, MEMORY_TAG_DATASTREAM, url, size, b);
     return DataStreamRef(pDSFile, &DataStreamDeleter);
 }
 
-DataStreamRef DataStreamManager::CreateSubStream(const DataStreamRef& p, U64 o, U64 z){
+DataStreamRef DataStreamManager::CreateSubStream(const DataStreamRef &p, U64 o, U64 z)
+{
     DataStreamSubStream *pDSFile = TTE_NEW(DataStreamSubStream, MEMORY_TAG_DATASTREAM, p, o, z);
     return DataStreamRef(pDSFile, &DataStreamDeleter);
 }
 
-//transfer blocked.
-Bool DataStreamManager::Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nbytes) {
-    if(src && dst && Nbytes){
-        
-        U8* Tmp = TTE_ALLOC(MAX(0x10000, Nbytes), MEMORY_TAG_TEMPORARY);
-        U64 Nblocks = (Nbytes+0xFFFF)/0x10000;
-        
+// transfer blocked.
+Bool DataStreamManager::Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nbytes)
+{
+    if (src && dst && Nbytes)
+    {
+
+        U8 *Tmp = TTE_ALLOC(MAX(0x10000, Nbytes), MEMORY_TAG_TEMPORARY);
+        U64 Nblocks = (Nbytes + 0xFFFF) / 0x10000;
+
         Bool Result = true;
-        
-        for(U64 i = 0; i < Nblocks; i++)
+
+        for (U64 i = 0; i < Nblocks; i++)
         {
-            
+
             Result = src->Read(Tmp, 0x10000);
-            if(!Result)
+            if (!Result)
                 break;
-            
+
             Result = dst->Write(Tmp, 0x10000);
-            if(!Result)
+            if (!Result)
                 break;
-            
         }
-        
+
         TTE_FREE(Tmp);
-        
+
         return Result;
-        
-    }else return false; // invalid input arguments.
+    }
+    else
+        return false; // invalid input arguments.
 }
 
-
-// ===================================================================         FILE DATA STREAM
+// ===================================================================
+// FILE DATA STREAM
 // ===================================================================
 
 Bool DataStreamFile::Read(U8 *OutputBuffer, U64 Nbytes)
@@ -180,13 +186,9 @@ Bool DataStreamFile::Write(const U8 *InputBuffer, U64 Nbytes)
     return FileWrite(_Handle, InputBuffer, Nbytes);
 }
 
-U64 DataStreamFile::GetPosition(){
-    return FilePos(_Handle);
-}
+U64 DataStreamFile::GetPosition() { return FilePos(_Handle); }
 
-void DataStreamFile::SetPosition(U64 p) {
-    FileSeek(_Handle, p);
-}
+void DataStreamFile::SetPosition(U64 p) { FileSeek(_Handle, p); }
 
 DataStreamFile::~DataStreamFile()
 {
@@ -206,7 +208,8 @@ DataStreamFile::DataStreamFile(const ResourceURL &url) : DataStream(url), _Handl
 
 U64 DataStreamFile::GetSize() { return _Handle == FileNull() ? 0 : FileSize(_Handle); }
 
-// ===================================================================         RESOURCE URL
+// ===================================================================
+// RESOURCE URL
 // ===================================================================
 
 DataStreamRef ResourceURL::Open()
@@ -244,7 +247,6 @@ DataStreamRef ResourceURL::Open()
             }
             else
                 return nullptr; // No errors, it just could not be resolved.
-            
         }
         catch (const std::invalid_argument &e)
         {
@@ -461,40 +463,46 @@ void DataStreamMemory::_EnsureCap(U64 bytes)
     }
 }
 
-// ===================================================================         BUFFER DATA STREAM
+// ===================================================================
+// BUFFER DATA STREAM
 // ===================================================================
 
-Bool DataStreamBuffer::Read(U8 *OutputBuffer, U64 Nbytes) { 
+Bool DataStreamBuffer::Read(U8 *OutputBuffer, U64 Nbytes)
+{
     TTE_ASSERT(_Off + Nbytes < _Size, "Trying to read too many bytes from buffer stream");
     memcpy(OutputBuffer, _Buffer + _Off, Nbytes);
     _Off += Nbytes;
     return true;
 }
 
-Bool DataStreamBuffer::Write(const U8* InputBuffer, U64 Nbytes){
+Bool DataStreamBuffer::Write(const U8 *InputBuffer, U64 Nbytes)
+{
     TTE_ASSERT(_Off + Nbytes < _Size, "Trying to write too many bytes to buffer stream");
     memcpy(_Buffer + _Off, InputBuffer, Nbytes);
     _Off += Nbytes;
     return true;
 }
 
-DataStreamBuffer::~DataStreamBuffer() {
-    if(_Buffer)
+DataStreamBuffer::~DataStreamBuffer()
+{
+    if (_Buffer)
         TTE_FREE(_Buffer);
     _Buffer = nullptr;
     _Size = _Off = 0;
 }
 
-DataStreamBuffer::DataStreamBuffer(const ResourceURL& url, U64 sz, U8* buf) : DataStream(url) {
+DataStreamBuffer::DataStreamBuffer(const ResourceURL &url, U64 sz, U8 *buf) : DataStream(url)
+{
     _Size = sz;
     _Off = 0;
-    if(buf == nullptr)
+    if (buf == nullptr)
         _Buffer = TTE_ALLOC(sz, MEMORY_TAG_DATASTREAM);
     else
         _Buffer = buf;
 }
 
-void DataStreamBuffer::SetPosition(U64 pos){
+void DataStreamBuffer::SetPosition(U64 pos)
+{
     TTE_ASSERT(pos < _Size, "Trying to seek to invalid position in buffer stream");
     _Off = pos;
 }
@@ -502,36 +510,41 @@ void DataStreamBuffer::SetPosition(U64 pos){
 // ===================================================================         SUB DATA STREAM
 // ===================================================================
 
-Bool DataStreamSubStream::Read(U8 *OutputBuffer, U64 Nbytes) {
+Bool DataStreamSubStream::Read(U8 *OutputBuffer, U64 Nbytes)
+{
     TTE_ASSERT(_Off + Nbytes < _Size, "Trying to read too many bytes from sub stream");
-    if(_Prnt->GetPosition() != _BaseOff + _Off)
+    if (_Prnt->GetPosition() != _BaseOff + _Off)
         _Prnt->SetPosition(_BaseOff + _Off);
     _Prnt->Read(OutputBuffer, Nbytes);
     _Off += Nbytes;
     return true;
 }
 
-Bool DataStreamSubStream::Write(const U8* InputBuffer, U64 Nbytes){
+Bool DataStreamSubStream::Write(const U8 *InputBuffer, U64 Nbytes)
+{
     TTE_ASSERT(_Off + Nbytes < _Size, "Trying to write too many bytes to sub stream");
-    if(_Prnt->GetPosition() != _BaseOff + _Off)
+    if (_Prnt->GetPosition() != _BaseOff + _Off)
         _Prnt->SetPosition(_BaseOff + _Off);
     _Prnt->Write(InputBuffer, Nbytes);
     _Off += Nbytes;
     return true;
 }
 
-DataStreamSubStream::~DataStreamSubStream() {
+DataStreamSubStream::~DataStreamSubStream()
+{
     _Off = _BaseOff = _Size = 0;
     _Prnt.reset();
 }
 
-DataStreamSubStream::DataStreamSubStream(const DataStreamRef& ref, U64 off, U64 sz) : DataStream(ref ? ref->GetURL() : ResourceURL()) {
+DataStreamSubStream::DataStreamSubStream(const DataStreamRef &ref, U64 off, U64 sz) : DataStream(ref ? ref->GetURL() : ResourceURL())
+{
     _Off = 0;
     _BaseOff = off;
     _Size = sz;
 }
 
-void DataStreamSubStream::SetPosition(U64 pos){
+void DataStreamSubStream::SetPosition(U64 pos)
+{
     TTE_ASSERT(pos < _Size, "Trying to seek to invalid position in buffer stream");
     _Off = pos;
 }
