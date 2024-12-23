@@ -98,13 +98,13 @@ class LuaManager
     // Returns the positive index of the top of the stack.
     I32 GetTop();
     
-    // Gets a table element. Push the key THEN the value such that those are on the top of the stack. Index is the table index on the stack.
-    // Set raw to true such that no metamethods are executed. Returns nil if not found (tables cannot contain nil). Key and value are popped.
-    void GetTable(I32 index, Bool bRaw);
+    // Pushes and gets a table element. Push the key on the top of the stack, which will be popped. Index is the table index on the stack.
+    // Set raw to true such that no metamethods are executed. Pushes nil if not found (tables cannot contain nil).
+    void GetTable(I32 index, Bool bRaw = false);
     
     // Sets a table element. Push the key THEN the value such that those are on the top of the stack. Index is the table index on the stack.
     // Set raw to true such that no metamethods are executed. Key and value are popped.
-    void SetTable(I32 index, Bool bRaw);
+    void SetTable(I32 index, Bool bRaw = false);
     
     // Sets a table element without any metamethods. Table is on the stack at index. arrayIndex is the index into the table, 1 being first,
     // to set. Value is popped from top of stack to be set, so index cannot be -1.
@@ -164,6 +164,9 @@ class LuaManager
     
     // Gets the userdata pointer value at index on the stack
     void* ToPointer(I32 index);
+    
+    // Gets the integer at index on the stack
+    I32 ToInteger(I32 index);
     
     // Push an error string first. Generates a lua error.
     void Error();
@@ -253,6 +256,8 @@ class LuaAdapterBase
     
     virtual void* ToPointer(I32 index) = 0;
     
+    virtual I32 ToInteger(I32 index) = 0;
+    
     virtual void Error() = 0;
     
     virtual I32 UpvalueIndex(I32 index) = 0;
@@ -325,6 +330,8 @@ class LuaAdapter_523 : public LuaAdapterBase
     
     virtual void* ToPointer(I32 index) override;
     
+    virtual I32 ToInteger(I32 index) override;
+    
     virtual void Error() override;
     
     virtual I32 UpvalueIndex(I32 index) override;
@@ -391,6 +398,8 @@ class LuaAdapter_514 : public LuaAdapterBase
     virtual Float ToFloat(I32 index) override;
     
     virtual String ToString(I32 index) override;
+    
+    virtual I32 ToInteger(I32 index) override;
     
     virtual void* ToPointer(I32 index) override;
     
@@ -466,5 +475,7 @@ class LuaAdapter_502 : public LuaAdapterBase
     virtual void Error() override;
     
     virtual I32 UpvalueIndex(I32 index) override;
+    
+    virtual I32 ToInteger(I32 index) override;
     
 };

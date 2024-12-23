@@ -85,3 +85,11 @@ String FileNewTemp(){
     
     return String(tmplt);
 }
+
+U64 FilePos(U64 Handle) {
+    return (U64)lseek((int)Handle, 0, SEEK_CUR);
+}
+
+void FileSeek(U64 Handle, U64 Offset){
+    lseek((int)Handle, Offset, SEEK_SET);
+}

@@ -125,6 +125,16 @@ std::shared_ptr<DataStreamMemory> DataStreamManager::FindCache(const String &pat
 
 DataStreamRef DataStreamManager::CreateTempStream() { return CreateFileStream(ResourceURL(ResourceScheme::FILE, FileNewTemp())); }
 
+DataStreamRef DataStreamManager::CreateBufferStream(const ResourceURL& url,U64 size, U8* b){
+    DataStreamBuffer *pDSFile = TTE_NEW(DataStreamBuffer, MEMORY_TAG_DATASTREAM, url, size, b);
+    return DataStreamRef(pDSFile, &DataStreamDeleter);
+}
+
+DataStreamRef DataStreamManager::CreateSubStream(const DataStreamRef& p, U64 o, U64 z){
+    DataStreamSubStream *pDSFile = TTE_NEW(DataStreamSubStream, MEMORY_TAG_DATASTREAM, p, o, z);
+    return DataStreamRef(pDSFile, &DataStreamDeleter);
+}
+
 //transfer blocked.
 Bool DataStreamManager::Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nbytes) {
     if(src && dst && Nbytes){
@@ -168,6 +178,14 @@ Bool DataStreamFile::Write(const U8 *InputBuffer, U64 Nbytes)
 {
     TTE_ASSERT(_Handle != FileNull(), "File handle is null. Cannot write");
     return FileWrite(_Handle, InputBuffer, Nbytes);
+}
+
+U64 DataStreamFile::GetPosition(){
+    return FilePos(_Handle);
+}
+
+void DataStreamFile::SetPosition(U64 p) {
+    FileSeek(_Handle, p);
 }
 
 DataStreamFile::~DataStreamFile()
@@ -441,4 +459,79 @@ void DataStreamMemory::_EnsureCap(U64 bytes)
         for (U64 i = 0; i < numExtraPages; i++)
             _PageTable.push_back(pMemory + (i * _PageSize));
     }
+}
+
+// ===================================================================         BUFFER DATA STREAM
+// ===================================================================
+
+Bool DataStreamBuffer::Read(U8 *OutputBuffer, U64 Nbytes) { 
+    TTE_ASSERT(_Off + Nbytes < _Size, "Trying to read too many bytes from buffer stream");
+    memcpy(OutputBuffer, _Buffer + _Off, Nbytes);
+    _Off += Nbytes;
+    return true;
+}
+
+Bool DataStreamBuffer::Write(const U8* InputBuffer, U64 Nbytes){
+    TTE_ASSERT(_Off + Nbytes < _Size, "Trying to write too many bytes to buffer stream");
+    memcpy(_Buffer + _Off, InputBuffer, Nbytes);
+    _Off += Nbytes;
+    return true;
+}
+
+DataStreamBuffer::~DataStreamBuffer() {
+    if(_Buffer)
+        TTE_FREE(_Buffer);
+    _Buffer = nullptr;
+    _Size = _Off = 0;
+}
+
+DataStreamBuffer::DataStreamBuffer(const ResourceURL& url, U64 sz, U8* buf) : DataStream(url) {
+    _Size = sz;
+    _Off = 0;
+    if(buf == nullptr)
+        _Buffer = TTE_ALLOC(sz, MEMORY_TAG_DATASTREAM);
+    else
+        _Buffer = buf;
+}
+
+void DataStreamBuffer::SetPosition(U64 pos){
+    TTE_ASSERT(pos < _Size, "Trying to seek to invalid position in buffer stream");
+    _Off = pos;
+}
+
+// ===================================================================         SUB DATA STREAM
+// ===================================================================
+
+Bool DataStreamSubStream::Read(U8 *OutputBuffer, U64 Nbytes) {
+    TTE_ASSERT(_Off + Nbytes < _Size, "Trying to read too many bytes from sub stream");
+    if(_Prnt->GetPosition() != _BaseOff + _Off)
+        _Prnt->SetPosition(_BaseOff + _Off);
+    _Prnt->Read(OutputBuffer, Nbytes);
+    _Off += Nbytes;
+    return true;
+}
+
+Bool DataStreamSubStream::Write(const U8* InputBuffer, U64 Nbytes){
+    TTE_ASSERT(_Off + Nbytes < _Size, "Trying to write too many bytes to sub stream");
+    if(_Prnt->GetPosition() != _BaseOff + _Off)
+        _Prnt->SetPosition(_BaseOff + _Off);
+    _Prnt->Write(InputBuffer, Nbytes);
+    _Off += Nbytes;
+    return true;
+}
+
+DataStreamSubStream::~DataStreamSubStream() {
+    _Off = _BaseOff = _Size = 0;
+    _Prnt.reset();
+}
+
+DataStreamSubStream::DataStreamSubStream(const DataStreamRef& ref, U64 off, U64 sz) : DataStream(ref ? ref->GetURL() : ResourceURL()) {
+    _Off = 0;
+    _BaseOff = off;
+    _Size = sz;
+}
+
+void DataStreamSubStream::SetPosition(U64 pos){
+    TTE_ASSERT(pos < _Size, "Trying to seek to invalid position in buffer stream");
+    _Off = pos;
 }

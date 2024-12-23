@@ -139,6 +139,10 @@ U64 FileNull(); // Return the invalid file handle.
 
 String FileNewTemp(); // Return path for available new temp file.
 
+U64 FilePos(U64 Handle); // Return file position
+
+void FileSeek(U64 Handle, U64 Offset); // SEEK_SET
+
 // ===================================================================         UTILS
 // ===================================================================
 

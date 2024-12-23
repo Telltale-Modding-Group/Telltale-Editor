@@ -33,6 +33,10 @@ void LuaManager::RunText(CString Code, U32 Len, CString ChunkName)
     _Adapter->RunChunk((U8 *)Code, Len, false, ChunkName);
 }
 
+I32 LuaManager::ToInteger(I32 index){
+    return _Adapter->ToInteger(index);
+}
+
 void LuaManager::CallFunction(U32 Nargs, U32 Nresults)
 {
     return _Adapter->CallFunction(Nargs, Nresults);

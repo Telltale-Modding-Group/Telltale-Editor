@@ -92,7 +92,7 @@ Bool LuaAdapter_523::CheckStack(U32 extra)
 //adapter for passing in lua manager instead
 static int L523_CFunction(lua_State* L)
 {
-    LuaCFunction cfn = (LuaCFunction)lua_touserdata(L, lua_upvalueindex(1));
+    LuaCFunction cfn = (LuaCFunction)lua_touserdata(L, lua_upvalueindex(2));
     LuaManager& man = *((LuaManager*)lua_touserdata(L,lua_upvalueindex(1)));
     return (int)cfn(man);
 }
@@ -268,6 +268,11 @@ Bool LuaAdapter_523::ToBool(I32 index)
 Float LuaAdapter_523::ToFloat(I32 index)
 {
     return (Float)lua_tonumber(_State, (int)index);
+}
+
+I32 LuaAdapter_523::ToInteger(I32 index)
+{
+    return (I32)lua_tointeger(_State, (int)index);
 }
 
 String LuaAdapter_523::ToString(I32 index)

@@ -106,4 +106,40 @@ namespace ScriptManager {
         man.RunText(code.c_str(), (U32)code.length());
     }
     
+    inline String PopString(LuaManager& man) {
+        String ret = man.ToString(-1);
+        man.Pop(1);
+        return ret;
+    }
+    
+    inline Bool PopBool(LuaManager& man){
+        Bool ret = man.ToBool(-1);
+        man.Pop(1);
+        return ret;
+    }
+    
+    inline Float PopFloat(LuaManager& man){
+        Float ret = man.ToFloat(-1);
+        man.Pop(1);
+        return ret;
+    }
+    
+    inline I32 PopInteger(LuaManager& man){
+        I32 ret = man.ToInteger(-1);
+        man.Pop(1);
+        return ret;
+    }
+    
+    inline void* PopOpaque(LuaManager& man){
+        void* ret = man.ToPointer(-1);
+        man.Pop(1);
+        return ret;
+    }
+    
+    // Top of the stack should be the table. Pushes the element in the table at the given key. DOES NOT pop table.
+    inline void TableGet(LuaManager& man, String key) {
+        man.PushLString(std::move(key));
+        man.GetTable(-2);
+    }
+    
 }

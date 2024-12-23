@@ -93,6 +93,10 @@ class DataStream
     inline virtual const ResourceURL &GetURL() { return _ResourceLocation; }
 
     inline virtual ~DataStream() {} // Virtual destructor
+    
+    inline virtual void SetPosition(U64 newPosition) { TTE_ASSERT(false, "DataStream not seekable"); }
+    
+    inline virtual U64 GetPosition() {TTE_ASSERT(false, "DataStream not seekable"); }
 
   protected:
     // Creates new data stream from a URL. Opens it.
@@ -114,6 +118,10 @@ class DataStreamFile : public DataStream
     virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
 
     virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
+    
+    virtual void SetPosition(U64 newPosition) override;
+    
+    virtual U64 GetPosition() override;
 
     virtual ~DataStreamFile();
 
@@ -138,7 +146,9 @@ class DataStreamMemory : public DataStream
     virtual ~DataStreamMemory();
 
     // Provide more functionality to move around the seek position. NOTE: a value larger than the current size will expand the memory.
-    virtual void SetPosition(U64 newPosition);
+    virtual void SetPosition(U64 newPosition) override;
+    
+    inline virtual U64 GetPosition() override { return _PageIdx * _PageSize + _PagePos; }
 
     inline virtual U64 GetSize() override { return _Size; }
 
@@ -159,6 +169,67 @@ class DataStreamMemory : public DataStream
     friend class DataStreamManager;
 };
 
+// Buffer data stream. A writable and readable statically sized buffer internally.
+class DataStreamBuffer : public DataStream
+{
+public:
+    
+    virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
+    
+    virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
+    
+    virtual ~DataStreamBuffer();
+    
+    // Provide more functionality to move around the seek position. NOTE: a value larger than the current size will expand the memory.
+    virtual U64 GetPosition() override { return _Off; }
+    
+    virtual void SetPosition(U64 newposition) override;
+    
+    inline virtual U64 GetSize() override { return _Size; }
+    
+protected:
+
+    DataStreamBuffer(const ResourceURL &url, U64 size, U8* pBuffer = nullptr); // Optional buffer, if set will be deallocated with tte_free
+    
+    U8* _Buffer;
+    U64 _Off;
+    U64 _Size;
+    
+    friend class DataStreamManager;
+};
+
+// Sub Stream. Reads and writes to a subsection of the parent stream.
+class DataStreamSubStream : public DataStream
+{
+public:
+    
+    virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
+    
+    virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
+    
+    virtual ~DataStreamSubStream();
+    
+    // Provide more functionality to move around the seek position. NOTE: a value larger than the current size will expand the memory.
+    virtual U64 GetPosition() override { return _Off; }
+    
+    virtual void SetPosition(U64 newposition) override;
+    
+    inline virtual U64 GetSize() override { return _Size; }
+    
+protected:
+    
+    // Parent stream must be seekable. Must be
+    DataStreamSubStream(const DataStreamRef& parent, U64 pos, U64 size); // Specify section of parent stream
+    
+    U64 _BaseOff;
+    U64 _Off;
+    U64 _Size;
+    DataStreamRef _Prnt;
+    
+    friend class DataStreamManager;
+    
+};
+
 // This manages lifetimes of data streams, finding URLs, opening files, and everything related to sources and destinations of byte streams.
 class DataStreamManager
 {
@@ -168,6 +239,12 @@ class DataStreamManager
 
     // Creates a file stream to a temporary file on disk.
     DataStreamRef CreateTempStream();
+    
+    // Creates a memory stream that is a fixed size (DataStreamBuffer). Optionally pass a pre-allocated buffer, which will be TTE_FREE'd after.
+    DataStreamRef CreateBufferStream(const ResourceURL &path, U64 Size, U8* pPreAllocated = nullptr);
+    
+    // Creates a sub stream which reads from the specific part of the parent stream. The parent stream must be seekable (ie not network etc).
+    DataStreamRef CreateSubStream(const DataStreamRef& parent, U64 offset, U64 size);
 
     // Resolves a symbol. Will return the resource URL with the full path. If not, returns an invalid stream because it was not found.
     ResourceURL Resolve(const Symbol &sym);

@@ -284,3 +284,8 @@ void LuaAdapter_502::Error()
 {
     lua_error(_State);
 }
+
+I32 LuaAdapter_502::ToInteger(I32 index)
+{
+    return (I32)lua_tonumber(_State, (int)index);
+}
