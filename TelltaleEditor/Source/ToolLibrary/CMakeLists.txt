@@ -36,6 +36,6 @@ ignore_warnings(${TARGET_NAME} 1)
 
 target_include_directories(${TARGET_NAME} PUBLIC ${TELLTALE_LIB_HEADERS_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Add include dirs 3rd parties
+# Add 3rd party directory
 
 target_include_directories(${TARGET_NAME} PUBLIC ${THIRD_PARTY_DIR})
