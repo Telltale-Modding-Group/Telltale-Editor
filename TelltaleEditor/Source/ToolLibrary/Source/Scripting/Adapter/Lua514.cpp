@@ -18,7 +18,7 @@ void LuaAdapter_514::Initialise()
     luaL_openlibs(_State);
 }
 
-void LuaAdapter_514::RunChunk(U8 *Chunk, U32 Len, Bool, CString Name)
+Bool LuaAdapter_514::RunChunk(U8 *Chunk, U32 Len, Bool, CString Name)
 {
     int error = luaL_loadbuffer(_State, (const char *)Chunk, (size_t)Len, Name); // Load detected text buffer
     if (error == 0)
@@ -29,20 +29,20 @@ void LuaAdapter_514::RunChunk(U8 *Chunk, U32 Len, Bool, CString Name)
     {
         if (error == LUA_ERRSYNTAX)
         {
-            TTE_LOG("Running %s: syntax error(s) => %s", Name, lua_tostring(_State, 0));
+            TTE_LOG("Running %s: syntax error(s) => %s", Name, lua_tostring(_State, -1));
         }
         else if (error == LUA_ERRMEM)
         {
             TTE_LOG("Running %s: memory allocation error", Name);
         }
         lua_pop(_State, 1); // Pop the error message string
-        return;
+        return false;
     }
     if (error == 0)
-        return; // OK
+        return true; // OK
     if (error == LUA_ERRRUN)
     {
-        TTE_LOG("Running %s: runtime error(s) => %s", Name, lua_tostring(_State, 0));
+        TTE_LOG("Running %s: runtime error(s) => %s", Name, lua_tostring(_State, -1));
     }
     else if (error == LUA_ERRMEM)
     {
@@ -53,6 +53,7 @@ void LuaAdapter_514::RunChunk(U8 *Chunk, U32 Len, Bool, CString Name)
         TTE_LOG("Running %s: error handle error", Name);
     }
     lua_pop(_State, 1); // Pop the error message string
+    return false;
 }
 
 Bool LuaAdapter_514::LoadChunk(const String& nm, const U8* buf, U32 sz, Bool)
@@ -60,7 +61,7 @@ Bool LuaAdapter_514::LoadChunk(const String& nm, const U8* buf, U32 sz, Bool)
     int error = luaL_loadbuffer(_State, (const char*)buf, (size_t)sz, nm.c_str());
     if (error == LUA_ERRSYNTAX)
     {
-        TTE_LOG("Running %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, 0));
+        TTE_LOG("Running %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, -1));
     }
     else if (error == LUA_ERRMEM)
     {
@@ -86,7 +87,7 @@ void LuaAdapter_514::CallFunction(U32 Nargs, U32 Nresults)
         return; // OK
     if (error == LUA_ERRRUN)
     {
-        TTE_LOG("Lua runtime error(s) => %s", lua_tostring(_State, 0));
+        TTE_LOG("Lua runtime error(s) => %s", lua_tostring(_State, -1));
     }
     else if (error == LUA_ERRMEM)
     {

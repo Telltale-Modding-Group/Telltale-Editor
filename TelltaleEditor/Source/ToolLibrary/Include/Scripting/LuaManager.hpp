@@ -53,7 +53,7 @@ class LuaManager
     void Initialise(LuaVersion Vers);
 
     // Runs a chunk of uncompiled lua source. Pass in the C string and its length. Pass in the Name of the lua file as the optional last argument.
-    void RunText(CString Code, U32 Len, CString Name = "defaultrun.lua");
+    Bool RunText(CString Code, U32 Len, CString Name = "defaultrun.lua");
     
     // Calls the function along with its arguments on the stack. Push the function FIRST, then Nargs arguments. Then call this.
     // Use LUA_MULTRET for Nresults if you want all returned values, else use a lower number to cap the number of return values pushed.
@@ -203,7 +203,7 @@ class LuaAdapterBase
 
     virtual void Shutdown() = 0;
 
-    virtual void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) = 0;
+    virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) = 0;
     
     virtual void CallFunction(U32 Nargs, U32 Nresults) = 0;
     
@@ -278,7 +278,7 @@ class LuaAdapter_523 : public LuaAdapterBase
 
     void Shutdown() override;
 
-    virtual void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
+    virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
     virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) override;
     
@@ -349,7 +349,7 @@ class LuaAdapter_514 : public LuaAdapterBase
 
     void Shutdown() override;
 
-    virtual void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
+    virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
     virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) override;
     
@@ -420,7 +420,7 @@ class LuaAdapter_502 : public LuaAdapterBase
 
     void Shutdown() override;
 
-    virtual void RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
+    virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
     virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) override;
     

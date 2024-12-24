@@ -1,4 +1,5 @@
-#include <Scripting/LuaManager.hpp>
+#include <Scripting/ScriptManager.hpp>
+#include <Core/Context.hpp>
 
 LuaManager::~LuaManager()
 {
@@ -10,6 +11,44 @@ LuaManager::~LuaManager()
         TTE_DEL(_Adapter);
         _Adapter = nullptr;
     }
+}
+
+//overriden 'require' lua function to load ourselfs. 'ToolLibrary/XXX' loads from lib resources XXX.
+U32 luaRequireOverride(LuaManager& man)
+{
+    TTE_ASSERT(man.Type(-1) == LuaType::STRING, "Invalid argument passed to require");
+    String value = ScriptManager::PopString(man);
+    
+    // check not already required
+    ScriptManager::GetGlobal(man, value, true);
+    if(man.Type(-1) != LuaType::NIL)
+    {
+        man.Pop(1);
+        TTE_LOG("Trying to re-require '%s', it has already been included in the VM", value.c_str());
+        return 0;
+    }
+    man.Pop(1);
+    
+    if(StringStartsWith(value, "ToolLibrary/"))
+    {
+        
+        value = value.substr(12);
+        String script = GetToolContext()->LoadLibraryStringResource(value);
+        
+        if(script.length() == 0)
+            TTE_LOG("When loading script '%s': file empty or could not be read", value.c_str());
+        
+        if(man.RunText(script.c_str(), (U32)script.length(), value.c_str())){
+            man.PushNil(); // value of it doesn't matter, only that it exists
+            ScriptManager::SetGlobal(man, "ToolLibrary/" + value, true); // set global
+        }
+        
+    }else{
+        
+        TTE_ASSERT(false, "Non tool library requires not supported yet."); // TODO find resource.
+        
+    }
+    return 0;
 }
 
 void LuaManager::Initialise(LuaVersion Vers)
@@ -24,13 +63,18 @@ void LuaManager::Initialise(LuaVersion Vers)
         _Adapter = TTE_NEW(LuaAdapter_502, MEMORY_TAG_SCRIPTING, *this);
     else
         TTE_ASSERT(false, "Invalid or unsupported lua version %d", (U32)Vers);
+    
     _Adapter->Initialise();
+    
+    PushFn(&luaRequireOverride);
+    ScriptManager::SetGlobal(*this, "require", false);
+    
 }
 
-void LuaManager::RunText(CString Code, U32 Len, CString ChunkName)
+Bool LuaManager::RunText(CString Code, U32 Len, CString ChunkName)
 {
     TTE_ASSERT(_Version != LuaVersion::LUA_NONE, "Lua not initialised");
-    _Adapter->RunChunk((U8 *)Code, Len, false, ChunkName);
+    return _Adapter->RunChunk((U8 *)Code, Len, false, ChunkName);
 }
 
 I32 LuaManager::ToInteger(I32 index){

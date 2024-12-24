@@ -11,10 +11,10 @@ void LuaAdapter_523::Initialise()
     luaL_openlibs(_State);
 }
 
-void LuaAdapter_523::RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name)
+Bool LuaAdapter_523::RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name)
 {
     int error = luaL_loadbufferx(_State, (const char *)Chunk, (size_t)Len, Name, IsCompiled ? "b" : "t"); // Load text buffer
-    if (error == 0)
+    if (error == LUA_OK)
     { // OK. Function now at top of stack, run.
         error = lua_pcall(_State, 0, 0, 0);
     }
@@ -22,7 +22,7 @@ void LuaAdapter_523::RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name)
     {
         if (error == LUA_ERRSYNTAX)
         {
-            TTE_LOG("Running %s: syntax error(s) => %s", Name, lua_tostring(_State, 0));
+            TTE_LOG("Running %s: syntax error(s) => %s", Name, lua_tostring(_State, -1));
         }
         else if (error == LUA_ERRMEM)
         {
@@ -33,13 +33,13 @@ void LuaAdapter_523::RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name)
             TTE_LOG("Running %s: gc error", Name);
         }
         lua_pop(_State, 1); // Pop the error message string
-        return;
+        return false;
     }
     if (error == LUA_OK)
-        return; // OK
+        return true; // OK
     if (error == LUA_ERRRUN)
     {
-        TTE_LOG("Running %s: runtime error(s) => %s", Name, lua_tostring(_State, 0));
+        TTE_LOG("Running %s: runtime error(s) => %s", Name, lua_tostring(_State, -1));
     }
     else if (error == LUA_ERRMEM)
     {
@@ -54,6 +54,7 @@ void LuaAdapter_523::RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name)
         TTE_LOG("Running %s: error handle error", Name);
     }
     lua_pop(_State, 1); // Pop the error message string
+    return false;
 }
 
 I32 LuaAdapter_523::UpvalueIndex(I32 index){
@@ -67,7 +68,7 @@ void LuaAdapter_523::CallFunction(U32 Nargs, U32 Nresults)
         return; // OK
     if (error == LUA_ERRRUN)
     {
-        TTE_LOG("Lua runtime error(s) => %s", lua_tostring(_State, 0));
+        TTE_LOG("Lua runtime error(s) => %s", lua_tostring(_State, -1));
     }
     else if (error == LUA_ERRMEM)
     {
@@ -102,7 +103,7 @@ Bool LuaAdapter_523::LoadChunk(const String& nm, const U8* buf, U32 sz, Bool cm)
     int error = luaL_loadbufferx(_State, (const char*)buf, (size_t)sz, nm.c_str(), cm ? "b" : "t");
     if (error == LUA_ERRSYNTAX)
     {
-        TTE_LOG("Running %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, 0));
+        TTE_LOG("Running %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, -1));
     }
     else if (error == LUA_ERRMEM)
     {

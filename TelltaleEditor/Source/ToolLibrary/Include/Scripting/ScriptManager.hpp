@@ -27,13 +27,14 @@ struct LuaFunctionCollection
 // Provides high level scripting access. Most of the functions are the same as Telltales actual ScriptManager API.
 namespace ScriptManager {
     
-    // Execute the function on the stack at the given function index. Stack positions above this are the arguments. Function & args all popped.
-    inline void Execute(LuaManager& man, I32 functionIndex)
+    // Execute the function on the stack followed by its arguments pushed after. Function & args all popped. Nresults is number of arguments
+    // pushed onto the stack, ensured to be padded with NILs if needed - or truncated. Pass LUA_MULTRET for whatever the function returns.
+    inline void Execute(LuaManager& man, U32 Nargs, U32 Nresults)
     {
-        man.CallFunction(man.GetTop() - functionIndex, LUA_MULTRET);
+        man.CallFunction(Nargs, Nresults);
     }
     
-    // Pushes onto the stack the global with the given name.
+    // Pushes onto the stack the global with the given name, or nil.
     inline void GetGlobal(LuaManager& man, const String& name, Bool bRaw)
     {
         man.PushEnv();
@@ -78,10 +79,10 @@ namespace ScriptManager {
         
     }
     
-    // Loads a function but does not run it, pushing it onto the top of the stack.
+    // Loads a chunk of lua code but does not run it, pushing it onto the top of the stack.
     // Pass in the name for debugging purposes, eg the file name.
     // If this returns false, nothing is pushed and error messages are logged to console.
-    inline Bool LoadFunction(LuaManager& man, const String& name, const String& text){
+    inline Bool LoadChunk(LuaManager& man, const String& name, const String& text){
         return man.LoadChunk(name, (const U8*)text.c_str(), (U32)text.length(), false);
     }
     
