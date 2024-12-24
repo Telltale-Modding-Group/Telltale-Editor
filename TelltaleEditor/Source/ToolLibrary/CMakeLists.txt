@@ -17,6 +17,8 @@ target_link_libraries(${TARGET_NAME} PUBLIC zlib)
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Scheduler)
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Core)
 add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Scripting)
+add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Resource)
+add_subdirectory(${TELLTALE_LIB_SOURCES_DIR}/Meta)
 
 # INCLUDE
 
@@ -24,6 +26,7 @@ add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Scheduler)
 add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Core)
 add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Meta)
 add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Scripting)
+add_subdirectory(${TELLTALE_LIB_HEADERS_DIR}/Resource)
 
 # Enable platform specific defines
 set_build_type(${TARGET_NAME})
@@ -33,6 +36,6 @@ ignore_warnings(${TARGET_NAME} 1)
 
 target_include_directories(${TARGET_NAME} PUBLIC ${TELLTALE_LIB_HEADERS_DIR} ${CMAKE_CURRENT_SOURCE_DIR})
 
-# Add include dirs 3rd parties
+# Add 3rd party directory
 
 target_include_directories(${TARGET_NAME} PUBLIC ${THIRD_PARTY_DIR})
