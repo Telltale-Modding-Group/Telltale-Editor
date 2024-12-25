@@ -4,11 +4,11 @@ int main()
 {
 
     {
-        
-        ToolContext& Context = *CreateToolContext();
-        
-        Context.Switch({"TX100","PC",""});
-        
+
+        ToolContext *Context = CreateToolContext();
+
+        Context->Switch({"TX100", "PC", ""});
+
         DestroyToolContext();
     }
 
