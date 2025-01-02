@@ -140,6 +140,7 @@ std::shared_ptr<DataStreamMemory> DataStreamManager::FindCache(const String &pat
             return it->second; // return a new copy of the pointer (inc refs)
         }
     }
+    return nullptr;
 }
 
 DataStreamRef DataStreamManager::CreateTempStream() { return CreateFileStream(ResourceURL(ResourceScheme::FILE, FileNewTemp())); }
