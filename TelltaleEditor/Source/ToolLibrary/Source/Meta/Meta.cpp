@@ -60,7 +60,7 @@ namespace Meta {
     struct RegGame {
         String Name, ID;
         StreamVersion MetaVersion = MBIN;
-        LuaVersion LuaVersion = LuaVersion::LUA_5_2_3;
+        LuaVersion LVersion = LuaVersion::LUA_5_2_3;
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
         BlowfishKey MasterKey; // key used for all platforms
         Bool ModifiedBlowfish = false;
@@ -692,7 +692,7 @@ namespace Meta {
             
             ScriptManager::TableGet(man, "LuaVersion");
             String v = ScriptManager::PopString(man);
-            reg.LuaVersion = v == "5.0.2" ? LuaVersion::LUA_5_0_2 : v == "5.1.4" ? LuaVersion::LUA_5_1_4 : LuaVersion::LUA_5_2_3;
+            reg.LVersion = v == "5.0.2" ? LuaVersion::LUA_5_0_2 : v == "5.1.4" ? LuaVersion::LUA_5_1_4 : LuaVersion::LUA_5_2_3;
             
             ScriptManager::TableGet(man, "DefaultMetaVersion");
             v = ScriptManager::PopString(man);
