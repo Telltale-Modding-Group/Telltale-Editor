@@ -10,8 +10,6 @@
 
 // DATA STREAM AND URL MANAGEMENT. See DataStream class and URL class comments.
 
-class DataStream;
-
 // Valid resource schemes for use in the ResourceURL class below.
 enum class ResourceScheme
 {
@@ -49,7 +47,7 @@ class ResourceURL
     String GetPath() const;
 
     // Opens this URL, ie hold a new data stream to read/write from/to it. Pass in the mode. Returns NULL if it does not exist.
-    std::shared_ptr<DataStream> Open();
+    DataStreamRef Open();
 
     // Returns the top-level scheme of this URL. By top-level we mean the master file scheme (ie the parent if its embedded)
     ResourceScheme GetScheme() const { return _Scheme; }
@@ -107,9 +105,6 @@ class DataStream
     friend class DataStreamManager; // Allow access to ctor
 };
 
-// Useful alias for data stream pointer, which deallocates automagically when finished with.
-using DataStreamRef = std::shared_ptr<DataStream>;
-
 // File specific data stream
 class DataStreamFile : public DataStream
 {
@@ -134,36 +129,52 @@ class DataStreamFile : public DataStream
     friend class DataStreamManager;
 };
 
-// Memory data stream. A writable and readable growable buffer internally.
-class DataStreamMemory : public DataStream
+// Abstract class which provides read and write functionality for statically sized paged streams. Override _ReadPage
+// Writes and reads in batches under the hood, in which the sub class of this can then encrypt / compress that how they like.
+class DataStreamDeferred : public DataStream
 {
-  public:
+public:
+    
     virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
-
+    
     virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
 
-    // Provide more functionality to move around the seek position. NOTE: a value larger than the current size will expand the memory.
     virtual void SetPosition(U64 newPosition) override;
-
+    
     inline virtual U64 GetPosition() override { return _PageIdx * _PageSize + _PagePos; }
-
+    
+    virtual ~DataStreamDeferred();
+    
     inline virtual U64 GetSize() override { return _Size; }
+    
+protected:
+    
+    const U64 _PageSize;                // Size of each page
+    U64 _PagePos;                 // Position in current page.
+    U64 _PageIdx;                 // Current page index.
+    U64 _Size;                    // Total written bytes
+    
+    // Override by subclass. Reads or writes bytes to the specified page index.
+    virtual Bool _SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 pageOffset, Bool IsWrite) = 0;
+    
+    DataStreamDeferred(const ResourceURL &url, U64 pagesize);
+    
+};
+
+// Memory data stream. A writable and readable growable buffer internally.
+class DataStreamMemory : public DataStreamDeferred
+{
+  public:
 
     virtual ~DataStreamMemory();
 
-  private:
-    void _EnsureCap(U64 bytes);
-
   protected:
-    virtual Bool _ReadPage(U64 index, U8 *OutputBuffer, U64 Nbytes); // read the page. designed to be overriden to compression etc
+    
+    virtual Bool _SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 pageOffset, Bool IsWrite) override; // gets from _PageTable
 
     DataStreamMemory(const ResourceURL &url, U64 pageSize = MEMORY_STREAM_DEFAULT_PAGESIZE);
 
     std::vector<U8 *> _PageTable; // Ordered table array.
-    U64 _PageSize;                // Size of each page
-    U64 _PagePos;                 // Position in current page.
-    U64 _PageIdx;                 // Current page index.
-    U64 _Size;                    // Total written bytes or total initial
 
     friend class DataStreamManager;
 };
@@ -224,6 +235,68 @@ class DataStreamSubStream : public DataStream
     friend class DataStreamManager;
 };
 
+// Older game meta streams. Write mode always fails! Re-encryption not needed. Reads will appear unencrypted (returning MBIN/etc, not MBES)
+class DataStreamLegacyEncrypted : public DataStreamDeferred
+{
+public:
+    
+    virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override; // write is disabled
+    
+    inline virtual U64 GetSize() override { return _Prnt->GetSize() - _BaseOff; }
+    
+    inline virtual ~DataStreamLegacyEncrypted() {}
+    
+protected:
+    
+    void _GetBlock(U32); // puts block into read back buffer, for given block index.
+    
+    virtual Bool _SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 pageOffset, Bool IsWrite) override;
+
+    // Parent stream must be seekable. Parent stream offset 0 must be start of the stream. Pass in block size and encryption frequencies
+    // Also pass in the base offset where this stream starts in the parent stream (like a sub stream).
+    DataStreamLegacyEncrypted(const DataStreamRef &parent, U64 parentOff, U16 block_size, U8 raw_freq, U8 bf_freq);
+    
+    DataStreamRef _Prnt; // parent stream we are reading from
+    
+    U64 _BaseOff; // offset start in parent stream
+    
+    U8 _RawFreq; // every how many blocks of data do we have an unencrypted block
+    U8 _EncFreq; // every how many blocks of data do we have a blowfished block
+    U8 _Rb[0x100]; // read back buffer (temp) (max block size is 256)
+    
+    friend class DataStreamManager;
+};
+
+// Null stream. Writes and reads succeed but do nothing (albeit they will warn). Used in actual engine too
+class DataStreamNull : public DataStream
+{
+public:
+    
+    inline virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override {
+        TTE_LOG("WARN: Trying to read fro NULL data stream. Ignoring.");
+        return true;
+    }
+    
+    inline virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override {
+        TTE_LOG("WARN: Trying to write to NULL data stream. Ignoring.");
+        return true;
+    }
+
+    virtual U64 GetPosition() override { return 0; }
+    
+    virtual void SetPosition(U64 newPosition) override {}
+    
+    inline virtual U64 GetSize() override { return 0; }
+    
+    virtual ~DataStreamNull();
+    
+protected:
+    
+    DataStreamNull(const ResourceURL& url);
+    
+    friend class DataStreamManager;
+};
+
 // This manages lifetimes of data streams, finding URLs, opening files, and everything related to sources and destinations of byte streams.
 class DataStreamManager
 {
@@ -233,12 +306,19 @@ class DataStreamManager
 
     // Creates a file stream to a temporary file on disk.
     DataStreamRef CreateTempStream();
+    
+    // Creates a null stream which does nothing on reads and writes (does warn)
+    DataStreamRef CreateNullStream();
 
     // Creates a memory stream that is a fixed size (DataStreamBuffer). Optionally pass a pre-allocated buffer, which will be TTE_FREE'd after.
     DataStreamRef CreateBufferStream(const ResourceURL &path, U64 Size, U8 *pPreAllocated = nullptr);
 
     // Creates a sub stream which reads from the specific part of the parent stream. The parent stream must be seekable (ie not network etc).
     DataStreamRef CreateSubStream(const DataStreamRef &parent, U64 offset, U64 size);
+    
+    // Creates a legacy encrypted reading stream for old meta streams. Only should be used by meta stream. Starts reading from base offset.
+    // Base offset should be such that its after the magic (eg MBES) and you should pass in the correct block size and frequencies.
+    DataStreamRef CreateLegacyEncryptedStream(const DataStreamRef& src, U64 baseOffset, U16 blockSize, U8 rawf, U8 blowf);
 
     // Resolves a symbol. Will return the resource URL with the full path. If not, returns an invalid stream because it was not found.
     ResourceURL Resolve(const Symbol &sym);
@@ -265,6 +345,9 @@ class DataStreamManager
     // positioned before this call such that you copy the data which you want. Set Nbytes to the number of bytes you want to copy.
     // Returns false if a Read or Write to source or dest failed.
     Bool Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nbytes);
+    
+    // Reads a string from the data stream argument. Reads the size, then ASCII string. Checks if size is valid.
+    String ReadString(DataStreamRef& stream);
 
     static void Initialise();
 

@@ -132,6 +132,8 @@ void LuaAdapter_502::Push(LuaType type, void* pValue)
     else if(type == (LuaType)999)
         lua_pushvalue(_State,LUA_GLOBALSINDEX);
     else if(type == (LuaType)888)
+        lua_pushnumber(_State, (lua_Number)(*(U32*)pValue));
+    else if(type == (LuaType)777)
         lua_pushnumber(_State, (lua_Number)(*(I32*)pValue));
     else if(type == LuaType::FUNCTION){
         LuaCFunction fn = (LuaCFunction)pValue;
@@ -192,7 +194,6 @@ LuaType LuaAdapter_502::Type(I32 index)
     switch(ltype){
         case LUA_TNONE:
         case LUA_TTHREAD:
-        case LUA_TUSERDATA:
             return LuaType::NONE;
         case LUA_TNIL:
             return LuaType::NIL;
@@ -206,11 +207,28 @@ LuaType LuaAdapter_502::Type(I32 index)
             return LuaType::BOOL;
         case LUA_TFUNCTION:
             return LuaType::FUNCTION;
+        case LUA_TUSERDATA:
+            return LuaType::FULL_OPAQUE;
         case LUA_TLIGHTUSERDATA:
             return LuaType::LIGHT_OPAQUE;
         default:
             return LuaType::NONE;
     }
+}
+
+void* LuaAdapter_502::CreateUserData(U32 z)
+{
+    return lua_newuserdata(_State, (size_t)z);
+}
+
+Bool LuaAdapter_502::GetMetatable(I32 index)
+{
+    return lua_getmetatable(_State, index) != 0;
+}
+
+Bool LuaAdapter_502::SetMetatable(I32 index)
+{
+    return lua_setmetatable(_State, index) != 0;
 }
 
 Bool LuaAdapter_502::Compare(I32 lhs, I32 rhs, LuaOp op)
@@ -225,16 +243,6 @@ Bool LuaAdapter_502::Compare(I32 lhs, I32 rhs, LuaOp op)
 CString LuaAdapter_502::Typename(LuaType t)
 {
     return lua_typename(_State, (int)t);
-}
-
-Bool LuaAdapter_502::GetMetatable(I32 index)
-{
-    return (Bool)lua_getmetatable(_State,index);
-}
-
-Bool LuaAdapter_502::SetMetatable(I32 index)
-{
-    return (Bool)lua_setmetatable(_State, index);
 }
 
 void LuaAdapter_502::SetTop(I32 index)
@@ -255,6 +263,11 @@ void LuaAdapter_502::Remove(I32 index)
 void LuaAdapter_502::Insert(I32 index)
 {
     lua_insert(_State, (int)index);
+}
+
+I32 LuaAdapter_502::Abs(I32 _idx)
+{
+    return (_idx > 0) ? _idx : (_idx <= LUA_REGISTRYINDEX) ? _idx : (lua_gettop(_State) + 1 + _idx);
 }
 
 void LuaAdapter_502::Replace(I32 index)

@@ -139,6 +139,8 @@ void LuaAdapter_523::Push(LuaType type, void* pValue)
     else if(type == (LuaType)999)
         lua_pushglobaltable(_State);
     else if(type == (LuaType)888)
+        lua_pushinteger(_State, (LUA_INTEGER)(*(U32*)pValue));
+    else if(type == (LuaType)777)
         lua_pushinteger(_State, (LUA_INTEGER)(*(I32*)pValue));
     else if(type == LuaType::FUNCTION){
         LuaCFunction fn = (LuaCFunction)pValue;
@@ -195,10 +197,11 @@ LuaType LuaAdapter_523::Type(I32 index)
     switch(ltype){
         case LUA_TNONE:
         case LUA_TTHREAD:
-        case LUA_TUSERDATA:
             return LuaType::NONE;
         case LUA_TNIL:
             return LuaType::NIL;
+        case LUA_TUSERDATA:
+            return LuaType::FULL_OPAQUE;
         case LUA_TTABLE:
             return LuaType::TABLE;
         case LUA_TNUMBER:
@@ -216,6 +219,21 @@ LuaType LuaAdapter_523::Type(I32 index)
     }
 }
 
+void* LuaAdapter_523::CreateUserData(U32 z)
+{
+    return lua_newuserdata(_State, (size_t)z);
+}
+
+Bool LuaAdapter_523::GetMetatable(I32 index)
+{
+    return lua_getmetatable(_State, index) != 0;
+}
+
+Bool LuaAdapter_523::SetMetatable(I32 index)
+{
+    return lua_setmetatable(_State, index) != 0;
+}
+
 Bool LuaAdapter_523::Compare(I32 lhs, I32 rhs, LuaOp op)
 {
     return (Bool)lua_compare(_State, (int)lhs, (int)rhs, (int)op);
@@ -226,19 +244,14 @@ CString LuaAdapter_523::Typename(LuaType t)
     return lua_typename(_State, (int)t);
 }
 
-Bool LuaAdapter_523::GetMetatable(I32 index)
-{
-    return (Bool)lua_getmetatable(_State,index);
-}
-
-Bool LuaAdapter_523::SetMetatable(I32 index)
-{
-    return (Bool)lua_setmetatable(_State, index);
-}
-
 void LuaAdapter_523::SetTop(I32 index)
 {
     lua_settop(_State,(int)index);
+}
+
+I32 LuaAdapter_523::Abs(I32 _idx)
+{
+    return (_idx > 0) ? _idx : (_idx <= LUA_REGISTRYINDEX) ? _idx : (lua_gettop(_State) + 1 + _idx);
 }
 
 void LuaAdapter_523::PushCopy(I32 index)
@@ -263,21 +276,25 @@ void LuaAdapter_523::Replace(I32 index)
 
 Bool LuaAdapter_523::ToBool(I32 index)
 {
+    TTE_ASSERT(lua_type(_State, index) == LUA_TBOOLEAN, "Cannot convert to bool: %s", lua_typename(_State, lua_type(_State, index)));
     return (Bool)lua_toboolean(_State,(int)index);
 }
 
 Float LuaAdapter_523::ToFloat(I32 index)
 {
+    TTE_ASSERT(lua_type(_State, index) == LUA_TNUMBER, "Cannot convert to float: %s", lua_typename(_State, lua_type(_State, index)));
     return (Float)lua_tonumber(_State, (int)index);
 }
 
 I32 LuaAdapter_523::ToInteger(I32 index)
 {
+    TTE_ASSERT(lua_type(_State, index) == LUA_TNUMBER, "Cannot convert to integer: %s", lua_typename(_State, lua_type(_State, index)));
     return (I32)lua_tointeger(_State, (int)index);
 }
 
 String LuaAdapter_523::ToString(I32 index)
 {
+    TTE_ASSERT(lua_type(_State, index) == LUA_TSTRING, "Cannot convert to string: %s", lua_typename(_State, lua_type(_State, index)));
     return String(lua_tolstring(_State, (int)index, 0));
 }
 

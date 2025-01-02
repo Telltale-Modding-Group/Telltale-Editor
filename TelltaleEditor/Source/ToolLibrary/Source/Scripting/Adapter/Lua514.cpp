@@ -130,6 +130,8 @@ void LuaAdapter_514::Push(LuaType type, void* pValue)
     else if(type == (LuaType)999)
         lua_pushvalue(_State,LUA_GLOBALSINDEX);
     else if(type == (LuaType)888)
+        lua_pushinteger(_State, (LUA_INTEGER)(*(U32*)pValue));
+    else if(type == (LuaType)777)
         lua_pushinteger(_State, (LUA_INTEGER)(*(I32*)pValue));
     else if(type == LuaType::FUNCTION){
         LuaCFunction fn = (LuaCFunction)pValue;
@@ -186,12 +188,13 @@ LuaType LuaAdapter_514::Type(I32 index)
     switch(ltype){
         case LUA_TNONE:
         case LUA_TTHREAD:
-        case LUA_TUSERDATA:
             return LuaType::NONE;
         case LUA_TNIL:
             return LuaType::NIL;
         case LUA_TTABLE:
             return LuaType::TABLE;
+        case LUA_TUSERDATA:
+            return LuaType::FULL_OPAQUE;
         case LUA_TNUMBER:
             return LuaType::NUMBER;
         case LUA_TSTRING:
@@ -221,16 +224,6 @@ CString LuaAdapter_514::Typename(LuaType t)
     return lua_typename(_State, (int)t);
 }
 
-Bool LuaAdapter_514::GetMetatable(I32 index)
-{
-    return (Bool)lua_getmetatable(_State,index);
-}
-
-Bool LuaAdapter_514::SetMetatable(I32 index)
-{
-    return (Bool)lua_setmetatable(_State, index);
-}
-
 void LuaAdapter_514::SetTop(I32 index)
 {
     lua_settop(_State,(int)index);
@@ -239,6 +232,26 @@ void LuaAdapter_514::SetTop(I32 index)
 void LuaAdapter_514::PushCopy(I32 index)
 {
     lua_pushvalue(_State,(int)index);
+}
+
+void* LuaAdapter_514::CreateUserData(U32 z)
+{
+    return lua_newuserdata(_State, (size_t)z);
+}
+
+Bool LuaAdapter_514::GetMetatable(I32 index)
+{
+    return lua_getmetatable(_State, index) != 0;
+}
+
+I32 LuaAdapter_514::Abs(I32 _idx)
+{
+    return (_idx > 0) ? _idx : (_idx <= LUA_REGISTRYINDEX) ? _idx : (lua_gettop(_State) + 1 + _idx);
+}
+
+Bool LuaAdapter_514::SetMetatable(I32 index)
+{
+    return lua_setmetatable(_State, index) != 0;
 }
 
 void LuaAdapter_514::Remove(I32 index)

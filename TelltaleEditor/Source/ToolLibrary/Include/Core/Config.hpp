@@ -65,8 +65,12 @@ inline void LogConsole(const char* Msg, ...) {
 
 #else
 
-// In RELEASE, ignore assertions.
-#define TTE_ASSERT(EXPR, ...) ;
+// In RELEASE, don't ignore but do LOG them.
+#define TTE_ASSERT(EXPR, ...) \
+    if (!(EXPR))  \
+    { \
+        TTE_LOG(__VA_ARGS__); \
+    }
 
 #endif
 
@@ -150,6 +154,15 @@ void FileSeek(U64 Handle, U64 Offset); // SEEK_SET
 
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))
 
+// padding bytes needed to align _Off to align _Algn
+#define TTE_PADDING(_Off, _Algn) (((_Algn) - ((_Off) % (_Algn))) % (_Algn))
+
+// rounds the U32 argument up to the nearest whole power of two. https://graphics.stanford.edu/%7Eseander/bithacks.html#RoundUpPowerOf2
+#define TTE_ROUND_UPOW2_U32(dstVar, srcVar) { dstVar = srcVar - 1; dstVar |= dstVar >> 1; dstVar |= dstVar >> 2; \
+dstVar |= dstVar >> 4; dstVar |= dstVar >> 8; dstVar |= dstVar >> 16; dstVar++; }
+
+inline void NullDeleter(void*) {} // Useful in shared pointer, in which nothing happens on the final deletion.
+
 // Helper class. std::priority_queue normally does not let us access by finding elements. Little hack to bypass and get internal vector container.
 template <typename T> class hacked_priority_queue : public std::priority_queue<T>
 { // Not applying library convention, see this as an 'extension' to std::
@@ -167,6 +180,11 @@ inline bool StringStartsWith(const std::string& str, const std::string& prefix) 
 
 class ToolContext; // forward declaration. used a lot. see context.hpp
 
+class DataStream; // See DataStream.hpp
+
+// Useful alias for data stream pointer, which deallocates automagically when finished with.
+using DataStreamRef = std::shared_ptr<DataStream>;
+
 // ===================================================================         MEMORY
 // ===================================================================
 
@@ -178,6 +196,10 @@ enum MemoryTag
     MEMORY_TAG_DATASTREAM, // DataStream allocation
     MEMORY_TAG_TEMPORARY, // small timescale temp allocation
     MEMORY_TAG_CONTEXT, // tool context allocation
+    MEMORY_TAG_META_TYPE, // meta type instance
+    MEMORY_TAG_META_COLLECTION, // meta dynamic array
+    MEMORY_TAG_RUNTIME_BUFFER, // runtime buffer
+    MEMORY_TAG_BLOWFISH, // blowfish encryption data
 };
 
 // Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by changing these macros. Memory tags used for future use.
@@ -186,6 +208,7 @@ enum MemoryTag
 
 #define TTE_DEL(_Inst) delete _Inst
 
-#define TTE_ALLOC(_NBytes, _MemoryTag) new U8[_NBytes]
+// Should initialise to zero
+#define TTE_ALLOC(_NBytes, _MemoryTag) new U8[_NBytes]()
 
 #define TTE_FREE(_ByteArray) delete[] ((U8*)_ByteArray)

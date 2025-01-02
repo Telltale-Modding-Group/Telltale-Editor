@@ -5,6 +5,7 @@
 #include <Resource/DataStream.hpp>
 #include <Meta/Meta.hpp>
 #include <Scripting/ScriptManager.hpp>
+#include <Resource/Blowfish.hpp>
 
 // Used to identify a specific game release snapshot of associated game data for grouping formats
 struct GameSnapshot
@@ -28,6 +29,7 @@ public:
             
             JobScheduler::Shutdown();
             Meta::RelGame();
+            Blowfish::Shutdown();
             
             _Setup = false;
             

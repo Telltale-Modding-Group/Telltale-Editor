@@ -103,6 +103,11 @@ void LuaManager::PushEnv()
 
 void LuaManager::PushInteger(I32 value)
 {
+    _Adapter->Push((LuaType)777, &value); // proxy
+}
+
+void LuaManager::PushUnsignedInteger(U32 value)
+{
     _Adapter->Push((LuaType)888, &value); // proxy
 }
 
@@ -113,7 +118,7 @@ void LuaManager::PushOpaque(void* value)
 
 void LuaManager::PushLString(String value)
 {
-    _Adapter->Push(LuaType::STRING, (void*)value.c_str());
+    _Adapter->Push(LuaType::STRING, (void*)&value);
 }
 
 void LuaManager::PushNil()
@@ -176,6 +181,26 @@ void LuaManager::PushFn(LuaCFunction f){
 I32 LuaManager::TableNext(I32 index)
 {
     return _Adapter->TableNext(index);
+}
+
+void* LuaManager::CreateUserData(U32 z)
+{
+    return _Adapter->CreateUserData(z);
+}
+
+Bool LuaManager::GetMetaTable(I32 i)
+{
+    return _Adapter->GetMetatable(i);
+}
+
+I32 LuaManager::ToAbsolute(I32 i)
+{
+    return _Adapter->Abs(i);
+}
+
+Bool LuaManager::SetMetaTable(I32 i)
+{
+    return _Adapter->SetMetatable(i);
 }
 
 LuaType LuaManager::Type(I32 index)

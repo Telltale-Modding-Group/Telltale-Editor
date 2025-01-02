@@ -31,7 +31,7 @@ enum class LuaType {
     STRING = 4,
     TABLE = 5,
     FUNCTION = 6,
-    // full opaque is not exposed (buffers. see lua doc)
+    FULL_OPAQUE = 7,
     //THREAD = 8,
 };
 
@@ -73,6 +73,9 @@ class LuaManager
     
     // Pushes a signed integer onto the stack
     void PushInteger(I32 value);
+    
+    // Pushes an unsigned integer onto the stack
+    void PushUnsignedInteger(U32 value);
     
     // Pushes a userdata pointer onto the stack
     void PushOpaque(void* value);
@@ -173,6 +176,16 @@ class LuaManager
     
     // Gets the stack index for the given upvalue index for the current function. Index must be 1 or higher.
     I32 UpvalueIndex(I32 index);
+    
+    // Creates a fully opaque type and pushes it onto the stack, a buffer of size size.
+    void* CreateUserData(U32 size);
+    
+    // Pushes on the stack the metatable of a given object. Returns 1 if success, 0 else (if no metatable or index invalid)
+    Bool GetMetaTable(I32);
+    
+    // Pops a table from the stack and sets it as the new metatable for the given object. Returns 0 when it cannot set the
+    // metatable of the given object (that is, when the object is neither a userdata nor a table); even then it pops the table from the stack.
+    Bool SetMetaTable(I32);
 
     // Default constructor.
     LuaManager() = default;
@@ -182,6 +195,9 @@ class LuaManager
 
     // Gets the version of this lua manager.
     inline LuaVersion GetVersion() { return _Version; }
+    
+    // Converts a relative (negative) stack index to an absolute one, which can be used if other elements are pushed onto the stack.
+    I32 ToAbsolute(I32 idx);
 
   private:
     LuaVersion _Version = LuaVersion::LUA_NONE; // This lua version
@@ -199,6 +215,7 @@ class LuaAdapterBase
     lua_State *_State = nullptr; // lua_State specific to the verison.
 
   public:
+    
     virtual void Initialise() = 0;
 
     virtual void Shutdown() = 0;
@@ -217,6 +234,8 @@ class LuaAdapterBase
     virtual I32 GetTop() = 0;
     
     virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) = 0;
+    
+    virtual void* CreateUserData(U32 size) = 0;
     
     virtual void GetTable(I32 index, Bool bRaw) = 0;
     
@@ -239,6 +258,8 @@ class LuaAdapterBase
     virtual Bool SetMetatable(I32 index) = 0;
     
     virtual void SetTop(I32 index) = 0;
+    
+    virtual I32 Abs(I32) = 0;
     
     virtual void PushCopy(I32 index) = 0;
     
@@ -292,6 +313,8 @@ class LuaAdapter_523 : public LuaAdapterBase
     
     virtual I32 GetTop() override;
     
+    virtual void* CreateUserData(U32 size) override;
+    
     virtual void GetTable(I32 index, Bool bRaw) override;
     
     virtual void SetTable(I32 index, Bool bRaw) override;
@@ -323,6 +346,8 @@ class LuaAdapter_523 : public LuaAdapterBase
     virtual void Replace(I32 index) override;
     
     virtual Bool ToBool(I32 index) override;
+    
+    virtual I32 Abs(I32) override;
     
     virtual Float ToFloat(I32 index) override;
     
@@ -367,6 +392,8 @@ class LuaAdapter_514 : public LuaAdapterBase
     
     virtual void SetTable(I32 index, Bool bRaw) override;
     
+    virtual void* CreateUserData(U32 size) override;
+    
     virtual void SetTableRaw(I32 index, I32 arrayIndex) override;
     
     virtual void GetTableRaw(I32 index, I32 arrayIndex) override;
@@ -405,6 +432,8 @@ class LuaAdapter_514 : public LuaAdapterBase
     
     virtual void Error() override;
     
+    virtual I32 Abs(I32) override;
+    
     virtual I32 UpvalueIndex(I32 index) override;
     
 };
@@ -438,6 +467,8 @@ class LuaAdapter_502 : public LuaAdapterBase
     
     virtual void SetTable(I32 index, Bool bRaw) override;
     
+    virtual void* CreateUserData(U32 size) override;
+    
     virtual void SetTableRaw(I32 index, I32 arrayIndex) override;
     
     virtual void GetTableRaw(I32 index, I32 arrayIndex) override;
@@ -455,6 +486,8 @@ class LuaAdapter_502 : public LuaAdapterBase
     virtual Bool SetMetatable(I32 index) override;
     
     virtual void SetTop(I32 index) override;
+    
+    virtual I32 Abs(I32) override;
     
     virtual void PushCopy(I32 index) override;
     

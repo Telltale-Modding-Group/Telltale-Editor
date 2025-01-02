@@ -1,4 +1,6 @@
 #include <Core/Symbol.hpp>
+#include <Resource/DataStream.hpp>
+#include <sstream>
 
 // Standard CRC32 and CRC64 routines and tables.
 
@@ -33,6 +35,84 @@ U32 CRC32(const U8 *Buffer, U32 BufferLength, U32 InitialCRC32)
         InitialCRC32 = CRC32_Table[(U32)(InitialCRC32 ^ Buffer[i]) & 0xFF] ^ (InitialCRC32 >> 8);
     }
     return ~InitialCRC32; // Inverted again
+}
+
+// SYMBOL TABLE
+
+SymbolTable RuntimeSymbols{};
+
+void SymbolTable::SerialiseIn(DataStreamRef& stream)
+{
+    
+    // read total file into string stream.
+    std::istringstream ss{};
+    U8* temp = TTE_ALLOC(stream->GetSize() + 1, MEMORY_TAG_TEMPORARY);
+    temp[stream->GetSize()] = 0; // null terminator for string
+    stream->Read(temp, stream->GetSize());
+    ss.str((CString)temp);
+    TTE_FREE(temp);
+    
+    // keep reading lines
+    for (String line; std::getline(ss, line);)
+    {
+        if(line.length())
+            Register(line);
+    }
+}
+
+void SymbolTable::SerialiseOut(DataStreamRef& stream)
+{
+    std::ostringstream ss{};
+    for(auto& str: _Table)
+    {
+        ss << str << "\n";
+    }
+    String str = ss.str();
+    stream->Write((const U8*)str.c_str(), (U64)str.length());
+}
+
+String SymbolTable::Find(Symbol sym)
+{
+    auto it = _SortedHashed.find(sym); // BINARY SEARCH
+    if(it == _SortedHashed.end())
+    {
+        return ""; // not found
+    }
+    else
+    {
+        return _Table[it->second];
+    }
+}
+
+void SymbolTable::Clear()
+{
+    _Table.clear();
+    _SortedHashed.clear();
+}
+
+void SymbolTable::Register(const String& str)
+{
+    if(str.length() == 0)
+        return;
+    
+    Symbol sym = Symbol(str);
+    auto it = _SortedHashed.find(sym); // BINARY SEARCH
+    if(it == _SortedHashed.end())
+    {
+        // Append
+        U32 index = (U32)_Table.size();
+        _SortedHashed[sym] = index;
+        _Table.push_back(str);
+    }
+    else
+    {
+        // Ensure no hash collision!
+        if(!CompareCaseInsensitive(str, _Table[it->second]))
+        {
+            TTE_ASSERT(false, "Detected hash collision! '%s' and '%s'"
+                       " have the same case insensitive hash!", str.c_str(), _Table[it->second].c_str());
+        }
+    }
 }
 
 const U32 CRC32_Table[256] = {

@@ -102,9 +102,9 @@ namespace ScriptManager {
     }
     
     // Run lua source code on the VM
-    inline void RunText(LuaManager& man, const String& code)
+    inline void RunText(LuaManager& man, const String& code, CString Chunkname = "defaultrun.lua")
     {
-        man.RunText(code.c_str(), (U32)code.length());
+        man.RunText(code.c_str(), (U32)code.length(), Chunkname);
     }
     
     inline String PopString(LuaManager& man) {
@@ -131,6 +131,12 @@ namespace ScriptManager {
         return ret;
     }
     
+    inline U32 PopUnsignedInteger(LuaManager& man){
+        U32 ret = (U32)man.ToInteger(-1);
+        man.Pop(1);
+        return ret;
+    }
+    
     inline void* PopOpaque(LuaManager& man){
         void* ret = man.ToPointer(-1);
         man.Pop(1);
@@ -141,6 +147,12 @@ namespace ScriptManager {
     inline void TableGet(LuaManager& man, String key) {
         man.PushLString(std::move(key));
         man.GetTable(-2);
+    }
+    
+    // Swaps the top two elements
+    inline void SwapTopElements(LuaManager& man)
+    {
+        man.Insert(-2);
     }
     
 }
