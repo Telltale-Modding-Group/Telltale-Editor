@@ -7,7 +7,8 @@
 #include <string>
 #include <vector>
 
-// Windows workaround for set thread name. See below link =========================================================
+// Windows workaround for set thread name. See below link 
+// =========================================================
 // https://learn.microsoft.com/en-gb/previous-versions/visualstudio/visual-studio-2015/debugger/how-to-set-a-thread-name-in-native-code?view=vs-2015&redirectedfrom=MSDN
 
 #pragma pack(push, 8)

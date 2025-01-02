@@ -8,7 +8,7 @@
 
 // This has no state at all, lua manager and lua_State captures it all in the stack.
 
-#define LUA_MULTRET (-1)
+constexpr auto LUA_MULTRET = (-1);
 
 // Registerable C function
 struct LuaFunctionRegObject
@@ -154,5 +154,20 @@ namespace ScriptManager {
     {
         man.Insert(-2);
     }
-    
 }
+
+inline void *PopOpaque(LuaManager &man)
+{
+    void *ret = man.ToPointer(-1);
+    man.Pop(1);
+    return ret;
+}
+
+// Top of the stack should be the table. Pushes the element in the table at the given key. DOES NOT pop table.
+inline void TableGet(LuaManager &man, String key)
+{
+    man.PushLString(std::move(key));
+    man.GetTable(-2);
+}
+
+} // namespace ScriptManager
