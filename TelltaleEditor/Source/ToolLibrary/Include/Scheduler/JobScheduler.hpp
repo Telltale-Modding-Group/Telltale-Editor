@@ -11,9 +11,9 @@
 #include <vector>
 
 // Number of worker threads
-constexpr auto NUM_SCHEDULER_THREADS = 8;
+#define NUM_SCHEDULER_THREADS 8
 // Interval for Wait functions in MS
-constexpr auto WAIT_INTERNVAL_MS = 30;
+#define WAIT_INTERNVAL_MS 30
 
 /// <summary>
 ///

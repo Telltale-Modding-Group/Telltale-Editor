@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 
-constexpr auto MEMORY_STREAM_DEFAULT_PAGESIZE = 0x1000;
+#define MEMORY_STREAM_DEFAULT_PAGESIZE 0x1000
 
 // DATA STREAM AND URL MANAGEMENT. See DataStream class and URL class comments.
 

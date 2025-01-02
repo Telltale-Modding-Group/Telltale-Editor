@@ -1,5 +1,5 @@
-#include <Core/Context.hpp>
 #include <Meta/Meta.hpp>
+#include <Core/Context.hpp>
 #include <Scripting/LuaManager.hpp>
 #include <Core/Symbol.hpp>
 #include <sstream>
@@ -13,23 +13,24 @@ thread_local Bool _IsMain = false; // Used in meta.
 
 static ToolContext* GlobalContext = nullptr;
 
-ToolContext *CreateToolContext()
+ToolContext* CreateToolContext()
 {
 
     if(GlobalContext == nullptr){
         _IsMain = true; // CreateToolContext sets this current thread as the main thread
         GlobalContext = (ToolContext*)TTE_ALLOC(sizeof(ToolContext), MEMORY_TAG_TOOL_CONTEXT); // alloc raw and construct, as its private.
         new (GlobalContext) ToolContext();
-    }
-    else
-    {
+    }else{
         TTE_ASSERT(false, "Trying to create more than one ToolContext. Only one instance is allowed per process.");
     }
-
+    
     return GlobalContext;
 }
 
-ToolContext *GetToolContext() { return GlobalContext; }
+ToolContext* GetToolContext()
+{
+    return GlobalContext;
+}
 
 void DestroyToolContext()
 {
@@ -37,8 +38,9 @@ void DestroyToolContext()
     
     if(GlobalContext)
         TTE_FREE(GlobalContext);
-
+    
     GlobalContext = nullptr;
+    
 }
 
 // ===================================================================         META
@@ -1343,7 +1345,8 @@ namespace Meta {
         
         TTE_LOG("Meta partially initialised with %d games", (U32)Games.size());
     }
-    else
+    
+    void Shutdown()
     {
         TTE_ASSERT(_IsMain, "Must only be called from main thread");
         
@@ -2119,31 +2122,5 @@ namespace Meta {
         
         return ClassInstance(Classes[_ColID].ArrayValClass, _Memory + (++i * _PairSize) - _ValuSize);
     }
+    
 }
-
-void RelGame() { Classes.clear(); }
-
-void Initialise()
-{
-    TTE_ASSERT(GetToolContext(), "Tool context not created");
-
-    ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), L::luaMeta()); // Register meta scripting API
-
-    ScriptManager::RunText(GetToolContext()->GetLibraryLVM(),
-                           GetToolContext()->LoadLibraryStringResource("Games.lua")); // Initialise games
-
-    String src = GetToolContext()->LoadLibraryStringResource("Classes.lua");
-    ScriptManager::RunText(GetToolContext()->GetLibraryLVM(), src);
-    src.clear();
-
-    TTE_LOG("Meta partially initialised with %d games", (U32)Games.size());
-}
-
-void Shutdown()
-{
-    Games.clear();
-
-    TTE_LOG("Meta shutdown");
-}
-
-} // namespace Meta
