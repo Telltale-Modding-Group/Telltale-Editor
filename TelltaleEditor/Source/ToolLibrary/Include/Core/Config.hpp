@@ -6,6 +6,7 @@
 #include <string>
 #include <cstring>
 #include <cstdarg>
+#include <memory>
 
 // =================================================================== LIBRARY CONFIGURATION
 // ===================================================================
