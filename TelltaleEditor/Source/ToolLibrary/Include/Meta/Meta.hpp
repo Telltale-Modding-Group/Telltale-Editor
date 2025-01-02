@@ -6,6 +6,7 @@
 #include <Scripting/LuaManager.hpp>
 #include <vector>
 #include <set>
+#include <functional>
 
 // Meta system is all inside this namespace. This is a reflection system initialised by the lua scripts.
 // ClassID is the combined hash of the type name and version crc of that type.
