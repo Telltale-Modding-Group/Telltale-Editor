@@ -52,8 +52,15 @@ namespace Meta {
     
     struct BlowfishKey // encryption key
     {
-        U8 BlowfishKey[56]{};
-        U32 BlowfishKeyLength = 0;
+        
+        U8 BfKey[56];
+        U32 BfKeyLength = 0;
+        
+        inline BlowfishKey()
+        {
+            memset(BfKey, 0, 56);
+        }
+        
     };
     
     // Registered game
@@ -633,14 +640,14 @@ namespace Meta {
             TTE_ASSERT((hexkey.length() & 1) == 0, "Hexadecimal encryption key length is not a multiple of two!");
             
             U32 len = (U32)hexkey.length();
-            ret.BlowfishKeyLength = len >> 1;
-            TTE_ASSERT(ret.BlowfishKeyLength, "Provided encryption key"
-                       " is too large at %d bytes. Maximum 56.", ret.BlowfishKeyLength);
+            ret.BfKeyLength = len >> 1;
+            TTE_ASSERT(ret.BfKeyLength, "Provided encryption key"
+                       " is too large at %d bytes. Maximum 56.", ret.BfKeyLength);
             
             for(U32 i = 0; i < len; i += 2) // convert hex string to max 56 byte buffer
             {
                 String byt = hexkey.substr(i,2);
-                ret.BlowfishKey[i >> 1] = (U8)strtol(byt.c_str(), nullptr, 0x10);
+                ret.BfKey[i >> 1] = (U8)strtol(byt.c_str(), nullptr, 0x10);
             }
             return ret;
         }
@@ -1287,7 +1294,7 @@ namespace Meta {
                 if(it != pActiveGame->PlatformToEncryptionKey.end())
                     key = it->second;
                 
-                Blowfish::Initialise(pActiveGame->ModifiedBlowfish, key.BlowfishKey, key.BlowfishKeyLength);
+                Blowfish::Initialise(pActiveGame->ModifiedBlowfish, key.BfKey, key.BfKeyLength);
             }
         }
         
