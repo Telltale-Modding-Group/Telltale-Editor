@@ -1,14 +1,14 @@
 #pragma once
 
-#include <cstdarg>
-#include <cstring>
 #include <queue>
 #include <stdint.h>
 #include <stdio.h>
 #include <string>
+#include <cstring>
+#include <cstdarg>
+#include <memory>
 
-// ===================================================================
-// LIBRARY CONFIGURATION
+// =================================================================== LIBRARY CONFIGURATION
 // ===================================================================
 
 #define TTE_VERSION "1.0.0"
@@ -19,26 +19,24 @@
 #error "Neither or both debug or release configuration macros defined!"
 #endif
 
-// ===================================================================
-// LOGGING
+// ===================================================================        LOGGING
+// ===================================================================        LOGGING
 // ===================================================================
 
 #ifdef DEBUG
 
-// Helper logging functions, if VA_ARGS is empty overloading is used to not do anything. In the future make this more sophisticated, log to UI and
-// files.
+// Helper logging functions, if VA_ARGS is empty overloading is used to not do anything. In the future make this more sophisticated, log to UI and files.
 inline void LogConsole() {}
 
-inline void LogConsole(const char *Msg, ...)
-{
+inline void LogConsole(const char* Msg, ...) {
     va_list va{};
     va_start(va, Msg);
     vprintf(Msg, va);
     va_end(va);
-
+    
     // Check if we need a new line
     size_t len = strlen(Msg);
-    if (len && Msg[len - 1] != '\n')
+    if(len && Msg[len-1] != '\n')
         printf("\n");
 }
 
@@ -53,8 +51,7 @@ inline void LogConsole(const char *Msg, ...)
 
 #endif
 
-// ===================================================================
-// ASSERTS
+// ===================================================================        ASSERTS
 // ===================================================================
 
 #ifdef DEBUG
@@ -63,19 +60,22 @@ inline void LogConsole(const char *Msg, ...)
 #define TTE_ASSERT(EXPR, ...)                                                                                                                        \
     if (!(EXPR))                                                                                                                                     \
     {                                                                                                                                                \
-        TTE_LOG(__VA_ARGS__);                                                                                                                        \
+        TTE_LOG(__VA_ARGS__);                                                                                                                    \
         DebugBreakpoint();                                                                                                                           \
     }
 
 #else
 
-// In RELEASE, ignore assertions.
-#define TTE_ASSERT(EXPR, ...) ;
+// In RELEASE, don't ignore but do LOG them.
+#define TTE_ASSERT(EXPR, ...) \
+    if (!(EXPR))  \
+    { \
+        TTE_LOG(__VA_ARGS__); \
+    }
 
 #endif
 
-// ===================================================================
-// TYPES
+// ===================================================================         TYPES
 // ===================================================================
 
 using U8 = uint8_t;
@@ -94,8 +94,7 @@ using CString = const char *;
 
 using Bool = bool;
 
-// ===================================================================
-// PLATFORM SPECIFICS
+// ===================================================================   PLATFORM SPECIFICS
 // ===================================================================
 
 #if defined(_WIN64)
@@ -133,9 +132,9 @@ void DebugBreakpoint();
 // Opens the given file in read-write mode. Returns a platform specific handle.
 U64 FileOpen(CString path);
 
-Bool FileWrite(U64 Handle, const U8 *Buffer, U64 Nbytes);
+Bool FileWrite(U64 Handle, const U8* Buffer, U64 Nbytes);
 
-Bool FileRead(U64 Handle, U8 *Buffer, U64 Nbytes);
+Bool FileRead(U64 Handle, U8* Buffer, U64 Nbytes);
 
 U64 FileSize(U64 Handle); // Returns total size
 
@@ -149,13 +148,21 @@ U64 FilePos(U64 Handle); // Return file position
 
 void FileSeek(U64 Handle, U64 Offset); // SEEK_SET
 
-// ===================================================================
-// UTILS
+// ===================================================================         UTILS
 // ===================================================================
 
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))
 
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))
+
+// padding bytes needed to align _Off to align _Algn
+#define TTE_PADDING(_Off, _Algn) (((_Algn) - ((_Off) % (_Algn))) % (_Algn))
+
+// rounds the U32 argument up to the nearest whole power of two. https://graphics.stanford.edu/%7Eseander/bithacks.html#RoundUpPowerOf2
+#define TTE_ROUND_UPOW2_U32(dstVar, srcVar) { dstVar = srcVar - 1; dstVar |= dstVar >> 1; dstVar |= dstVar >> 2; \
+dstVar |= dstVar >> 4; dstVar |= dstVar >> 8; dstVar |= dstVar >> 16; dstVar++; }
+
+inline void NullDeleter(void*) {} // Useful in shared pointer, in which nothing happens on the final deletion.
 
 // Helper class. std::priority_queue normally does not let us access by finding elements. Little hack to bypass and get internal vector container.
 template <typename T> class hacked_priority_queue : public std::priority_queue<T>
@@ -168,34 +175,41 @@ template <typename T> class hacked_priority_queue : public std::priority_queue<T
     auto get_cmp() { return this->comp; }
 };
 
-inline bool StringStartsWith(const std::string &str, const std::string &prefix)
-{
+inline bool StringStartsWith(const std::string& str, const std::string& prefix) {
     return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
 }
 
 class ToolContext; // forward declaration. used a lot. see context.hpp
 
-// ===================================================================
-// MEMORY
+class DataStream; // See DataStream.hpp
+
+// Useful alias for data stream pointer, which deallocates automagically when finished with.
+using DataStreamRef = std::shared_ptr<DataStream>;
+
+// ===================================================================         MEMORY
 // ===================================================================
 
 // Not an enum class for ease of use. Used in TTE_NEW.
 enum MemoryTag
 {
-    MEMORY_TAG_SCHEDULER,  // Scheduler related allocation.
-    MEMORY_TAG_SCRIPTING,  // Lua and Script Manager allocation
+    MEMORY_TAG_SCHEDULER, // Scheduler related allocation.
+    MEMORY_TAG_SCRIPTING, // Lua and Script Manager allocation
     MEMORY_TAG_DATASTREAM, // DataStream allocation
-    MEMORY_TAG_TEMPORARY,  // small timescale temp allocation
-    MEMORY_TAG_CONTEXT,    // tool context allocation
+    MEMORY_TAG_TEMPORARY, // small timescale temp allocation
+    MEMORY_TAG_CONTEXT, // tool context allocation
+    MEMORY_TAG_META_TYPE, // meta type instance
+    MEMORY_TAG_META_COLLECTION, // meta dynamic array
+    MEMORY_TAG_RUNTIME_BUFFER, // runtime buffer
+    MEMORY_TAG_BLOWFISH, // blowfish encryption data
 };
 
-// Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by
-// changing these macros. Memory tags used for future use.
+// Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by changing these macros. Memory tags used for future use.
 
 #define TTE_NEW(_Type, _MemoryTag, ...) new _Type(__VA_ARGS__)
 
 #define TTE_DEL(_Inst) delete _Inst
 
-#define TTE_ALLOC(_NBytes, _MemoryTag) new U8[_NBytes]
+// Should initialise to zero
+#define TTE_ALLOC(_NBytes, _MemoryTag) new U8[_NBytes]()
 
-#define TTE_FREE(_ByteArray) delete[] ((U8 *)_ByteArray)
+#define TTE_FREE(_ByteArray) delete[] ((U8*)_ByteArray)

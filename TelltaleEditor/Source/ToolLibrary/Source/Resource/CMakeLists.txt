@@ -1,1 +1,1 @@
-target_sources(${TARGET_NAME} PRIVATE DataStream.cpp)
+target_sources(${TARGET_NAME} PRIVATE DataStream.cpp TTArchive.cpp Blowfish.cpp)

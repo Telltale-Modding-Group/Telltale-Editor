@@ -1,13 +1,13 @@
--- This script is the main bulk of this library. It registers all meta classes (MetaClassDescription), ie the formats.
+-- This is the bulk of the library. This registers all the meta classes.
 
--- Called by library. ID is the game ID (see wiki), platform is the platform which the game files are on (see wiki)
--- vendor is for differing releases.
-function RegisterAll(id, platform, vendor)
-
-	if id == "TX100" then -- oldest, texas holdem.
-		require("ToolLibrary/Game/TX100.lua")
-		return RegisterTX100(vendor) -- only released on windows
-	end
-
-	return false
+function RegisterAll(game_id, platform, vendor)
+    
+    if game_id == "BN100" then
+        require("ToolLibrary/Game/BN100/BN100.lua")
+        return RegisterBone100(vendor, platform)
+    else
+        print("ERROR: during testing only boneville is supported")
+    end
+    return false
+    
 end

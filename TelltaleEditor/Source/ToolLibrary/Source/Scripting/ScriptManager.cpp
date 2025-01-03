@@ -1,6 +1,7 @@
 #include <Scripting/ScriptManager.hpp>
 
-namespace ScriptManager
-{
-
+namespace ScriptManager {
+    
+    
+    
 }
