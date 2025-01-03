@@ -1248,7 +1248,10 @@ namespace Meta {
         }
         TTE_ASSERT(Found, "Game with ID '%s' does not exist or was not registered, cannot initialise with game snapashot.", snap.ID.c_str());
         if(!Found)
+        {
+            RelGame();
             return;
+        }
         
         // Run RegisterAll and register all classes in the current snapshot
         
@@ -1258,6 +1261,7 @@ namespace Meta {
         {
             GetToolContext()->GetLibraryLVM().Pop(1);
             TTE_ASSERT(false,"Cannot switch to new snapshot. Classes registration script is invalid");
+            RelGame();
             return;
         }
         else
@@ -1278,6 +1282,15 @@ namespace Meta {
                 auto it = pActiveGame->PlatformToEncryptionKey.find(snap.Platform);
                 if(it != pActiveGame->PlatformToEncryptionKey.end())
                     key = it->second;
+                
+                if(key.BfKeyLength == 1 && key.BfKey[0] == 0)
+                {
+                    TTE_ASSERT(false, "Game encryption key for %s/%s has not been registered. Please contact us with the executable of "
+                               "the game for this platform so we can get the encryption key!", snap.ID.c_str(), snap.Platform.c_str());
+                    // encryption key '00' means we dont know it yet.
+                    RelGame();
+                    return;
+                }
                 
                 Blowfish::Initialise(pActiveGame->ModifiedBlowfish, key.BfKey, key.BfKeyLength);
             }
