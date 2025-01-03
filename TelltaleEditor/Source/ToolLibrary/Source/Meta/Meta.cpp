@@ -3,7 +3,6 @@
 #include <Scripting/LuaManager.hpp>
 #include <Core/Symbol.hpp>
 #include <sstream>
-
 #include <map>
 
 thread_local Bool _IsMain = false; // Used in meta.
@@ -83,7 +82,7 @@ namespace Meta {
     
     namespace _Impl {
         
-        U32 _GeneratedClassID(U64 typeHash, U32 versionCRC)
+        U32 _GenerateClassID(U64 typeHash, U32 versionCRC)
         {
             return CRC32((U8*)&typeHash, 8, versionCRC); // needs to be unique. hash the type hash with initial crc being the version crc.
         }
@@ -97,7 +96,7 @@ namespace Meta {
             U32 crc = _DoLuaVersionCRC(man, stackIndex);
             if(crc == 0)
                 return 0; // errored
-            U32 id = _GeneratedClassID(cls.TypeHash, crc);
+            U32 id = _GenerateClassID(cls.TypeHash, crc);
             
             if(Classes.find(id) != Classes.end())
             {
@@ -155,7 +154,7 @@ namespace Meta {
             
             Bool bBlocked = (clazz->Flags & CLASS_NON_BLOCKED) == 0;
             
-            if((clazz->Flags & CLASS_INTRINSIC) != 0)
+            if((clazz->Flags & CLASS_INTRINSIC) != 0) // add to version header if needed
             {
                 if(IsWrite)
                 {
@@ -311,7 +310,7 @@ namespace Meta {
             }};
         }
         
-        // perform constructor. all of these _DoXXX functions below use the actual type memory, after the ClassInstanceMemory header.
+        // perform constructor.
         void _DoConstruct(Class* pClass, U8* pInstanceMemory)
          {
             // If the whole class has a constructor, call it (eg String)
@@ -319,7 +318,7 @@ namespace Meta {
             {
                 pClass->Constructor(pInstanceMemory, pClass->ClassID);
             }
-            else if(pClass->Flags & CLASS_INTRINSIC) // the class has no explicit constructor, but is intrinsic, memcpy.
+            else if(pClass->Flags & CLASS_INTRINSIC) // the class has no explicit constructor, but is intrinsic, memset.
             {
                 memset(pInstanceMemory, 0, pClass->RTSize); // set to zero (eg int types)
             }
@@ -327,10 +326,7 @@ namespace Meta {
             {
                 for(auto& member: pClass->Members)
                 {
-                    if(Classes[member.ClassID].Constructor) // if constructor exists
-                        Classes[member.ClassID].Constructor(pInstanceMemory + member.RTOffset, member.ClassID);
-                    else
-                        _DoConstruct(&Classes[member.ClassID], pInstanceMemory + member.RTOffset); // again
+                    _DoConstruct(&Classes[member.ClassID], pInstanceMemory + member.RTOffset); // again
                 }
             }
         }
@@ -351,10 +347,7 @@ namespace Meta {
             {
                 for(auto& member: pClass->Members)
                 {
-                    if(Classes[member.ClassID].Destructor) // if constructor exists
-                        Classes[member.ClassID].Destructor(pInstanceMemory + member.RTOffset, member.ClassID);
-                    else
-                        _DoDestruct(&Classes[member.ClassID], pInstanceMemory + member.RTOffset); // again
+                    _DoDestruct(&Classes[member.ClassID], pInstanceMemory + member.RTOffset); // again
                 }
             }
         }
@@ -374,11 +367,7 @@ namespace Meta {
             {
                 for(auto& member: pClass->Members)
                 {
-                    if(Classes[member.ClassID].CopyConstruct) // if copy constructor exists
-                        Classes[member.ClassID].CopyConstruct(pSrc + member.RTOffset,
-                                                              pMemory + member.RTOffset);
-                    else
-                        _DoCopyConstruct(&Classes[member.ClassID], pMemory + member.RTOffset, pSrc + member.RTOffset); // again
+                    _DoCopyConstruct(&Classes[member.ClassID], pMemory + member.RTOffset, pSrc + member.RTOffset); // again
                 }
             }
         }
@@ -399,11 +388,7 @@ namespace Meta {
             {
                 for(auto& member: pClass->Members)
                 {
-                    if(Classes[member.ClassID].MoveConstruct) // if move constructor exists
-                        Classes[member.ClassID].MoveConstruct(pSrc + member.RTOffset,
-                                                              pMemory + member.RTOffset);
-                    else
-                        _DoMoveConstruct(&Classes[member.ClassID], pMemory + member.RTOffset, pSrc + member.RTOffset); // again
+                    _DoMoveConstruct(&Classes[member.ClassID], pMemory + member.RTOffset, pSrc + member.RTOffset); // again
                 }
             }
         }
@@ -1238,7 +1223,7 @@ namespace Meta {
     
     U32 FindClassID(U64 typeHash, U32 versionCRC)
     {
-        U32 id = _Impl::_GeneratedClassID(typeHash, versionCRC);
+        U32 id = _Impl::_GenerateClassID(typeHash, versionCRC);
         return Classes.find(id) == Classes.end() ? 0 : id; // ensure it exists before we return it.
     }
     
@@ -1305,6 +1290,7 @@ namespace Meta {
     {
         TTE_ASSERT(_IsMain, "Must only be called from main thread");
         Classes.clear();
+        VersionCalcFun = "";
     }
     
     void Initialise()
@@ -1377,10 +1363,10 @@ namespace Meta {
         U8 Buffer[32]{};
         String magic =  StreamVersion == MSV6 ? "6VSM" :
                         StreamVersion == MSV5 ? "5VSM" :
-                        StreamVersion == MSV4 ? "4VSM" :
-                        StreamVersion == MCOM ? "MOCM" :
+                       // StreamVersion == MSV4 ? "4VSM" :
+                       // StreamVersion == MCOM ? "MOCM" :
                         StreamVersion == MTRE ? "ERTM" :
-                        StreamVersion == MBES ? "SEBM" :
+                       // StreamVersion == MBES ? "SEBM" :
                         StreamVersion == MBIN ? "NIBM" : "X";
         
         if(magic == "X")
@@ -1450,7 +1436,7 @@ namespace Meta {
         
         for(U32 i = 0; i < numVersionInfo; i++)
         {
-            if(StreamVersion == MBIN) // MBES too?
+            if(StreamVersion == MBIN)
             {
                 U32 len = (U32)Classes[metaStream.VersionInf[i]].Name.length();
                 SerialiseDataU32(stream, nullptr, &len, true); // write type name length
@@ -1466,7 +1452,9 @@ namespace Meta {
             {
                 SerialiseDataU64(stream, nullptr, &Classes[metaStream.VersionInf[i]].TypeHash, true); // write type hash
             }
+            
             SerialiseDataU32(stream, nullptr, &Classes[metaStream.VersionInf[i]].VersionCRC, true); // write version crc
+            
         }
         
         // 4. WRITE MAIN SECTION
@@ -1612,7 +1600,7 @@ namespace Meta {
             
             // try and find it in the registered classes. if it is not found, the version CRC likely mismatches. cannot load, as
             // format is not 100% gaurunteed to match.
-            U32 ClassID = _Impl::_GeneratedClassID(typeHash, versionCRC);
+            U32 ClassID = _Impl::_GenerateClassID(typeHash, versionCRC);
             
             if(Classes.find(ClassID) == Classes.end())
             {
@@ -1694,13 +1682,13 @@ namespace Meta {
         _ValuSize = Classes[clazz->second.ArrayValClass].RTSize;
         
         // flags init
-        if(Classes[clazz->second.ArrayValClass].Constructor == nullptr)
+        if(Classes[clazz->second.ArrayValClass].Constructor == nullptr && Classes[clazz->second.ArrayValClass].Flags & CLASS_INTRINSIC)
             _ColFl |= _COL_VAL_SKIP_CT;
-        if(Classes[clazz->second.ArrayValClass].Destructor == nullptr)
+        if(Classes[clazz->second.ArrayValClass].Destructor == nullptr && Classes[clazz->second.ArrayValClass].Flags & CLASS_INTRINSIC)
             _ColFl |= _COL_VAL_SKIP_DT;
-        if(Classes[clazz->second.ArrayValClass].CopyConstruct == nullptr)
+        if(Classes[clazz->second.ArrayValClass].CopyConstruct == nullptr  && Classes[clazz->second.ArrayValClass].Flags & CLASS_INTRINSIC)
             _ColFl |= _COL_VAL_SKIP_CP;
-        if(Classes[clazz->second.ArrayValClass].MoveConstruct == nullptr)
+        if(Classes[clazz->second.ArrayValClass].MoveConstruct == nullptr  && Classes[clazz->second.ArrayValClass].Flags & CLASS_INTRINSIC)
             _ColFl |= _COL_VAL_SKIP_MV;
         
         
@@ -1719,13 +1707,13 @@ namespace Meta {
             Class* pVal = &clazz->second;
             
             // key flags
-            if(pKey->Constructor == nullptr)
+            if(pKey->Constructor == nullptr && pKey->Flags & CLASS_INTRINSIC)
                 _ColFl |= _COL_KEY_SKIP_CT;
-            if(pKey->Destructor == nullptr)
+            if(pKey->Destructor == nullptr && pKey->Flags & CLASS_INTRINSIC)
                 _ColFl |= _COL_KEY_SKIP_DT;
-            if(pKey->CopyConstruct == nullptr)
+            if(pKey->CopyConstruct == nullptr && pKey->Flags & CLASS_INTRINSIC)
                 _ColFl |= _COL_KEY_SKIP_CP;
-            if(pKey->MoveConstruct == nullptr)
+            if(pKey->MoveConstruct == nullptr && pKey->Flags & CLASS_INTRINSIC)
                 _ColFl |= _COL_KEY_SKIP_MV;
             
             

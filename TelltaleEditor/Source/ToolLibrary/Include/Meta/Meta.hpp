@@ -100,10 +100,8 @@ namespace Meta {
         // CREATED INTERNALLY.
         U64 TypeHash = 0;
         
-        union {
-            U32 ClassID;
-            U32 VersionCRC; // synonymous
-        };
+        U32 ClassID;
+        U32 VersionCRC; // unique
         
         // USE FOR CONTAINER TYPES
         U32 ArraySize = 0; // if this is an SArray<T,N>, this is N. Value only set of SArrays
@@ -189,9 +187,9 @@ namespace Meta {
             return Dx ? *Dx : nullptr;
         }
         
-        // Pushes a weak reference to this instance to the lua stack.
+        // Pushes a strong or weak reference to this instance to the lua stack.
         // Strong: means instance is deleted only when all C++ instance AND script instance objects are destroyed/garbage collected.
-        // Weak:   means instance is not owned by the script reference. If all C++ instances are destroyed, getting the object returns nil.
+        // Weak:   means instance is not owned by the script reference. After all C++ instances are destroyed, getting the object returns nil.
         void PushScriptRef(LuaManager& man, Bool IsStrong);
         
         // Internal use. Gets the memory pointer (const)
@@ -318,7 +316,7 @@ namespace Meta {
         ClassInstance GetKey(U32 index); // gets the key at the given index. must be a keyed collection!
         
         // Pushes a new element
-        // If a map, key must be non-null.
+        // If a map, key should be non-null.
         // For any collection, value or key can be nullptr meaning a new one is constructed.
         // If key and val are either non-null, you can specify to copy(true) or move(false) using the last two arguments.
         void Push(ClassInstance key, ClassInstance val, Bool bCopyKey, Bool bCopyVal);
@@ -395,7 +393,7 @@ namespace Meta {
     // Moves the instance argument to a new instance, leaving the old one still alive but with none of its previous data (now in new returned one).
     ClassInstance MoveInstance(ClassInstance instance);
     
-    // Acquires a reference to the given script object on the stack.
+    // Acquires a reference to the given script object on the stack. After using ClassInstance::PushScriptRef, this can be used on the pushed value
     ClassInstance AcquireScriptInstance(LuaManager& man, I32 stackIndex);
     
     // Returns true if the given instance's type is a collection, ie you can use CastToCollection

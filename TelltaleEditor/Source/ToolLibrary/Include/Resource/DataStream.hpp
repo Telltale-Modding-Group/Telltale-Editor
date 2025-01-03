@@ -252,7 +252,7 @@ protected:
     
     virtual Bool _SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 pageOffset, Bool IsWrite) override;
 
-    // Parent stream must be seekable. Parent stream offset 0 must be start of the stream. Pass in block size and encryption frequencies
+    // Parent stream must be seekable. Pass in block size and encryption frequencies
     // Also pass in the base offset where this stream starts in the parent stream (like a sub stream).
     DataStreamLegacyEncrypted(const DataStreamRef &parent, U64 parentOff, U16 block_size, U8 raw_freq, U8 bf_freq);
     
