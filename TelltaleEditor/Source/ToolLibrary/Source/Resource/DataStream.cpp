@@ -594,7 +594,8 @@ Bool DataStreamSubStream::Read(U8 *OutputBuffer, U64 Nbytes)
     TTE_ASSERT(_Off + Nbytes <= _Size, "Trying to read too many bytes from sub stream");
     if (_Prnt->GetPosition() != _BaseOff + _Off)
         _Prnt->SetPosition(_BaseOff + _Off);
-    _Prnt->Read(OutputBuffer, Nbytes);
+    if(!_Prnt->Read(OutputBuffer, Nbytes))
+        return false;
     _Off += Nbytes;
     return true;
 }

@@ -1,1 +1,1 @@
-target_sources(${TARGET_NAME} PRIVATE Meta.cpp MetaLuaAPI.cpp)
+target_sources(${TARGET_NAME} PRIVATE Meta.cpp)

@@ -1,6 +1,9 @@
 #include <Core/Symbol.hpp>
 #include <Resource/DataStream.hpp>
+
 #include <sstream>
+#include <iomanip>
+#include <cstdint>
 
 // Standard CRC32 and CRC64 routines and tables.
 
@@ -37,9 +40,33 @@ U32 CRC32(const U8 *Buffer, U32 BufferLength, U32 InitialCRC32)
     return ~InitialCRC32; // Inverted again
 }
 
-// SYMBOL TABLE
-
 SymbolTable RuntimeSymbols{};
+
+Symbol SymbolFromHexString(const String& str)
+{
+    if(str.length() != 16)
+        return Symbol();
+    
+    // Parse the string as a hexadecimal number
+    U64 result{};
+    std::istringstream iss(str);
+    iss >> std::hex >> result;
+    
+    if(iss.fail())
+        return Symbol();
+    
+    return result;
+}
+
+// Converts to a 16 byte hex string
+String SymbolToHexString(Symbol sym)
+{
+    std::ostringstream oss;
+    oss << std::setw(16) << std::setfill('0') << std::hex << std::uppercase << sym;
+    return oss.str();
+}
+
+// SYMBOL TABLE
 
 void SymbolTable::SerialiseIn(DataStreamRef& stream)
 {

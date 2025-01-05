@@ -8,6 +8,8 @@ extern "C"
 #include <lua514/lauxlib.h>
 #include <lua514/lua.h>
 #include <lua514/lualib.h>
+#include <lua514/lgc.h>
+    
 }
 
 void LuaAdapter_514::Shutdown() { lua_close(_State); }
@@ -29,11 +31,11 @@ Bool LuaAdapter_514::RunChunk(U8 *Chunk, U32 Len, Bool, CString Name)
     {
         if (error == LUA_ERRSYNTAX)
         {
-            TTE_LOG("Running %s: syntax error(s) => %s", Name, lua_tostring(_State, -1));
+            TTE_LOG("Loading %s: syntax error(s) => %s", Name, lua_tostring(_State, -1));
         }
         else if (error == LUA_ERRMEM)
         {
-            TTE_LOG("Running %s: memory allocation error", Name);
+            TTE_LOG("Loading %s: memory allocation error", Name);
         }
         lua_pop(_State, 1); // Pop the error message string
         return false;
@@ -61,11 +63,11 @@ Bool LuaAdapter_514::LoadChunk(const String& nm, const U8* buf, U32 sz, Bool)
     int error = luaL_loadbuffer(_State, (const char*)buf, (size_t)sz, nm.c_str());
     if (error == LUA_ERRSYNTAX)
     {
-        TTE_LOG("Running %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, -1));
+        TTE_LOG("Loading %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, -1));
     }
     else if (error == LUA_ERRMEM)
     {
-        TTE_LOG("Running %s: memory allocation error", nm.c_str());
+        TTE_LOG("Loading %s: memory allocation error", nm.c_str());
     }
     else if (error == 0)
     {
@@ -100,9 +102,32 @@ void LuaAdapter_514::CallFunction(U32 Nargs, U32 Nresults)
     lua_pop(_State, 1); // Pop the error message string
 }
 
+void LuaAdapter_514::GC()
+{
+    lua_gc(_State, LUA_GCCOLLECT, 0);
+}
+
 Bool LuaAdapter_514::CheckStack(U32 extra)
 {
     return lua_checkstack(_State, (int)extra);
+}
+
+Bool LuaAdapter_514::DoDump(lua_Writer w, void* ud)
+{
+    int error = lua_dump(_State, w, ud);
+    if (error == LUA_ERRSYNTAX)
+    {
+        TTE_LOG("Compiling script: syntax error(s) => %s", lua_tostring(_State, -1));
+    }
+    else if (error == LUA_ERRMEM)
+    {
+        TTE_LOG("Compiling script: memory allocation error");
+    }
+    else if (error == 0)
+    {
+        return true; // OK
+    }
+    return false;
 }
 
 //adapter for passing in lua manager instead

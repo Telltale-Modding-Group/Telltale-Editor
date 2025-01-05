@@ -61,6 +61,12 @@ inline Symbol operator+(const Symbol &sym, const String &value)
     return CRC64LowerCase((const U8 *)value.c_str(), (U32)value.length(), sym.GetCRC64());
 }
 
+// Argument must be 16 characters long and a hex string, in big endian (ie normal reading format).
+Symbol SymbolFromHexString(const String& str);
+
+// Converts to a 16 byte hex string
+String SymbolToHexString(Symbol sym);
+
 inline bool CompareCaseInsensitive(const String &lhs, const String &rhs) { return Symbol(lhs) == Symbol(rhs); }
 
 extern const U64 CRC64_Table[256];

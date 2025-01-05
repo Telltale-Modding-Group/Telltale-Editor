@@ -8,6 +8,7 @@ extern "C"
 #include <lua502/lauxlib.h>
 #include <lua502/lua.h>
 #include <lua502/lualib.h>
+#include <lua502/lgc.h>
     
 }
 
@@ -29,11 +30,11 @@ Bool LuaAdapter_502::LoadChunk(const String& nm, const U8* buf, U32 sz, Bool)
     int error = luaL_loadbuffer(_State, (const char*)buf, (size_t)sz, nm.c_str());
     if (error == LUA_ERRSYNTAX)
     {
-        TTE_LOG("Running %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, -1));
+        TTE_LOG("Loading %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, -1));
     }
     else if (error == LUA_ERRMEM)
     {
-        TTE_LOG("Running %s: memory allocation error", nm.c_str());
+        TTE_LOG("Loading %s: memory allocation error", nm.c_str());
     }
     else if (error == 0)
     {
@@ -41,6 +42,17 @@ Bool LuaAdapter_502::LoadChunk(const String& nm, const U8* buf, U32 sz, Bool)
         return true; // OK
     }
     lua_settop(_State, -2); // remove top error
+    return false;
+}
+
+void LuaAdapter_502::GC()
+{
+    luaC_collectgarbage(_State);
+}
+
+Bool LuaAdapter_502::DoDump(lua_Writer, void*)
+{
+    TTE_LOG("Cannot compile function: this verison of lua does not feature compiled scripts - they can only be run from source.");
     return false;
 }
 
@@ -55,11 +67,11 @@ Bool LuaAdapter_502::RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name)
     {
         if (error == LUA_ERRSYNTAX)
         {
-            TTE_LOG("Running %s: syntax error(s) => %s", Name, lua_tostring(_State, -1));
+            TTE_LOG("Loading %s: syntax error(s) => %s", Name, lua_tostring(_State, -1));
         }
         else if (error == LUA_ERRMEM)
         {
-            TTE_LOG("Running %s: memory allocation error", Name);
+            TTE_LOG("Loading %s: memory allocation error", Name);
         }
         lua_pop(_State, 1); // Pop the error message string
         return false;

@@ -2,7 +2,7 @@
 
 local texasHoldem = {}
 texasHoldem.Name = "Telltale Texax Hold'em"
-texasHoldem.ID = "TX100" -- TexasL S1 (100)
+texasHoldem.ID = "TX100" -- Texas S1 (100)
 texasHoldem.DefaultMetaVersion = "MBIN" -- Version of meta streams which files created will be
 texasHoldem.LuaVersion = "5.0.2" -- uses lua 5.0.2
 MetaRegisterGame(texasHoldem) -- does not have any encryption, so no encryption keys

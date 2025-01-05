@@ -8,6 +8,9 @@
 #include <set>
 #include <functional>
 
+// maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
+#define MAX_VERSION_NUMBER 10
+
 // Meta system is all inside this namespace. This is a reflection system initialised by the lua scripts.
 // ClassID is the combined hash of the type name and version crc of that type.
 namespace Meta {
@@ -63,11 +66,12 @@ namespace Meta {
     // ======================================== INTERNAL META TYPES ========================================
     
     enum MetaMemberFlag {
-        MEMBER_GHOST = 1, // this member is not actually in memory but just exists for the version hashing
+        MEMBER_MEMORY_DISABLE = 1, // this member is not actually in memory but just exists for the version hashing
         MEMBER_ENUM = 2, // this member is an enum
         MEMBER_FLAG = 4, // this member is a flags bitfield
         MEMBER_BASE = 8, // this member is a base class
-        MEMBER_SKIP = 16, // skip serialisation for this member
+        MEMBER_SERIALISE_DISABLE = 16, // skip serialisation for this member. this also excludes this member from version hash
+        MEMBER_VERSION_HASH_DISABLE = 32, // dont include in any version hashes, although is still in memory and serialised
     };
     
     enum MetaClassFlag {
@@ -101,7 +105,8 @@ namespace Meta {
         U64 TypeHash = 0;
         
         U32 ClassID;
-        U32 VersionCRC; // unique
+        U32 VersionCRC;
+        U32 VersionNumber; // similar to version crc, but a number (normally 0, 1 etc). Associate a ID for multiple verisons of the same typename.
         
         // USE FOR CONTAINER TYPES
         U32 ArraySize = 0; // if this is an SArray<T,N>, this is N. Value only set of SArrays
@@ -117,13 +122,25 @@ namespace Meta {
         void (*CopyConstruct)(const void* pSrc, void* pDst) = nullptr;
         void (*MoveConstruct)(void* pSrc, void* pDst) = nullptr;
         
+        // OTHER OPERATIONS (MAINLY FOR INTRINSICS)
+        Bool (*LessThan)(const void* pLHS, const void* pRHS) = nullptr; // less than operator on two instances
+        Bool (*Equals)(const void* pLHS, const void* pRHS) = nullptr; // compare two instances
+        String (*ToString)(const void* pMemory) = nullptr; // converts to string
+        
         // serialiser (needed for intrinsics/containers) function. iswrite if write, else reading.
         Bool (*Serialise)(Stream& stream, Class* clazz, void* pInstance, Bool IsWrite) = nullptr;
-        String SerialiseScriptFunction = ""; // custom serialise overrider, function name in lua script.
+        String SerialiseScriptFn = ""; // custom serialise overrider, function name in scripts
         
         // MEMBERS ARRAY
         std::vector<Member> Members;
         
+    };
+    
+    // compilsed serialisation script
+    struct CompiledSerialiserScript
+    {
+        U8* Binary = nullptr;
+        U32 Size = 0;
     };
     
     class ClassInstance;
@@ -145,15 +162,91 @@ namespace Meta {
         
         void _DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc); // internally move type
         
+        String _PerformToString(U8* pMemory, Class* pClass);
+        
         ClassInstance _MakeInstance(U32 ClassID); // allocates but does not construct anything in the memory
         
-        Bool _DoSerialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite); // serialises a given type to the stream
+        Bool _Serialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite); // serialises a given type to the stream
+        
+        Bool _DefaultSerialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite); // default serialise (member by member)
+        
+        // internal serialisers
+        
+        Bool SerialiseString(Stream& stream, Class*, void* pMemory, Bool IsWrite);
+        
+        Bool SerialiseCollection(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite);
+        
+        Bool SerialiseBool(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite);
+        
+        Bool SerialiseSymbol(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite);
+        
+        // internal type defaults
+        
+        void CtorCol(void* pMemory, U32 Array);
+        
+        void DtorCol(void* pMemory, U32);
+        
+        void CopyCol(const void* pSrc, void* pDst);
+        
+        void MoveCol(void* pSrc, void* pDst);
+        
+        
+        void CtorString(void* pMemory, U32);
+        
+        void DtorString(void* pMemory, U32);
+        
+        void CopyString(const void* pSrc, void* pDst);
+        
+        void MoveString(void* pSrc, void* pDst);
+        
+        
+        void CtorBinaryBuffer(void* pMemory, U32);
+        
+        void DtorBinaryBuffer(void* pMemory, U32);
+        
+        void CopyBinaryBuffer(const void* pSrc, void* pDst);
+        
+        void MoveBinaryBuffer(void* pSrc, void* pDst);
         
     }
+    
+    // Special type internally used to store binary buffers. No serialiser in this type, but just holds a reference to the memory (frees it)
+    struct BinaryBuffer
+    {
+        U8* Buffer = nullptr;
+        U32 BufferSize = 0;
+    };
+    
+    struct BlowfishKey // encryption key
+    {
+        
+        U8 BfKey[56];
+        U32 BfKeyLength = 0;
+        
+        inline BlowfishKey()
+        {
+            memset(BfKey, 0, 56);
+        }
+        
+    };
+    
+    // Registered game
+    struct RegGame {
+        
+        String Name, ID;
+        StreamVersion MetaVersion = MBIN;
+        LuaVersion LVersion = LuaVersion::LUA_5_2_3;
+        std::map<String, BlowfishKey> PlatformToEncryptionKey;
+        BlowfishKey MasterKey; // key used for all platforms
+        Bool ModifiedBlowfish = false;
+        
+    };
     
     // ======================================== PUBLIC META TYPES ========================================
     
     class ClassInstance {
+        
+        // FRIENDS FOR ACCESSING PRIVATE FUNCTIONALITY
         
         friend class ClassInstanceCollection;
         
@@ -161,7 +254,11 @@ namespace Meta {
         
         friend ClassInstance AcquireScriptInstance(LuaManager& man, I32 stackIndex);
         
+        friend ClassInstance GetMember(ClassInstance& inst, const String& name);
+        
         friend ClassInstance _Impl::_MakeInstance(U32);
+        
+        friend Bool _Impl::_Serialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite);
         
     public:
         
@@ -275,12 +372,16 @@ namespace Meta {
         _COL_VAL_SKIP_DT = 32, // skip val destruct
         _COL_VAL_SKIP_CP = 64, // skip val copy
         _COL_VAL_SKIP_MV = 128,// skip val move
+        _COL_IS_SARRAY = 256, // is a SArray type
     };
     
     // Both dynamic and static arrays, maps and other containers all use this type internally. (DCArray/SArray/Map/Set/Queue/...)
     // This represents a collection of (optionally keyed) class instances stored in an array.
     // This is the internal type, use without underscore version (ref ptr)
     class alignas(8) ClassInstanceCollection {
+        
+        static void _MoveStaticArrayMemory(ClassInstanceCollection& src, ClassInstanceCollection& dst);
+        
     public: // ensure we are aligned to 8 bytes because all types have that align or less in the meta system.
         
         ClassInstanceCollection(U32 ArrayTypeIndex); // construct with no elements, passing in meta array class
@@ -303,6 +404,8 @@ namespace Meta {
         
         Bool IsKeyedCollection(); // returns if this is a keyed container, like Map<K,V>
         
+        Bool IsStaticArray(); // returns true if this array cannot be changed in size. GetSize will remain constant
+        
         // ===============================
         
         U32 GetSize(); // gets the current array size
@@ -314,6 +417,9 @@ namespace Meta {
         ClassInstance GetValue(U32 index); // gets the value at the given index
         
         ClassInstance GetKey(U32 index); // gets the key at the given index. must be a keyed collection!
+        
+        // Index must be less than size. Replaces. If copy is false, then that key or value is moved from the argument instead.
+        void SetIndex(U32 index, ClassInstance key, ClassInstance value, Bool bCopyKey, Bool bCopyVal);
         
         // Pushes a new element
         // If a map, key should be non-null.
@@ -341,6 +447,8 @@ namespace Meta {
     
     private:
         
+        void SetIndexInternal(U32 index, ClassInstance key, ClassInstance value, Bool bCopyKey, Bool bCopyVal);
+        
         U32 _Size; // dynamic size of array
         U32 _Cap; // dynamic capacity of array (if SArray, not dynamic, this value is UINT32_MAX)
         
@@ -367,12 +475,15 @@ namespace Meta {
     // ================================= PUBLIC META API =================================
     
     // Get the class ID of the given type from its information. ClassIDs are ALWAYS internal and do not store to disc. Returns 0 if not found
-    U32 FindClassID(U64 typeHash, U32 versionCRC);
+    U32 FindClass(U64 typeHash, U32 versionNumber);
+    
+    // Same as find class but finds by version CRC instead of version number
+    U32 FindClassByCRC(U64 typeHash, U32 versionCRC);
     
     // Same version using the string instead of the hash of the file name (lower case, use symbol)
-    inline U32 FindClassID(const String& typeName, U32 versionCRC)
+    inline U32 FindClass(const String& typeName, U32 versionNumber)
     {
-        return FindClassID(Symbol(typeName).GetCRC64(), versionCRC);
+        return FindClass(Symbol(typeName).GetCRC64(), versionNumber);
     }
     
     // Writes a meta stream file to the output stream, from the instance. This can kick off async jobs, so could block while waiting to finish.
@@ -384,35 +495,50 @@ namespace Meta {
     
     // ===== CLASS FUNCTIONALITY FOR SINGLE INSTANCES ======
     
-    // Creates an instance of the given class
+    // Creates an instance of the given class. Thread safe between game switches.
     ClassInstance CreateInstance(U32 ClassID);
     
-    // Creates an exact copy of the given instance
+    // Creates an exact copy of the given instance. Thread safe between game switches.
     ClassInstance CopyInstance(ClassInstance instance);
     
     // Moves the instance argument to a new instance, leaving the old one still alive but with none of its previous data (now in new returned one).
+    // Thread safe between game switches.
     ClassInstance MoveInstance(ClassInstance instance);
     
     // Acquires a reference to the given script object on the stack. After using ClassInstance::PushScriptRef, this can be used on the pushed value
+    // Thread safe between game switches.
     ClassInstance AcquireScriptInstance(LuaManager& man, I32 stackIndex);
     
     // Returns true if the given instance's type is a collection, ie you can use CastToCollection
+    // Thread safe between game switches.
     inline Bool IsCollection(ClassInstance instance)
     {
         return instance ? (_Impl::_GetClass(instance.GetClassID())->Flags & CLASS_CONTAINER) != 0 : false;
     }
     
     // Returns if the given instance type is typeName, eg 'String'
+    // Thread safe between game switches.
     inline Bool Is(const ClassInstance& inst, const String& typeName)
     {
         return inst ? _Impl::_GetClass(inst.GetClassID())->TypeHash == Symbol(typeName) : false;
     }
     
     // Gets a member of a complex type, ie a meta type (type is not intrinsic, can be, but for that prefer GetMember<T>).
+    // Thread safe between game switches.
     ClassInstance GetMember(ClassInstance& inst, const String& name);
     
+    // Performs the less than operator '<' with the left and right hand side arguments (must be same type).
+    Bool PerformLessThan(ClassInstance& lhs, ClassInstance& rhs);
+    
+    // Performs the equality operator '==' with the left and right hand side arguments (must be same type).
+    Bool PerformEquality(ClassInstance& lhs, ClassInstance& rhs);
+    
+    // Performs the to string operator.
+    String PerformToString(ClassInstance& inst);
+    
     // Get a reference to the member in the given type instance. T must be intrinsic (String,int,...), as well as U64 (equivalent) for Symbol
-    // or U32 (or equivalent) for Flags type
+    // or U32 (or equivalent) for Flags type, or the BinaryBuffer class defined above
+    // Thread safe between game switches.
     template<typename T>
     T& GetMember(ClassInstance& inst, const String& name)
     {
@@ -423,8 +549,9 @@ namespace Meta {
         {
             if(member.Name == name) // Find matching member
             {
-                TTE_ASSERT(_Impl::_GetClass(member.ClassID)->Flags & CLASS_INTRINSIC || Is(inst, "Symbol") || Is(inst, "Flags"),
-                           "GetMember<T> can only be used on intrinsic types or Symbol or Flags types!");
+                TTE_ASSERT(_Impl::_GetClass(member.ClassID)->Flags & CLASS_INTRINSIC || Is(inst, "class Symbol") || Is(inst, "class Flags")
+                           || Is(inst, "Symbol") || Is(inst, "Flags") || Is(inst, "__INTERNAL_BINARY_BUFFER__"),
+                           "GetMember<T> can only be used on intrinsic types!");
                 return *((T*)(inst._GetInternal() + member.RTOffset)); // Offset in memory, skip header.
             }
         }
@@ -433,6 +560,7 @@ namespace Meta {
     }
     
     // Returns if the given instance has a member of the given name
+    // Thread safe between game switches.
     inline Bool HasMember(ClassInstance& inst, const String& name)
     {
         TTE_ASSERT(inst, "Instance is null");
@@ -449,6 +577,7 @@ namespace Meta {
     }
     
     // If the given instance class is a collection, this returns the modifyable collection for it. DO NOT access this after arrayType is not alive.
+    // Thread safe between game switches.
     inline ClassInstanceCollection& CastToCollection(ClassInstance& arrayType){
         TTE_ASSERT(arrayType, "Cannot cast to collection: array type is null");
         TTE_ASSERT(_Impl::_GetClass(arrayType.GetClassID())->Flags & CLASS_CONTAINER, "Cannot cast class to collection: it is not a collection");

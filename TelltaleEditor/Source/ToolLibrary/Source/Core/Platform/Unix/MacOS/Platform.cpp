@@ -91,5 +91,5 @@ U64 FilePos(U64 Handle) {
 }
 
 void FileSeek(U64 Handle, U64 Offset){
-    lseek((int)Handle, Offset, SEEK_SET);
+    lseek((int)Handle, (off_t)Offset, SEEK_SET);
 }

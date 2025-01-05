@@ -71,6 +71,31 @@ void LuaManager::Initialise(LuaVersion Vers)
     
 }
 
+static int _CompileWriter(lua_State*, const void* p, size_t sz, void* strm)
+{
+    if(sz > 0)
+    {
+        DataStreamRef& stream = *((DataStreamRef*)strm);
+        return stream->Write((const U8*)p, sz) ? 0 : 1; // write bytes
+    }
+    return 0;
+}
+
+Bool LuaManager::Compile(DataStreamRef& stream)
+{
+    if(!stream)
+    {
+        TTE_ASSERT("Cannot compile script: output data stream invalid or not specified");
+        return false;
+    }
+    return _Adapter->DoDump(&_CompileWriter, &stream);
+}
+
+void LuaManager::GC()
+{
+    _Adapter->GC();
+}
+
 Bool LuaManager::RunText(CString Code, U32 Len, CString ChunkName)
 {
     TTE_ASSERT(_Version != LuaVersion::LUA_NONE, "Lua not initialised");

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Core/Config.hpp>
+#include <Resource/DataStream.hpp>
 
 // This is the low level LUA API. This deals with calls to the lua library for compilation and running of scripts. Decompilation is also managed here
 // in terms of luadec.
@@ -45,6 +46,9 @@ struct lua_State;
 // User defined C function proto. Return number of return values.
 using LuaCFunction = U32 (*)(LuaManager& L);
 
+// Used to compile scripts in this header.
+typedef int (*lua_Writer) (lua_State *L, const void* p, size_t sz, void* ud);
+
 // Lua Manager class for managing lua calling and versioning. Not thread safe.
 class LuaManager
 {
@@ -64,6 +68,9 @@ class LuaManager
     
     // Checks if we can add <extra> elements onto the stack without causing a stack overflow.
     Bool CheckStack(U32 extra);
+    
+    // Runs the garbage collector
+    void GC();
     
     // Pushes a bool to the stack.
     void PushBool(Bool value);
@@ -186,6 +193,9 @@ class LuaManager
     // Pops a table from the stack and sets it as the new metatable for the given object. Returns 0 when it cannot set the
     // metatable of the given object (that is, when the object is neither a userdata nor a table); even then it pops the table from the stack.
     Bool SetMetaTable(I32);
+    
+    // DOES NOT POP. Compiles the function at the top of the stack and writes the compiled script to the given data stream argument.
+    Bool Compile(DataStreamRef& dst);
 
     // Default constructor.
     LuaManager() = default;
@@ -229,6 +239,9 @@ class LuaAdapterBase
     //type being 999 means env, 888 means integer
     virtual void Push(LuaType type, void* pValue) = 0;
     
+    // compile to writer. return false on error (printing to console). NOTE: some old compilers do not support compiled code! (less than 5.1)
+    virtual Bool DoDump(lua_Writer writer, void* ud) = 0;
+    
     virtual void Pop(U32 N) = 0;
     
     virtual I32 GetTop() = 0;
@@ -236,6 +249,8 @@ class LuaAdapterBase
     virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) = 0;
     
     virtual void* CreateUserData(U32 size) = 0;
+    
+    virtual void GC() = 0;
     
     virtual void GetTable(I32 index, Bool bRaw) = 0;
     
@@ -313,7 +328,11 @@ class LuaAdapter_523 : public LuaAdapterBase
     
     virtual I32 GetTop() override;
     
+    virtual void GC() override;
+    
     virtual void* CreateUserData(U32 size) override;
+    
+    virtual Bool DoDump(lua_Writer writer, void* ud) override;
     
     virtual void GetTable(I32 index, Bool bRaw) override;
     
@@ -392,6 +411,10 @@ class LuaAdapter_514 : public LuaAdapterBase
     
     virtual void SetTable(I32 index, Bool bRaw) override;
     
+    virtual void GC() override;
+    
+    virtual Bool DoDump(lua_Writer writer, void* ud) override;
+    
     virtual void* CreateUserData(U32 size) override;
     
     virtual void SetTableRaw(I32 index, I32 arrayIndex) override;
@@ -459,6 +482,8 @@ class LuaAdapter_502 : public LuaAdapterBase
     
     virtual void Push(LuaType type, void* pValue) override;
     
+    virtual Bool DoDump(lua_Writer writer, void* ud) override;
+    
     virtual void Pop(U32 N) override;
     
     virtual I32 GetTop() override;
@@ -480,6 +505,8 @@ class LuaAdapter_502 : public LuaAdapterBase
     virtual Bool Compare(I32 lhs, I32 rhs, LuaOp op) override;
     
     virtual CString Typename(LuaType) override;
+    
+    virtual void GC() override;
     
     virtual Bool GetMetatable(I32 index) override;
     

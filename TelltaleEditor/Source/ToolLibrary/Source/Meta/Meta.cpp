@@ -45,46 +45,26 @@ void DestroyToolContext()
 // ===================================================================         META
 // ===================================================================
 
-extern LuaFunctionCollection luaMetaGameEngine(); // defined totally in MetaLuaAPI.cpp
+extern LuaFunctionCollection luaGameEngine(); // actual engine game api in EngineLUAApi.cpp
+extern LuaFunctionCollection luaLibraryAPI(); // actual api in LibraryLUAApi.cpp
 
 namespace Meta {
     
-    struct BlowfishKey // encryption key
-    {
-        
-        U8 BfKey[56];
-        U32 BfKeyLength = 0;
-        
-        inline BlowfishKey()
-        {
-            memset(BfKey, 0, 56);
-        }
-        
-    };
-    
-    // Registered game
-    struct RegGame {
-        String Name, ID;
-        StreamVersion MetaVersion = MBIN;
-        LuaVersion LVersion = LuaVersion::LUA_5_2_3;
-        std::map<String, BlowfishKey> PlatformToEncryptionKey;
-        BlowfishKey MasterKey; // key used for all platforms
-        Bool ModifiedBlowfish = false;
-    };
-    
-    static std::vector<RegGame> Games{};
-    static std::map<U32, Class> Classes{};
-    static U32 GameIndex{}; // Current game index
-    static String VersionCalcFun{}; // lua function which calculates version crc for a type.
+    std::vector<RegGame> Games{};
+    std::map<U32, Class> Classes{};
+    std::map<Symbol, CompiledSerialiserScript> Serialisers{}; // map of serialiser script path symbol => compiled script binary
+    U32 GameIndex{}; // Current game index
+    String VersionCalcFun{}; // lua function which calculates version crc for a type.
     
     // ===================================================================         IMPL
     // ===================================================================
     
     namespace _Impl {
         
-        U32 _GenerateClassID(U64 typeHash, U32 versionCRC)
+        U32 _GenerateClassID(U64 typeHash, U32 versionNumber)
         {
-            return CRC32((U8*)&typeHash, 8, versionCRC); // needs to be unique. hash the type hash with initial crc being the version crc.
+            return CRC32((U8*)&typeHash, 8, versionNumber ^ 0xF0F0F0F0);
+            // needs to be unique. hash the type hash with initial crc being the version number inverted every 4 bits
         }
         
         // register class argument to meta system
@@ -96,16 +76,75 @@ namespace Meta {
             U32 crc = _DoLuaVersionCRC(man, stackIndex);
             if(crc == 0)
                 return 0; // errored
-            U32 id = _GenerateClassID(cls.TypeHash, crc);
+            U32 id = _GenerateClassID(cls.TypeHash, cls.VersionNumber);
             
+            // chcek any duplicate version number
             if(Classes.find(id) != Classes.end())
             {
-                TTE_LOG("Duplicate type detected for '%s': version CRCs are the same for the given class!", cls.Name.c_str());
+                TTE_LOG("Duplicate type detected for '%s': multiple same version indices for the given class!", cls.Name.c_str());
                 return 0;
             }
             
-            if(!(cls.Flags & CLASS_INTRINSIC))
-            { // if not intrinsic, calc its size and align {
+            // check any duplicate version CRCs
+            for(U32 i = 0; i < MAX_VERSION_NUMBER; i++)
+            {
+                if(i != cls.VersionNumber) {
+                    auto c = Classes.find(_GenerateClassID(cls.TypeHash, i));
+                    if(c != Classes.end() && c->second.VersionCRC == crc)
+                    {
+                        TTE_LOG("Duplicate type detected for '%s': version CRCs are the same for the given class!", cls.Name.c_str());
+                        return 0;
+                    }
+                }
+            }
+            
+            if(cls.SerialiseScriptFn.length() > 0)
+            {
+                // register serialise and compile it
+                if(Serialisers.find(cls.SerialiseScriptFn) == Serialisers.end())
+                {
+                    // compile and add it
+                    
+                    ScriptManager::GetGlobal(GetToolContext()->GetLibraryLVM(), cls.SerialiseScriptFn, true);
+                    
+                    if(GetToolContext()->GetLibraryLVM().Type(-1) != LuaType::FUNCTION)
+                    {
+                        GetToolContext()->GetLibraryLVM().Pop(1);
+                        TTE_ASSERT(false, "The serialiser function '%s' does not exist as a function.", cls.SerialiseScriptFn.c_str());
+                        return 0;
+                    }
+                    
+                    // function is on the top of the stack, compile it.
+                    DataStreamRef localWriter = DataStreamManager::GetInstance()->CreatePrivateCache(cls.SerialiseScriptFn);
+                    if(!GetToolContext()->GetLibraryLVM().Compile(localWriter) || localWriter->GetSize() <= 0)
+                    {
+                        GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
+                        TTE_ASSERT(false, "Cannot register class serialiser script %s"
+                                   ": compile failed or empty", cls.SerialiseScriptFn.c_str());
+                        return 0;
+                    }
+                    GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
+                    
+                    localWriter->SetPosition(0); // seek to beginning, then read all bytes.
+                    U8* compiledBytes = TTE_ALLOC(localWriter->GetSize(), MEMORY_TAG_SCRIPTING);
+                    
+                    if(!localWriter->Read(compiledBytes, localWriter->GetSize()))
+                    {
+                        TTE_ASSERT(false, "Could not read bytes from compiled serialiser script stream");
+                        TTE_FREE(compiledBytes);
+                        return 0;
+                    }
+                    
+                    CompiledSerialiserScript compiledScript{};
+                    compiledScript.Binary = compiledBytes;
+                    compiledScript.Size = (U32)localWriter->GetSize();
+                    Serialisers[cls.SerialiseScriptFn] = compiledScript; // save it
+                    
+                }
+            }
+            
+            if(cls.RTSize == 0)
+            { // if not a c++ defined intrinsic, calc its size
                 if(cls.Members.size() == 0)
                 {
                     cls.RTSize = 1; // default size 1 byte
@@ -115,7 +154,7 @@ namespace Meta {
                     cls.RTSize = 0;
                     for(auto& member: cls.Members)
                     {
-                        if(!(member.Flags & MEMBER_GHOST)) // ignore ghost members in the size
+                        if(!(member.Flags & MEMBER_MEMORY_DISABLE)) // ignore MEMORY_DISABLE members in the size
                         {
                             // if member type is >= 8 bytes, ensure 8 byte aligned.
                             if(Classes[member.ClassID].RTSize >= 8)
@@ -131,20 +170,14 @@ namespace Meta {
                     }
                 }
             }
-            else
-            {
-                // intrinsic
-                if(cls.RTSize == 0)
-                    TTE_LOG("Intrinsic type size has not been specified");
-            }
             
             cls.VersionCRC = crc;
+            cls.ClassID = id;
             Classes[id] = std::move(cls);
             return id;
         }
         
-        // Meta serialise the given class and instance (pMemory).
-        Bool _DoSerialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool _Serialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
         {
             if(!pMemory || clazz == nullptr)
             {
@@ -152,9 +185,7 @@ namespace Meta {
                 return false;
             }
             
-            Bool bBlocked = (clazz->Flags & CLASS_NON_BLOCKED) == 0;
-            
-            if((clazz->Flags & CLASS_INTRINSIC) != 0) // add to version header if needed
+            if(((clazz->Flags & CLASS_INTRINSIC) == 0)) // add to version header if needed
             {
                 if(IsWrite)
                 {
@@ -185,77 +216,157 @@ namespace Meta {
                     }
                 }
             }
+
+            StreamSection initialSection = stream.CurrentSection; // ensure after the section is the same
             
-            // START OF BLOCK
-            if(bBlocked)
+            Bool result;
+            
+            if(clazz->Serialise) // has serialiser.
             {
-                if(IsWrite) // in write store position in stream
+                result = clazz->Serialise(stream, clazz, pMemory, IsWrite);
+            }
+            else if(clazz->SerialiseScriptFn.length() > 0) // RUN LUA SERIALISER FUNCTION
+            {
+                // TODO ASYNC LUA RUNTIME. (context needs to be passed in as arg if so)
+                
+                auto it = Serialisers.find(clazz->SerialiseScriptFn);
+                if(it == Serialisers.end())
                 {
-                    stream.Sect[stream.CurrentSection].Blocks.push_back(stream.Sect[stream.CurrentSection].Data->GetPosition());
-                    U32 zero{};
-                    SerialiseU32(stream, nullptr, &zero, true); // write zero for block size now. will come back after.
+                    TTE_ASSERT(false, "Cannot serialise type %s: serialiser function failed to initilaise", clazz->Name.c_str());
+                    return false; // FAIL
                 }
-                else
+                
+                if(!GetToolContext()->GetLibraryLVM().LoadChunk(clazz->SerialiseScriptFn, it->second.Binary, it->second.Size, true))
                 {
-                    // read. store size + current offset to check after
-                    U32 size{};
-                    SerialiseU32(stream, nullptr, &size, true); // read block size (4 is added to it).
-                    stream.Sect[stream.CurrentSection].Blocks.push_back(stream.Sect[stream.CurrentSection].Data->GetPosition() + size - 4);
+                    TTE_ASSERT(false, "Cannot serialise type %s: compiled serialiser function failed to load", clazz->Name.c_str());
+                    return false; // FAIL
                 }
+                
+                // arguments: meta stream, instance, is write
+                
+                GetToolContext()->GetLibraryLVM().PushOpaque(&stream); // push stream
+                
+                ClassInstance tmp{clazz->ClassID, (U8*)pMemory};
+                tmp.PushScriptRef(GetToolContext()->GetLibraryLVM(), false); // push instance
+                
+                GetToolContext()->GetLibraryLVM().PushBool(IsWrite); // push is write
+                
+                GetToolContext()->GetLibraryLVM().CallFunction(3, 1); // call
+                
+                result = ScriptManager::PopBool(GetToolContext()->GetLibraryLVM()); // check result
+                
+                if(!result)
+                {
+                    TTE_LOG("Cannot serialise type %s: script serialisation function returned false", clazz->Name.c_str());
+                    return false; // FAIL
+                }
+                
+            }
+            else
+            {
+                result = _DefaultSerialise(stream, clazz, pMemory, IsWrite);
+            }
+            
+            stream.CurrentSection = initialSection;
+            
+            return result;
+        }
+        
+        // Meta serialise all the members (default)
+        Bool _DefaultSerialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
+        {
+            if(!pMemory || clazz == nullptr)
+            {
+                TTE_ASSERT(false, "Cannot serialise, type or class passed in is null");
+                return false;
             }
             
             StreamSection initialSection = stream.CurrentSection; // ensure after the section is the same
             
-            // BLOCK DATA
-            if(clazz->Serialise) // has serialiser.
+            // serialise each member
+            for(auto& member: clazz->Members)
             {
-                clazz->Serialise(stream, clazz, pMemory, IsWrite);
-            }
-            else if(clazz->SerialiseScriptFunction.length() > 0)
-            {
-                // call lua serialiser
-                TTE_ASSERT(false, "IMPLEMENT LUA SERIALISER"); // args, read write functions? etc...
-            }
-            else
-            {
-                // serialise each member
-                for(auto& member: clazz->Members)
+                if(member.Flags & MEMBER_SERIALISE_DISABLE)
+                    continue; // skip
+                
+                Bool bBlocked = (Classes[member.ClassID].Flags & CLASS_NON_BLOCKED) == 0;
+                
+                // START OF BLOCK
+                if(bBlocked)
                 {
-                    if(!_DoSerialise(stream, &Classes[member.ClassID], (U8*)pMemory + member.RTOffset, IsWrite))
-                        return false;
+                    if(IsWrite) // in write store position in stream
+                    {
+                        stream.Sect[stream.CurrentSection].Blocks.push_back(stream.Sect[stream.CurrentSection].Data->GetPosition());
+                        U32 zero{};
+                        SerialiseU32(stream, nullptr, &zero, true); // write zero for block size now. will come back after.
+                    }
+                    else
+                    {
+                        // read. store size + current offset to check after
+                        U32 size{};
+                        SerialiseU32(stream, nullptr, &size, false); // read block size (4 is added to it).
+                        stream.Sect[stream.CurrentSection].Blocks.push_back(stream.Sect[stream.CurrentSection].Data->GetPosition() + size - 4);
+                    }
                 }
+                
+                // BLOCK DATA
+                if(!_Serialise(stream, &Classes[member.ClassID], (U8*)pMemory + member.RTOffset, IsWrite))
+                    return false; // serialise it
+                
+                // END OF BLOCK
+                if(bBlocked)
+                {
+                    if(IsWrite) // in write store position in stream
+                    {
+                        U64 pos = stream.Sect[stream.CurrentSection].Blocks.back();
+                        stream.Sect[stream.CurrentSection].Blocks.pop_back();
+                        
+                        U32 blockSize = (U32)(stream.Sect[stream.CurrentSection].Data->GetPosition() - pos);
+                        U64 currentPos = stream.Sect[stream.CurrentSection].Data->GetPosition(); // cache current position
+                        
+                        stream.Sect[stream.CurrentSection].Data->SetPosition(pos); // go back to block offset
+                        SerialiseU32(stream, nullptr, &blockSize, true); // write it
+                        stream.Sect[stream.CurrentSection].Data->SetPosition(currentPos); // go back to normal. done
+                    }
+                    else
+                    {
+                        U64 pos = stream.Sect[stream.CurrentSection].Blocks.back();
+                        stream.Sect[stream.CurrentSection].Blocks.pop_back();
+                        if(pos != stream.Sect[stream.CurrentSection].Data->GetPosition())
+                        {
+                            TTE_ASSERT(false, "Block size mismatch when reading %s", clazz->Name.c_str());
+                            return false;
+                        }
+                    }
+                }
+                
             }
             
             stream.CurrentSection = initialSection; // reset section
             
-            // END OF BLOCK
-            if(bBlocked)
-            {
-                if(IsWrite) // in write store position in stream
-                {
-                    U64 pos = stream.Sect[stream.CurrentSection].Blocks.back();
-                    stream.Sect[stream.CurrentSection].Blocks.pop_back();
-                    
-                    U32 blockSize = (U32)(stream.Sect[stream.CurrentSection].Data->GetPosition() - pos);
-                    U64 currentPos = stream.Sect[stream.CurrentSection].Data->GetPosition(); // cache current position
-                    
-                    stream.Sect[stream.CurrentSection].Data->SetPosition(pos); // go back to block offset
-                    SerialiseU32(stream, nullptr, &blockSize, true); // write it
-                    stream.Sect[stream.CurrentSection].Data->SetPosition(currentPos); // go back to normal. done
-                }
-                else
-                {
-                    U64 pos = stream.Sect[stream.CurrentSection].Blocks.back();
-                    stream.Sect[stream.CurrentSection].Blocks.pop_back();
-                    if(pos != stream.Sect[stream.CurrentSection].Data->GetPosition())
-                    {
-                        TTE_ASSERT(false, "Block size mismatch when reading class %s", clazz->Name.c_str());
-                        return false;
-                    }
-                }
-            }
-            
             return true;
+        }
+        
+        String _PerformToString(U8* pMemory, Class* pClass)
+        {
+            if(pClass->ToString != nullptr) // we have a function to do it, else use members
+            {
+                return pClass->ToString(pMemory);
+            }
+            if(pClass->Members.size() == 0)
+                return pClass->Name; // return the name of the class - it has no runtime data to get
+            String result = "[";
+            for(auto& member: pClass->Members)
+            {
+                result += " ";
+                result += member.Name;
+                result += " = ";
+                result += _PerformToString(pMemory + member.RTOffset, &Classes[member.ClassID]);
+                result += ", ";
+            }
+            result[result.length() - 2] = ' ';
+            result[result.length() - 1] = ']';
+            return result;
         }
         
         // calculate the crc32 version (important!) for the given class.
@@ -293,8 +404,17 @@ namespace Meta {
                 return ClassInstance{};
             }
             
+            U32 sz = it->second.RTSize;
+            
+            // for SArray types, store the static memory after the type to save an allocation
+            if(it->second.ArraySize > 0)
+            {
+                sz += TTE_PADDING(sz, 8); // ensure 8 byte align
+                sz += it->second.ArraySize * Classes[it->second.ArrayValClass].RTSize;
+            }
+            
             // allocate
-            U8* pMemory = TTE_ALLOC(it->second.RTSize, MEMORY_TAG_META_TYPE);
+            U8* pMemory = TTE_ALLOC(sz, MEMORY_TAG_META_TYPE);
             
             return ClassInstance{ClassID, pMemory, [=](U8* pMem){ // use a c++11 lambda so we get a closure.
                 
@@ -396,48 +516,87 @@ namespace Meta {
         // ===================================================================         INTRINSIC DEFAULTS
         // ===================================================================
         
-        static void CtorCol(void* pMemory, U32 Array)
+        void CtorCol(void* pMemory, U32 Array)
         {
             new (pMemory) ClassInstanceCollection(Array);
         }
         
-        static void DtorCol(void* pMemory, U32)
+        void DtorCol(void* pMemory, U32)
         {
             ((ClassInstanceCollection*)pMemory)->~ClassInstanceCollection();
         }
         
-        static void CopyCol(const void* pSrc, void* pDst)
+        void CopyCol(const void* pSrc, void* pDst)
         {
             new (pDst) ClassInstanceCollection(*((const ClassInstanceCollection*)pSrc));
         }
         
-        static void MoveCol(void* pSrc, void* pDst)
+        void MoveCol(void* pSrc, void* pDst)
         {
             new (pDst) ClassInstanceCollection(std::move(*((ClassInstanceCollection*)pSrc)));
         }
         
-        static void CtorString(void* pMemory, U32)
+        void CtorString(void* pMemory, U32)
         {
             new (pMemory) String();
         }
         
-        static void DtorString(void* pMemory, U32)
+        void DtorString(void* pMemory, U32)
         {
             ((String*)(pMemory))->~String();
         }
         
-        static void CopyString(const void* pSrc, void* pDst)
+        void CopyString(const void* pSrc, void* pDst)
         {
             new (pDst) String(*((const String*)pSrc)); // force call copy constructor
         }
         
-        static void MoveString(void* pSrc, void* pDst)
+        void MoveString(void* pSrc, void* pDst)
         {
             new (pDst) String(std::move(*((String*)pSrc))); // force call move constructor
         }
         
+        void CtorBinaryBuffer(void* pMemory, U32)
+        {
+            memset(pMemory, 0, sizeof(BinaryBuffer)); // clear to zeros (its just a pointer and size)
+        }
+        
+        void DtorBinaryBuffer(void* pMemory, U32)
+        {
+            BinaryBuffer* pBuffer = (BinaryBuffer*)pMemory;
+            if(pBuffer->Buffer)
+                TTE_FREE(pBuffer->Buffer); // free it
+            memset(pBuffer, 0, sizeof(BinaryBuffer)); // just in case
+        }
+        
+        void CopyBinaryBuffer(const void* pSrc, void* pDst) // copy CONSTRUCT.
+        {
+            const BinaryBuffer* pSrcBuffer = (const BinaryBuffer*)pSrc;
+            BinaryBuffer* pDstBuffer = (BinaryBuffer*)pDst;
+            
+            pDstBuffer->BufferSize = pSrcBuffer->BufferSize;
+            if(pDstBuffer->BufferSize) // if we have a buffer, copy the alloc
+            {
+                pDstBuffer->Buffer = TTE_ALLOC(pDstBuffer->BufferSize, MEMORY_TAG_RUNTIME_BUFFER);
+                memcpy(pDstBuffer->Buffer, pSrcBuffer->Buffer, sizeof(BinaryBuffer));
+            }
+            else
+            {
+                pDstBuffer->Buffer = nullptr;
+            }
+        }
+        
+        void MoveBinaryBuffer(void* pSrc, void* pDst)
+        {
+            BinaryBuffer* pSrcBuffer = (BinaryBuffer*)pSrc;
+            BinaryBuffer* pDstBuffer = (BinaryBuffer*)pDst;
+            
+            memcpy(pDst, pSrcBuffer, sizeof(BinaryBuffer)); // move all
+            memset(pSrc, 0, sizeof(BinaryBuffer)); // reset previous
+        }
+        
         // string default serialiser. class shouldnt be used, can be null as used in other serialisers where class is obvious.
-        static Bool SerialiseString(Stream& stream, Class*, void* pMemory, Bool IsWrite)
+        Bool SerialiseString(Stream& stream, Class*, void* pMemory, Bool IsWrite)
         {
             String& str = *((String*)pMemory);
             if(IsWrite)
@@ -445,7 +604,7 @@ namespace Meta {
                 U32 len = (U32)str.length();
                 if(!SerialiseU32(stream, nullptr, &len, true)) // write length
                     return false;
-                if(len && !SerialiseU32(stream, nullptr, (void*)str.c_str(), true)) // write ASCII
+                if(len && !stream.Write((const U8*)str.c_str(), (U64)len)) // write ASCII
                     return false;
             }
             else
@@ -468,14 +627,14 @@ namespace Meta {
                 }
                 
                 str = String((size_t)len, ' '); // reserve string buffer
-                if(len && !SerialiseU32(stream, nullptr, (void*)str.c_str(), false)) // read ASCII
+                if(len && !stream.Read((U8*)str.c_str(), (U64)len)) // read ASCII
                     return false;
             }
             return true;
         }
         
         // serialise symbol. if MBIN we store the string version of it.
-        static Bool SerialiseSymbol(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool SerialiseSymbol(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
         {
             Symbol& sym = *((Symbol*)pMemory);
             if(IsWrite)
@@ -526,7 +685,7 @@ namespace Meta {
         }
         
         // booleans need to be serialised as ascii 0 or 1, but in memory we store as 0 or 1 numbers
-        static Bool SerialiseBool(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool SerialiseBool(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
         {
             if(IsWrite)
             {
@@ -543,7 +702,7 @@ namespace Meta {
         }
         
         // serialise all telltale collections. DCArray, SArray, Map, Set, ...
-        static Bool SerialiseCollection(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool SerialiseCollection(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
         {
             ClassInstanceCollection* pCollection = (ClassInstanceCollection*)pMemory;
             Bool bKeyed = pCollection->IsKeyedCollection();
@@ -563,14 +722,14 @@ namespace Meta {
                     {
                         // write key
                         instance = pCollection->GetKey(i);
-                        if(!_DoSerialise(stream, &Classes[keyClass], instance._GetInternal(), true))
+                        if(!_Serialise(stream, &Classes[keyClass], instance._GetInternal(), true))
                             return false;
                         
                     }
                     
                     // write value
                     instance = pCollection->GetValue(i);
-                    if(!_DoSerialise(stream, &Classes[valClass], instance._GetInternal(), true))
+                    if(!_Serialise(stream, &Classes[valClass], instance._GetInternal(), true))
                         return false;
                     
                 }
@@ -579,7 +738,7 @@ namespace Meta {
             {
                 pCollection->Clear(); // ensure empty
                 U32 size{};
-                SerialiseU32(stream, nullptr, &size, true);
+                SerialiseU32(stream, nullptr, &size, false);
                 if(size > 0x10000)
                 {
                     TTE_ASSERT(false, "When serialising collection class: read size too large. Assuming corrupt: %d", size);
@@ -595,12 +754,12 @@ namespace Meta {
                     if(bKeyed)
                     {
                         kinstance = CreateInstance(keyClass); // serialise in key
-                        if(!_Impl::_DoSerialise(stream, &Classes[keyClass], kinstance._GetInternal(), false))
+                        if(!_Impl::_Serialise(stream, &Classes[keyClass], kinstance._GetInternal(), false))
                             return false;
                     }
                     
                     vinstance = CreateInstance(valClass); // serialise in value
-                    if(!_Impl::_DoSerialise(stream, &Classes[valClass], vinstance._GetInternal(), false))
+                    if(!_Impl::_Serialise(stream, &Classes[valClass], vinstance._GetInternal(), false))
                         return false;
                     
                     // MOVE each into the collection
@@ -615,527 +774,6 @@ namespace Meta {
     
     // ===================================================================          META LUA API
     // ===================================================================
-    
-    namespace L { // Lua functions
-         
-        // helper
-        static BlowfishKey luaToKey(String hexkey)
-        {
-            BlowfishKey ret{};
-            TTE_ASSERT((hexkey.length() & 1) == 0, "Hexadecimal encryption key length is not a multiple of two!");
-            
-            U32 len = (U32)hexkey.length();
-            ret.BfKeyLength = len >> 1;
-            TTE_ASSERT(ret.BfKeyLength, "Provided encryption key"
-                       " is too large at %d bytes. Maximum 56.", ret.BfKeyLength);
-            
-            for(U32 i = 0; i < len; i += 2) // convert hex string to max 56 byte buffer
-            {
-                String byt = hexkey.substr(i,2);
-                ret.BfKey[i >> 1] = (U8)strtol(byt.c_str(), nullptr, 0x10);
-            }
-            return ret;
-        }
-        
-        // MetaRegisterGame(gameInfoTable)
-        U32 luaMetaRegisterGame(LuaManager& man)
-        {
-            TTE_ASSERT(_IsMain, "MetaRegisterGame can only be called in initialisation on the main thread");
-            RegGame reg{};
-            
-            // pop stuff into reg game struct
-            ScriptManager::TableGet(man, "Name");
-            reg.Name = ScriptManager::PopString(man);
-            ScriptManager::TableGet(man, "ID");
-            reg.ID = ScriptManager::PopString(man);
-            ScriptManager::TableGet(man, "ModifiedEncryption");
-            if(man.Type(-1) == LuaType::BOOL)
-                reg.ModifiedBlowfish = ScriptManager::PopBool(man);
-            else
-            {
-                man.Pop(1);
-                reg.ModifiedBlowfish = false; // not modified default
-            }
-            
-            ScriptManager::TableGet(man, "Key");
-            if(man.Type(-1) == LuaType::STRING)
-            {
-                String hexkey = ScriptManager::PopString(man); // set master key
-                reg.MasterKey = luaToKey(std::move(hexkey));
-            }
-            else if(man.Type(-1) == LuaType::TABLE)
-            {
-                man.PushNil(); // set for each table
-                while(man.TableNext(-2) != 0)
-                {
-                    TTE_ASSERT(man.Type(-1) == LuaType::STRING && man.Type(-2) == LuaType::STRING, "Encryption key table invalid");
-                    
-                    man.PushCopy(-2); // push copy of key
-                    
-                    String key = man.ToString(-2);
-                    String platformName = man.ToString(-1);
-                    reg.PlatformToEncryptionKey[platformName] = luaToKey(key); // set platform key
-                    
-                    man.Pop(2);
-                }
-                man.Pop(1); // pop last key
-            }
-            else man.Pop(1); // no key given, skip
-            
-            ScriptManager::TableGet(man, "LuaVersion");
-            String v = ScriptManager::PopString(man);
-            reg.LVersion = v == "5.0.2" ? LuaVersion::LUA_5_0_2 : v == "5.1.4" ? LuaVersion::LUA_5_1_4 : LuaVersion::LUA_5_2_3;
-            
-            ScriptManager::TableGet(man, "DefaultMetaVersion");
-            v = ScriptManager::PopString(man);
-            
-            reg.MetaVersion = v == "MSV6" ? MSV6 : v == "MSV5" ? MSV5 : v == "MSV4" ? MSV4 : v == "MCOM" ? MCOM : v == "MTRE" ? MTRE : v == "MBIN" ? MBIN : v == "MBES" ? MBES : (StreamVersion)-1;
-            
-            TTE_ASSERT(reg.MetaVersion != (StreamVersion)-1, "Invalid meta version");
-            
-            Games.push_back(std::move(reg));
-            return 0;
-        }
-        
-        // pushes constant to lua globals for intrinsic types
-        static void AddIntrinsic(LuaManager& man, CString kName, String typeName, Class&& c) {
-            
-            man.PushTable();
-            
-            man.PushLString("Name");
-            man.PushLString(typeName);
-            man.SetTable(-3);
-            
-            man.PushLString("Flags");
-            man.PushUnsignedInteger(c.Flags);
-            man.SetTable(-3);
-            
-            U32 idx = _Impl::_Register(man, std::move(c), man.GetTop()); // intrinsic class table is top of stack
-            
-            man.PushLString("__MetaId");
-            man.PushUnsignedInteger(idx);
-            man.SetTable(-3);
-    
-            ScriptManager::SetGlobal(man, kName, true);
-        }
-        
-        // MetaRegisterIntrinsics()
-        U32 luaMetaRegisterIntrinsics(LuaManager& man)
-        {
-            TTE_ASSERT(_IsMain, "MetaRegisterIntrinsics can only be called in snapshot initialisation on the main thread");
-            Class c{};
-            
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "uint32";
-            c.RTSize = 4;
-            c.Serialise = &SerialiseU16;
-            AddIntrinsic(man, "kMetaUnsignedInt32", "uint32", std::move(c));
-            
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "int32";
-            c.RTSize = 4;
-            c.Serialise = &SerialiseU32;
-            AddIntrinsic(man, "kMetaInt32", "int32", std::move(c));
-            
-            // alias for int32, int, but it is used as well. ik, its weird. (we need these for version matches)
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "int";
-            c.RTSize = 4;
-            c.Serialise = &SerialiseU32;
-            AddIntrinsic(man, "kMetaInt", "int", std::move(c));
-            
-            // also for uint
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "uint";
-            c.RTSize = 4;
-            c.Serialise = &SerialiseU32;
-            AddIntrinsic(man, "kMetaUnsignedInt", "uint", std::move(c));
-            
-            // and ive seen this for unsigned __int64
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "unsigned __int64";
-            c.RTSize = 8;
-            c.Serialise = &SerialiseU64;
-            AddIntrinsic(man, "kMeta__UnsignedInt64", "unsigned __int64", std::move(c));
-            
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "long";
-            c.RTSize = 4;
-            c.Serialise = &SerialiseU32;
-            AddIntrinsic(man, "kMetaLong", "long", std::move(c));
-            
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "float";
-            c.RTSize = 4;
-            c.Serialise = &SerialiseU32;
-            AddIntrinsic(man, "kMetaFloat", "float", std::move(c));
-            
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "double";
-            c.RTSize = 8;
-            c.Serialise = &SerialiseU64;
-            AddIntrinsic(man, "kMetaDouble", "double", std::move(c));
-            
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "bool";
-            c.RTSize = 1;
-            c.Serialise = &_Impl::SerialiseBool;
-            AddIntrinsic(man, "kMetaBool", "bool", std::move(c));
-            
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "int8";
-            c.RTSize = 1;
-            c.Serialise = &SerialiseU8;
-            AddIntrinsic(man, "kMetaInt8", "int8", std::move(c));
-            
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "uint8";
-            c.RTSize = 1;
-            c.Serialise = &SerialiseU8;
-            AddIntrinsic(man, "kMetaUnsignedInt8", "uint8", std::move(c));
-            
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "int16";
-            c.RTSize = 2;
-            c.Serialise = &SerialiseU16;
-            AddIntrinsic(man, "kMetaInt16", "int16", std::move(c));
-            
-            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED;
-            c.Name = "uint16";
-            c.RTSize = 2;
-            c.Serialise = &SerialiseU16;
-            AddIntrinsic(man, "kMetaUnsignedInt32", "uint16", std::move(c));
-            
-            c.Flags = CLASS_NON_BLOCKED; // not intrinsic! it is stored in meta headers.
-            c.Name = "Symbol";
-            c.RTSize = sizeof(Symbol); // should definitely be 8!
-            c.Serialise = &_Impl::SerialiseSymbol;
-            AddIntrinsic(man, "kMetaSymbol", "Symbol", std::move(c));
-            
-            c.Flags = CLASS_INTRINSIC;
-            c.Name = "String";
-            c.RTSize = (U32)sizeof(String);
-            c.Constructor = &_Impl::CtorString;
-            c.Destructor = &_Impl::DtorString;
-            c.Serialise = &_Impl::SerialiseString;
-            c.CopyConstruct = &_Impl::CopyString;
-            c.MoveConstruct = &_Impl::MoveString;
-            AddIntrinsic(man, "kMetaString", "String", std::move(c));
-            memset(&c, 0, sizeof(Class));
-            
-            return 0;
-        }
-        
-        // helper function used twice. top of stack must be type table
-        static Bool luaHelperRegisterMembers(Class& c, LuaManager& man)
-        {
-            ScriptManager::TableGet(man, "Members");
-            if(man.Type(-1) == LuaType::TABLE){
-                
-                man.PushNil();
-                while(man.TableNext(-2) != 0)
-                {
-                    
-                    if(man.Type(-1) != LuaType::TABLE){
-                        TTE_LOG("ERROR registering type %s: element in members array is not a table", c.Name.c_str());
-                        man.Pop(3);
-                        return false;
-                    }
-                    
-                    ScriptManager::TableGet(man, "Name"); // member name
-                    Member m{};
-                    m.Name = ScriptManager::PopString(man);
-                    
-                    ScriptManager::TableGet(man, "Flags"); // pop flags
-                    if(man.Type(-1) == LuaType::NUMBER)
-                        m.Flags = ScriptManager::PopInteger(man);
-                    else
-                    {
-                        man.Pop(1); // pop nil likely
-                        // set flags to 0 if not set
-                        man.PushLString("Flags");
-                        man.PushInteger(0);
-                        man.SetTable(-3);
-                    }
-                    
-                    ScriptManager::TableGet(man, "Class");
-                    if(man.Type(-1) != LuaType::TABLE)
-                    {
-                        TTE_LOG("ERROR registering type %s: member '%s' class is not the table", c.Name.c_str(), m.Name.c_str());
-                        man.Pop(3);
-                        return false;
-                    }
-                    else
-                    {
-                        man.PushLString("__MetaId");
-                        man.GetTable(-2);
-                        U32 memberType = (U32)ScriptManager::PopInteger(man);
-                        if(Classes.find(memberType) == Classes.end()){
-                            // must be registered in order used, cannot use a class as a member type before type is declared.
-                            TTE_LOG("ERROR registering type %s: member '%s' class has not "
-                                    "been registered or was not found.", c.Name.c_str(), m.Name.c_str());
-                            man.Pop(3);
-                            return false;
-                        }
-                        m.ClassID = memberType;
-                    }
-                    
-                    c.Members.push_back(std::move(m)); // push new member
-                    
-                    man.Pop(2); // pop value and class table
-                }
-                
-            }
-            man.Pop(1); // pop members table/nil
-            return true;
-        }
-        
-        // MetaRegisterClass(classInfoTable)
-        static U32 luaMetaRegisterClass(LuaManager& man)
-        {
-            TTE_ASSERT(_IsMain, "MetaRegisterClass can only be called in snapshot initialisation on the main thread");
-            
-            Class c{};
-            ScriptManager::TableGet(man, "Name");
-            c.Name = ScriptManager::PopString(man);
-            ScriptManager::TableGet(man, "Flags");
-            if(man.Type(-1) == LuaType::NUMBER)
-                c.Flags = ScriptManager::PopInteger(man);
-            else
-            {
-                man.Pop(1); // pop nil likely
-                // set flags to 0 if not set
-                man.PushLString("Flags");
-                man.PushInteger(0);
-                man.SetTable(-3);
-            }
-            ScriptManager::TableGet(man, "Serialiser");
-            if(man.Type(-1) == LuaType::STRING)
-                c.SerialiseScriptFunction = ScriptManager::PopString(man);
-            else
-                man.Pop(1);
-            
-            if(!luaHelperRegisterMembers(c, man))
-                return 0;
-            
-            U32 id = _Impl::_Register(man, std::move(c), man.GetTop());
-            
-            man.PushLString("__MetaId");
-            man.PushUnsignedInteger(id);
-            man.SetTable(-3);
-            
-            man.Pop(1); // pop table
-            
-            return 0;
-        }
-        
-        // MetaRegisterCollection(typeInfoTable, keyTypeTable OR SArray<T,N> N value, valueTypeTable)
-        // type info table needs only Name, optional (likely needed) Members, and optional extra flags.
-        // MEMBERS MUST ALL BE GHOST MEMBERS. they are skipped in all constructors/destructors/copies/moves/serialises.
-        static U32 luaRegisterCollection(LuaManager& man)
-        {
-            Class c{};
-            TTE_ASSERT(man.GetTop() == 3, "Incorrect call");
-            TTE_ASSERT(man.Type(3) == LuaType::TABLE, "At MetaRegisterCollection, the value class argument (3) was not a table.");
-            TTE_ASSERT(man.Type(1) == LuaType::TABLE, "At MetaRegisterCollection, the collection class argument (1) was not a table.");
-            
-            c.Flags = CLASS_CONTAINER;
-            c.RTSize = (U32)sizeof(ClassInstanceCollection);
-            c.Constructor = &_Impl::CtorCol;
-            c.Destructor = &_Impl::DtorCol;
-            c.CopyConstruct = &_Impl::CopyCol;
-            c.MoveConstruct = &_Impl::MoveCol;
-            c.Serialise = &_Impl::SerialiseCollection;
-            
-            man.PushCopy(1);
-            
-            ScriptManager::TableGet(man, "Name");
-            c.Name = ScriptManager::PopString(man);
-            
-            ScriptManager::TableGet(man, "Flags");
-            if(man.Type(-1) == LuaType::NUMBER)
-                c.Flags |= ScriptManager::PopInteger(man);
-            else
-            {
-                man.Pop(1); // pop nil likely
-                // set flags to 0 if not set
-                man.PushLString("Flags");
-                man.PushInteger(0);
-                man.SetTable(-3);
-            }
-            
-            if(!luaHelperRegisterMembers(c, man))
-                return 0; // collections may still have members albeit not serialised (ghosts)
-            
-            for(auto& member: c.Members) // must all be ghosts! collection class has no members available through meta API.
-                TTE_ASSERT(member.Flags & MEMBER_GHOST, "When registering collection, all members must be ghosts: %s", member.Name.c_str());
-            
-            man.Pop(1); // pop copy of first arg
-            
-            if(man.Type(2) == LuaType::NUMBER) // SArray
-                c.ArraySize = man.ToInteger(2);
-            else if(man.Type(2) == LuaType::TABLE)
-            {
-                man.PushLString("__MetaId");
-                man.GetTable(2);
-                TTE_ASSERT(man.Type(-1) == LuaType::NUMBER, "When registering collection, key type table not registered properly");
-                c.ArrayKeyClass = (U32)ScriptManager::PopInteger(man);
-            }
-            
-            man.PushLString("__MetaId");
-            man.GetTable(3);
-            TTE_ASSERT(man.Type(-1) == LuaType::NUMBER, "When registering collection, value type table not registered properly");
-            c.ArrayValClass = (U32)ScriptManager::PopInteger(man);
-            
-            U32 id = _Impl::_Register(man, std::move(c), 1);
-            
-            man.PushLString("__MetaId");
-            man.PushUnsignedInteger(id);
-            man.SetTable(1);
-            
-            return 0;
-        }
-        
-        // most of the functions below are related to allowing lua to calculate version crcs.
-        
-        // MetaGetClassID(table)
-        static U32 luaMetaGetId(LuaManager& man)
-        {
-            TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaGetClassID");
-            ScriptManager::TableGet(man, "__MetaId");
-            return 1; // return value
-        }
-        
-        // number MetaGetVersionCRC(table).
-        static U32 luaMetaGetVersion(LuaManager& man)
-        {
-            TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaGetClassID");
-            ScriptManager::TableGet(man, "__MetaId");
-            auto it = Classes.find(ScriptManager::PopInteger(man));
-            
-            if(it == Classes.end())
-                man.PushNil();
-            else
-                man.PushUnsignedInteger(it->second.VersionCRC);
-            
-            return 1; // return value
-        }
-        
-        // string MetaGetClassHash(table) (hex hash). returns the STRING HEX HASH VERSION.
-        static U32 luaMetaGetClassHash(LuaManager& man)
-        {
-            TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaGetClassHash");
-            ScriptManager::TableGet(man, "__MetaId");
-
-            auto it = Classes.find(ScriptManager::PopInteger(man));
-            
-            if(it == Classes.end())
-                man.PushNil();
-            else
-            {
-                U64 hash = it->second.TypeHash;
-                std::stringstream stream;
-                stream << std::hex << std::uppercase << hash;
-                man.PushLString(stream.str());
-            }
-            
-            return 1; // return value
-        }
-        
-        // bool MetaFlagQuery(flags, flag_To_Test) (although, order doesn't matter
-        static U32 luaMetaFlagQuery(LuaManager& man)
-        {
-            TTE_ASSERT(man.GetTop() == 2,  "Incorrect usage of MetaFlagQuery");
-            TTE_ASSERT(man.Type(-1) == LuaType::NUMBER, "Incorrect usage of MetaFlagQuery (arg)");
-            TTE_ASSERT(man.Type(-2) == LuaType::NUMBER, "Incorrect usage of MetaFlagQuery (arg)");
-            
-            man.PushBool(((U32)man.ToInteger(-2) & (U32)man.ToInteger(-1)) != 0);
-            
-            return 1;
-        }
-        
-        // number MetaHashByte(number initial_hash, number byte) : lower 8 bits hashed.
-        static U32 luaMetaHashByte(LuaManager& man)
-        {
-            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of hash function");
-            
-            U32 init = (U32)man.ToInteger(-2);
-            U8 by = (U8)(((U32)man.ToInteger(-1)) & 0xFF);
-            man.PushUnsignedInteger(CRC32(&by, 1, init));
-            
-            return 1;
-        }
-        
-        // number MetaHashInt(number initial_hash, number val) : lower 32 bits hashed.
-        static U32 luaMetaHashInt(LuaManager& man)
-        {
-            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of hash function");
-            
-            U32 init = (U32)man.ToInteger(-2);
-            U32 by = (U32)man.ToInteger(-1);
-            man.PushUnsignedInteger(CRC32((const U8*)&by, 4, init));
-            
-            return 1;
-        }
-        
-        // number MetaHashHexString(number initial_hash, string hexhash) : converts to U64 and hashes
-        static U32 luaMetaHashHexString(LuaManager& man)
-        {
-            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of hash function");
-            
-            U32 init = (U32)man.ToInteger(-2);
-            String str = man.ToString(-1);
-            U64 val = strtoull(str.c_str(), NULL, 16);
-            
-            man.PushUnsignedInteger(CRC32((const U8*)&val, 8, init));
-            
-            return 1;
-        }
-        
-        // number MetaHashString(number initial_hash, string hash)
-        static U32 luaMetaHashString(LuaManager& man)
-        {
-            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of hash function");
-            
-            U32 init = (U32)man.ToInteger(-2);
-            String str = man.ToString(-1);
-            
-            man.PushUnsignedInteger(CRC32((const U8*)str.c_str(), (U32)str.length(), init));
-            
-            return 1;
-        }
-        
-        // MetaSetVersionFn(string fn)
-        static U32 luaMetaSetVersionCalc(LuaManager& man)
-        {
-            TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of hash function");
-            
-            VersionCalcFun = man.ToString(-1);
-            
-            return 0;
-        }
-        
-        // Generates new registerable meta library lua API
-        static LuaFunctionCollection luaMeta()
-        {
-            LuaFunctionCollection Col{};
-            Col.Functions.push_back({"MetaRegisterGame",&luaMetaRegisterGame});
-            Col.Functions.push_back({"MetaRegisterIntrinsics", &luaMetaRegisterIntrinsics});
-            Col.Functions.push_back({"MetaRegisterClass", &luaMetaRegisterClass});
-            Col.Functions.push_back({"MetaRegisterCollection", &luaRegisterCollection}); // used in Meta::Initialise4 in engine
-            Col.Functions.push_back({"MetaGetClassID", &luaMetaGetId});
-            Col.Functions.push_back({"MetaGetVersionCRC", &luaMetaGetVersion});
-            Col.Functions.push_back({"MetaGetClassHash", &luaMetaGetClassHash});
-            Col.Functions.push_back({"MetaFlagQuery", &luaMetaFlagQuery});
-            Col.Functions.push_back({"MetaHashByte", &luaMetaHashByte});
-            Col.Functions.push_back({"MetaHashInt", &luaMetaHashInt});
-            Col.Functions.push_back({"MetaHashHexString", &luaMetaHashHexString});
-            Col.Functions.push_back({"MetaHashString", &luaMetaHashString});
-            Col.Functions.push_back({"MetaSetVersionFn", &luaMetaSetVersionCalc});
-            return Col;
-        }
-        
-    }
     
     // garbage collector function for script refs to class instances
     U32 luaClassInstanceGC(LuaManager& man)
@@ -1221,9 +859,67 @@ namespace Meta {
         return instanceNew;
     }
     
-    U32 FindClassID(U64 typeHash, U32 versionCRC)
+    ClassInstance GetMember(ClassInstance& inst, const String& name)
     {
-        U32 id = _Impl::_GenerateClassID(typeHash, versionCRC);
+        if(!inst)
+            return {}; // edge case
+        const Class& clazz = Classes[inst.GetClassID()];
+        for(auto& mem: clazz.Members)
+        {
+            if(CompareCaseInsensitive(name, mem.Name))
+            {
+                return ClassInstance(mem.ClassID, inst._GetInternal() + mem.RTOffset);
+            }
+        }
+        return {}; // not found
+    }
+    
+    Bool PerformLessThan(ClassInstance& lhs, ClassInstance& rhs)
+    {
+        if(!lhs || !rhs)
+            return false;
+        if(lhs.GetClassID() != rhs.GetClassID())
+            return false;
+        auto op = Classes[lhs.GetClassID()].LessThan;
+        return op ? op(lhs._GetInternal(), rhs._GetInternal()) : false;
+    }
+    
+    Bool PerformEquality(ClassInstance& lhs, ClassInstance& rhs)
+    {
+        if(!lhs || !rhs)
+            return false;
+        if(lhs.GetClassID() != rhs.GetClassID())
+            return false;
+        auto op = Classes[lhs.GetClassID()].Equals;
+        return op ? op(lhs._GetInternal(), rhs._GetInternal()) : false;
+    }
+    
+    String PerformToString(ClassInstance& inst)
+    {
+        return inst ? _Impl::_PerformToString(inst._GetInternal(), &Classes[inst.GetClassID()]) : "";
+    }
+    
+    // Performs the equality operator '==' with the left and right hand side arguments (must be same type).
+    Bool PerformEquality(ClassInstance& lhs, ClassInstance& rhs);
+    
+    // Performs the to string operator.
+    String PerformToString(ClassInstance& inst);
+    
+    U32 FindClassByCRC(U64 typeHash, U32 versionCRC)
+    {
+        // version number should only be between 0 and  MAX_VERSION_NUMBER
+        for(U32 i = 0; i <= MAX_VERSION_NUMBER; i++)
+        {
+            U32 id = FindClass(typeHash, i);
+            if(id && Classes[id].VersionCRC == versionCRC)
+                return id;
+        }
+        return 0; // not found
+    }
+    
+    U32 FindClass(U64 typeHash, U32 versionNumber)
+    {
+        U32 id = _Impl::_GenerateClassID(typeHash, versionNumber);
         return Classes.find(id) == Classes.end() ? 0 : id; // ensure it exists before we return it.
     }
     
@@ -1302,6 +998,12 @@ namespace Meta {
     void RelGame()
     {
         TTE_ASSERT(_IsMain, "Must only be called from main thread");
+        
+        // clear compiled memory
+        for(auto& script: Serialisers)
+            TTE_FREE(script.second.Binary);
+        Serialisers.clear();
+        
         Classes.clear();
         VersionCalcFun = "";
     }
@@ -1311,8 +1013,8 @@ namespace Meta {
         TTE_ASSERT(_IsMain, "Must only be called from main thread");
         TTE_ASSERT(GetToolContext(), "Tool context not created");
         
-        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), L::luaMeta()); // Register meta scripting API
-        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaMetaGameEngine()); // Register low level API to match engine
+        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaLibraryAPI()); // Register editor library
+        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaGameEngine()); // Register telltale engine
         
         // Global LUA flag constants for use in the library init scripts
         
@@ -1333,10 +1035,12 @@ namespace Meta {
         ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberFlag", true); // member is a flag
         GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_BASE);
         ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberBaseClass", true); // member is a base class
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_GHOST);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberGhost", true); // member not in memory (no Class needed)f
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_SKIP);
+        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_MEMORY_DISABLE);
+        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberMemoryDisable", true); // member not in memory (no Class needed)
+        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_SERIALISE_DISABLE);
         ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberSerialiseDisable", true); // member not on disk
+        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_VERSION_HASH_DISABLE);
+        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberVersionDisable", true); // no version include
         
         // Setup games script
         
@@ -1408,7 +1112,7 @@ namespace Meta {
         
         // 2. SERIALISE INSTANCE TO THE STREAM
         
-        if(!_Impl::_DoSerialise(metaStream, &Classes[instance.GetClassID()], instance._GetInternal(), true))
+        if(!_Impl::_Serialise(metaStream, &Classes[instance.GetClassID()], instance._GetInternal(), true))
         {
             TTE_LOG("Cannot write meta stream: serialisation failed");
             return false;
@@ -1613,7 +1317,7 @@ namespace Meta {
             
             // try and find it in the registered classes. if it is not found, the version CRC likely mismatches. cannot load, as
             // format is not 100% gaurunteed to match.
-            U32 ClassID = _Impl::_GenerateClassID(typeHash, versionCRC);
+            U32 ClassID = FindClassByCRC(typeHash, versionCRC);
             
             if(Classes.find(ClassID) == Classes.end())
             {
@@ -1670,7 +1374,7 @@ namespace Meta {
         }
     
         // perform actual serialisation of the primary class stored.
-        if(!_Impl::_DoSerialise(metaStream, &Classes[ClassID], instance._GetInternal(), false))
+        if(!_Impl::_Serialise(metaStream, &Classes[ClassID], instance._GetInternal(), false))
         {
             TTE_ASSERT(false, "Could not seralise meta stream primary class");
             return {};
@@ -1711,6 +1415,7 @@ namespace Meta {
             Reserve(clazz->second.ArraySize);
             _Size = clazz->second.ArraySize;
             _Cap = UINT32_MAX; // signal we are an sarray.
+            _ColFl |= _COL_IS_SARRAY;
         }
         
         if(clazz->second.ArrayKeyClass) // if this is a Map type
@@ -1753,23 +1458,119 @@ namespace Meta {
             _ColFl |= (_COL_KEY_SKIP_CP | _COL_KEY_SKIP_CT | _COL_KEY_SKIP_DT | _COL_KEY_SKIP_MV); // skip all key stuff
             _PairSize = _ValuSize; // same size, non keyed container
         }
+        
+        if(_ColFl & _COL_IS_SARRAY)
+        {
+            _Size = clazz->second.ArraySize;
+            _Memory = (U8*)this + sizeof(ClassInstanceCollection); // memory is stored after this
+            // construct elements
+            // check if we we can skip destructor
+            Bool bSkipVal = (_ColFl & _COL_VAL_SKIP_CT) != 0;
+            
+            if(!bSkipVal) // if any of key or value need a destructor call, do loop. else nothing needed (POD)
+            {
+                for(U32 i = 0; i < _Size; i++)
+                {
+                    U8* pMem = _Memory + (i * _PairSize);
+                    
+                    TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].Constructor,
+                               "Meta collection class: no value constructor found");
+                    _Impl::_DoConstruct(&Classes[Classes[_ColID].ArrayValClass], pMem);
+                    
+                }
+            }
+            else
+            {
+                memset(this + sizeof(ClassInstanceCollection), 0,  _PairSize * _Size);
+            }
+        }
+        
     }
     
     ClassInstanceCollection::~ClassInstanceCollection()
     {
         Clear();
+        if(_ColFl & _COL_IS_SARRAY) // now we can destruct our elements (treat them as members)
+        {
+            // check if we we can skip destructor
+            Bool bSkipVal = (_ColFl & _COL_VAL_SKIP_DT) != 0;
+            
+            if(!bSkipVal) // if any of key or value need a destructor call, do loop. else nothing needed (POD)
+            {
+                for(U32 i = 0; i < _Size; i++)
+                {
+                    U8* pMem = _Memory + (i * _PairSize);
+                    
+                    TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].Destructor,
+                               "Meta collection class: no value destructor found");
+                    _Impl::_DoDestruct(&Classes[Classes[_ColID].ArrayValClass], pMem);
+                    
+                }
+            }
+        }
         _ColFl = _PairSize = _ValuSize = _ColID = 0;
+        _Memory = nullptr;
+    }
+    
+    void ClassInstanceCollection::_MoveStaticArrayMemory(ClassInstanceCollection& src, ClassInstanceCollection& dst)
+    {
+        dst._Memory = (U8*)&dst + sizeof(ClassInstanceCollection);
+        src._Memory = (U8*)&src + sizeof(ClassInstanceCollection);
+        
+        // check if we we can skip destructor
+        Bool bSkipVal = (dst._ColFl & _COL_VAL_SKIP_DT) != 0;
+        
+        if(!bSkipVal) // if any of key or value need a destructor call, do loop. else nothing needed (POD)
+        {
+            for(U32 i = 0; i < dst._Size; i++)
+            {
+                U8* pMem = dst._Memory + (i * dst._PairSize);
+                
+                TTE_ASSERT(dst._ColID && Classes[dst._ColID].ArrayValClass && Classes[Classes[dst._ColID].ArrayValClass].Destructor,
+                           "Meta collection class: no value destructor found");
+                _Impl::_DoDestruct(&Classes[Classes[dst._ColID].ArrayValClass], pMem);
+                
+            }
+        }
+        // check if we we can skip move ctor
+        bSkipVal = (dst._ColFl & _COL_VAL_SKIP_MV) != 0;
+        
+        if(!bSkipVal) // if any of key or value need a destructor call, do loop. else nothing needed (POD)
+        {
+            for(U32 i = 0; i < dst._Size; i++)
+            {
+                U8* pDstMem = dst._Memory + (i * dst._PairSize);
+                U8* pSrcMem = src._Memory + (i * src._PairSize);
+                
+                TTE_ASSERT(dst._ColID && Classes[dst._ColID].ArrayValClass && Classes[Classes[dst._ColID].ArrayValClass].MoveConstruct,
+                           "Meta collection class: no value move constructor found");
+                
+                _Impl::_DoMoveConstruct(&Classes[Classes[dst._ColID].ArrayValClass], pDstMem, pSrcMem);
+                
+            }
+        }
+        else
+            memset(dst._Memory, 0, dst._PairSize * dst._Size);
+        
     }
     
     ClassInstanceCollection& ClassInstanceCollection::operator=(ClassInstanceCollection&& rhs)
     {
+        TTE_ASSERT(_ColID == rhs._ColID, "Cannot assign %s to %s: different collection types", Classes[rhs._ColID].Name.c_str(),
+                   Classes[_ColID].Name.c_str());
+        
         TTE_ASSERT(this != &rhs, "Invalid move operation"); // cannot move to self
         Clear();
         // move rhs into this. everything in this is POD, use memcpy.
         memcpy(this, &rhs, sizeof(ClassInstanceCollection));
+        
          // ensure rhs has no refs to the memory block
-        rhs._Cap = rhs._Size = 0;
-        rhs._Memory = nullptr;
+        rhs._Size = rhs._ColFl & _COL_IS_SARRAY ? Classes[_ColID].ArraySize : 0;
+        rhs._Cap = rhs._ColFl & _COL_IS_SARRAY ? UINT32_MAX : 0;
+        rhs._Memory = rhs._ColFl & _COL_IS_SARRAY ? (U8*)&rhs + sizeof(ClassInstanceCollection) : nullptr;
+        
+        if(rhs._ColFl & _COL_IS_SARRAY)
+            _MoveStaticArrayMemory(rhs, *this);
         return *this;
     }
     
@@ -1778,12 +1579,19 @@ namespace Meta {
         TTE_ASSERT(this != &rhs, "Invalid move operation"); // cannot move to self
         // move construct.
         memcpy(this, &rhs, sizeof(ClassInstanceCollection));
-        rhs._Cap = rhs._Size = 0;
-        rhs._Memory = nullptr;
+        
+        rhs._Size = rhs._ColFl & _COL_IS_SARRAY ? Classes[_ColID].ArraySize : 0;
+        rhs._Cap = rhs._ColFl & _COL_IS_SARRAY ? UINT32_MAX : 0;
+        rhs._Memory = rhs._ColFl & _COL_IS_SARRAY ? (U8*)&rhs + sizeof(ClassInstanceCollection) : nullptr;
+        
+        if(rhs._ColFl & _COL_IS_SARRAY)
+            _MoveStaticArrayMemory(rhs, *this);
     }
     
     ClassInstanceCollection::ClassInstanceCollection(const ClassInstanceCollection& rhs)
     {
+        TTE_ASSERT(_ColID == rhs._ColID, "Cannot assign %s to %s: different collection types", Classes[rhs._ColID].Name.c_str(),
+                   Classes[_ColID].Name.c_str());
         // copy construct. set this to zero memory, then call operator= copy as its a big function (ensuring Clear succeeds)
         memset(this, 0, sizeof(ClassInstanceCollection));
         
@@ -1794,27 +1602,32 @@ namespace Meta {
     {
         if(this == &rhs) return *this; // sanity
         
-        // clear then copy from rhs
-        Clear();
+        TTE_ASSERT(_ColID == rhs._ColID, "Cannot assign %s to %s: different collection types", Classes[rhs._ColID].Name.c_str(),
+                   Classes[_ColID].Name.c_str());
         
-        // memcpy everything, then change pMemory to new buffer with copied elements
-        memcpy(this, &rhs, sizeof(ClassInstanceCollection));
-        
-        // set these to zero, for reserve function
-        _Cap = _Size = 0;
-        _Memory = nullptr;
-        
-        if(rhs._Cap > 0)
+        if(_ColFl & _COL_IS_SARRAY)
         {
-            Reserve(rhs._Cap);
-            _Size = rhs._Size; // same size after this call
+            // call destructors, then copy constructs
+            Bool bSkipVal = (_ColFl & _COL_VAL_SKIP_DT) != 0;
             
-            // check if we we can skip copy constructor with memcpy
-            Bool bSkipKey = (_ColFl & _COL_KEY_SKIP_CP) != 0;
-            Bool bSkipVal = (_ColFl & _COL_VAL_SKIP_CP) != 0;
+            if(!bSkipVal) // if any of key or value need a destructor call, do loop. else nothing needed (POD)
+            {
+                for(U32 i = 0; i < _Size; i++)
+                {
+                    U8* pMem = _Memory + (i * _PairSize);
+                    
+                    TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].Destructor,
+                               "Meta collection class: no value destructor found");
+                    _Impl::_DoDestruct(&Classes[Classes[_ColID].ArrayValClass], pMem);
+                    
+                }
+            }
             
-            if(bSkipKey && bSkipVal) // fastest, skip both by a memcpy
-                memcpy(_Memory, rhs._Memory, _PairSize * _Size); // copy *size* of rhs, not capacity
+            // call copy constructors
+            bSkipVal = (_ColFl & _COL_VAL_SKIP_CP) != 0;
+            
+            if(bSkipVal) // fastest
+                memcpy(_Memory, rhs._Memory, _PairSize * _Size);
             else
             {
                 for(U32 i = 0; i < _Size; i++)
@@ -1823,42 +1636,87 @@ namespace Meta {
                     U8* pDstMem = _Memory + (i * _PairSize);
                     
                     // construct each element
-                    
-                    if(!bSkipKey)
-                    {
-                        // copy construct the key
-                        TTE_ASSERT(_ColID && Classes[_ColID].ArrayKeyClass && Classes[Classes[_ColID].ArrayKeyClass].CopyConstruct,
-                                   "Meta collection class: no key copy constructor found");
-                        _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem);
-                    }
-                    else
-                    {
-                        // memcpy the key (technically, also the padding bytes. these should be zero anyway)
-                        memcpy(pDstMem, pSrcMem, _PairSize - _ValuSize);
-                    }
-                    
                     // offset for value from key value pair memory pointer is = _PairSize - _ValuSize
                     U32 offset = _PairSize - _ValuSize;
                     
-                    if(!bSkipVal)
-                    {
-                        // copy construct the value
-                        TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].CopyConstruct,
-                                   "Meta collection class: no value copy constructor found");
-                        _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset);
-                    }
-                    else
-                    {
-                        // memcpy the value.
-                        memcpy(pDstMem + offset, pSrcMem + offset, _ValuSize);
-                    }
+                    // copy construct the value
+                    TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].CopyConstruct,
+                               "Meta collection class: no value copy constructor found");
+                    _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset);
                     
                 }
             }
+            
         }
         else
         {
-            // no capacity, so no memory allocated
+            
+            // clear then copy from rhs
+            Clear();
+            
+            // memcpy everything, then change pMemory to new buffer with copied elements
+            memcpy(this, &rhs, sizeof(ClassInstanceCollection));
+            
+            // set these to zero, for reserve function
+            _Cap = _Size = 0;
+            _Memory = nullptr;
+            
+            if(rhs._Cap > 0)
+            {
+                Reserve(rhs._Cap);
+                _Size = rhs._Size; // same size after this call
+                
+                // check if we we can skip copy constructor with memcpy
+                Bool bSkipKey = (_ColFl & _COL_KEY_SKIP_CP) != 0;
+                Bool bSkipVal = (_ColFl & _COL_VAL_SKIP_CP) != 0;
+                
+                if(bSkipKey && bSkipVal) // fastest, skip both by a memcpy
+                    memcpy(_Memory, rhs._Memory, _PairSize * _Size); // copy *size* of rhs, not capacity
+                else
+                {
+                    for(U32 i = 0; i < _Size; i++)
+                    {
+                        const U8* pSrcMem = rhs._Memory + (i * _PairSize);
+                        U8* pDstMem = _Memory + (i * _PairSize);
+                        
+                        // construct each element
+                        
+                        if(!bSkipKey)
+                        {
+                            // copy construct the key
+                            TTE_ASSERT(_ColID && Classes[_ColID].ArrayKeyClass && Classes[Classes[_ColID].ArrayKeyClass].CopyConstruct,
+                                       "Meta collection class: no key copy constructor found");
+                            _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem);
+                        }
+                        else
+                        {
+                            // memcpy the key (technically, also the padding bytes. these should be zero anyway)
+                            memcpy(pDstMem, pSrcMem, _PairSize - _ValuSize);
+                        }
+                        
+                        // offset for value from key value pair memory pointer is = _PairSize - _ValuSize
+                        U32 offset = _PairSize - _ValuSize;
+                        
+                        if(!bSkipVal)
+                        {
+                            // copy construct the value
+                            TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].CopyConstruct,
+                                       "Meta collection class: no value copy constructor found");
+                            _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset);
+                        }
+                        else
+                        {
+                            // memcpy the value.
+                            memcpy(pDstMem + offset, pSrcMem + offset, _ValuSize);
+                        }
+                        
+                    }
+                }
+            }
+            else
+            {
+                // no capacity, so no memory allocated
+            }
         }
         
         return *this;
@@ -1871,7 +1729,7 @@ namespace Meta {
     
     U32 ClassInstanceCollection::GetCapacity()
     {
-        return _Cap;
+        return _Cap == UINT32_MAX ? _Size : _Cap; // SArray capacity is max
     }
     
     Bool ClassInstanceCollection::IsKeyedCollection()
@@ -1889,6 +1747,11 @@ namespace Meta {
         return Classes[_ColID].ArrayValClass;
     }
     
+    Bool ClassInstanceCollection::IsStaticArray()
+    {
+        return (_ColFl & _COL_IS_SARRAY) != 0;
+    }
+    
     U32 ClassInstanceCollection::GetKeyClass()
     {
         return Classes[_ColID].ArrayKeyClass;
@@ -1899,7 +1762,7 @@ namespace Meta {
         // ensure the backend memory array has size at least cap.
         
         // sanity
-        if(_Cap >= cap)
+        if(_Cap >= cap) // sarray cap is unint32 max, so ok
             return;
         
         U32 newCapacity{};
@@ -1971,6 +1834,8 @@ namespace Meta {
     
     void ClassInstanceCollection::Clear()
     {
+        if((_ColFl & _COL_IS_SARRAY) != 0)
+            return; // do nothing on clear sarray
         if(_Memory != nullptr)
         {
             // check if we we can skip destructor
@@ -2007,9 +1872,56 @@ namespace Meta {
     
     void ClassInstanceCollection::Push(ClassInstance k, ClassInstance v, Bool copyk, Bool copyv)
     {
+        if(_ColFl & _COL_IS_SARRAY)
+        {
+            TTE_ASSERT(false, "Cannot push to statically sized array");
+            return;
+        }
+        
         Reserve(_Size + 1); // Ensure size
         
-        U8* pDstMemory = _Memory + (_Size * _PairSize); // get destination memory pointer, at size.
+        // update size
+        _Size++;
+        
+        SetIndexInternal(_Size - 1, k, v, copyk, copyv);
+    }
+    
+    void ClassInstanceCollection::SetIndex(U32 i, ClassInstance k, ClassInstance v, Bool copyk, Bool copyv)
+    {
+        if(i < GetSize())
+        {
+            // destruct previous
+            
+            // check if we we can skip destructor
+            Bool bSkipKey = (_ColFl & _COL_KEY_SKIP_DT) != 0;
+            Bool bSkipVal = (_ColFl & _COL_VAL_SKIP_DT) != 0;
+            
+            if(!bSkipKey || !bSkipVal)
+            {
+                U8* pMem = _Memory + (i * _PairSize);
+                
+                if(!bSkipKey) // if we need to destruct the key
+                {
+                    TTE_ASSERT(_ColID && Classes[_ColID].ArrayKeyClass && Classes[Classes[_ColID].ArrayKeyClass].Destructor,
+                               "Meta collection class: no key destructor found");
+                    _Impl::_DoDestruct(&Classes[Classes[_ColID].ArrayKeyClass], pMem);
+                }
+                
+                if(!bSkipVal) // if we need to destruct the value
+                {
+                    TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].Destructor,
+                               "Meta collection class: no value destructor found");
+                    _Impl::_DoDestruct(&Classes[Classes[_ColID].ArrayValClass], pMem);
+                }
+            }
+            
+            SetIndexInternal(i, k, v, copyk, copyv); // set it
+        }
+    }
+    
+    void ClassInstanceCollection::SetIndexInternal(U32 i, ClassInstance k, ClassInstance v, Bool copyk, Bool copyv)
+    {
+        U8* pDstMemory = _Memory + (i * _PairSize); // get destination memory pointer, at size.
         
         // 1. key construction
         if(IsKeyedCollection())
@@ -2041,13 +1953,16 @@ namespace Meta {
             else
                 _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMemory, v._GetInternal());
         }
-        
-        // update size
-        _Size++;
     }
     
     Bool ClassInstanceCollection::Pop(U32 index, ClassInstance& keyOut, ClassInstance& valOut)
     {
+        if(_ColFl & _COL_IS_SARRAY)
+        {
+            TTE_ASSERT(false, "Cannot pop from statically sized array");
+            return;
+        }
+        
         if(_Size == 0)
             return false; // if empty, ignore.
         

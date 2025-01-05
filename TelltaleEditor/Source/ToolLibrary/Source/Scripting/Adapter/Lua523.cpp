@@ -22,15 +22,15 @@ Bool LuaAdapter_523::RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name)
     {
         if (error == LUA_ERRSYNTAX)
         {
-            TTE_LOG("Running %s: syntax error(s) => %s", Name, lua_tostring(_State, -1));
+            TTE_LOG("Loading %s: syntax error(s) => %s", Name, lua_tostring(_State, -1));
         }
         else if (error == LUA_ERRMEM)
         {
-            TTE_LOG("Running %s: memory allocation error", Name);
+            TTE_LOG("Loading %s: memory allocation error", Name);
         }
         else if (error == LUA_ERRGCMM)
         {
-            TTE_LOG("Running %s: gc error", Name);
+            TTE_LOG("Loading %s: gc error", Name);
         }
         lua_pop(_State, 1); // Pop the error message string
         return false;
@@ -66,6 +66,7 @@ void LuaAdapter_523::CallFunction(U32 Nargs, U32 Nresults)
     int error = lua_pcall(_State, Nargs, Nresults, 0);
     if (error == LUA_OK)
         return; // OK
+    luaL_traceback(_State, _State, lua_tostring(_State, -1), 1);
     if (error == LUA_ERRRUN)
     {
         TTE_LOG("Lua runtime error(s) => %s", lua_tostring(_State, -1));
@@ -85,6 +86,28 @@ void LuaAdapter_523::CallFunction(U32 Nargs, U32 Nresults)
     lua_pop(_State, 1); // Pop the error message string
 }
 
+Bool LuaAdapter_523::DoDump(lua_Writer w, void* ud)
+{
+    int error = lua_dump(_State, w, ud);
+    if (error == LUA_ERRSYNTAX)
+    {
+        TTE_LOG("Compiling script: syntax error(s) => %s", lua_tostring(_State, -1));
+    }
+    else if (error == LUA_ERRMEM)
+    {
+        TTE_LOG("Compiling script: memory allocation error");
+    }
+    else if (error == LUA_ERRGCMM)
+    {
+        TTE_LOG("Compiling script: gc error");
+    }
+    else if (error == 0)
+    {
+        return true; // OK
+    }
+    return false;
+}
+
 Bool LuaAdapter_523::CheckStack(U32 extra)
 {
     return lua_checkstack(_State, (int)extra);
@@ -98,20 +121,25 @@ static int L523_CFunction(lua_State* L)
     return (int)cfn(man);
 }
 
+void LuaAdapter_523::GC()
+{
+    lua_gc(_State, LUA_GCCOLLECT, 0);
+}
+
 Bool LuaAdapter_523::LoadChunk(const String& nm, const U8* buf, U32 sz, Bool cm)
 {
     int error = luaL_loadbufferx(_State, (const char*)buf, (size_t)sz, nm.c_str(), cm ? "b" : "t");
     if (error == LUA_ERRSYNTAX)
     {
-        TTE_LOG("Running %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, -1));
+        TTE_LOG("Loading %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, -1));
     }
     else if (error == LUA_ERRMEM)
     {
-        TTE_LOG("Running %s: memory allocation error", nm.c_str());
+        TTE_LOG("Loading %s: memory allocation error", nm.c_str());
     }
     else if (error == LUA_ERRGCMM)
     {
-        TTE_LOG("Running %s: gc error", nm.c_str());
+        TTE_LOG("Loading %s: gc error", nm.c_str());
     }
     else if (error == LUA_OK)
     {
