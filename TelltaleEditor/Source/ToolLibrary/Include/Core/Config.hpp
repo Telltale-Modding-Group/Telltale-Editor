@@ -175,8 +175,15 @@ template <typename T> class hacked_priority_queue : public std::priority_queue<T
     auto get_cmp() { return this->comp; }
 };
 
+// Checks if a string starts with the other string prefix
 inline bool StringStartsWith(const std::string& str, const std::string& prefix) {
     return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
+}
+
+template <typename T> // checks if the weak ptr has no reference at all, even to an std::shared_ptr that has been reset.
+inline bool IsWeakPtrUnbound(const std::weak_ptr<T>& weak) {
+    // Compare the weak pointer to a default-constructed weak pointer
+    return !(weak.owner_before(std::weak_ptr<T>()) || std::weak_ptr<T>().owner_before(weak));
 }
 
 class ToolContext; // forward declaration. used a lot. see context.hpp

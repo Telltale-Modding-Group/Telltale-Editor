@@ -707,7 +707,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 String mem = man.ToString(-1);
                 inst = GetMember(inst, mem);
                 if(inst)
-                    inst.PushScriptRef(man, false);
+                    inst.PushScriptRef(man);
                 else
                     man.PushNil();
             }
@@ -720,12 +720,22 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             return 1;
         }
         
-        // createinstance(typename_string, version_number) STRONG reference
+        // createinstance(typename_string, version_number, attach) STRONG reference to attach. attach is another instance, which when destroyed
+        // this one will be destroyed (it owns it) - example in a Chore, a ChoreAgent since its not in a DCArray
         static U32 luaMetaCreateInstance(LuaManager& man)
         {
-            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of CreateInstance");
-            String tn = man.ToString(-2);
-            I32 ver = man.ToInteger(-1);
+            TTE_ASSERT(man.GetTop() == 3, "Incorrect usage of CreateInstance");
+            String tn = man.ToString(-3);
+            I32 ver = man.ToInteger(-2);
+            
+            ClassInstance attach = AcquireScriptInstance(man, -1);
+            if(!attach)
+            {
+                TTE_ASSERT("At MetaCreateInstance: attaching instance was null or invalid");
+                man.PushNil();
+                return 1;
+            }
+            
             U32 cls = FindClass(Symbol(tn), (U32)ver);
             
             if(cls == 0)
@@ -735,8 +745,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 return 1;
             }
             
-            ClassInstance inst = CreateInstance(cls);
-            inst.PushScriptRef(man, true);
+            ClassInstance cinst = CreateInstance(cls, attach);
+            cinst.PushScriptRef(man);
             
             return 1;
         }
@@ -777,7 +787,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 return 1;
             }
              
-            man.PushBool(_Impl::_DefaultSerialise(*stream, &Classes[inst.GetClassID()], inst._GetInternal(), isWrite)); // perform it
+            man.PushBool(_Impl::_DefaultSerialise(*stream,
+                            inst, &Classes[inst.GetClassID()], inst._GetInternal(), isWrite)); // perform it
             
             return 1;
         }
@@ -797,7 +808,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 return 1;
             }
             
-            man.PushBool(_Impl::_Serialise(*stream, &Classes[inst.GetClassID()], inst._GetInternal(), isWrite)); // perform it
+            man.PushBool(_Impl::_Serialise(*stream,
+                            inst, &Classes[inst.GetClassID()], inst._GetInternal(), isWrite)); // perform it
             
             return 1;
         }
@@ -834,21 +846,42 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             return 1;
         }
         
-        // copyinstance(instance) STRONG reference
+        // copyinstance(instance, attach)
         static U32 luaMetaCopyInstance(LuaManager& man)
         {
-            TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaCopyInstance");
-            ClassInstance inst = AcquireScriptInstance(man, -1);
+            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaCopyInstance");
+            ClassInstance inst = AcquireScriptInstance(man, -2);
+            ClassInstance attach = AcquireScriptInstance(man, -1);
             
-            if(!inst)
+            if(!inst || !attach)
             {
-                TTE_LOG("Cannot CopyInstance, source instance is null");
+                TTE_LOG("Cannot CopyInstance, source or destination instance are null");
                 man.PushNil();
                 return 1;
             }
             
-            inst = CopyInstance(inst);
-            inst.PushScriptRef(man, true);
+            ClassInstance cinst = CopyInstance(inst, attach);
+            cinst.PushScriptRef(man);
+            
+            return 1;
+        }
+        
+        // move instance(instance, attach)
+        static U32 luaMetaMoveInstance(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaMoveInstance");
+            ClassInstance inst = AcquireScriptInstance(man, -2);
+            ClassInstance attach = AcquireScriptInstance(man, -1);
+            
+            if(!inst || !attach)
+            {
+                TTE_LOG("Cannot MoveInstance, source or destination instance are null");
+                man.PushNil();
+                return 1;
+            }
+            
+            ClassInstance cinst = MoveInstance(inst, attach);
+            cinst.PushScriptRef(man);
             
             return 1;
         }
@@ -896,7 +929,8 @@ namespace MS
         
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
         I32 val{};
-        SerialiseU32(stream, 0, &val, false);
+        ::Meta::ClassInstance e{}; // empty
+        SerialiseU32(stream, e, 0, &val, false);
         
         man.PushInteger(val);
         
@@ -909,8 +943,8 @@ namespace MS
         
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
         I32 val = ScriptManager::PopInteger(man);
-        
-        SerialiseU32(stream, 0, &val, true);
+        ::Meta::ClassInstance e{}; // empty
+        SerialiseU32(stream, e, 0, &val, true);
         
         return 0;
     }
@@ -921,7 +955,8 @@ namespace MS
         
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
         I8 val{};
-        SerialiseU8(stream, 0, &val, false);
+        ::Meta::ClassInstance e{}; // empty
+        SerialiseU8(stream, e, 0, &val, false);
         
         man.PushInteger((I32)val);
         
@@ -935,8 +970,8 @@ namespace MS
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
         I32 val = ScriptManager::PopInteger(man);
         I8 wval = val & 0xFF;
-        
-        SerialiseU8(stream, 0, &val, true);
+        ::Meta::ClassInstance e{}; // empty
+        SerialiseU8(stream, e, 0, &val, true);
         
         return 0;
     }
@@ -944,10 +979,10 @@ namespace MS
     static U32 luaMetaStreamReadShort(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaStreamRead");
-        
+        ::Meta::ClassInstance e{}; // empty
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
         I16 val{};
-        SerialiseU16(stream, 0, &val, false);
+        SerialiseU16(stream, e, 0, &val, false);
         
         man.PushInteger(val);
         
@@ -961,8 +996,8 @@ namespace MS
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
         I32 val = ScriptManager::PopInteger(man);
         I16 wval = val & 0xFFFF;
-        
-        SerialiseU8(stream, 0, &val, true);
+        ::Meta::ClassInstance e{}; // empty
+        SerialiseU8(stream, e, 0, &val, true);
         
         return 0;
     }
@@ -974,7 +1009,8 @@ namespace MS
         
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
         String val{};
-        ::Meta::_Impl::SerialiseString(stream, 0, &val, false);
+        ::Meta::ClassInstance e{}; // empty
+        ::Meta::_Impl::SerialiseString(stream, e, 0, &val, false);
         
         man.PushLString(std::move(val));
         
@@ -987,8 +1023,8 @@ namespace MS
         
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
         String val = ScriptManager::PopString(man);
-        
-        ::Meta::_Impl::SerialiseString(stream, 0, &val, true);
+        ::Meta::ClassInstance e{}; // empty
+        ::Meta::_Impl::SerialiseString(stream, e, 0, &val, true);
         
         return 0;
     }
@@ -1000,7 +1036,8 @@ namespace MS
         
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
         Symbol val{};
-        ::Meta::_Impl::SerialiseSymbol(stream, 0, &val, false);
+        ::Meta::ClassInstance e{}; // empty
+        ::Meta::_Impl::SerialiseSymbol(stream, e, 0, &val, false);
         man.PushLString(SymbolToHexString(val));
         
         return 1;
@@ -1009,10 +1046,10 @@ namespace MS
     static U32 luaMetaStreamWriteSymbol(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaStreamWrite");
-        
+        ::Meta::ClassInstance e{}; // empty
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
         Symbol val = SymbolFromHexString(ScriptManager::PopString(man));
-        ::Meta::_Impl::SerialiseSymbol(stream, 0, &val, true);
+        ::Meta::_Impl::SerialiseSymbol(stream, e, 0, &val, true);
         
         return 0;
     }
@@ -1098,6 +1135,7 @@ namespace MS
     static U32 luaMetaStreamBeginBlock(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 2, "Incorrect use of BeginBlock");
+        ::Meta::ClassInstance e{}; // empty
         
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
         Bool IsWrite = man.ToBool(-1);
@@ -1106,13 +1144,13 @@ namespace MS
         {
             stream.Sect[stream.CurrentSection].Blocks.push_back(stream.Sect[stream.CurrentSection].Data->GetPosition());
             U32 zero{};
-            SerialiseU32(stream, nullptr, &zero, true); // write zero for block size now. will come back after.
+            SerialiseU32(stream, e, nullptr, &zero, true); // write zero for block size now. will come back after.
         }
         else
         {
             // read. store size + current offset to check after
             U32 size{};
-            SerialiseU32(stream, nullptr, &size, false); // read block size (4 is added to it).
+            SerialiseU32(stream, e, nullptr, &size, false); // read block size (4 is added to it).
             stream.Sect[stream.CurrentSection].Blocks.push_back(stream.Sect[stream.CurrentSection].Data->GetPosition() + size - 4);
         }
         
@@ -1126,6 +1164,7 @@ namespace MS
         
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
         Bool IsWrite = man.ToBool(-1);
+        ::Meta::ClassInstance e{}; // empty
         
         if(IsWrite) // in write store position in stream
         {
@@ -1136,7 +1175,7 @@ namespace MS
             U64 currentPos = stream.Sect[stream.CurrentSection].Data->GetPosition(); // cache current position
             
             stream.Sect[stream.CurrentSection].Data->SetPosition(pos); // go back to block offset
-            SerialiseU32(stream, nullptr, &blockSize, true); // write it
+            SerialiseU32(stream, e, nullptr, &blockSize, true); // write it
             stream.Sect[stream.CurrentSection].Data->SetPosition(currentPos); // go back to normal. done
         }
         else
@@ -1272,6 +1311,7 @@ LuaFunctionCollection luaLibraryAPI()
     ADD_FN(Meta::L, "MetaGetMemberNames", luaMetaGetMemberNames);
     ADD_FN(Meta::L, "MetaCreateInstance", luaMetaCreateInstance);
     ADD_FN(Meta::L, "MetaCopyInstance", luaMetaCopyInstance);
+    ADD_FN(Meta::L, "MetaMoveInstance", luaMetaMoveInstance);
     ADD_FN(Meta::L, "MetaIsCollection", luaMetaIsCollection);
     ADD_FN(Meta::L, "MetaToString", luaMetaToString);
     ADD_FN(Meta::L, "MetaEquals", luaMetaEquals);

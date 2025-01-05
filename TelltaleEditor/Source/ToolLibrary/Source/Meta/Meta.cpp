@@ -177,7 +177,7 @@ namespace Meta {
             return id;
         }
         
-        Bool _Serialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite)
         {
             if(!pMemory || clazz == nullptr)
             {
@@ -223,7 +223,7 @@ namespace Meta {
             
             if(clazz->Serialise) // has serialiser.
             {
-                result = clazz->Serialise(stream, clazz, pMemory, IsWrite);
+                result = clazz->Serialise(stream, host, clazz, pMemory, IsWrite);
             }
             else if(clazz->SerialiseScriptFn.length() > 0) // RUN LUA SERIALISER FUNCTION
             {
@@ -246,8 +246,20 @@ namespace Meta {
                 
                 GetToolContext()->GetLibraryLVM().PushOpaque(&stream); // push stream
                 
-                ClassInstance tmp{clazz->ClassID, (U8*)pMemory};
-                tmp.PushScriptRef(GetToolContext()->GetLibraryLVM(), false); // push instance
+                // if we are serialising the host class, pass that. else put a tmp class with host as parent and pMemory
+                ClassInstance tmp;
+                U8* acq = host._GetInternal();
+                
+                if(acq == pMemory) // if host is the same
+                {
+                    tmp = host;
+                }
+                else
+                {
+                    tmp = ClassInstance{clazz->ClassID, (U8*)pMemory, host.ObtainParentRef()};
+                }
+                
+                tmp.PushScriptRef(GetToolContext()->GetLibraryLVM()); // push instance
                 
                 GetToolContext()->GetLibraryLVM().PushBool(IsWrite); // push is write
                 
@@ -264,7 +276,7 @@ namespace Meta {
             }
             else
             {
-                result = _DefaultSerialise(stream, clazz, pMemory, IsWrite);
+                result = _DefaultSerialise(stream, host, clazz, pMemory, IsWrite);
             }
             
             stream.CurrentSection = initialSection;
@@ -273,7 +285,7 @@ namespace Meta {
         }
         
         // Meta serialise all the members (default)
-        Bool _DefaultSerialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite)
         {
             if(!pMemory || clazz == nullptr)
             {
@@ -298,19 +310,19 @@ namespace Meta {
                     {
                         stream.Sect[stream.CurrentSection].Blocks.push_back(stream.Sect[stream.CurrentSection].Data->GetPosition());
                         U32 zero{};
-                        SerialiseU32(stream, nullptr, &zero, true); // write zero for block size now. will come back after.
+                        SerialiseU32(stream, host, nullptr, &zero, true); // write zero for block size now. will come back after.
                     }
                     else
                     {
                         // read. store size + current offset to check after
                         U32 size{};
-                        SerialiseU32(stream, nullptr, &size, false); // read block size (4 is added to it).
+                        SerialiseU32(stream, host, nullptr, &size, false); // read block size (4 is added to it).
                         stream.Sect[stream.CurrentSection].Blocks.push_back(stream.Sect[stream.CurrentSection].Data->GetPosition() + size - 4);
                     }
                 }
                 
                 // BLOCK DATA
-                if(!_Serialise(stream, &Classes[member.ClassID], (U8*)pMemory + member.RTOffset, IsWrite))
+                if(!_Serialise(stream, host, &Classes[member.ClassID], (U8*)pMemory + member.RTOffset, IsWrite))
                     return false; // serialise it
                 
                 // END OF BLOCK
@@ -325,7 +337,7 @@ namespace Meta {
                         U64 currentPos = stream.Sect[stream.CurrentSection].Data->GetPosition(); // cache current position
                         
                         stream.Sect[stream.CurrentSection].Data->SetPosition(pos); // go back to block offset
-                        SerialiseU32(stream, nullptr, &blockSize, true); // write it
+                        SerialiseU32(stream, host, nullptr, &blockSize, true); // write it
                         stream.Sect[stream.CurrentSection].Data->SetPosition(currentPos); // go back to normal. done
                     }
                     else
@@ -395,8 +407,35 @@ namespace Meta {
         Class* _GetClass(U32 i) {
             return &Classes[i];
         }
+        
+        U32 _ClassChildrenArrayOff(Class& clazz)
+        {
+            U32 sz = clazz.RTSize;
+            
+            // for SArray types, store the static memory after the type to save an allocation
+            if(clazz.ArraySize > 0)
+            {
+                sz += TTE_PADDING(sz, 8); // ensure 8 byte align
+                sz += clazz.ArraySize * Classes[clazz.ArrayValClass].RTSize;
+            }
+            
+            return sz;
+        }
+        
+        U32 _ClassRuntimeSize(Class& clazz, ParentWeakReference& parentRef)
+        {
+            U32 sz = _ClassChildrenArrayOff(clazz);
+            
+            if(IsWeakPtrUnbound(parentRef))
+            {
+                // top level
+                sz += sizeof(std::vector<std::shared_ptr<U8>>); // child ref array
+            }
+            
+            return sz;
+        }
     
-        ClassInstance _MakeInstance(U32 ClassID)
+        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& topLevelParent)
         {
             auto it = Classes.find(ClassID);
             if(it == Classes.end()){
@@ -404,39 +443,75 @@ namespace Meta {
                 return ClassInstance{};
             }
             
-            U32 sz = it->second.RTSize;
+            // obtain the parent reference
+            ParentWeakReference host = topLevelParent.ObtainParentRef();
             
-            // for SArray types, store the static memory after the type to save an allocation
-            if(it->second.ArraySize > 0)
+            // calculate the size
+            U32 sz = _ClassRuntimeSize(it->second, host);
+            
+            // check if the parent is valid (ie if this new instance will be a top level class)
+            Bool topLevel = topLevelParent._InstanceClassID == 0;
+            
+            // assert top level has not expired
+            if(!topLevel)
             {
-                sz += TTE_PADDING(sz, 8); // ensure 8 byte align
-                sz += it->second.ArraySize * Classes[it->second.ArrayValClass].RTSize;
+                if(host.expired())
+                {
+                    TTE_ASSERT(false, "Cannot make instance of %s: the parent weak reference has previously expired (it no longer exists)"
+                               , Classes[ClassID].Name.c_str());
+                    return ClassInstance{};
+                }
             }
+
+            const Bool upvalue_TopLevel = topLevel;
+            const U32 upvalue_ClassID = ClassID;
             
             // allocate
             U8* pMemory = TTE_ALLOC(sz, MEMORY_TAG_META_TYPE);
             
-            return ClassInstance{ClassID, pMemory, [=](U8* pMem){ // use a c++11 lambda so we get a closure.
+            ClassInstance inst = ClassInstance{ClassID, pMemory, [=](U8* pMem){ // use a c++11 lambda so we get a closure.
                 
-                // this is a closure, and the only captured value (lua upvalue equivalent) is ClassID, as its not stored in the memory block.
+                // this is a closure, and the only captured values (lua upvalue equivalent) are id/tl, as its not stored in the memory block.
                 // this is the only time we use lambdas here, as they work quite well for this case, as otherwise there is no other way to
-                // have a reference to ClassID unless its also stored in the memory block, which would not work in collections.
+                // have a reference to these unless its also stored in the memory block, which would not work in collections.
                 
-                _Impl::_DoDestruct(&Classes[ClassID], pMem); // call destructor
+                _Impl::_DoDestruct(&Classes[upvalue_ClassID], pMem); // call destructor
+                
+                if(upvalue_TopLevel) // free children, ensure strong refs == 1 for each
+                {
+                    auto& vec = *((std::vector<std::shared_ptr<U8>>*)
+                                 ((U8*)pMem + _ClassChildrenArrayOff(Classes[upvalue_ClassID])));
+                    
+                    for(auto& child: vec)
+                    {
+                        TTE_ASSERT(child.use_count() == 1, "At %s instance destruction: non top-level instance still has references",
+                                   Classes[upvalue_ClassID].Name.c_str());
+                    }
+                    
+                    vec.~vector(); // free all and clear vector memory
+                }
                 
                 // free memory
                 TTE_FREE((U8*)pMem); // return with deleter
                 
-            }};
+            }, host};
+            
+            if(!upvalue_TopLevel) // insert inst into parent children array
+            {
+                auto vec = topLevelParent._GetInternalChildrenRefs();
+                vec->push_back(inst._InstanceMemory); // ref counted
+            }
+            
+            return inst;
         }
         
         // perform constructor.
-        void _DoConstruct(Class* pClass, U8* pInstanceMemory)
+        void _DoConstruct(Class* pClass, U8* pInstanceMemory, ParentWeakReference host)
          {
             // If the whole class has a constructor, call it (eg String)
             if(pClass->Constructor)
             {
-                pClass->Constructor(pInstanceMemory, pClass->ClassID);
+                pClass->Constructor(pInstanceMemory, pClass->ClassID, host);
             }
             else if(pClass->Flags & CLASS_INTRINSIC) // the class has no explicit constructor, but is intrinsic, memset.
             {
@@ -446,7 +521,7 @@ namespace Meta {
             {
                 for(auto& member: pClass->Members)
                 {
-                    _DoConstruct(&Classes[member.ClassID], pInstanceMemory + member.RTOffset); // again
+                    _DoConstruct(&Classes[member.ClassID], pInstanceMemory + member.RTOffset, host); // again
                 }
             }
         }
@@ -473,12 +548,12 @@ namespace Meta {
         }
         
         // perform copy
-        void _DoCopyConstruct(Class* pClass, U8* pMemory, const U8* pSrc)
+        void _DoCopyConstruct(Class* pClass, U8* pMemory, const U8* pSrc, ParentWeakReference host)
         {
             // If the whole class has a copy constructor, call it (eg String)
             if(pClass->CopyConstruct)
             {
-                pClass->CopyConstruct(pSrc, pMemory);
+                pClass->CopyConstruct(pSrc, pMemory, host);
             }else if(pClass->Flags & CLASS_INTRINSIC) // the class has no explicit copy constructor, but is intrinsic, memcpy.
             {
                 memcpy(pMemory, pSrc, pClass->RTSize);
@@ -487,18 +562,18 @@ namespace Meta {
             {
                 for(auto& member: pClass->Members)
                 {
-                    _DoCopyConstruct(&Classes[member.ClassID], pMemory + member.RTOffset, pSrc + member.RTOffset); // again
+                    _DoCopyConstruct(&Classes[member.ClassID], pMemory + member.RTOffset, pSrc + member.RTOffset, host); // again
                 }
             }
         }
         
         // perform move
-        void _DoMoveConstruct(Class* pClass, U8* pMemory, U8* pSrc)
+        void _DoMoveConstruct(Class* pClass, U8* pMemory, U8* pSrc, ParentWeakReference host)
         {
             // If the whole class has a move constructor, call it (eg String)
             if(pClass->MoveConstruct)
             {
-                pClass->MoveConstruct(pSrc, pMemory);
+                pClass->MoveConstruct(pSrc, pMemory, host);
             }else if(pClass->Flags & CLASS_INTRINSIC) // the class has no explicit move constructor, but is intrinsic, memcpy.
             {
                 memcpy(pMemory, pSrc, pClass->RTSize);
@@ -508,7 +583,7 @@ namespace Meta {
             {
                 for(auto& member: pClass->Members)
                 {
-                    _DoMoveConstruct(&Classes[member.ClassID], pMemory + member.RTOffset, pSrc + member.RTOffset); // again
+                    _DoMoveConstruct(&Classes[member.ClassID], pMemory + member.RTOffset, pSrc + member.RTOffset, host); // again
                 }
             }
         }
@@ -516,9 +591,9 @@ namespace Meta {
         // ===================================================================         INTRINSIC DEFAULTS
         // ===================================================================
         
-        void CtorCol(void* pMemory, U32 Array)
+        void CtorCol(void* pMemory, U32 Array, ParentWeakReference host)
         {
-            new (pMemory) ClassInstanceCollection(Array);
+            new (pMemory) ClassInstanceCollection(host, Array);
         }
         
         void DtorCol(void* pMemory, U32)
@@ -526,17 +601,17 @@ namespace Meta {
             ((ClassInstanceCollection*)pMemory)->~ClassInstanceCollection();
         }
         
-        void CopyCol(const void* pSrc, void* pDst)
+        void CopyCol(const void* pSrc, void* pDst, ParentWeakReference host)
         {
-            new (pDst) ClassInstanceCollection(*((const ClassInstanceCollection*)pSrc));
+            new (pDst) ClassInstanceCollection(*((const ClassInstanceCollection*)pSrc), host);
         }
         
-        void MoveCol(void* pSrc, void* pDst)
+        void MoveCol(void* pSrc, void* pDst, ParentWeakReference host)
         {
-            new (pDst) ClassInstanceCollection(std::move(*((ClassInstanceCollection*)pSrc)));
+            new (pDst) ClassInstanceCollection(std::move(*((ClassInstanceCollection*)pSrc)), host);
         }
         
-        void CtorString(void* pMemory, U32)
+        void CtorString(void* pMemory, U32, ParentWeakReference host)
         {
             new (pMemory) String();
         }
@@ -546,17 +621,17 @@ namespace Meta {
             ((String*)(pMemory))->~String();
         }
         
-        void CopyString(const void* pSrc, void* pDst)
+        void CopyString(const void* pSrc, void* pDst, ParentWeakReference host)
         {
             new (pDst) String(*((const String*)pSrc)); // force call copy constructor
         }
         
-        void MoveString(void* pSrc, void* pDst)
+        void MoveString(void* pSrc, void* pDst, ParentWeakReference host)
         {
             new (pDst) String(std::move(*((String*)pSrc))); // force call move constructor
         }
         
-        void CtorBinaryBuffer(void* pMemory, U32)
+        void CtorBinaryBuffer(void* pMemory, U32, ParentWeakReference)
         {
             memset(pMemory, 0, sizeof(BinaryBuffer)); // clear to zeros (its just a pointer and size)
         }
@@ -569,7 +644,7 @@ namespace Meta {
             memset(pBuffer, 0, sizeof(BinaryBuffer)); // just in case
         }
         
-        void CopyBinaryBuffer(const void* pSrc, void* pDst) // copy CONSTRUCT.
+        void CopyBinaryBuffer(const void* pSrc, void* pDst,ParentWeakReference host) // copy CONSTRUCT.
         {
             const BinaryBuffer* pSrcBuffer = (const BinaryBuffer*)pSrc;
             BinaryBuffer* pDstBuffer = (BinaryBuffer*)pDst;
@@ -586,7 +661,7 @@ namespace Meta {
             }
         }
         
-        void MoveBinaryBuffer(void* pSrc, void* pDst)
+        void MoveBinaryBuffer(void* pSrc, void* pDst, ParentWeakReference host)
         {
             BinaryBuffer* pSrcBuffer = (BinaryBuffer*)pSrc;
             BinaryBuffer* pDstBuffer = (BinaryBuffer*)pDst;
@@ -596,13 +671,13 @@ namespace Meta {
         }
         
         // string default serialiser. class shouldnt be used, can be null as used in other serialisers where class is obvious.
-        Bool SerialiseString(Stream& stream, Class*, void* pMemory, Bool IsWrite)
+        Bool SerialiseString(Stream& stream, ClassInstance& host, Class*, void* pMemory, Bool IsWrite)
         {
             String& str = *((String*)pMemory);
             if(IsWrite)
             {
                 U32 len = (U32)str.length();
-                if(!SerialiseU32(stream, nullptr, &len, true)) // write length
+                if(!SerialiseU32(stream, host, nullptr, &len, true)) // write length
                     return false;
                 if(len && !stream.Write((const U8*)str.c_str(), (U64)len)) // write ASCII
                     return false;
@@ -610,7 +685,7 @@ namespace Meta {
             else
             {
                 U32 len = 0;
-                if(!SerialiseU32(stream, nullptr, &len, false)) // read length
+                if(!SerialiseU32(stream, host, nullptr, &len, false)) // read length
                     return false;
                 
                 if(len > 10000) // large case
@@ -634,7 +709,7 @@ namespace Meta {
         }
         
         // serialise symbol. if MBIN we store the string version of it.
-        Bool SerialiseSymbol(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool SerialiseSymbol(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite)
         {
             Symbol& sym = *((Symbol*)pMemory);
             if(IsWrite)
@@ -649,7 +724,7 @@ namespace Meta {
                     }
                     
                     U32 len = (U32)value.length(); // write length then string
-                    SerialiseU32(stream, 0, &len, true); // length
+                    SerialiseU32(stream, host, nullptr, &len, true); // length
                     if(!stream.Write((const U8*)value.c_str(), (U64)len))
                         return false;
                 }
@@ -657,7 +732,7 @@ namespace Meta {
                 {
                     // write U64
                     U64 hash = sym.GetCRC64();
-                    SerialiseU64(stream, nullptr, &hash, true);
+                    SerialiseU64(stream, host, nullptr, &hash, true);
                 }
             }
             else
@@ -666,7 +741,7 @@ namespace Meta {
                 {
                     // read string
                     String symbol{};
-                    if(!SerialiseString(stream, nullptr, &symbol, false))
+                    if(!SerialiseString(stream, host, nullptr, &symbol, false))
                         return false; // string too large, corrupt.
                     
                     RuntimeSymbols.Register(symbol); // register it as for remapping back to a string
@@ -677,7 +752,7 @@ namespace Meta {
                 {
                     // read U64
                     U64 hash{};
-                    SerialiseU64(stream, 0, &hash, false);
+                    SerialiseU64(stream, host, nullptr, &hash, false);
                     sym = hash;
                 }
             }
@@ -685,7 +760,7 @@ namespace Meta {
         }
         
         // booleans need to be serialised as ascii 0 or 1, but in memory we store as 0 or 1 numbers
-        Bool SerialiseBool(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool SerialiseBool(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite)
         {
             if(IsWrite)
             {
@@ -702,7 +777,7 @@ namespace Meta {
         }
         
         // serialise all telltale collections. DCArray, SArray, Map, Set, ...
-        Bool SerialiseCollection(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool SerialiseCollection(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite)
         {
             ClassInstanceCollection* pCollection = (ClassInstanceCollection*)pMemory;
             Bool bKeyed = pCollection->IsKeyedCollection();
@@ -713,7 +788,7 @@ namespace Meta {
             if(IsWrite)
             {
                 U32 size = (U32)pCollection->GetSize();
-                SerialiseU32(stream, nullptr, &size, true);
+                SerialiseU32(stream, host, nullptr, &size, true);
                 for(U32 i = 0; i < size; i++)
                 {
                     ClassInstance instance{};
@@ -722,14 +797,14 @@ namespace Meta {
                     {
                         // write key
                         instance = pCollection->GetKey(i);
-                        if(!_Serialise(stream, &Classes[keyClass], instance._GetInternal(), true))
+                        if(!_Serialise(stream, host, &Classes[keyClass], instance._GetInternal(), true))
                             return false;
                         
                     }
                     
                     // write value
                     instance = pCollection->GetValue(i);
-                    if(!_Serialise(stream, &Classes[valClass], instance._GetInternal(), true))
+                    if(!_Serialise(stream, host, &Classes[valClass], instance._GetInternal(), true))
                         return false;
                     
                 }
@@ -738,7 +813,7 @@ namespace Meta {
             {
                 pCollection->Clear(); // ensure empty
                 U32 size{};
-                SerialiseU32(stream, nullptr, &size, false);
+                SerialiseU32(stream, host, nullptr, &size, false);
                 if(size > 0x10000)
                 {
                     TTE_ASSERT(false, "When serialising collection class: read size too large. Assuming corrupt: %d", size);
@@ -754,12 +829,12 @@ namespace Meta {
                     if(bKeyed)
                     {
                         kinstance = CreateInstance(keyClass); // serialise in key
-                        if(!_Impl::_Serialise(stream, &Classes[keyClass], kinstance._GetInternal(), false))
+                        if(!_Impl::_Serialise(stream, host, &Classes[keyClass], kinstance._GetInternal(), false))
                             return false;
                     }
                     
                     vinstance = CreateInstance(valClass); // serialise in value
-                    if(!_Impl::_Serialise(stream, &Classes[valClass], vinstance._GetInternal(), false))
+                    if(!_Impl::_Serialise(stream, host, &Classes[valClass], vinstance._GetInternal(), false))
                         return false;
                     
                     // MOVE each into the collection
@@ -779,22 +854,31 @@ namespace Meta {
     U32 luaClassInstanceGC(LuaManager& man)
     {
         ClassInstanceScriptRef* pRef = (ClassInstanceScriptRef*)man.ToPointer(-1);
-        pRef->~ClassInstanceScriptRef(); // release strong ref if needed
+        pRef->~ClassInstanceScriptRef(); // release weak ref (it will have a weak pointer slot, may owns stuff).
         return 0;
     }
     
-    void ClassInstance::PushScriptRef(LuaManager& man, Bool Strong)
+    std::vector<std::shared_ptr<U8>>* ClassInstance::_GetInternalChildrenRefs()
+    {
+        TTE_ASSERT(IsTopLevel(), "Cannot get internal children references: class is not top level");
+        U32 skipBytes = _Impl::_ClassChildrenArrayOff(Classes[_InstanceClassID]);
+        return ((std::vector<std::shared_ptr<U8>>*)((U8*)_InstanceMemory.get() + skipBytes));
+    }
+    
+    void ClassInstance::PushScriptRef(LuaManager& man)
     {
         if(_InstanceMemory)
         {
             ClassInstanceScriptRef* pRef = (ClassInstanceScriptRef*)man.CreateUserData((U32)sizeof(ClassInstanceScriptRef));
-            new (pRef) ClassInstanceScriptRef(*this, Strong); // construct it (previous just allocates in the lua mem)
+            new (pRef) ClassInstanceScriptRef(*this); // construct it (previous just allocates in the lua mem)
 
-            man.PushTable();
+            man.PushTable(); // meta table
             
             man.PushLString("__gc");
             man.PushFn(&luaClassInstanceGC);
             man.SetTable(-3); // set gc method
+            
+            //TODO all metatable ops
             
             man.PushLString("__MetaId"); // also include the class id in the metatable so we can check it
             man.PushUnsignedInteger(_InstanceClassID);
@@ -823,38 +907,40 @@ namespace Meta {
         if(pRef == nullptr || pRef->GetClassID() == 0)
             return {};
         
-        return ClassInstance(pRef->GetClassID(), pRef->_GetInternal());
+        return pRef->Acquire();
     }
     
-    ClassInstance CreateInstance(U32 ClassID)
+    ClassInstance CreateInstance(U32 ClassID, ClassInstance host)
     {
-        ClassInstance instance = _Impl::_MakeInstance(ClassID);
+        ClassInstance instance = _Impl::_MakeInstance(ClassID, host);
         
-        _Impl::_DoConstruct(&Classes[ClassID], instance._GetInternal());
+        _Impl::_DoConstruct(&Classes[ClassID], instance._GetInternal(), host.ObtainParentRef());
         
         return instance;
     }
 
-    ClassInstance CopyInstance(ClassInstance instance)
+    ClassInstance CopyInstance(ClassInstance instance, ClassInstance host)
     {
         if(!instance)
             return ClassInstance{};
         
-        ClassInstance instanceNew = _Impl::_MakeInstance(instance.GetClassID());
+        ClassInstance instanceNew = _Impl::_MakeInstance(instance.GetClassID(), host);
         
-        _Impl::_DoCopyConstruct(&Classes[instance.GetClassID()], instanceNew._GetInternal(), instance._GetInternal());
+        _Impl::_DoCopyConstruct(&Classes[instance.GetClassID()],
+                                instanceNew._GetInternal(), instance._GetInternal(), host.ObtainParentRef());
         
         return instanceNew;
     }
     
-    ClassInstance MoveInstance(ClassInstance instance)
+    ClassInstance MoveInstance(ClassInstance instance, ClassInstance host)
     {
         if(!instance)
             return ClassInstance{};
+
+        ClassInstance instanceNew = _Impl::_MakeInstance(instance.GetClassID(), host);
         
-        ClassInstance instanceNew = _Impl::_MakeInstance(instance.GetClassID());
-        
-        _Impl::_DoMoveConstruct(&Classes[instance.GetClassID()], instanceNew._GetInternal(), instance._GetInternal());
+        _Impl::_DoMoveConstruct(&Classes[instance.GetClassID()],
+                                instanceNew._GetInternal(), instance._GetInternal(), host.ObtainParentRef());
         
         return instanceNew;
     }
@@ -868,7 +954,7 @@ namespace Meta {
         {
             if(CompareCaseInsensitive(name, mem.Name))
             {
-                return ClassInstance(mem.ClassID, inst._GetInternal() + mem.RTOffset);
+                return ClassInstance(mem.ClassID, inst._GetInternal() + mem.RTOffset, inst.ObtainParentRef());
             }
         }
         return {}; // not found
@@ -1112,7 +1198,7 @@ namespace Meta {
         
         // 2. SERIALISE INSTANCE TO THE STREAM
         
-        if(!_Impl::_Serialise(metaStream, &Classes[instance.GetClassID()], instance._GetInternal(), true))
+        if(!_Impl::_Serialise(metaStream, instance, &Classes[instance.GetClassID()], instance._GetInternal(), true))
         {
             TTE_LOG("Cannot write meta stream: serialisation failed");
             return false;
@@ -1374,7 +1460,7 @@ namespace Meta {
         }
     
         // perform actual serialisation of the primary class stored.
-        if(!_Impl::_Serialise(metaStream, &Classes[ClassID], instance._GetInternal(), false))
+        if(!_Impl::_Serialise(metaStream, instance, &Classes[ClassID], instance._GetInternal(), false))
         {
             TTE_ASSERT(false, "Could not seralise meta stream primary class");
             return {};
@@ -1387,7 +1473,7 @@ namespace Meta {
     // ===================================================================
     
     // constructor for arrays of meta class instances. init flags, and internals
-    ClassInstanceCollection::ClassInstanceCollection(U32 type) : _Size(0), _Cap(0), _ValuSize(0), _Memory(nullptr), _PairSize(0), _ColFl(0)
+    ClassInstanceCollection::ClassInstanceCollection(ParentWeakReference prnt, U32 type) : _Size(0), _Cap(0), _ValuSize(0), _Memory(nullptr), _PairSize(0), _ColFl(0), _PrntRef(std::move(prnt))
     {
         auto clazz = Classes.find(type);
         TTE_ASSERT(clazz != Classes.end(), "Invalid class ID passed into collection initialiser"); // class must be valid
@@ -1461,6 +1547,7 @@ namespace Meta {
         
         if(_ColFl & _COL_IS_SARRAY)
         {
+            _PairSize = _ValuSize;
             _Size = clazz->second.ArraySize;
             _Memory = (U8*)this + sizeof(ClassInstanceCollection); // memory is stored after this
             // construct elements
@@ -1471,17 +1558,17 @@ namespace Meta {
             {
                 for(U32 i = 0; i < _Size; i++)
                 {
-                    U8* pMem = _Memory + (i * _PairSize);
+                    U8* pMem = _Memory + (i * _ValuSize);
                     
                     TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].Constructor,
                                "Meta collection class: no value constructor found");
-                    _Impl::_DoConstruct(&Classes[Classes[_ColID].ArrayValClass], pMem);
+                    _Impl::_DoConstruct(&Classes[Classes[_ColID].ArrayValClass], pMem, _PrntRef);
                     
                 }
             }
             else
             {
-                memset(this + sizeof(ClassInstanceCollection), 0,  _PairSize * _Size);
+                memset(this + sizeof(ClassInstanceCollection), 0,  _ValuSize * _Size);
             }
         }
         
@@ -1512,101 +1599,81 @@ namespace Meta {
         _Memory = nullptr;
     }
     
-    void ClassInstanceCollection::_MoveStaticArrayMemory(ClassInstanceCollection& src, ClassInstanceCollection& dst)
+    ClassInstanceCollection::ClassInstanceCollection(ClassInstanceCollection&& rhs, ParentWeakReference host)
     {
-        dst._Memory = (U8*)&dst + sizeof(ClassInstanceCollection);
-        src._Memory = (U8*)&src + sizeof(ClassInstanceCollection);
+        _Size = rhs._Size;
+        _Cap = rhs._Cap;
+        _ColFl = rhs._ColFl;
+        _ValuSize = rhs._ValuSize;
+        _PairSize = rhs._PairSize;
+        _PrntRef = std::move(host);
         
-        // check if we we can skip destructor
-        Bool bSkipVal = (dst._ColFl & _COL_VAL_SKIP_DT) != 0;
+        // reset RHS stuff to defaults (its still now a valid collection, just size 0)
+        rhs._Size = rhs._ColFl & _COL_IS_SARRAY ? Classes[_ColID].ArraySize : 0;
+        rhs._Cap = rhs._ColFl & _COL_IS_SARRAY ? UINT32_MAX : 0;
         
-        if(!bSkipVal) // if any of key or value need a destructor call, do loop. else nothing needed (POD)
+        if(rhs._ColFl & _COL_IS_SARRAY)
         {
-            for(U32 i = 0; i < dst._Size; i++)
+            _Memory = (U8*)this + sizeof(ClassInstanceCollection);
+            rhs._Memory = (U8*)&rhs + sizeof(ClassInstanceCollection);
+            
+            // check if we we can skip destructor
+            Bool bSkipVal = (_ColFl & _COL_VAL_SKIP_DT) != 0;
+            
+            if(!bSkipVal) // if any of key or value need a destructor call, do loop. else nothing needed (POD)
             {
-                U8* pMem = dst._Memory + (i * dst._PairSize);
-                
-                TTE_ASSERT(dst._ColID && Classes[dst._ColID].ArrayValClass && Classes[Classes[dst._ColID].ArrayValClass].Destructor,
-                           "Meta collection class: no value destructor found");
-                _Impl::_DoDestruct(&Classes[Classes[dst._ColID].ArrayValClass], pMem);
-                
+                for(U32 i = 0; i < _Size; i++)
+                {
+                    U8* pMem = _Memory + (i * _PairSize);
+                    
+                    TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].Destructor,
+                               "Meta collection class: no value destructor found");
+                    _Impl::_DoDestruct(&Classes[Classes[_ColID].ArrayValClass], pMem);
+                    
+                }
             }
-        }
-        // check if we we can skip move ctor
-        bSkipVal = (dst._ColFl & _COL_VAL_SKIP_MV) != 0;
-        
-        if(!bSkipVal) // if any of key or value need a destructor call, do loop. else nothing needed (POD)
-        {
-            for(U32 i = 0; i < dst._Size; i++)
+            // check if we we can skip move ctor
+            bSkipVal = (_ColFl & _COL_VAL_SKIP_MV) != 0;
+            
+            if(!bSkipVal) // if any of key or value need a destructor call, do loop. else nothing needed (POD)
             {
-                U8* pDstMem = dst._Memory + (i * dst._PairSize);
-                U8* pSrcMem = src._Memory + (i * src._PairSize);
-                
-                TTE_ASSERT(dst._ColID && Classes[dst._ColID].ArrayValClass && Classes[Classes[dst._ColID].ArrayValClass].MoveConstruct,
-                           "Meta collection class: no value move constructor found");
-                
-                _Impl::_DoMoveConstruct(&Classes[Classes[dst._ColID].ArrayValClass], pDstMem, pSrcMem);
-                
+                for(U32 i = 0; i < _Size; i++)
+                {
+                    U8* pDstMem = _Memory + (i * _PairSize);
+                    U8* pSrcMem = rhs._Memory + (i * _PairSize);
+                    
+                    TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].MoveConstruct,
+                               "Meta collection class: no value move constructor found");
+                    
+                    _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem, pSrcMem, host);
+                    
+                }
             }
+            else
+                memset(_Memory, 0, _PairSize * _Size);
+            
         }
         else
-            memset(dst._Memory, 0, dst._PairSize * dst._Size);
-        
+        { // move memory, dynamic array. (very quick!)
+            _Memory = rhs._Memory;
+            rhs._Memory = nullptr;
+        }
     }
     
-    ClassInstanceCollection& ClassInstanceCollection::operator=(ClassInstanceCollection&& rhs)
+    ClassInstanceCollection::ClassInstanceCollection(const ClassInstanceCollection& rhs, ParentWeakReference host)
     {
-        TTE_ASSERT(_ColID == rhs._ColID, "Cannot assign %s to %s: different collection types", Classes[rhs._ColID].Name.c_str(),
-                   Classes[_ColID].Name.c_str());
-        
-        TTE_ASSERT(this != &rhs, "Invalid move operation"); // cannot move to self
-        Clear();
-        // move rhs into this. everything in this is POD, use memcpy.
-        memcpy(this, &rhs, sizeof(ClassInstanceCollection));
-        
-         // ensure rhs has no refs to the memory block
-        rhs._Size = rhs._ColFl & _COL_IS_SARRAY ? Classes[_ColID].ArraySize : 0;
-        rhs._Cap = rhs._ColFl & _COL_IS_SARRAY ? UINT32_MAX : 0;
-        rhs._Memory = rhs._ColFl & _COL_IS_SARRAY ? (U8*)&rhs + sizeof(ClassInstanceCollection) : nullptr;
-        
-        if(rhs._ColFl & _COL_IS_SARRAY)
-            _MoveStaticArrayMemory(rhs, *this);
-        return *this;
-    }
-    
-    ClassInstanceCollection::ClassInstanceCollection(ClassInstanceCollection&& rhs)
-    {
-        TTE_ASSERT(this != &rhs, "Invalid move operation"); // cannot move to self
-        // move construct.
-        memcpy(this, &rhs, sizeof(ClassInstanceCollection));
-        
-        rhs._Size = rhs._ColFl & _COL_IS_SARRAY ? Classes[_ColID].ArraySize : 0;
-        rhs._Cap = rhs._ColFl & _COL_IS_SARRAY ? UINT32_MAX : 0;
-        rhs._Memory = rhs._ColFl & _COL_IS_SARRAY ? (U8*)&rhs + sizeof(ClassInstanceCollection) : nullptr;
-        
-        if(rhs._ColFl & _COL_IS_SARRAY)
-            _MoveStaticArrayMemory(rhs, *this);
-    }
-    
-    ClassInstanceCollection::ClassInstanceCollection(const ClassInstanceCollection& rhs)
-    {
-        TTE_ASSERT(_ColID == rhs._ColID, "Cannot assign %s to %s: different collection types", Classes[rhs._ColID].Name.c_str(),
-                   Classes[_ColID].Name.c_str());
-        // copy construct. set this to zero memory, then call operator= copy as its a big function (ensuring Clear succeeds)
-        memset(this, 0, sizeof(ClassInstanceCollection));
-        
-        this->operator=(rhs);
-    }
-    
-    ClassInstanceCollection& ClassInstanceCollection::operator=(const ClassInstanceCollection& rhs)
-    {
-        if(this == &rhs) return *this; // sanity
-        
-        TTE_ASSERT(_ColID == rhs._ColID, "Cannot assign %s to %s: different collection types", Classes[rhs._ColID].Name.c_str(),
-                   Classes[_ColID].Name.c_str());
+        // copy construct. call operator= copy as its a big function (ensuring Clear succeeds)
+        _PrntRef = std::move(host);
+        _ValuSize = rhs._ValuSize;
+        _PairSize = rhs._PairSize;
+        _ColFl = rhs._ColFl;
+        _Size = rhs._Size;
+        _Cap = rhs._Cap;
         
         if(_ColFl & _COL_IS_SARRAY)
         {
+            _Memory = (U8*)this + sizeof(ClassInstanceCollection);
+            
             // call destructors, then copy constructs
             Bool bSkipVal = (_ColFl & _COL_VAL_SKIP_DT) != 0;
             
@@ -1642,7 +1709,7 @@ namespace Meta {
                     // copy construct the value
                     TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].CopyConstruct,
                                "Meta collection class: no value copy constructor found");
-                    _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset);
+                    _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset, host);
                     
                 }
             }
@@ -1650,17 +1717,7 @@ namespace Meta {
         }
         else
         {
-            
-            // clear then copy from rhs
-            Clear();
-            
-            // memcpy everything, then change pMemory to new buffer with copied elements
-            memcpy(this, &rhs, sizeof(ClassInstanceCollection));
-            
-            // set these to zero, for reserve function
-            _Cap = _Size = 0;
             _Memory = nullptr;
-            
             if(rhs._Cap > 0)
             {
                 Reserve(rhs._Cap);
@@ -1686,7 +1743,7 @@ namespace Meta {
                             // copy construct the key
                             TTE_ASSERT(_ColID && Classes[_ColID].ArrayKeyClass && Classes[Classes[_ColID].ArrayKeyClass].CopyConstruct,
                                        "Meta collection class: no key copy constructor found");
-                            _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem);
+                            _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem, host);
                         }
                         else
                         {
@@ -1702,7 +1759,7 @@ namespace Meta {
                             // copy construct the value
                             TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].CopyConstruct,
                                        "Meta collection class: no value copy constructor found");
-                            _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset);
+                            _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset, host);
                         }
                         else
                         {
@@ -1718,8 +1775,6 @@ namespace Meta {
                 // no capacity, so no memory allocated
             }
         }
-        
-        return *this;
     }
     
     U32 ClassInstanceCollection::GetSize()
@@ -1792,7 +1847,7 @@ namespace Meta {
                         // move construct the key
                         TTE_ASSERT(_ColID && Classes[_ColID].ArrayKeyClass && Classes[Classes[_ColID].ArrayKeyClass].MoveConstruct,
                                    "Meta collection class: no key move constructor found");
-                        _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem);
+                        _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem, _PrntRef);
                     }
                     else
                     {
@@ -1808,7 +1863,7 @@ namespace Meta {
                         // move construct the value
                         TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].MoveConstruct,
                                    "Meta collection class: no value move constructor found");
-                        _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset);
+                        _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset, _PrntRef);
                     }
                     else
                     {
@@ -1928,15 +1983,16 @@ namespace Meta {
         {
             if(!k)
             {
+                ClassInstance me{_ColID, (U8*)this, _PrntRef};
                 // construct new key without copy or move
-                _Impl::_DoConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMemory);
+                _Impl::_DoConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMemory, _PrntRef);
             }
             else
             {
                 if(copyk) // copy or move from value
-                    _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMemory, k._GetInternal());
+                    _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMemory, k._GetInternal(), _PrntRef);
                 else
-                    _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMemory, k._GetInternal());
+                    _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMemory, k._GetInternal(), _PrntRef);
             }
         }
         
@@ -1944,14 +2000,15 @@ namespace Meta {
         pDstMemory += (_PairSize - _ValuSize); // move pointer to start of value memory (skip key and padding)
         if(!v)
         {
-            _Impl::_DoConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMemory);
+            ClassInstance me{_ColID, (U8*)this, _PrntRef};
+            _Impl::_DoConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMemory, _PrntRef);
         }
         else
         {
             if(copyv) // copy or move from value
-                _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMemory, v._GetInternal());
+                _Impl::_DoCopyConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMemory, v._GetInternal(), _PrntRef);
             else
-                _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMemory, v._GetInternal());
+                _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMemory, v._GetInternal(), _PrntRef);
         }
     }
     
@@ -1971,14 +2028,15 @@ namespace Meta {
             index = _Size - 1;
         
         // Move construct both into new value, also call destructors
+        ClassInstance thisProxy{_ColID, (U8*)this, _PrntRef};
         if(IsKeyedCollection())
         {
-            keyOut = _Impl::_MakeInstance(Classes[_ColID].ArrayKeyClass);
-            _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayKeyClass], keyOut._GetInternal(), GetKey(index)._GetInternal());
+            keyOut = _Impl::_MakeInstance(Classes[_ColID].ArrayKeyClass, thisProxy);
+            _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayKeyClass], keyOut._GetInternal(), GetKey(index)._GetInternal(), _PrntRef);
             _Impl::_DoDestruct(&Classes[Classes[_ColID].ArrayKeyClass], GetKey(index)._GetInternal());
         }
-        valOut = _Impl::_MakeInstance(Classes[_ColID].ArrayValClass);
-        _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], valOut._GetInternal(), GetValue(index)._GetInternal());
+        valOut = _Impl::_MakeInstance(Classes[_ColID].ArrayValClass, thisProxy);
+        _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], valOut._GetInternal(), GetValue(index)._GetInternal(), _PrntRef);
         _Impl::_DoDestruct(&Classes[Classes[_ColID].ArrayValClass], GetValue(index)._GetInternal());
         
         // check if we we can skip move constructor with memcpy
@@ -2000,7 +2058,7 @@ namespace Meta {
                 // move construct the key
                 TTE_ASSERT(_ColID && Classes[_ColID].ArrayKeyClass && Classes[Classes[_ColID].ArrayKeyClass].MoveConstruct,
                            "Meta collection class: no key move constructor found");
-                _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem);
+                _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem, _PrntRef);
             }
             else
             {
@@ -2016,7 +2074,7 @@ namespace Meta {
                 // move construct the value
                 TTE_ASSERT(_ColID && Classes[_ColID].ArrayValClass && Classes[Classes[_ColID].ArrayValClass].MoveConstruct,
                            "Meta collection class: no value move constructor found");
-                _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset);
+                _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset, _PrntRef);
             }
             else
             {
@@ -2031,19 +2089,24 @@ namespace Meta {
         return true;
     }
     
+    ClassInstance ClassInstanceCollection::SubRef(U32 id, U8* pMem)
+    {
+        return ClassInstance{id, pMem, _PrntRef};
+    }
+    
     ClassInstance ClassInstanceCollection::GetKey(U32 i)
     {
         TTE_ASSERT(IsKeyedCollection(), "GetKey cannot be called on a collection class which is not a keyed collection");
         TTE_ASSERT(i < _Size, "Trying to access element outside array bounds");
         
-        return ClassInstance(Classes[_ColID].ArrayKeyClass, _Memory + (i * _PairSize));
+        return SubRef(Classes[_ColID].ArrayKeyClass, _Memory + (i * _PairSize));
     }
     
     ClassInstance ClassInstanceCollection::GetValue(U32 i)
     {
         TTE_ASSERT(i < _Size, "Trying to access element outside array bounds");
         
-        return ClassInstance(Classes[_ColID].ArrayValClass, _Memory + (++i * _PairSize) - _ValuSize);
+        return SubRef(Classes[_ColID].ArrayValClass, _Memory + (++i * _PairSize) - _ValuSize);
     }
     
 }

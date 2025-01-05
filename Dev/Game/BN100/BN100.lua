@@ -36,6 +36,7 @@ function VersionCRCBone100(classTable)
 	return hash
 end
 
+-- PROP FILES
 function SerialisePropertySet(metaStream, propInstance, isWrite)
 	-- start by calling default meta serialise (serialise members, so flags and parent list)
 	if not MetaSerialiseDefault(metaStream, propInstance, isWrite) then
@@ -51,7 +52,7 @@ function SerialisePropertySet(metaStream, propInstance, isWrite)
 			print(string.format("i have found %d classes of the class: %s (%d)", numOfThatType, propType, propTypeVersionIndex))
 			for j=1, numOfThatType do
 				key = SymbolTableFind(MetaStreamReadSymbol(metaStream))
-				inst_of_type = MetaCreateInstance(propType, propTypeVersionIndex)
+				inst_of_type = MetaCreateInstance(propType, propTypeVersionIndex, propInstance)
 				if not MetaSerialise(metaStream, inst_of_type, isWrite) then
 					return false
 				end
@@ -72,7 +73,7 @@ function RegisterBone100(vendor, platform)
 	-- TEMPORARY TESTING CODE. WILL BE REPLACED.
 	-- I will also note here that type names that have 'class ' 'struct ''enum ' and 'std::' etc in them are removed from the class name
 	-- this was realised by telltale when they started using hashed versions, because compilers name things differently
-	-- so in this version they actually still use those, right? (... need to check this)
+	-- so in this version they actually still use those
 
 	local MetaVec3 = { VersionIndex = 0 }
 	MetaVec3.Name = "class Vector3"

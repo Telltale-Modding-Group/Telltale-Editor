@@ -9,3 +9,4 @@ build/*
 CMakeFiles/*
 CMakeCache.txt
 *.ttarch
+*.ttarch2

@@ -74,8 +74,8 @@ static U32 luaContainerGetElement(LuaManager& man)
         ClassInstanceCollection& collection = CastToCollection(inst);
         I32 index = man.ToInteger(-1);
         inst = collection.GetValue((U32)index);
-        // tool uses strong references
-        inst.PushScriptRef(man, true);
+        // tool uses weak references
+        inst.PushScriptRef(man);
     }
     else
     {

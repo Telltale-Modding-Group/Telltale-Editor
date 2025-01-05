@@ -93,6 +93,11 @@ namespace Meta {
         
     };
     
+    class ClassInstance;
+    
+    // Weak reference to the parent. Deep into member trees, these point to the top level class, eg: array of materials , top level is D3DMesh
+    using ParentWeakReference = std::weak_ptr<U8>;
+    
     // A type class. This as well as Member are used internally. Refer to classes using the index (U32 - internal version CRC).
     // Refer to members by name string
     struct Class {
@@ -117,10 +122,10 @@ namespace Meta {
         U32 RTSize = 0; // runtime internal size of the class, automatically generated unless intrinsic.
         
         // C++ IMPL FOR INTRINSICS/CONTAINERS/NON-POD
-        void (*Constructor)(void* pMemory, U32 ClassID) = nullptr;
+        void (*Constructor)(void* pMemory, U32 ClassID, ParentWeakReference host) = nullptr;
         void (*Destructor)(void* pMemory, U32 ClassID) = nullptr;
-        void (*CopyConstruct)(const void* pSrc, void* pDst) = nullptr;
-        void (*MoveConstruct)(void* pSrc, void* pDst) = nullptr;
+        void (*CopyConstruct)(const void* pSrc, void* pDst, ParentWeakReference host) = nullptr;
+        void (*MoveConstruct)(void* pSrc, void* pDst, ParentWeakReference host) = nullptr;
         
         // OTHER OPERATIONS (MAINLY FOR INTRINSICS)
         Bool (*LessThan)(const void* pLHS, const void* pRHS) = nullptr; // less than operator on two instances
@@ -128,7 +133,7 @@ namespace Meta {
         String (*ToString)(const void* pMemory) = nullptr; // converts to string
         
         // serialiser (needed for intrinsics/containers) function. iswrite if write, else reading.
-        Bool (*Serialise)(Stream& stream, Class* clazz, void* pInstance, Bool IsWrite) = nullptr;
+        Bool (*Serialise)(Stream& stream, ClassInstance& host, Class* clazz, void* pInstance, Bool IsWrite) = nullptr;
         String SerialiseScriptFn = ""; // custom serialise overrider, function name in scripts
         
         // MEMBERS ARRAY
@@ -143,70 +148,76 @@ namespace Meta {
         U32 Size = 0;
     };
     
-    class ClassInstance;
-    
     // Internal implementation
     namespace _Impl {
         
         Class* _GetClass(U32 i); // gets class ptr from index. MUST exist.
         
+        U32 _ClassChildrenArrayOff(Class& clazz); // internal children refs vector offset
+        
+        U32 _ClassRuntimeSize(Class& clazz, ParentWeakReference& parentRef); // internal runtime total size of class with parent
+        
         U32 _Register(LuaManager& man, Class&& c, I32 classTableStackIndex); // register new class and calc CRCs
         
         U32 _DoLuaVersionCRC(LuaManager& man, I32 classTableStackIndex); // calculate version crc32
         
-        void _DoConstruct(Class* pClass, U8* pMemory); // internally construct type into memory
+        void _DoConstruct(Class* pClass, U8* pMemory, ParentWeakReference host); // internally construct type into memory
         
         void _DoDestruct(Class* pClass, U8* pMemory); // internally call destruct
         
-        void _DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc); // internally copy type
+        void _DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc, ParentWeakReference host); // internally copy type
         
-        void _DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc); // internally move type
+        void _DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host); // internally move type
         
         String _PerformToString(U8* pMemory, Class* pClass);
         
-        ClassInstance _MakeInstance(U32 ClassID); // allocates but does not construct anything in the memory
+        // for c++ controlled: host is empty. if script object: host MUST be a reference to a c++ controlled one.
+        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host); // allocates but does not construct anything in the memory
         
-        Bool _Serialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite); // serialises a given type to the stream
+        // some serialisers have 'host' argument: top level class object
+        Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
+        // serialises a given type to the stream
         
-        Bool _DefaultSerialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite); // default serialise (member by member)
+        Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
+        // default serialise (member by member)
         
         // internal serialisers
         
-        Bool SerialiseString(Stream& stream, Class*, void* pMemory, Bool IsWrite);
+        Bool SerialiseString(Stream& stream, ClassInstance& host, Class*, void* pMemory, Bool IsWrite);
         
-        Bool SerialiseCollection(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite);
+        Bool SerialiseCollection(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
         
-        Bool SerialiseBool(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite);
+        Bool SerialiseBool(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
         
-        Bool SerialiseSymbol(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite);
+        Bool SerialiseSymbol(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
         
         // internal type defaults
         
-        void CtorCol(void* pMemory, U32 Array);
+        void CtorCol(void* pMemory, U32 Array, ParentWeakReference host);
         
         void DtorCol(void* pMemory, U32);
         
-        void CopyCol(const void* pSrc, void* pDst);
+        void CopyCol(const void* pSrc, void* pDst, ParentWeakReference host);
         
-        void MoveCol(void* pSrc, void* pDst);
+        void MoveCol(void* pSrc, void* pDst, ParentWeakReference host);
         
         
-        void CtorString(void* pMemory, U32);
+        void CtorString(void* pMemory, U32, ParentWeakReference host);
         
         void DtorString(void* pMemory, U32);
         
-        void CopyString(const void* pSrc, void* pDst);
+        void CopyString(const void* pSrc, void* pDst, ParentWeakReference host);
         
-        void MoveString(void* pSrc, void* pDst);
+        void MoveString(void* pSrc, void* pDst, ParentWeakReference host);
         
         
-        void CtorBinaryBuffer(void* pMemory, U32);
+        void CtorBinaryBuffer(void* pMemory, U32, ParentWeakReference host);
         
         void DtorBinaryBuffer(void* pMemory, U32);
         
-        void CopyBinaryBuffer(const void* pSrc, void* pDst);
+        void CopyBinaryBuffer(const void* pSrc, void* pDst, ParentWeakReference host);
         
-        void MoveBinaryBuffer(void* pSrc, void* pDst);
+        void MoveBinaryBuffer(void* pSrc, void* pDst, ParentWeakReference host);
         
     }
     
@@ -252,13 +263,11 @@ namespace Meta {
         
         friend class ClassInstanceScriptRef;
         
-        friend ClassInstance AcquireScriptInstance(LuaManager& man, I32 stackIndex);
-        
         friend ClassInstance GetMember(ClassInstance& inst, const String& name);
         
-        friend ClassInstance _Impl::_MakeInstance(U32);
+        friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&);
         
-        friend Bool _Impl::_Serialise(Stream& stream, Class* clazz, void* pMemory, Bool IsWrite);
+        friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
         
     public:
         
@@ -284,21 +293,20 @@ namespace Meta {
             return Dx ? *Dx : nullptr;
         }
         
-        // Pushes a strong or weak reference to this instance to the lua stack.
-        // Strong: means instance is deleted only when all C++ instance AND script instance objects are destroyed/garbage collected.
-        // Weak:   means instance is not owned by the script reference. After all C++ instances are destroyed, getting the object returns nil.
-        void PushScriptRef(LuaManager& man, Bool IsStrong);
+        // Pushes a weak reference to this instance to the lua stack. Pass in the host class (owner) of this object.
+        // Weak here means instance is not owned by the script reference. After all C++ instances are destroyed, getting the object returns nil.
+        void PushScriptRef(LuaManager& man);
         
-        // Internal use. Gets the memory pointer (const)
-        inline const U8* _GetInternal() const
+        // returns true if this instance has expired because its parent is no longer alive.
+        inline Bool Expired()
         {
-            return _InstanceMemory.get();
+            return !IsWeakPtrUnbound(_ParentAttachMemory) && _ParentAttachMemory.expired();
         }
         
         // Internal use. Gets the memory pointer
         inline U8* _GetInternal()
         {
-            return _InstanceMemory.get();
+            return Expired() ? nullptr : _InstanceMemory.get();
         }
         
         // Gets the class ID
@@ -307,56 +315,111 @@ namespace Meta {
             return _InstanceClassID;
         }
         
+        // obtains a parent weak reference.
+        inline ParentWeakReference ObtainParentRef()
+        {
+            return _InstanceMemory ? IsWeakPtrUnbound(_ParentAttachMemory) ?
+                ParentWeakReference(_InstanceMemory) : _ParentAttachMemory : ParentWeakReference{};
+        }
+        
+        // sets the parent. NOTE: must have no parent present! Nothing happens if no instance.
+        inline void SetParentRef(ClassInstance& parent)
+        {
+            if(!_InstanceMemory || !_InstanceClassID)
+                return;
+            TTE_ASSERT(IsWeakPtrUnbound(_ParentAttachMemory), "Cannot assign parent: parent is already set");
+            _ParentAttachMemory = parent.ObtainParentRef(); // create weak reference
+        }
+        
+        // Returns if this class instance is a top-level instance, ie it is not owned by any other class instance.
+        inline Bool IsTopLevel() const
+        {
+            if(_InstanceClassID == 0)
+                return false; // invalid anyway
+            Bool unbound = IsWeakPtrUnbound(_ParentAttachMemory);
+            if(unbound)
+                return true; // yes, no parent
+            // is parent == instance, that still is ok, so check
+            auto lck = _ParentAttachMemory.lock();
+            return lck ? lck.get() == _InstanceMemory.get() : false;
+        }
+        
     private:
         
-        // Use by _MakeInstance. Deleted is defined in the meta.cpp TU.
-        inline ClassInstance(U32 storedID, U8* memory, std::function<void(U8*)> _deleter) : _InstanceClassID(storedID), _InstanceMemory(memory, _deleter) {}
+        // Use by _MakeInstance. Deleter is defined in the meta.cpp TU.
+        inline ClassInstance(U32 storedID, U8* memory, std::function<void(U8*)> _deleter, ParentWeakReference attachTo) :
+            _InstanceClassID(storedID), _InstanceMemory(memory, _deleter), _ParentAttachMemory(std::move(attachTo)) {}
         
         // Use by the collection class. takes in the class and memory, but the memory won't be deleted
-        inline ClassInstance(U32 storedID, U8* memoryNoDelete) : _InstanceClassID(storedID), _InstanceMemory(memoryNoDelete, &NullDeleter) {}
+        inline ClassInstance(U32 storedID, U8* memoryNoDelete, ParentWeakReference attachTo) : _InstanceClassID(storedID),
+            _InstanceMemory(memoryNoDelete, &NullDeleter), _ParentAttachMemory(std::move(attachTo)) {}
+        
+        // Use by the script ref to create an acquired reference from a script object
+        inline ClassInstance(U32 storedID, std::shared_ptr<U8> acquired, ParentWeakReference prnt) : _InstanceClassID(storedID),
+            _InstanceMemory(std::move(acquired)), _ParentAttachMemory(std::move(prnt)) {}
+        
+        // after memory and sarray elements, this is stored if we are a top level (ie no parent)
+        std::vector<std::shared_ptr<U8>>* _GetInternalChildrenRefs();
         
         U32 _InstanceClassID; // class id
         std::shared_ptr<U8> _InstanceMemory; // memory pointer to instance in memory
+        ParentWeakReference _ParentAttachMemory; // weak reference to top level parent this instance is controlled by. NO ACCESS is
+        // ever given to the parent. this is such that, for example, in async jobs the parent is kept constant and untouched by each child.
         
     };
     
-    // Weak or strong reference to a meta class instance, used internally. Used for letting lua scripts access class instances
+    // Weak reference to a meta class instance, used internally. Used for letting lua scripts access class instances
     class ClassInstanceScriptRef
     {
         
         U32 ClassID;
-        std::weak_ptr<U8> WeakRef;
-        std::shared_ptr<U8> StrongRef;
+        std::weak_ptr<U8> InstanceRef;
+        ParentWeakReference ParentWeakRef; // weak reference to parent
+        
+        // internal version returns ref counted pointer, so acquire increases strong ref #
+        inline std::shared_ptr<U8> __GetInternal()
+        {
+            if(IsWeakPtrUnbound(ParentWeakRef) || !ParentWeakRef.expired())
+            {
+                Bool exp = InstanceRef.expired();
+                return exp ? nullptr : InstanceRef.lock();
+            }
+            return nullptr;
+        }
         
     public:
         
-        inline ClassInstanceScriptRef(ClassInstance& inst, Bool Strong) : StrongRef(), WeakRef()
+        inline ClassInstanceScriptRef(ClassInstance& inst)
         {
             if(!inst)
                 ClassID = 0;
             else
             {
                 ClassID = inst.GetClassID();
-                if(Strong)
-                    StrongRef = inst._InstanceMemory;
-                else
-                    WeakRef = inst._InstanceMemory;
+                InstanceRef = inst._InstanceMemory; // only accessible through parent check
+                ParentWeakRef = inst.ObtainParentRef();
             }
         }
         
         ~ClassInstanceScriptRef() = default; // default
         
+        // gets the reference, or nullptr if is expired because of parent.
         inline U8* _GetInternal()
         {
-            if(StrongRef)
-                return StrongRef.get();
-            auto val = WeakRef.lock();
-            return val ? val.get() : nullptr;
+            auto p = __GetInternal();
+            return p ? p.get() : nullptr;
         }
         
         inline U32 GetClassID()
         {
             return ClassID;
+        }
+        
+        // acquires to a normal class reference, or nullptr if expired
+        inline ClassInstance Acquire()
+        {
+            auto pMemory = __GetInternal();
+            return pMemory ? ClassInstance{ClassID, pMemory, ParentWeakRef} : ClassInstance{};
         }
         
     };
@@ -379,20 +442,12 @@ namespace Meta {
     // This represents a collection of (optionally keyed) class instances stored in an array.
     // This is the internal type, use without underscore version (ref ptr)
     class alignas(8) ClassInstanceCollection {
-        
-        static void _MoveStaticArrayMemory(ClassInstanceCollection& src, ClassInstanceCollection& dst);
-        
     public: // ensure we are aligned to 8 bytes because all types have that align or less in the meta system.
         
-        ClassInstanceCollection(U32 ArrayTypeIndex); // construct with no elements, passing in meta array class
+        // construct with no elements, passing in meta array class. pass in the parent of this collection (the host)
+        ClassInstanceCollection(ParentWeakReference host, U32 ArrayTypeIndex);
         
         ~ClassInstanceCollection(); // destructor
-        
-        ClassInstanceCollection& operator=(const ClassInstanceCollection& rhs); // copy operators
-        ClassInstanceCollection(const ClassInstanceCollection& rhs);
-        
-        ClassInstanceCollection& operator=(ClassInstanceCollection&& rhs); // move operators. remaining still valid for type.
-        ClassInstanceCollection(ClassInstanceCollection&& rhs);
         
         // ===== CLASS INFORMATION GETTERS
         
@@ -445,9 +500,25 @@ namespace Meta {
             Push(ClassInstance{}, std::move(val), false, bCopyVal);
         }
     
-    private:
+    private: // copy stuff is private, only to be done by meta sys
+        
+        ClassInstanceCollection& operator=(const ClassInstanceCollection& rhs) = delete;// copy operators
+        ClassInstanceCollection(const ClassInstanceCollection& rhs) = delete;
+        
+        ClassInstanceCollection& operator=(ClassInstanceCollection&& rhs) = delete;// move operators. remaining still valid for type.
+        ClassInstanceCollection(ClassInstanceCollection&& rhs) = delete;
+        
+        ClassInstanceCollection(const ClassInstanceCollection& rhs, ParentWeakReference); // copy
+        ClassInstanceCollection(ClassInstanceCollection&& rhs, ParentWeakReference); // move
+        
+        friend void _Impl::CtorCol(void*, U32, ParentWeakReference);
+        friend void _Impl::DtorCol(void*, U32);
+        friend void _Impl::CopyCol(const void*, void*, ParentWeakReference);
+        friend void _Impl::MoveCol(void*, void*, ParentWeakReference);
         
         void SetIndexInternal(U32 index, ClassInstance key, ClassInstance value, Bool bCopyKey, Bool bCopyVal);
+        
+        ClassInstance SubRef(U32 classID, U8* pMemory); // creates ref to memory inside this collection, depends that we are alive.
         
         U32 _Size; // dynamic size of array
         U32 _Cap; // dynamic capacity of array (if SArray, not dynamic, this value is UINT32_MAX)
@@ -459,6 +530,8 @@ namespace Meta {
         U32 _ColFl; // collection flags, see above enum
         
         U8* _Memory; // allocated memory
+        
+        ParentWeakReference _PrntRef; // parent ref for this collection
         
     };
     
@@ -494,16 +567,17 @@ namespace Meta {
     ClassInstance ReadMetaStream(DataStreamRef& stream);
     
     // ===== CLASS FUNCTIONALITY FOR SINGLE INSTANCES ======
+
+    // Creates an instance of the given class. Thread safe between game switches. If creating a type which belongs inside another parent
+    // type (ie a non top-level) type, then pass the parent instance as the second argument.
+    ClassInstance CreateInstance(U32 ClassID, ClassInstance host = {});
     
-    // Creates an instance of the given class. Thread safe between game switches.
-    ClassInstance CreateInstance(U32 ClassID);
-    
-    // Creates an exact copy of the given instance. Thread safe between game switches.
-    ClassInstance CopyInstance(ClassInstance instance);
+    // Creates an exact copy of the given instance. Thread safe between game switches. See CreateInstance second argument information.
+    ClassInstance CopyInstance(ClassInstance instance, ClassInstance host = {});
     
     // Moves the instance argument to a new instance, leaving the old one still alive but with none of its previous data (now in new returned one).
-    // Thread safe between game switches.
-    ClassInstance MoveInstance(ClassInstance instance);
+    // Thread safe between game switches. See CreateInstance second argument information.
+    ClassInstance MoveInstance(ClassInstance instance, ClassInstance host = {});
     
     // Acquires a reference to the given script object on the stack. After using ClassInstance::PushScriptRef, this can be used on the pushed value
     // Thread safe between game switches.
@@ -591,24 +665,24 @@ namespace Meta {
 // FOR SERIALISERS BELOW, CLAZZ CAN BE NULL, as we know the class 100%.
 
 // Serialises an unsigned byte (can be cast to signed)
-inline Bool SerialiseU8(Meta::Stream& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU8(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 1) : stream.Read((U8*)pMemory, 1);
 }
 
 // Serialises an unsigned short (can be cast to signed)
-inline Bool SerialiseU16(Meta::Stream& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU16(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
     // Endianness checks in the future?
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 2) : stream.Read((U8*)pMemory, 2);
 }
 
 // Serialises an unsigned int (can be cast to signed)
-inline Bool SerialiseU32(Meta::Stream& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU32(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
     // Endianness checks in the future?
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 4) : stream.Read((U8*)pMemory, 4);
 }
 
 // Serialises an unsigned longlong (can be cast to signed)
-inline Bool SerialiseU64(Meta::Stream& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU64(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
     // Endianness checks in the future?
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 8) : stream.Read((U8*)pMemory, 8);
 }
