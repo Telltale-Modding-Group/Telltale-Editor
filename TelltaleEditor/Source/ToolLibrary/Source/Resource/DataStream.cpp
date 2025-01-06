@@ -363,7 +363,7 @@ DataStreamDeferred::~DataStreamDeferred()
 
 DataStreamDeferred::DataStreamDeferred(const ResourceURL &url, U64 pageSize) : DataStream(url), _PageSize(pageSize)
 {
-    _PageIdx = _PagePos = 0;
+    _PageIdx = _PagePos = _Size = 0;
 }
 
 // perform a chunked read in blocks of pagesize.
