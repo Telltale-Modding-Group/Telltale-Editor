@@ -2017,7 +2017,7 @@ namespace Meta {
         if(_ColFl & _COL_IS_SARRAY)
         {
             TTE_ASSERT(false, "Cannot pop from statically sized array");
-            return;
+            return false;
         }
         
         if(_Size == 0)

@@ -1271,6 +1271,7 @@ namespace LuaMisc
     static U32 luaSymbolClear(LuaManager&)
     {
         RuntimeSymbols.Clear();
+        return 0;
     }
     
 }

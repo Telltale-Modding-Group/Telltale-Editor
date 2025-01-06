@@ -10,3 +10,4 @@ CMakeFiles/*
 CMakeCache.txt
 *.ttarch
 *.ttarch2
+out/
