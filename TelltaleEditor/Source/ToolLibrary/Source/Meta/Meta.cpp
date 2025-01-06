@@ -501,6 +501,11 @@ namespace Meta {
                 auto vec = topLevelParent._GetInternalChildrenRefs();
                 vec->push_back(inst._InstanceMemory); // ref counted
             }
+            else
+            {
+                // else we need to construct the child refs array
+                new (inst._GetInternalChildrenRefs()) std::vector<std::shared_ptr<U8>>();
+            }
             
             return inst;
         }
