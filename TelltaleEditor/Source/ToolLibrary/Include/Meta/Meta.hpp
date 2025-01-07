@@ -250,6 +250,8 @@ namespace Meta {
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
         BlowfishKey MasterKey; // key used for all platforms
         Bool ModifiedBlowfish = false;
+        Bool UsesArchive2 = false; // if the game uses .ttarch2 instead of .ttarch
+        U32 ArchiveVersion = 0; // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
         
     };
     
@@ -295,7 +297,8 @@ namespace Meta {
         
         // Pushes a weak reference to this instance to the lua stack. Pass in the host class (owner) of this object.
         // Weak here means instance is not owned by the script reference. After all C++ instances are destroyed, getting the object returns nil.
-        void PushScriptRef(LuaManager& man);
+        // Set last argument to make it strong, this makes it so that the lua object will keep it alive. Only use this for high level calls.
+        void PushScriptRef(LuaManager& man, Bool PushStrong = false);
         
         // returns true if this instance has expired because its parent is no longer alive.
         inline Bool Expired()
@@ -375,6 +378,7 @@ namespace Meta {
         U32 ClassID;
         std::weak_ptr<U8> InstanceRef;
         ParentWeakReference ParentWeakRef; // weak reference to parent
+        std::shared_ptr<U8> StrongRef; // for strong lua managed references
         
         // internal version returns ref counted pointer, so acquire increases strong ref #
         inline std::shared_ptr<U8> __GetInternal()
@@ -399,6 +403,12 @@ namespace Meta {
                 InstanceRef = inst._InstanceMemory; // only accessible through parent check
                 ParentWeakRef = inst.ObtainParentRef();
             }
+        }
+        
+        // Switches to a strong ref, if we can.
+        inline void SwitchStrongRef()
+        {
+            StrongRef = InstanceRef.lock();
         }
         
         ~ClassInstanceScriptRef() = default; // default

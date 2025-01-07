@@ -19,6 +19,9 @@ struct GameSnapshot
 // code to setup the library for modding the given game snapshot. ONLY ONE INSTANCE can be alive for one executable using this library.
 class ToolContext
 {
+    
+    friend class LuaManager;
+    
 public:
     
     // Releases the library. Switch can be re-called after this.
@@ -73,6 +76,9 @@ public:
         // Lua shuts down automatically in dtor
     }
     
+    // Meta.cpp. This gets the active game currently Switched to. Returns nullptr if no game is currently set.
+    const Meta::RegGame* GetActiveGame();
+    
     // Returns the lua manager version for running library scripts, not game scripts.
     inline LuaManager& GetLibraryLVM()
     {
@@ -121,9 +127,16 @@ public:
         return _Setup;
     }
     
+    // Returns the number of script calls we are currently in. If zero, this function is called directly by the C++ source. If > 0, then
+    // this call is from a lua script (indirectly).
+    inline U32 GetLockDepth() {
+        return _LockedCallDepth;
+    }
+    
 private:
     
     Bool _Setup = false;
+    U32 _LockedCallDepth = 0; // tracks number of library calls to lua scripts, ensuring we cant change context stuff from the scripts during.
     GameSnapshot _Snapshot = {};
     LuaManager _L[3];
     
@@ -139,3 +152,6 @@ void DestroyToolContext();
 
 // Call CreateToolContext before ANY library call.
 ToolContext* GetToolContext();
+
+// Returns if we are calling from the main thread, ie the thread that called CreateToolContext().
+Bool IsCallingFromMain();

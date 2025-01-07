@@ -57,11 +57,13 @@ class LuaManager
     void Initialise(LuaVersion Vers);
 
     // Runs a chunk of uncompiled lua source. Pass in the C string and its length. Pass in the Name of the lua file as the optional last argument.
-    Bool RunText(CString Code, U32 Len, CString Name = "defaultrun.lua");
+    // Set lock context to true such that the context cannot be modified during this call from scripts, ensuring eg TTE_Switch fails.
+    Bool RunText(CString Code, U32 Len, Bool LockContext, CString Name = "defaultrun.lua");
     
     // Calls the function along with its arguments on the stack. Push the function FIRST, then Nargs arguments. Then call this.
     // Use LUA_MULTRET for Nresults if you want all returned values, else use a lower number to cap the number of return values pushed.
-    void CallFunction(U32 Nargs, U32 Nresults);
+    // Set lock context to true such that the context cannot be modified during this call from scripts, ensuring eg TTE_Switch fails.
+    void CallFunction(U32 Nargs, U32 Nresults, Bool LockContext);
     
     // Loads a lua chunk, isCompiled being if its complied else source, into the Lua VM.
     Bool LoadChunk(const String& nm, const U8* chunk, U32 chunkSizeBytes, Bool isCompiled);

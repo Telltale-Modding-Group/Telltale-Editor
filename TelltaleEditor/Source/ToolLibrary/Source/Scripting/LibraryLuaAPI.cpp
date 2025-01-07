@@ -1,5 +1,7 @@
 #include <Meta/Meta.hpp>
 #include <Scripting/ScriptManager.hpp>
+#include <Core/Context.hpp>
+#include <Resource/TTArchive.hpp>
 
 #include <sstream>
 #include <utility>
@@ -42,6 +44,11 @@ namespace Meta
         U32 luaMetaRegisterGame(LuaManager& man)
         {
             TTE_ASSERT(_IsMain, "MetaRegisterGame can only be called in initialisation on the main thread");
+            if(!GetToolContext() || GetToolContext()->GetActiveGame()) // no active game can be set here
+            {
+                TTE_ASSERT(false, "At MetaRegisterGame: this can only be called during initialisation of a game");
+                return 0;
+            }
             RegGame reg{};
             
             // pop stuff into reg game struct
@@ -49,6 +56,10 @@ namespace Meta
             reg.Name = ScriptManager::PopString(man);
             ScriptManager::TableGet(man, "ID");
             reg.ID = ScriptManager::PopString(man);
+            ScriptManager::TableGet(man, "IsArchive2");
+            reg.UsesArchive2 = ScriptManager::PopBool(man);
+            ScriptManager::TableGet(man, "ArchiveVersion");
+            reg.ArchiveVersion = ScriptManager::PopUnsignedInteger(man);
             ScriptManager::TableGet(man, "ModifiedEncryption");
             if(man.Type(-1) == LuaType::BOOL)
                 reg.ModifiedBlowfish = ScriptManager::PopBool(man);
@@ -160,8 +171,12 @@ namespace Meta
         // MetaRegisterIntrinsics()
         U32 luaMetaRegisterIntrinsics(LuaManager& man)
         {
-            
             TTE_ASSERT(_IsMain, "MetaRegisterIntrinsics can only be called in snapshot initialisation on the main thread");
+            if(!GetToolContext() || GetToolContext()->GetActiveGame())
+            {
+                TTE_ASSERT(false, "At MetaRegisterIntrinsics: this can only be called during initialisation of a game");
+                return 0;
+            }
             Class c{};
             
             // helper macro
@@ -330,6 +345,12 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
         {
             TTE_ASSERT(_IsMain, "MetaRegisterClass can only be called in snapshot initialisation on the main thread");
             
+            if(!GetToolContext() || GetToolContext()->GetActiveGame())
+            {
+                TTE_ASSERT(false, "At MetaRegisterClass: this can only be called during initialisation of a game");
+                return 0;
+            }
+            
             Class c{};
             ScriptManager::TableGet(man, "VersionIndex");
             c.VersionNumber = ScriptManager::PopInteger(man);
@@ -376,6 +397,12 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             TTE_ASSERT(man.GetTop() == 3, "Incorrect call");
             TTE_ASSERT(man.Type(3) == LuaType::TABLE, "At MetaRegisterCollection, the value class argument (3) was not a table.");
             TTE_ASSERT(man.Type(1) == LuaType::TABLE, "At MetaRegisterCollection, the collection class argument (1) was not a table.");
+            
+            if(!GetToolContext() || GetToolContext()->GetActiveGame())
+            {
+                TTE_ASSERT(false, "At MetaRegisterCollection: this can only be called during initialisation of a game");
+                return 0;
+            }
             
             c.Flags = CLASS_CONTAINER;
             c.RTSize = (U32)sizeof(ClassInstanceCollection);
@@ -1276,6 +1303,239 @@ namespace LuaMisc
     
 }
 
+// ===================================================================         TTE API
+// ===================================================================
+
+namespace TTE
+{
+    
+    static Bool EnsureMain()
+    {
+        if(!IsCallingFromMain())
+        {
+            TTE_ASSERT(false, "This function cannot be called here"); // 90% this might be running on main, but it shouldn't.
+            // these functions should only be run in mod scripts, not any script which could be async (ie in meta serialisation etc)
+            return false;
+        }
+        return true;
+    }
+    
+    static U32 luaSwitch(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 3, "Invalid use of TTE_Switch");
+        ToolContext* Context = ::GetToolContext();
+        TTE_ASSERT(Context, "At TTE_Switch: no context is present. Ensure any modding scripts are run after context initialisation.");
+        if(!Context)
+            return 0;
+        if(Context->GetLockDepth() != 0)
+        {
+            TTE_ASSERT(false, "At TTE_Switch: lock depth is non zero. This function cannot be called at this time.");
+            return 0;
+        }
+        if(EnsureMain())
+        {
+            GameSnapshot snap{};
+            snap.ID = man.ToString(-3);
+            snap.Platform = man.ToString(-2);
+            snap.Vendor = man.ToString(-1);
+            Context->Switch(snap);
+        }
+        return 0;
+    }
+    
+    // instance = openms(filepath, optional arc). this instance is a strong reference, in which the lua GC, when called, will finally destroy it.
+    static U32 luaOpenMetaStream(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 1 || man.GetTop() == 2, "Invalid use of TTE_OpenMetaStream");
+        ToolContext* Context = ::GetToolContext();
+        TTE_ASSERT(Context, "At TTE_OpenMetaStream: no context is present. Ensure any modding scripts are run after context initialisation.");
+        if(!Context)
+        {
+            man.PushNil();
+            return 1;
+        }
+        if(EnsureMain())
+        {
+            String path = man.ToString(1);
+            DataStreamRef r;
+            if(man.GetTop() == 1)
+                r = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, path));
+            else
+            {
+                // open from archive
+                U32 tag = ScriptManager::GetScriptObjectTag(man, 2);
+                if(tag == TTARCHIVE1)
+                    r = ((TTArchive*)man.ToPointer(2))->Find(path); // open stream
+                else
+                {
+                    TTE_LOG("At TTE_OpenMetaStream: invalid argument(s()");
+                    man.PushNil();
+                    return 1;
+                }
+            }
+            if(r && r->GetSize() > 0)
+            {
+                Meta::ClassInstance inst = Meta::ReadMetaStream(r);
+                if(inst)
+                {
+                    inst.PushScriptRef(man, true); // set to strong, as otherwise when 'inst' destructor is called, we will exit.`
+                }
+                else
+                {
+                    TTE_LOG("Failed to read meta stream for file %s", path.c_str());
+                    man.PushNil();
+                }
+            }
+            else
+            {
+                TTE_LOG("Failed to open meta stream for file %s: did not exist (size 0) or could not open", path.c_str());
+                man.PushNil();
+            }
+        }
+        return 1;
+    }
+    
+    // bool = savems(filepath, instance)
+    static U32 luaSaveMetaStream(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 2, "Invalid use of TTE_SaveMetaStream");
+        ToolContext* Context = ::GetToolContext();
+        TTE_ASSERT(Context, "At TTE_SaveMetaStream: no context is present. Ensure any modding scripts are run after context initialisation.");
+        if(!Context)
+        {
+            man.PushBool(false);
+            return 1;
+        }
+        if(EnsureMain())
+        {
+            String path = man.ToString(-1);
+            DataStreamRef r = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, path));
+            Meta::ClassInstance inst = Meta::AcquireScriptInstance(man, -1);
+            if(inst)
+            {
+                if(Meta::WriteMetaStream(path, std::move(inst), r, Context->GetActiveGame()->MetaVersion))
+                    man.PushBool(true);
+                else
+                {
+                    TTE_LOG("Cannot save meta stream to %s: write failed", path.c_str());
+                    man.PushBool(false);
+                }
+            }
+            else
+            {
+                TTE_LOG("Cannot save meta stream to %s: instance is not valid or null", path.c_str());
+                man.PushBool(false);
+            }
+        }
+        return 1;
+    }
+    
+    static U32 luaActiveGame(LuaManager& man)
+    {
+        ToolContext* Context = ::GetToolContext();
+        TTE_ASSERT(Context, "At TTE_ActiveGame: no context is present. Ensure any modding scripts are run after context initialisation.");
+        if(!Context || !Context->GetActiveGame())
+        {
+            man.PushNil();
+            return 1;
+        }
+        const Meta::RegGame* pGame = Context->GetActiveGame();
+        
+        man.PushTable();
+        
+        man.PushLString("Name");
+        man.PushLString(pGame->Name);
+        man.SetTable(-3);
+        
+        man.PushLString("ID");
+        man.PushLString(pGame->ID);
+        man.SetTable(-3);
+        
+        man.PushLString("ArchiveVersion");
+        man.PushUnsignedInteger(pGame->ArchiveVersion);
+        man.SetTable(-3);
+        
+        man.PushLString("IsArchive2");
+        man.PushBool(pGame->UsesArchive2);
+        man.SetTable(-3);
+        
+        return 1;
+    }
+    
+    // arc = openarchive(path)
+    static U32 luaOpenTTArch(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 1, "Invalid use of TTE_OpenTTArchive");
+        ToolContext* Context = ::GetToolContext();
+        TTE_ASSERT(Context, "At TTE_OpenTTArchive: no context is present. Ensure any modding scripts are run after context initialisation.");
+        if(!Context)
+        {
+            man.PushNil();
+            return 1;
+        }
+        
+        if(Context->GetActiveGame()->UsesArchive2)
+        {
+            TTE_ASSERT(false, "At TTE_OpenArchive: please use TTE_OpenArchive2 as the current game does not use .TTARCH2, but rather .TTARCH.");
+            man.PushNil();
+            return 1;
+        }
+    
+        String path = man.ToString(-1);
+        DataStreamRef r = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, path));
+        
+        if(r->GetSize() > 0)
+        {
+            TTArchive* pArchive = TTE_NEW(TTArchive, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->ArchiveVersion);
+            TTE_LOG("Loading telltale archive %s...", path.c_str());
+            if(!pArchive->SerialiseIn(r))
+            {
+                TTE_LOG("Cannot open archive %s: read failed (archive format invalid)", path.c_str());
+                man.PushNil();
+                TTE_DEL(pArchive);
+            }else ScriptManager::PushScriptOwned(man, pArchive, TTARCHIVE1); // gc will call del
+        }
+        else
+        {
+            TTE_LOG("Cannot open archive %s: not found or could not open", path.c_str());
+            man.PushNil();
+        }
+        
+        return 1;
+    }
+    
+    // files = listfiles(archive)
+    static U32 luaArchiveListFiles(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 1, "Invalid use of TTE_ArchiveListFiles");
+        // open from archive
+        U32 tag = ScriptManager::GetScriptObjectTag(man, -1);
+        if(tag == TTARCHIVE1)
+        {
+            TTArchive* pArchive = (TTArchive*)man.ToPointer(-1);
+            man.PushTable();
+            std::vector<String> files{};
+            pArchive->GetFiles(files);
+            U32 i = 1;
+            for(auto& it: files)
+            {
+                man.PushUnsignedInteger(i++);
+                man.PushLString(std::move(it)); // move
+                man.SetTable(-3);
+            }
+        }
+        else
+        {
+            TTE_LOG("At TTE_ArchiveListFiles: invalid argument(s()");
+            man.PushNil();
+            return 1;
+        }
+        return 1;
+    }
+    
+}
+
+
 // ===================================================================         REGISTER OBJECT
 // ===================================================================
 
@@ -1284,6 +1544,15 @@ namespace LuaMisc
 LuaFunctionCollection luaLibraryAPI()
 {
     LuaFunctionCollection Col{};
+    
+    // REGISTER TTE API
+    
+    Col.Functions.push_back({"TTE_Switch", &TTE::luaSwitch});
+    Col.Functions.push_back({"TTE_OpenMetaStream", &TTE::luaOpenMetaStream});
+    Col.Functions.push_back({"TTE_SaveMetaStream", &TTE::luaSaveMetaStream});
+    Col.Functions.push_back({"TTE_GetActiveGame", &TTE::luaActiveGame});
+    Col.Functions.push_back({"TTE_OpenTTArchive", &TTE::luaOpenTTArch});
+    Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles});
     
     // REGISTER META API
     

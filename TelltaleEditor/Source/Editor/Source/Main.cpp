@@ -8,10 +8,10 @@ int main()
         
         ToolContext& Context = *CreateToolContext();
         
-        Context.Switch({"BN100","MacOS",""}); // use bone for now, as it has some more functionality
-        
-        DataStreamRef stream = Context.LoadLibraryResource("menuitem.prop");
-        Meta::ClassInstance instance = Meta::ReadMetaStream(stream); // read the file
+        // for now assume user has called 'editorui.exe "../../Dev/mod.lua"
+        String src = Context.LoadLibraryStringResource("mod.lua");
+        Context.GetLibraryLVM().RunText(src.c_str(), (U32)src.length(), false); // dont lock the context, allow any modding.
+        Context.GetLibraryLVM().GC(); // gc after
         
         DestroyToolContext();
     }

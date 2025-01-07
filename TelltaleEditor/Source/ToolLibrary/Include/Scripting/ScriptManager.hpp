@@ -29,9 +29,10 @@ namespace ScriptManager {
     
     // Execute the function on the stack followed by its arguments pushed after. Function & args all popped. Nresults is number of arguments
     // pushed onto the stack, ensured to be padded with NILs if needed - or truncated. Pass LUA_MULTRET for whatever the function returns.
-    inline void Execute(LuaManager& man, U32 Nargs, U32 Nresults)
+    // For information about the LockContext argument, see LuaManager::CallFunction
+    inline void Execute(LuaManager& man, U32 Nargs, U32 Nresults, Bool LockContext)
     {
-        man.CallFunction(Nargs, Nresults);
+        man.CallFunction(Nargs, Nresults, LockContext);
     }
     
     // Pushes onto the stack the global with the given name, or nil.
@@ -86,8 +87,8 @@ namespace ScriptManager {
         return man.LoadChunk(name, (const U8*)text.c_str(), (U32)text.length(), false);
     }
     
-    // Call the given function name, with no arguments.
-    inline void CallFunction(LuaManager& man, const String& name)
+    // Call the given function name, with no arguments. For information avout Lockcontext argument, see LuaManager::CallFunction
+    inline void CallFunction(LuaManager& man, const String& name, Bool LockContext)
     {
         
         // get the function
@@ -95,7 +96,7 @@ namespace ScriptManager {
         
         // if a function, call
         if(man.Type(-1) == LuaType::FUNCTION)
-            man.CallFunction(0, LUA_MULTRET);
+            man.CallFunction(0, LUA_MULTRET, LockContext);
         else
             man.SetTop(-2); // pop non function
         
@@ -153,6 +154,50 @@ namespace ScriptManager {
     inline void SwapTopElements(LuaManager& man)
     {
         man.Insert(-2);
+    }
+    
+    // INTERNAL. DON'T USE.
+    template<typename T>
+    inline U32 __InternalDeleter(LuaManager& man)
+    {
+        TTE_DEL(((T*)man.ToPointer(-1)));
+        return 0;
+    }
+    
+    // returns 0 if invalid, or not found.
+    inline U32 GetScriptObjectTag(LuaManager& man, I32 stackIndex)
+    {
+        if(!man.GetMetatable(stackIndex))
+            return 0; // not found
+        man.PushLString("__ttetag");
+        man.GetTable(-2);
+        U32 tag = man.ToInteger(-1);
+        man.Pop(2);
+        return tag;
+    }
+    
+    // TTE_DEL (with its destructor) will be called when the lua GC decides there are no more references to this object pushed.
+    // pass in a tag integer, so you can check the type in the future with GetScriptObjectTag. Cannot be 0!
+    template<typename T>
+    inline void PushScriptOwned(LuaManager& man, T* obj, U32 tag)
+    {
+        TTE_ASSERT(tag != 0, "Tag value is not allowed to be 0");
+        man.PushOpaque(obj); // push
+        
+        man.PushTable(); // meta table
+        
+        man.PushLString("__gc");
+        man.PushFn(&__InternalDeleter<T>);
+        man.SetTable(-3); // set gc method
+        
+        if(tag != 0)
+        {
+            man.PushLString("__ttetag");
+            man.PushUnsignedInteger(tag);
+            man.SetTable(-3);
+        }
+        
+        man.SetMetaTable(-2);
     }
     
 }

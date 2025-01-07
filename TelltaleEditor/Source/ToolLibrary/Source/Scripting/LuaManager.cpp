@@ -96,19 +96,36 @@ void LuaManager::GC()
     _Adapter->GC();
 }
 
-Bool LuaManager::RunText(CString Code, U32 Len, CString ChunkName)
+Bool LuaManager::RunText(CString Code, U32 Len, Bool bBlock, CString ChunkName)
 {
     TTE_ASSERT(_Version != LuaVersion::LUA_NONE, "Lua not initialised");
-    return _Adapter->RunChunk((U8 *)Code, Len, false, ChunkName);
+    if(bBlock)
+    {
+        GetToolContext()->_LockedCallDepth++;
+    }
+    Bool bResult = _Adapter->RunChunk((U8 *)Code, Len, false, ChunkName);
+    if(bBlock)
+    {
+        GetToolContext()->_LockedCallDepth--;
+    }
+    return bResult;
 }
 
 I32 LuaManager::ToInteger(I32 index){
     return _Adapter->ToInteger(index);
 }
 
-void LuaManager::CallFunction(U32 Nargs, U32 Nresults)
+void LuaManager::CallFunction(U32 Nargs, U32 Nresults, Bool bBlock)
 {
-    return _Adapter->CallFunction(Nargs, Nresults);
+    if(bBlock)
+    {
+        GetToolContext()->_LockedCallDepth++;
+    }
+    _Adapter->CallFunction(Nargs, Nresults);
+    if(bBlock)
+    {
+        GetToolContext()->_LockedCallDepth--;
+    }
 }
 
 Bool LuaManager::CheckStack(U32 extra)

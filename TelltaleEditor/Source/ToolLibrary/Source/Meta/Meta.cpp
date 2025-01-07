@@ -7,6 +7,11 @@
 
 thread_local Bool _IsMain = false; // Used in meta.
 
+Bool IsCallingFromMain()
+{
+    return _IsMain;
+}
+
 // ===================================================================         TOOL CONTEXT
 // ===================================================================
 
@@ -53,7 +58,7 @@ namespace Meta {
     std::vector<RegGame> Games{};
     std::map<U32, Class> Classes{};
     std::map<Symbol, CompiledSerialiserScript> Serialisers{}; // map of serialiser script path symbol => compiled script binary
-    U32 GameIndex{}; // Current game index
+    I32 GameIndex = -1;
     String VersionCalcFun{}; // lua function which calculates version crc for a type.
     
     // ===================================================================         IMPL
@@ -263,7 +268,7 @@ namespace Meta {
                 
                 GetToolContext()->GetLibraryLVM().PushBool(IsWrite); // push is write
                 
-                GetToolContext()->GetLibraryLVM().CallFunction(3, 1); // call
+                GetToolContext()->GetLibraryLVM().CallFunction(3, 1, true); // call, locked.
                 
                 result = ScriptManager::PopBool(GetToolContext()->GetLibraryLVM()); // check result
                 
@@ -398,7 +403,7 @@ namespace Meta {
             else
             {
                 man.PushCopy(classTableStackIndex); // by ref, ok
-                man.CallFunction(1, 1);
+                man.CallFunction(1, 1, true);
                 return ScriptManager::PopUnsignedInteger(man);
             }
         }
@@ -870,12 +875,14 @@ namespace Meta {
         return ((std::vector<std::shared_ptr<U8>>*)((U8*)_InstanceMemory.get() + skipBytes));
     }
     
-    void ClassInstance::PushScriptRef(LuaManager& man)
+    void ClassInstance::PushScriptRef(LuaManager& man, Bool strong)
     {
         if(_InstanceMemory)
         {
             ClassInstanceScriptRef* pRef = (ClassInstanceScriptRef*)man.CreateUserData((U32)sizeof(ClassInstanceScriptRef));
             new (pRef) ClassInstanceScriptRef(*this); // construct it (previous just allocates in the lua mem)
+            if(strong)
+                pRef->SwitchStrongRef();
 
             man.PushTable(); // meta table
             
@@ -883,7 +890,7 @@ namespace Meta {
             man.PushFn(&luaClassInstanceGC);
             man.SetTable(-3); // set gc method
             
-            //TODO all metatable ops
+            // other metatable operations?
             
             man.PushLString("__MetaId"); // also include the class id in the metatable so we can check it
             man.PushUnsignedInteger(_InstanceClassID);
@@ -1023,15 +1030,17 @@ namespace Meta {
         
         // Ensure game exists
         Bool Found = false;
-        RegGame* pActiveGame = nullptr;
+        U32 gameIdx = 0;
+        U32 i=0;
         for(auto& game: Games)
         {
             if(game.ID == snap.ID)
             {
                 Found = true;
-                pActiveGame = &game;
+                gameIdx = i;
                 break;
             }
+            i++;
         }
         TTE_ASSERT(Found, "Game with ID '%s' does not exist or was not registered, cannot initialise with game snapashot.", snap.ID.c_str());
         if(!Found)
@@ -1056,34 +1065,35 @@ namespace Meta {
             GetToolContext()->GetLibraryLVM().PushLString(snap.ID);
             GetToolContext()->GetLibraryLVM().PushLString(snap.Platform);
             GetToolContext()->GetLibraryLVM().PushLString(snap.Vendor);
-            ScriptManager::Execute(GetToolContext()->GetLibraryLVM(), 3, 1);
+            ScriptManager::Execute(GetToolContext()->GetLibraryLVM(), 3, 1, true);
             if(!ScriptManager::PopBool(GetToolContext()->GetLibraryLVM()))
             {
                 TTE_LOG("RegisterAll failed!");
             }
             else // success, so init blowfish encryption for the game
             {
-                BlowfishKey key = pActiveGame->MasterKey; // set to master key
+                BlowfishKey key = Games[gameIdx].MasterKey; // set to master key
                 
                 // if there is a specific platform encryption key, do that here
-                auto it = pActiveGame->PlatformToEncryptionKey.find(snap.Platform);
-                if(it != pActiveGame->PlatformToEncryptionKey.end())
+                auto it = Games[gameIdx].PlatformToEncryptionKey.find(snap.Platform);
+                if(it != Games[gameIdx].PlatformToEncryptionKey.end())
                     key = it->second;
                 
                 if(key.BfKeyLength == 1 && key.BfKey[0] == 0)
                 {
                     TTE_ASSERT(false, "Game encryption key for %s/%s has not been registered. Please contact us with the executable of "
-                               "the game for this platform so we can get the encryption key!", snap.ID.c_str(), snap.Platform.c_str());
+                               "the game for this platform so we can find the encryption key!", snap.ID.c_str(), snap.Platform.c_str());
                     // encryption key '00' means we dont know it yet.
                     RelGame();
                     return;
                 }
                 
-                Blowfish::Initialise(pActiveGame->ModifiedBlowfish, key.BfKey, key.BfKeyLength);
+                Blowfish::Initialise(Games[gameIdx].ModifiedBlowfish, key.BfKey, key.BfKeyLength);
             }
         }
         
         TTE_LOG("Meta fully initialised with snapshot of %s: registered %d classes", snap.ID.c_str(), (U32)Classes.size());
+        GameIndex = (I32)gameIdx;
     }
     
     void RelGame()
@@ -1097,6 +1107,7 @@ namespace Meta {
         
         Classes.clear();
         VersionCalcFun = "";
+        GameIndex = -1;
     }
     
     void Initialise()
@@ -2114,4 +2125,9 @@ namespace Meta {
         return SubRef(Classes[_ColID].ArrayValClass, _Memory + (++i * _PairSize) - _ValuSize);
     }
     
+}
+
+const Meta::RegGame* ToolContext::GetActiveGame()
+{
+    return Meta::GameIndex == -1 ? nullptr : &Meta::Games[Meta::GameIndex];
 }

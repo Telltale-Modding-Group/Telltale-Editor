@@ -208,6 +208,13 @@ enum MemoryTag
     MEMORY_TAG_META_COLLECTION, // meta dynamic array
     MEMORY_TAG_RUNTIME_BUFFER, // runtime buffer
     MEMORY_TAG_BLOWFISH, // blowfish encryption data
+    MEMORY_TAG_SCRIPT_OBJECT, // similar to SCRIPTING, however it is a object managed by the lua GC
+};
+
+// each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.
+enum ObjectTag : U32
+{
+  TTARCHIVE1 = 1, // TTArchive instance, see TTArchive.hpp
 };
 
 // Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by changing these macros. Memory tags used for future use.
