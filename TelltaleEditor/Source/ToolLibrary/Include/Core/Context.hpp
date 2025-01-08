@@ -6,6 +6,7 @@
 #include <Meta/Meta.hpp>
 #include <Scripting/ScriptManager.hpp>
 #include <Resource/Blowfish.hpp>
+#include <Resource/Compression.hpp>
 
 // Used to identify a specific game release snapshot of associated game data for grouping formats
 struct GameSnapshot
@@ -60,6 +61,7 @@ private:
     inline ToolContext()
     {
         DataStreamManager::Initialise();
+        Compression::Initialise();
         _L[0].Initialise(LuaVersion::LUA_5_2_3);
         _L[1].Initialise(LuaVersion::LUA_5_1_4);
         _L[2].Initialise(LuaVersion::LUA_5_0_2);

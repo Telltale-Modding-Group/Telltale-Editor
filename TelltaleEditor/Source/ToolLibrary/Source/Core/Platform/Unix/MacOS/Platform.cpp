@@ -5,6 +5,7 @@
 
 #include <fcntl.h>
 #include <errno.h>
+#include <dlfcn.h>
 
 // THREAD
 
@@ -92,4 +93,53 @@ U64 FilePos(U64 Handle) {
 
 void FileSeek(U64 Handle, U64 Offset){
     lseek((int)Handle, (off_t)Offset, SEEK_SET);
+}
+
+static void* OodleLibrary = nullptr; // can be static. only loaded at init.
+
+void OodleOpen(void*& c, void*& d)
+{
+    if(OodleLibrary == nullptr)
+    {
+        const char* lib;
+#if defined(__arm64__)
+        lib = "./oodle_mac-arm64.dylib";
+#elif defined(__x86_64__)
+        lib = "./oodle_mac-x86.dylib";
+#else
+#error "Unable to detect macos architecture"
+#endif
+        OodleLibrary = dlopen(lib, RTLD_LAZY);
+        const char* error = dlerror();
+        if (error)
+        {
+            TTE_LOG("Cannot load oodle library: does not exist"); // error string is very long, just says all places it has searched
+            return;
+        }
+    }
+    
+    c = dlsym(OodleLibrary, "OodleLZ_Compress");
+    const char* error = dlerror();
+    if (error)
+    {
+        TTE_LOG("Cannot load oodle compress: %s", error);
+        return;
+    }
+    
+    d = dlsym(OodleLibrary, "OodleLZ_Decompress");
+    error = dlerror();
+    if (error)
+    {
+        TTE_LOG("Cannot load oodle decompress: %s", error);
+        return;
+    }
+}
+
+void OodleClose()
+{
+    if(OodleLibrary)
+    {
+        dlclose(OodleLibrary);
+    }
+    OodleLibrary = nullptr;
 }

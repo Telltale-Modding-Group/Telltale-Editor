@@ -229,7 +229,7 @@ void Blowfish::Cipher::Init(U8* ky, U32 kl, Bool modified)
     // Encryption for P
     for (U32 i = 0; i < 16 + 2; i += 2)
     {
-        _Do(true, modified, datal, datar);
+        _Do(true, false, datal, datar); // NOTE: we use normal encryption here in the modified version!
         
         P[i] = datal;
         P[i + 1] = datar;
@@ -240,7 +240,7 @@ void Blowfish::Cipher::Init(U8* ky, U32 kl, Bool modified)
     {
         for (j = 0; j < 256; j += 2)
         {
-            _Do(true, modified, datal, datar);
+            _Do(true, false, datal, datar);
             S[i][j] = datal;
             S[i][j + 1] = datar;
         }
@@ -291,7 +291,7 @@ namespace {
         0x37d0d724, 0xd00a1248, 0xdb0fead3, 0x49f1c09b,
         0x075372c9, 0x80991b7b, 0x25d479d8, 0xf6e8def7,
         0xe3fe501a, 0xb6794c3b, 0x976ce0bd, 0x04c006ba,
-        0xc1a94fb6, 0x409f60c4, 0x5e5c9ec2, 0x196a2463,
+        0xc1a94fb6, 0x409f60c4, 0x5e5c9ec2, 0x196a2463, // HERE. 3RD VALUE ON THE LEFT (2ND ON RIGHT). ITS FLIPPED IN MODIFIED VERSION.
         0x68fb6faf, 0x3e6c53b5, 0x1339b2eb, 0x3b52ec6f,
         0x6dfc511f, 0x9b30952c, 0xcc814544, 0xaf5ebd09,
         0xbee3d004, 0xde334afd, 0x660f2807, 0x192e4bb3,

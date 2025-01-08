@@ -2,6 +2,7 @@
 
 #include <Core/Config.hpp>
 #include <Core/Symbol.hpp>
+#include <Resource/Compression.hpp>
 #include <map>
 #include <memory>
 #include <vector>
@@ -267,6 +268,49 @@ protected:
     friend class DataStreamManager;
 };
 
+// compressable, encryptable wrapper. ZCTT/zCTT/ECTT/eCTT/NCTT (TTC meaning telltale container) N = none, e = specific compression lib & encrypt.
+class DataStreamContainer : public DataStreamDeferred
+{
+public:
+    
+    inline virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override { return false; }; // write is disabled
+    
+    // return 0 if any error
+    inline virtual U64 GetSize() override { return _Valid ? _Size : 0; }
+    
+    inline virtual ~DataStreamContainer()
+    {
+        if(_CachedPage)
+            TTE_FREE(_CachedPage);
+        _CachedPage = nullptr;
+        if(_IntPage)
+            TTE_FREE(_IntPage);
+        _IntPage = nullptr;
+    }
+    
+protected:
+    
+    virtual Bool _SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 pageOffset, Bool IsWrite) override;
+    
+    // Parent stream must be seekable.
+    DataStreamContainer(const DataStreamRef &parent);
+    
+    DataStreamRef _Prnt; // parent stream we are reading from
+    
+    Compression::Type _Compression; // compression type
+    Bool _Encrypted; // is encrypted
+    Bool _Compressed; // is compressed
+    Bool _Valid; // is valid
+    U64 _CachedPageIndex; // cached page buffer below
+    U64 _DataOffsetStart; // compressed pages start or uncompressed data start
+    U8* _CachedPage = nullptr; // cached current page
+    U8* _IntPage = nullptr; // intermediate buffer for compression
+
+    std::vector<U64> _PageOffsets; // for compressed. last element is end of file offset
+    
+    friend class DataStreamManager;
+};
+
 // Null stream. Writes and reads succeed but do nothing (albeit they will warn). Used in actual engine too
 class DataStreamNull : public DataStream
 {
@@ -319,7 +363,14 @@ class DataStreamManager
     // Creates a legacy encrypted reading stream for old meta streams. Only should be used by meta stream. Starts reading from base offset.
     // Base offset should be such that its after the magic (eg MBES) and you should pass in the correct block size and frequencies.
     DataStreamRef CreateLegacyEncryptedStream(const DataStreamRef& src, U64 baseOffset, U16 blockSize, U8 rawf, U8 blowf);
+    
+    // Creates a wrapper container data stream. This is used for archives (.ttarch2), shaders and meta stream sections sometimes.
+    DataStreamRef CreateContainerStream(const DataStreamRef& src);
 
+    // Creates a cached stream, such that all of src lies within memory, speeding up reads for smaller files. If src is already
+    // a cached stream (DataStreamBuffer/Memory) then it return src
+    DataStreamRef CreateCachedStream(const DataStreamRef& src);
+    
     // Resolves a symbol. Will return the resource URL with the full path. If not, returns an invalid stream because it was not found.
     ResourceURL Resolve(const Symbol &sym);
 

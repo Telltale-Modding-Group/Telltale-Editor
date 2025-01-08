@@ -487,12 +487,6 @@ namespace Meta {
                     auto& vec = *((std::vector<std::shared_ptr<U8>>*)
                                  ((U8*)pMem + _ClassChildrenArrayOff(Classes[upvalue_ClassID])));
                     
-                    for(auto& child: vec)
-                    {
-                        TTE_ASSERT(child.use_count() == 1, "At %s instance destruction: non top-level instance still has references",
-                                   Classes[upvalue_ClassID].Name.c_str());
-                    }
-                    
                     vec.~vector(); // free all and clear vector memory
                 }
                 

@@ -145,6 +145,32 @@ std::shared_ptr<DataStreamMemory> DataStreamManager::FindCache(const String &pat
 
 DataStreamRef DataStreamManager::CreateTempStream() { return CreateFileStream(ResourceURL(ResourceScheme::FILE, FileNewTemp())); }
 
+DataStreamRef DataStreamManager::CreateContainerStream(const DataStreamRef& src)
+{
+    DataStreamContainer *pDS = TTE_NEW(DataStreamContainer, MEMORY_TAG_DATASTREAM, src);
+    return DataStreamRef(pDS, &DataStreamDeleter);
+}
+
+DataStreamRef DataStreamManager::CreateCachedStream(const DataStreamRef& src)
+{
+    if(!src || dynamic_cast<DataStreamBuffer*>(src.get()) || dynamic_cast<DataStreamMemory*>(src.get()))
+        return src; // already in memory
+    
+    U8* Buffer = TTE_ALLOC(src->GetSize(), MEMORY_TAG_RUNTIME_BUFFER); // move ownership to new buffer
+    
+    src->SetPosition(0);
+    
+    if(!src->Read(Buffer, src->GetSize()))
+    {
+        TTE_LOG("At CreateCachedStream: could not read all bytes from source stream");
+        TTE_FREE(Buffer);
+        return nullptr;
+    }
+    
+    DataStreamBuffer *pDS = TTE_NEW(DataStreamBuffer, MEMORY_TAG_DATASTREAM, src->GetURL(), src->GetSize(), Buffer);
+    return DataStreamRef(pDS, &DataStreamDeleter);
+}
+
 DataStreamRef DataStreamManager::CreateNullStream()
 {
     DataStreamNull *pDS = TTE_NEW(DataStreamNull, MEMORY_TAG_DATASTREAM, ResourceURL());
@@ -696,4 +722,136 @@ DataStreamLegacyEncrypted::DataStreamLegacyEncrypted(const DataStreamRef& p, U64
     _RawFreq = r;
     _EncFreq = bf;
     memset(_Rb, 0, 0x100);
+}
+
+// ===================================================================         CONTAINER (COMPRESSABLE) DATA STREAM
+// ===================================================================
+
+Bool DataStreamContainer::_SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 pageOffset, Bool IsWrite)
+{
+    TTE_ASSERT(!IsWrite, "Cannot write to container stream directly"); // other functionality for this
+    TTE_ASSERT(index < _PageOffsets.size() - 1, "Invalid container stream page index");
+    
+    if(_Compressed)
+    {
+        if(_CachedPageIndex != index)
+        {
+            // cache new page index
+            _Prnt->SetPosition(_DataOffsetStart + _PageOffsets[index]);
+            if(!_Prnt->Read(_IntPage, _PageSize))
+            {
+                TTE_LOG("Could not read page from container stream: index %lld", index);
+                return false;
+            }
+            
+            U32 pageSize = (U32)(_PageOffsets[index+1] - _PageOffsets[index]);
+            
+            if(_Encrypted)
+            {
+                // decrypt
+                Blowfish::GetInstance()->Decrypt(_IntPage, pageSize);
+            }
+            
+            // decompress
+            if(!Compression::Decompress(_IntPage, (U64)pageSize, _CachedPage, _PageSize, _Compression))
+            {
+                TTE_LOG("Decompression failed at data stream container");
+                return false;
+            }
+            
+            // update index
+            _CachedPageIndex = index;
+            
+        }
+        
+        // read from page
+        memcpy(Buffer, _CachedPage + pageOffset, Nbytes);
+        
+        return true;
+    }
+    else
+    {
+        _Prnt->SetPosition(_DataOffsetStart + (index * _PageSize) + pageOffset); // set pos and read normal
+        return _Prnt->Read(Buffer, Nbytes);
+    }
+}
+
+DataStreamContainer::DataStreamContainer(const DataStreamRef& p) : DataStreamDeferred(p->GetURL(), 0x10000), _CachedPage(nullptr),
+    _Valid(false), _Compressed(false), _Encrypted(false), _Compression(Compression::ZLIB),  _CachedPageIndex(0)
+{
+    _Prnt = p; // set parent
+    U32 Magic = {}; // top 3 bytes should be TTC - telltale container
+    SerialiseDataU32(_Prnt, 0, &Magic, false);
+    
+    if((Magic & 0xFFFFFF00) != 0x54544300)
+    {
+        TTE_LOG("When reading container: invalid format");
+        return;
+    }
+    
+    char containerVersion = (char)(Magic & 0xFF);
+    
+    if(containerVersion == 'N') // N: no compression/encrypted
+    {
+        SerialiseDataU64(_Prnt, 0, &_Size, false); // read the size of it
+        _Valid = true;
+        _Compressed = _Encrypted = false;
+        _DataOffsetStart = _Prnt->GetPosition();
+    }
+    else if(containerVersion == 'e' || containerVersion == 'z') // lower case: read compression type (1 == oodle, 0 = zlib)
+    {
+        _DataOffsetStart = _Prnt->GetPosition() - 4; // for offsets, go back behind magic
+        _Compressed = true;
+        _Encrypted = containerVersion == 'e'; // e = encrypted & compressed. z = compressed
+        U32 compressor = {};
+        SerialiseDataU32(_Prnt, 0, &compressor, false);
+        _Compression = compressor == 0 ? Compression::ZLIB : Compression::OODLE;
+        if(compressor != 1) // 0: zlib, 1: oodle. if not oodle or zlib, error
+        {
+            TTE_LOG("When reading container: unknown compression type");
+            return;
+        }
+    }
+    else if(containerVersion == 'Z' || containerVersion == 'E')
+    {
+        _DataOffsetStart = _Prnt->GetPosition() - 4; // for offsets, go back behind magic
+        _Compressed = true;
+        _Encrypted = containerVersion == 'E'; // E = Encrypyed (+ zlib)
+        _Compression = Compression::ZLIB; // older versions default to zlib
+    }
+    else
+    {
+        TTE_LOG("When reading container: unknown container version");
+        return;
+    }
+    
+    if(_Compressed) // read compressed info
+    {
+        
+        U32 WindowSize = {};
+        SerialiseDataU32(_Prnt, 0, &WindowSize, false); // size of each uncompressed page
+        
+        // set page size... its const but lets just
+        *const_cast<U64*>(&_PageSize) = WindowSize;
+        
+        U32 NumPages = {};
+        SerialiseDataU32(_Prnt, 0, &NumPages, false); // number of compressed pages. total uncompressed size = windowwsize * ++numpages
+        
+        _PageOffsets.resize(NumPages + 1); // + 1 for extra EOF
+        // vector stores in a block, so serialise all
+        if(!_Prnt->Read((U8*)_PageOffsets.data(), ((U64)NumPages + 1) << 3))
+        {
+            TTE_LOG("When reading container: could not read page offsets");
+            return;
+        }
+        
+        _Size = WindowSize * NumPages; // total uncompressed size
+        
+        _CachedPageIndex = (U64)-1; // init cache page to none yet
+        _CachedPage = TTE_ALLOC(WindowSize, MEMORY_TAG_RUNTIME_BUFFER);
+        _IntPage = TTE_ALLOC(WindowSize, MEMORY_TAG_RUNTIME_BUFFER);
+        
+    }
+    
+    _Valid = true; // DONE
 }

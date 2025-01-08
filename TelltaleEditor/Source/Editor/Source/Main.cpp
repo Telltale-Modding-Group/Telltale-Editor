@@ -14,6 +14,7 @@ int main()
         Context.GetLibraryLVM().GC(); // gc after
         
         DestroyToolContext();
+        
     }
 
     return 0;

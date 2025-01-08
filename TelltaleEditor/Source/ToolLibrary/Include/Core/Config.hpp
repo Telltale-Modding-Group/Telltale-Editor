@@ -148,6 +148,10 @@ U64 FilePos(U64 Handle); // Return file position
 
 void FileSeek(U64 Handle, U64 Offset); // SEEK_SET
 
+void OodleOpen(void*& CompressorOut, void*& DecompressorOut); // opens oodle lib
+
+void OodleClose(); // close oodle lib
+
 // ===================================================================         UTILS
 // ===================================================================
 
@@ -214,7 +218,9 @@ enum MemoryTag
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.
 enum ObjectTag : U32
 {
-  TTARCHIVE1 = 1, // TTArchive instance, see TTArchive.hpp
+    TTARCHIVE1 = 1, // TTArchive instance, see TTArchive.hpp
+    TTARCHIVE2 = 2, // TTArchive2 instance
+    
 };
 
 // Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by changing these macros. Memory tags used for future use.

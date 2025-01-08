@@ -1,7 +1,9 @@
 #include <Meta/Meta.hpp>
 #include <Scripting/ScriptManager.hpp>
 #include <Core/Context.hpp>
+
 #include <Resource/TTArchive.hpp>
+#include <Resource/TTArchive2.hpp>
 
 #include <sstream>
 #include <utility>
@@ -1462,6 +1464,48 @@ namespace TTE
         return 1;
     }
     
+    // arc = openarchive2(path)
+    static U32 luaOpenTTArch2(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 1, "Invalid use of TTE_OpenTTArchive2");
+        ToolContext* Context = ::GetToolContext();
+        TTE_ASSERT(Context, "At TTE_OpenTTArchive2: no context is present. Ensure any modding scripts are run after context initialisation.");
+        if(!Context)
+        {
+            man.PushNil();
+            return 1;
+        }
+        
+        if(!Context->GetActiveGame()->UsesArchive2)
+        {
+            TTE_ASSERT(false, "At TTE_OpenArchive2: please use TTE_OpenArchive as the current game does not use .TTARCH, but rather .TTARCH2.");
+            man.PushNil();
+            return 1;
+        }
+        
+        String path = man.ToString(-1);
+        DataStreamRef r = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, path));
+        
+        if(r->GetSize() > 0)
+        {
+            TTArchive2* pArchive = TTE_NEW(TTArchive2, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->ArchiveVersion);
+            TTE_LOG("Loading telltale archive 2 %s...", path.c_str());
+            if(!pArchive->SerialiseIn(r))
+            {
+                TTE_LOG("Cannot open archive %s: read failed (archive format invalid)", path.c_str());
+                man.PushNil();
+                TTE_DEL(pArchive);
+            }else ScriptManager::PushScriptOwned(man, pArchive, TTARCHIVE2); // gc will call del
+        }
+        else
+        {
+            TTE_LOG("Cannot open archive %s: not found or could not open", path.c_str());
+            man.PushNil();
+        }
+        
+        return 1;
+    }
+    
     // arc = openarchive(path)
     static U32 luaOpenTTArch(LuaManager& man)
     {
@@ -1523,6 +1567,19 @@ namespace TTE
                 man.PushLString(std::move(it)); // move
                 man.SetTable(-3);
             }
+        }else if(tag == TTARCHIVE2)
+        {
+            TTArchive2* pArchive = (TTArchive2*)man.ToPointer(-1);
+            man.PushTable();
+            std::vector<String> files{};
+            pArchive->GetFiles(files);
+            U32 i = 1;
+            for(auto& it: files)
+            {
+                man.PushUnsignedInteger(i++);
+                man.PushLString(std::move(it)); // move
+                man.SetTable(-3);
+            }
         }
         else
         {
@@ -1552,6 +1609,7 @@ LuaFunctionCollection luaLibraryAPI()
     Col.Functions.push_back({"TTE_SaveMetaStream", &TTE::luaSaveMetaStream});
     Col.Functions.push_back({"TTE_GetActiveGame", &TTE::luaActiveGame});
     Col.Functions.push_back({"TTE_OpenTTArchive", &TTE::luaOpenTTArch});
+    Col.Functions.push_back({"TTE_OpenTTArchive2", &TTE::luaOpenTTArch2});
     Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles});
     
     // REGISTER META API

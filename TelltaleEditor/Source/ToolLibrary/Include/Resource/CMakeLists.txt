@@ -1,1 +1,1 @@
-target_sources(${TARGET_NAME} PRIVATE DataStream.hpp TTArchive.hpp Blowfish.hpp)
+target_sources(${TARGET_NAME} PRIVATE DataStream.hpp TTArchive.hpp Blowfish.hpp TTArchive2.hpp Compression.hpp)
