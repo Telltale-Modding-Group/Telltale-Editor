@@ -107,7 +107,7 @@ function RegisterBoneANMValue(base, typeName)
 	anmV.Members[1] = NewMember("Baseclass_AnimationValueInterfaceBase", base)
 	MetaRegisterClass(anmV)
 	return anmV
-end§
+end
 
 function RegisterBone100(vendor, platform)
 
@@ -405,8 +405,116 @@ function RegisterBone100(vendor, platform)
 	anm1.Members[2] = NewMember("mName", kMetaClassString)
 	anm1.Members[3] = NewMember("mLength", kMetaFloat)
 	MetaRegisterClass(anm0)
+	-- ANIMATION TODO: has a custom serialiser.
 
-	-- theres quite a lot more left in boneville... but ill leave that for soon. ANIMATION TODO: has a custom serialiser.
+	imapMappingArray, _ = RegisterBoneCollection(MetaCI, "class DCArray<class InputMapper::EventMapping>", nil, imapMapping)
+
+	-- .IMAP FILES
+	local imap = NewClass("class InputMapper", 0)
+	imap.Members[1] = NewMember("mName", kMetaClassString)
+	imap.Members[2] = NewMember("mMappedEvents", imapMappingArray)
+	MetaRegisterClass(imap)
+
+	-- .LANGRES FILES
+	local langr = NewClass("class LanguageResource", 0)
+	langr.Members[1] = NewMember("mId", kMetaInt)
+	langr.Members[2] = NewMember("mPrefix", kMetaClassString)
+	langr.Members[3] = NewMember("mText", kMetaClassString)
+	langr.Members[4] = NewMember("mhAnimation", hAnim)
+	langr.Members[5] = NewMember("mhVoiceData", hVoiceData)
+	langr.Members[6] = NewMember("mShared", kMetaBool)
+	langr.Members[7] = NewMember("mAllowSharing", kMetaBool)
+	langr.Members[8] = NewMember("mbNoAnim", kMetaBool)
+	langr.Members[9] = NewMember("mFlags", kMetaInt)
+	MetaRegisterClass(langr) -- has customer serialise which just calls default
+
+	local langr1 = NewClass("class LanguageResource", 1) -- older versions below (likely during development, VERS files were spit out if needed, hence these..)
+	langr1.Members[1] = NewMember("mId", kMetaInt)
+	langr1.Members[2] = NewMember("mPrefix", kMetaClassString)
+	langr1.Members[3] = NewMember("mText", kMetaClassString)
+	langr1.Members[4] = NewMember("mhAnimation", hAnim)
+	langr1.Members[5] = NewMember("mhVoiceData", hVoiceData)
+	MetaRegisterClass(langr1)
+
+	local langr2 = NewClass("class LanguageResource", 2)
+	langr2.Members[1] = NewMember("mId", kMetaInt)
+	langr2.Members[2] = NewMember("mPrefix", kMetaClassString)
+	langr2.Members[3] = NewMember("mText", kMetaClassString)
+	langr2.Members[4] = NewMember("mhAnimation", hAnim)
+	langr2.Members[5] = NewMember("mhVoiceData", hVoiceData)
+	langr2.Members[6] = NewMember("mShared", kMetaBool)
+	langr2.Members[7] = NewMember("mAllowSharing", kMetaBool)
+	MetaRegisterClass(langr2) -- has customer serialise which just calls default
+
+	local langr3 = NewClass("class LanguageResource", 3)
+	langr3.Members[1] = NewMember("mId", kMetaInt)
+	langr3.Members[2] = NewMember("mPrefix", kMetaClassString)
+	langr3.Members[3] = NewMember("mText", kMetaClassString)
+	langr3.Members[4] = NewMember("mhAnimation", hAnim)
+	langr3.Members[5] = NewMember("mhVoiceData", hVoiceData)
+	langr3.Members[6] = NewMember("mShared", kMetaBool)
+	MetaRegisterClass(langr3) -- has customer serialise which just calls default
+
+	local langp = NewClass("class LanguageResourceProxy", 0)
+	langp.Members[1] = NewMember("mLangID", kMetaInt)
+	MetaRegisterClass(langp)
+
+	local langp1 = NewClass("class LanguageResourceProxy", 1) -- for some reason the default version has less. maybe not cached? altho maybe changed to serialise disable
+	langp1.Members[1] = NewMember("mPrefixProxy", kMetaClassString)
+	langp1.Members[2] = NewMember("mTextProxy", kMetaClassString)
+	langp1.Members[3] = NewMember("mLangID", kMetaInt)
+	MetaRegisterClass(langp1)
+
+	mapIntLangRes, _ = RegisterBoneCollection(MetaCI, "class Map<int,class LanguageResource,struct std::less<int> >", kMetaInt, langr) -- dont change name! hashed.
+
+	-- .LANGDB FILES
+	local langdb = NewClass("class LanguageDatabase", 0)
+	langdb.Members[1] = NewMember("mLanguageResources", mapIntLangRes)
+	MetaRegisterClass(langdb)
+
+	local rule0 = NewClass("class Rule", 0) -- default used
+	rule0.Members[1] = NewMember("mName", kMetaClassString)
+	rule0.Members[2] = NewMember("mFlags", MetaFlags)
+	rule0.Members[3] = NewMember("mConditionalProperties", prop)
+	rule0.Members[4] = NewMember("mActionProperties", prop)
+	rule0.Members[5] = NewMember("mbVersionHasAgents", kMetaBool)
+	MetaRegisterClass(rule0)
+
+	local rule1 = NewClass("class Rule", 1)
+	rule1.Members[1] = NewMember("mhLogicProps", hProp)
+	rule1.Members[2] = NewMember("mConditionalProperties", prop)
+	rule1.Members[3] = NewMember("mActionProperties", prop)
+	MetaRegisterClass(rule1)
+
+	local rule2 = NewClass("class Rule", 2)
+	rule2.Members[1] = NewMember("mhLogicProps", hProp)
+	rule2.Members[2] = NewMember("mFlags", MetaFlags)
+	rule2.Members[3] = NewMember("mConditionalProperties", prop)
+	rule2.Members[4] = NewMember("mActionProperties", prop)
+	MetaRegisterClass(rule2)
+
+	local rule3 = NewClass("class Rule", 3)
+	rule3.Members[1] = NewMember("mName", kMetaClassString)
+	rule3.Members[2] = NewMember("mFlags", MetaFlags)
+	rule3.Members[3] = NewMember("mConditionalProperties", prop)
+	rule3.Members[4] = NewMember("mActionProperties", prop)
+	MetaRegisterClass(rule3)
+
+	local rule4 = NewClass("class Rule", 4)
+	rule4.Members[1] = NewMember("mhLogicProps", hProp)
+	rule4.Members[2] = NewMember("mName", kMetaClassString)
+	rule4.Members[3] = NewMember("mFlags", MetaFlags)
+	rule4.Members[4] = NewMember("mConditionalProperties", prop)
+	rule4.Members[5] = NewMember("mActionProperties", prop)
+	MetaRegisterClass(rule4)
+
+	-- .RULES FILES. TODO we have a custom serialiser
+	local rules = NewClass("class Rules", 0) -- there are two other versions but they are empty (unusable files)
+	rules.Members[1] = NewMember("mFlags", MetaFlags)
+	rules.Members[2] = NewMember("mhLogicProps", hProp)
+	MetaRegisterClass(rules)
+
+	-- lots more. i have an exam tommorow so ill cotnonue this after that lol. next:  SAVEGAME
 
 	MetaDumpVersions() -- dbg out
 
