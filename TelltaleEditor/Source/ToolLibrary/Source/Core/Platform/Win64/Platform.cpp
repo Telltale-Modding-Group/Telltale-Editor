@@ -151,3 +151,42 @@ void FileSeek(U64 Handle, U64 Offset)
     BOOL success = SetFilePointerEx(hFile, move, NULL, FILE_BEGIN);
     TTE_ASSERT(success, "Could not set file position. Windows error: %d", GetLastError());
 }
+
+static HMODULE OodleLibrary = nullptr; // can be static. only loaded at init.
+
+void OodleOpen(void*& c, void*& d)
+{
+    if(OodleLibrary == nullptr)
+    {
+        OodleLibrary = LoadLibraryA("oodle_win_x86.dll");
+        if (OodleLibrary == nullptr)
+        {
+            TTE_LOG("Cannot load oodle library: does not exist");
+            return;
+        }
+    }
+    
+    c = (void*)GetProcAddress(OodleLibrary, "OodleLZ_Compress");
+    if (!c)
+    {
+        TTE_LOG("Cannot load oodle compress function from DLL");
+        return;
+    }
+    
+    d = GetProcAddress(OodleLibrary, "OodleLZ_Decompress");
+    if (!d)
+    {
+        TTE_LOG("Cannot load oodle compress function from DLL");
+        return;
+    }
+}
+
+void OodleClose()
+{
+    if(OodleLibrary)
+    {
+        FreeLibrary(OodleLibrary);
+    }
+    OodleLibrary = nullptr;
+}
+

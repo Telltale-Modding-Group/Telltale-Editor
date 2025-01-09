@@ -101,15 +101,7 @@ void OodleOpen(void*& c, void*& d)
 {
     if(OodleLibrary == nullptr)
     {
-        const char* lib;
-#if defined(__arm64__)
-        lib = "./oodle_mac-arm64.dylib";
-#elif defined(__x86_64__)
-        lib = "./oodle_mac-x86.dylib";
-#else
-#error "Unable to detect macos architecture"
-#endif
-        OodleLibrary = dlopen(lib, RTLD_LAZY);
+        OodleLibrary = dlopen("./oodle_mac_arm_x86.dylib", RTLD_LAZY);
         const char* error = dlerror();
         if (error)
         {

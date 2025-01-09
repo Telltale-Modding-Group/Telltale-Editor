@@ -17,14 +17,20 @@ set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE
 if(UNIX)
 	if(APPLE)
 		add_custom_command(TARGET ${TARGET_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-			"${THIRD_PARTY_DIR}/oodle/oodle_mac-x86.dylib" 
-			"${TELLTALE_EDITOR_ROOT_DIR}/Bin/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/oodle_mac-x86.dylib")
+			"${THIRD_PARTY_DIR}/oodle/oodle_mac_arm_x86.dylib" 
+			"${TELLTALE_EDITOR_ROOT_DIR}/Bin/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/oodle_mac_arm_x86.dylib")
     else()
-    	# no linux library yet
+		add_custom_command(TARGET ${TARGET_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+			"${THIRD_PARTY_DIR}/oodle/oodle_linux_arm.so" 
+			"${TELLTALE_EDITOR_ROOT_DIR}/Bin/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/oodle_linux_arm.so")
+
+		add_custom_command(TARGET ${TARGET_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different 
+			"${THIRD_PARTY_DIR}/oodle/oodle_linux_x86.so" 
+			"${TELLTALE_EDITOR_ROOT_DIR}/Bin/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/oodle_linux_x86.so")
     endif()
 elseif(WIN32)
 	add_custom_command(TARGET ${TARGET_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-		"${THIRD_PARTY_DIR}/oodle/oodle_win.dll" 
+		"${THIRD_PARTY_DIR}/oodle/oodle_win_x86.dll" 
 		"${TELLTALE_EDITOR_ROOT_DIR}/Bin/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/oodle_win.dll")
 endif()
 

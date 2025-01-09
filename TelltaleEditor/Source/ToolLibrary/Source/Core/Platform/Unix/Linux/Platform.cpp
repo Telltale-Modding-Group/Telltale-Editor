@@ -91,3 +91,50 @@ U64 FilePos(U64 Handle) {
 void FileSeek(U64 Handle, U64 Offset){
     lseek((int)Handle, Offset, SEEK_SET);
 }
+
+static void* OodleLibrary = nullptr; // can be static. only loaded at init.
+
+void OodleOpen(void*& c, void*& d)
+{
+    if(OodleLibrary == nullptr)
+    {
+        const char* lib;
+#ifdef __x86_64
+        lib = "oodle_linux_x86.so";
+#elif
+        lib = "oodle_linux_arm.so";
+#endif
+        OodleLibrary = dlopen(lib, RTLD_LAZY);
+        const char* error = dlerror();
+        if (error)
+        {
+            TTE_LOG("Cannot load oodle library: does not exist"); // error string is very long, just says all places it has searched
+            return;
+        }
+    }
+    
+    c = dlsym(OodleLibrary, "OodleLZ_Compress");
+    const char* error = dlerror();
+    if (error)
+    {
+        TTE_LOG("Cannot load oodle compress: %s", error);
+        return;
+    }
+    
+    d = dlsym(OodleLibrary, "OodleLZ_Decompress");
+    error = dlerror();
+    if (error)
+    {
+        TTE_LOG("Cannot load oodle decompress: %s", error);
+        return;
+    }
+}
+
+void OodleClose()
+{
+    if(OodleLibrary)
+    {
+        dlclose(OodleLibrary);
+    }
+    OodleLibrary = nullptr;
+}
