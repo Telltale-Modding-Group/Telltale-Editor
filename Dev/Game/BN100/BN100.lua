@@ -49,14 +49,12 @@ function SerialisePropertySet(metaStream, propInstance, isWrite)
 		for i=1,numTypes do
 			propType, propTypeVersionIndex = MetaStreamFindClass(metaStream, MetaStreamReadSymbol(metaStream)) -- read class symbol
 			numOfThatType = MetaStreamReadInt(metaStream)
-			print(string.format("i have found %d classes of the class: %s (%d)", numOfThatType, propType, propTypeVersionIndex))
 			for j=1, numOfThatType do
 				key = SymbolTableFind(MetaStreamReadSymbol(metaStream))
 				inst_of_type = MetaCreateInstance(propType, propTypeVersionIndex, propInstance)
 				if not MetaSerialise(metaStream, inst_of_type, isWrite) then
 					return false
 				end
-				print(string.format("we have %s => %s", key, MetaToString(inst_of_type)))
 			end
 		end
 	end -- skip writes for now
@@ -65,15 +63,64 @@ function SerialisePropertySet(metaStream, propInstance, isWrite)
 	return true -- ok for now
 end
 
+-- registers two types: one with baseclass_containerinterface and one without (vers exists for both). pass in k and v table (or k being SArray N)
+function RegisterBoneCollection(containerInterfaceTbl, name, k, v)
+	local withBaseclass = { VersionIndex = 0 } -- eg DCArray_String_(1j6j2xe).vers. each array has two versions, one without the baseclass container member
+	withBaseclass.Name = name
+	withBaseclass.Members = {}
+	withBaseclass.Members[1] = { Name = "Baseclass_ContainerInterface", Class = containerInterfaceTbl, Flags = kMetaMemberMemoryDisable + kMetaMemberBaseClass }
+	withBaseclass.Members[2] = { Name = "mSize", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
+	withBaseclass.Members[3] = { Name = "mCapacity", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
+	MetaRegisterCollection(withBaseclass, k, v)
+
+	local without = { VersionIndex = 1 } -- two array types exist, one with no members (here) and the one above....
+	without.Name = name
+	without.Members = {}
+	without.Members[1] = { Name = "mSize", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
+	without.Members[2] = { Name = "mCapacity", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
+	MetaRegisterCollection(without, k, v)
+
+	return withBaseclass, without -- return both
+end
+
+-- registers Handle<T>. ensure the name is correct.
+function RegisterBoneHandle(name)
+	local MetaHandle = { VersionIndex = 0 }
+	MetaHandle.Name = name
+	MetaHandle.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic -- not in version headers ? idk why
+	MetaHandle.Members = {}
+	-- below member doesnt exist in game (has custom serialiser) but lets just store it as a di
+	MetaHandle.Members[1] = { Name = "mHandle", Class = kMetaSymbol, Flags = kMetaMemberVersionDisable } -- serialise yes, no version hash though.
+	MetaRegisterClass(MetaHandle)
+	return MetaHandle
+end
+
+function RegisterBoneScriptEnum(typeName)
+	local scriptEnum = NewClass("ScriptEnum:" .. typeName, 0)
+	scriptEnum.Members[1] = NewMember("mCurValue", kMetaClassString, 0)
+	MetaRegisterClass(scriptEnum)
+	return scriptEnum
+end
+
+function RegisterBoneANMValue(base, typeName)
+	local anmV = NewClass(typeName, 0)
+	anmV.Members[1] = NewMember("Baseclass_AnimationValueInterfaceBase", base)
+	MetaRegisterClass(anmV)
+	return anmV
+end§
+
 function RegisterBone100(vendor, platform)
 
 	MetaSetVersionFn("VersionCRCBone100") -- Set version CRC calculation function, before anything else.
 	MetaRegisterIntrinsics() -- First, we must register all of the intrinsic types.
 
-	-- TEMPORARY TESTING CODE. WILL BE REPLACED.
-	-- I will also note here that type names that have 'class ' 'struct ''enum ' and 'std::' etc in them are removed from the class name
-	-- this was realised by telltale when they started using hashed versions, because compilers name things differently
-	-- so in this version they actually still use those
+	local MetaVec2 = { VersionIndex = 0 }
+	MetaVec2.Name = "class Vector2"
+	MetaVec2.Flags = kMetaClassNonBlocked
+	MetaVec2.Members = {}
+	MetaVec2.Members[1] = { Name = "x", Class = kMetaFloat }
+	MetaVec2.Members[2] = { Name = "y", Class = kMetaFloat }
+	MetaRegisterClass(MetaVec2)
 
 	local MetaVec3 = { VersionIndex = 0 }
 	MetaVec3.Name = "class Vector3"
@@ -83,6 +130,18 @@ function RegisterBone100(vendor, platform)
 	MetaVec3.Members[2] = { Name = "y", Class = kMetaFloat }
 	MetaVec3.Members[3] = { Name = "z", Class = kMetaFloat }
 	MetaRegisterClass(MetaVec3)
+
+	local MetaPolar = { VersionIndex = 0 }
+	MetaPolar.Name = "class Polar"
+	MetaPolar.Members = {}
+	MetaPolar.Members[1] = { Name = "mR", Class = kMetaFloat }
+	MetaPolar.Members[2] = { Name = "mTheta", Class = kMetaFloat }
+	MetaPolar.Members[3] = { Name = "mPhi", Class = kMetaFloat }
+	MetaRegisterClass(MetaPolar)
+
+	local MetaVec3Empty = { VersionIndex = 1 }
+	MetaVec3Empty.Name = "class Vector3"
+	MetaRegisterClass(MetaVec3Empty) -- empty but a vers for this type exists
 
 	local MetaCol = { VersionIndex = 0 }
 	MetaCol.Name = "class Color"
@@ -94,65 +153,73 @@ function RegisterBone100(vendor, platform)
 	MetaCol.Members[4] = { Name = "a", Class = kMetaFloat }
 	MetaRegisterClass(MetaCol)
 
-	local MetaFlags = { VersionIndex = 0 } -- CHECKED. version CRCs match
+	local MetaRect = { VersionIndex = 0 }
+	MetaRect.Name = "class Rect"
+	MetaRect.Members = {}
+	MetaRect.Flags = kMetaClassNonBlocked
+	MetaRect.Members[1] = { Name = "left", Class = kMetaInt }
+	MetaRect.Members[2] = { Name = "right", Class = kMetaInt }
+	MetaRect.Members[3] = { Name = "top", Class = kMetaInt }
+	MetaRect.Members[4] = { Name = "bottom", Class = kMetaInt }
+	MetaRegisterClass(MetaRect)
+
+	local MetaTRectF = { VersionIndex = 0 }
+	MetaTRectF.Name = "class TRect<float>"
+	MetaTRectF.Members = {}
+	MetaTRectF.Flags = kMetaClassNonBlocked
+	MetaTRectF.Members[1] = { Name = "left", Class = kMetaFloat }
+	MetaTRectF.Members[2] = { Name = "right", Class = kMetaFloat }
+	MetaTRectF.Members[3] = { Name = "top", Class = kMetaFloat }
+	MetaTRectF.Members[4] = { Name = "bottom", Class = kMetaFloat }
+	MetaRegisterClass(MetaTRectF)
+
+	local MetaQuat = { VersionIndex = 0 }
+	MetaQuat.Name = "class Quaternion"
+	MetaQuat.Members = {}
+	MetaQuat.Members[1] = { Name = "x", Class = kMetaFloat }
+	MetaQuat.Members[2] = { Name = "y", Class = kMetaFloat }
+	MetaQuat.Members[3] = { Name = "z", Class = kMetaFloat }
+	MetaQuat.Members[4] = { Name = "w", Class = kMetaFloat }
+	MetaRegisterClass(MetaQuat)
+
+	local ColEmpty = NewClass("class Color", 1) -- .vers exists for empty color struct
+	MetaRegisterClass(ColEmpty)
+
+	local MetaFlags = { VersionIndex = 0 }
 	MetaFlags.Name = "class Flags"
 	MetaFlags.Flags = kMetaClassNonBlocked
 	MetaFlags.Members = {}
 	MetaFlags.Members[1] = { Name = "mFlags", Class = kMetaInt }
 	MetaRegisterClass(MetaFlags)
 
-	local MetaCITest = {VersionIndex = 0} -- baseclass for all containers in most games (when writing these scripts, we wil havea funtion which sets this for each)
-	MetaCITest.Name = "class ContainerInterface *" -- see below
-	MetaCITest.Flags = kMetaClassAbstract
-	MetaRegisterClass(MetaCITest)
+	local MetaFlagsEmpty = NewClass("class Flags", 1)
+	MetaRegisterClass(MetaFlagsEmpty) -- empty version exists
 
-	-- CRCS MATCH FOR BELOW.
-	local MetaComplexTest = { VersionIndex = 0 } -- DCArray_String_(1j6j2xe).vers. each array has two versions, one without the baseclass container member. (todo make other)
-	MetaComplexTest.Name = "class DCArray<class String>"
-	MetaComplexTest.Members = {}
-	MetaComplexTest.Members[1] = { Name = "Baseclass_ContainerInterface", Class = MetaCITest, Flags = kMetaMemberMemoryDisable + kMetaMemberBaseClass }
-	MetaComplexTest.Members[2] = { Name = "mSize", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
-	MetaComplexTest.Members[3] = { Name = "mCapacity", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
-	MetaRegisterCollection(MetaComplexTest, nil, kMetaString)
+	local MetaCI = { VersionIndex = 0 } -- baseclass for containers
+	MetaCI.Name = "class ContainerInterface *" -- see below
+	MetaCI.Flags = kMetaClassAbstract
+	MetaRegisterClass(MetaCI)
 
-	local complex2 = { VersionIndex = 1 } -- two array types exist, one with no members (here) and the one above....
-	complex2.Name = "class DCArray<class String>"
-	complex2.Members = {}
-	complex2.Members[1] = { Name = "mSize", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
-	complex2.Members[2] = { Name = "mCapacity", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
-	MetaRegisterCollection(complex2, nil, kMetaString)
-
-	-- TEST BELOW FOR .PROP. Note that theres lots of stuff here which can be put into functions (eg for array initialisation etc).
-	-- this will be done when actually doing it properly, this is just a test!
-
-	local MetaHandleProp = { VersionIndex = 0 }
-	MetaHandleProp.Name = "class Handle<class PropertySet>"
-	MetaHandleProp.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic -- not in version headers ? idk why
-	MetaHandleProp.Members = {}
-	-- below member doesnt exist in game (has custom serialiser) but lets just store it as a di
-	MetaHandleProp.Members[1] = { Name = "mHandle", Class = kMetaSymbol, Flags = kMetaMemberVersionDisable } -- serialise yes, no version hash though.
-	MetaRegisterClass(MetaHandleProp)
-
-	local h0 = { VersionIndex = 0 }
-	h0.Name = "class Handle<class DialogResource>"
-	h0.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic -- not in version headers ? idk why
-	h0.Members = {}
-	h0.Members[1] = { Name = "mHandle", Class = kMetaSymbol, Flags = kMetaMemberVersionDisable } -- serialise yes, no version hash though.
-	MetaRegisterClass(h0)
-
-	local h1 = { VersionIndex = 0 }
-	h1.Name = "class Handle<class Font>"
-	h1.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic -- not in version headers ? idk why
-	h1.Members = {}
-	h1.Members[1] = { Name = "mHandle", Class = kMetaSymbol, Flags = kMetaMemberVersionDisable } -- serialise yes, no version hash though.
-	MetaRegisterClass(h1)
+	-- ALL HANDLE TYPES
+	hAnim = RegisterBoneHandle("class Handle<class Animation>")
+	hChore = RegisterBoneHandle("class Handle<class Chore>")
+	hMesh = RegisterBoneHandle("class Handle<class D3DMesh>")
+	hTexture = RegisterBoneHandle("class Handle<class D3DTexture>")
+	hDlgResource = RegisterBoneHandle("class Handle<class DialogResource>")
+	hProp = RegisterBoneHandle("class Handle<class PropertySet>")
+	hScene = RegisterBoneHandle("class Handle<class Scene>")
+	hSkeleton = RegisterBoneHandle("class Handle<class Skeleton>")
+	hStyle = RegisterBoneHandle("class Handle<class StyleGuide>")
+	hVoiceData = RegisterBoneHandle("class Handle<class VoiceData>")
+	hWalkBoxes = RegisterBoneHandle("class Handle<class WalkBoxes")
 	
-	-- array of prop file names (for parent list in prop)
+	-- array of prop file names (for parent list in prop). only list in this game, rest are arrays etc
 	local MetaHandleArrayProp = { VersionIndex = 0}
 	MetaHandleArrayProp.Name = "class List<class Handle<class PropertySet> >"
 	MetaHandleArrayProp.Members = {} -- no members in this one for some reason
-	MetaRegisterCollection(MetaHandleArrayProp, nil, MetaHandleProp)
+	MetaRegisterCollection(MetaHandleArrayProp, nil, hProp)
 
+	-- .PROP FILES
 	local prop = {VersionIndex = 0 }
 	prop.Name = "class PropertySet"
 	prop.Members = {}
@@ -161,7 +228,187 @@ function RegisterBone100(vendor, platform)
 	prop.Serialiser = "SerialisePropertySet"
 	MetaRegisterClass(prop)
 
-	print(string.format("version crc is %x", MetaGetVersionCRC(prop)))
+	-- .AAM FILES
+	local aam = { VersionIndex = 0 }
+	aam.Name = "class ActorAgentMapper"
+	aam.Members = {}
+	aam.Members[1] = { Name = "mActorAgentMap", Class = prop }
+	MetaRegisterClass(aam)
+
+	local animOrChore = { VersionIndex = 0 }
+	animOrChore.Name = "class AnimOrChore"
+	animOrChore.Members = {}
+	animOrChore.Members[1] = { Name = "mhAnim", Class = hAnim }
+	animOrChore.Members[2] = { Name = "mhChore", Class = hChore }
+	MetaRegisterClass(animOrChore)
+
+	local bb = NewClass("class BoundingBox", 0)
+	bb.Flags = kMetaClassNonBlocked
+	bb.Members[1] = NewMember("mMin", MetaVec3, 0)
+	bb.Members[2] = NewMember("mMax", MetaVec3, 0)
+	MetaRegisterClass(bb)
+
+	local enumNavMode = NewClass("enum NavCam::Mode", 0)
+	enumNavMode.Flags = kMetaClassNonBlocked -- this is a wrapper. needed so versions match, just remaps int
+	enumNavMode.Members[1] = NewMember("mVal", kMetaInt, kMetaMemberVersionDisable)
+	MetaRegisterClass(enumNavMode)
+
+	local navCamMode = NewClass("class Enum<enum NavCam::Mode,1,2>", 0)
+	navCamMode.Members[1] = NewMember("mVal", enumNavMode, kMetaMemberEnum) 
+	AddEnum(navCamMode, 1, "eNone", 1)
+	AddEnum(navCamMode, 1, "eLookAt", 2)
+	AddEnum(navCamMode, 1, "eOrbit", 3)
+	AddEnum(navCamMode, 1, "eAnimation_Track", 4)
+	AddEnum(navCamMode, 1, "eAnimation_Time", 5)
+	AddEnum(navCamMode, 1, "eAnimation_Pos_ProcedualLookAt", 6)
+	AddEnum(navCamMode, 1, "eScenePosition", 7)
+	-- mVal type name for versioning must be enum NavCam::Mode, not int, so we need the wrapper above
+	MetaRegisterClass(navCamMode)
+
+	structNavMode = MetaRegisterDuplicate(navCamMode, "struct NavCam::EnumMode", 0)
+
+	local imapMapping = NewClass("class InputMapper::EventMapping", 0)
+	imapMapping.Members[1] = NewMember("mInputCode", NewProxyClass("enum InputCode", "mVal", kMetaInt) , kMetaMemberEnum)
+	imapMapping.Members[2] = NewMember("mEvent", NewProxyClass("enum InputMapper::EventType", "mVal", kMetaInt), kMetaMemberEnum)
+	imapMapping.Members[3] = NewMember("mScriptFunction", kMetaClassString, 0)
+	MetaRegisterClass(imapMapping)
+
+	local lightType = NewClass("class LightType", 0)
+	lightType.Members[1] = NewMember("mLightType", kMetaInt, 0)
+	MetaRegisterClass(lightType)
+
+	local textAlign = NewClass("class TextAlignmentType", 0)
+	textAlign.Members[1] = NewMember("mAlignmentType", kMetaInt, 0)
+	MetaRegisterClass(textAlign)
+
+	RegisterBoneScriptEnum("Chore")
+	RegisterBoneScriptEnum("Cursors")
+	RegisterBoneScriptEnum("Evidence Comparison")
+	RegisterBoneScriptEnum("Evidence State")
+	RegisterBoneScriptEnum("Evidence")
+	RegisterBoneScriptEnum("EvidenceUpdate")
+	RegisterBoneScriptEnum("FactLog")
+	RegisterBoneScriptEnum("Lab Equipment Type")
+	RegisterBoneScriptEnum("Location")
+	RegisterBoneScriptEnum("Reconstructions")
+	RegisterBoneScriptEnum("Suspect")
+	RegisterBoneScriptEnum("Topics")
+	RegisterBoneScriptEnum("Trinity Evidence")
+	RegisterBoneScriptEnum("Trinity Suspect")
+	RegisterBoneScriptEnum("Victim")
+	RegisterBoneScriptEnum("View")
+	RegisterBoneScriptEnum("Warrant")
+	RegisterBoneScriptEnum("Warrent") -- they added this probably because of spelling .. lol.
+
+	local rangef = NewClass("class TRange<float>", 0)
+	rangef.Flags = kMetaClassNonBlocked
+	rangef.Members[1] = NewMember("min", kMetaFloat)
+	rangef.Members[2] = NewMember("max", kMetaFloat)
+	MetaRegisterClass(rangef)
+
+	local transform = NewClass("class Transform", 0)
+	transform.Members[1] = NewMember("mRot", MetaQuat)
+	transform.Members[2] = NewMember("mTrans", MetaVec3)
+	MetaRegisterClass(transform)
+
+	arrayHandleChore, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Chore> >", nil, hChore)
+	arrayHandleAnim , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Animation> >", nil, hAnim)
+	arrayHandleAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AnimOrChore> >", nil, hAnim)
+	arrayAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class AnimOrChore>", nil, hAnim)
+
+	arrayClassString, _ = RegisterBoneCollection(MetaCI, "class DCArray<class String>", nil, kMetaClassString)
+
+	local enumActiveDuring = NewProxyClass("struct ActingPalette::EnumActiveDuring", "mVal", kMetaInt)
+
+	local actingPalette0 = NewClass("class ActingPalette", 1)
+	actingPalette0.Members[1] = NewMember("mName", kMetaClassString)
+	actingPalette0.Members[2] = NewMember("mPriority", kMetaInt)
+	actingPalette0.Members[3] = NewMember("mbActiveByDefault", kMetaBool)
+	actingPalette0.Members[4] = NewMember("mTimeBetweenActions", rangef)
+	actingPalette0.Members[5] = NewMember("mChores", arrayHandleChore)
+	actingPalette0.Members[6] = NewMember("mAnimations", arrayHandleAnim)
+	MetaRegisterClass(actingPalette0)
+
+	local actingPalette3 = NewClass("class ActingPalette", 3)
+	actingPalette3.Members[1] = NewMember("mName", kMetaClassString)
+	actingPalette3.Members[2] = NewMember("mPriority", kMetaInt)
+	actingPalette3.Members[3] = NewMember("mbActiveByDefault", kMetaBool)
+	actingPalette3.Members[4] = NewMember("mTimeBetweenActions", rangef)
+	actingPalette3.Members[5] = NewMember("mChores", arrayHandleChore)
+	actingPalette3.Members[6] = NewMember("mAnimations", arrayHandleAnim)
+	actingPalette3.Members[7] = NewMember("mActiveDuring", enumActiveDuring)
+	MetaRegisterClass(actingPalette3)
+
+	local actingPalette1 = NewClass("class ActingPalette", 0)
+	actingPalette1.Members[1] = NewMember("mName", kMetaClassString)
+	actingPalette1.Members[2] = NewMember("mPriority", kMetaInt)
+	actingPalette1.Members[3] = NewMember("mbActiveByDefault", kMetaBool)
+	actingPalette1.Members[4] = NewMember("mTimeBetweenActions", rangef)
+	actingPalette1.Members[5] = NewMember("mAnimsOrChores", arrayAnimChore) -- THIS IS THE ACTUAL ONE USED IN THE GAME. OTHERS MAY EXIST BUT NOT USED (AT ALL?)
+	actingPalette1.Members[6] = NewMember("mActiveDuring", enumActiveDuring)
+	MetaRegisterClass(actingPalette1)
+
+	local actingPalette2 = NewClass("class ActingPalette", 2)
+	actingPalette2.Members[1] = NewMember("mName", kMetaClassString)
+	actingPalette2.Members[2] = NewMember("mPriority", kMetaInt)
+	actingPalette2.Members[3] = NewMember("mbActiveByDefault", kMetaBool)
+	actingPalette2.Members[4] = NewMember("mTimeBetweenActions", rangef)
+	actingPalette2.Members[5] = NewMember("mAnimsOrChores", arrayHandleAnimChore) -- array of handles to animchores (?)
+	actingPalette2.Members[6] = NewMember("mActiveDuring", enumActiveDuring)
+	MetaRegisterClass(actingPalette2)
+
+	arrayPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ActingPalette>", nil, actingPalette1)
+
+	local actingPaletteClass = NewClass("class ActingPaletteClass", 0)
+	actingPaletteClass.Members[1] = NewMember("mName", kMetaClassString)
+	actingPaletteClass.Members[2] = NewMember("mKeywords", arrayClassString)
+	actingPaletteClass.Members[3] = NewMember("mPalettes", arrayPalette)
+	MetaRegisterClass(actingPaletteClass)
+
+	local audStreamed = NewClass("struct AudioData::Streamed", 0)
+	audStreamed.Members[1] = NewMember("mStreamRegionSize", kMetaInt)
+	audStreamed.Members[2] = NewMember("mStreamBufferSecs", kMetaFloat)
+	MetaRegisterClass(audStreamed)
+
+	-- .AUD FILES
+	local aud = NewClass("class AudioData", 0)
+	aud.Members[1] = NewMember("mFilename", kMetaClassString)
+	aud.Members[2] = NewMember("mLength", kMetaFloat)
+	aud.Members[3] = NewMember("mbStreamed", kMetaBool)
+	aud.Members[4] = NewMember("mDataFormat", kMetaInt)
+	aud.Members[5] = NewMember("mBytesPerSecond", kMetaInt)
+	aud.Members[6] = NewMember("mDSBufferBytes", kMetaInt) -- DataStream buffer size
+	aud.Members[7] = NewMember("mStreamInfo", audStreamed)
+	MetaRegisterClass(aud)
+
+	local anmBase = NewClass("class AnimationValueInterfaceBase", 0)
+	anmBase.Members[1] = NewMember("mName", kMetaClassString)
+	anmBase.Members[2] = NewMember("mFlags", kMetaInt)
+	MetaRegisterClass(anmBase)
+
+	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<bool>")
+	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Color>")
+	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<float>")
+	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Quaternion>")
+	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class QuaternionCompressed>")
+	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class String>")
+	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Vector3>")
+
+	local anm0 = NewClass("class Animation", 1) -- not sure if this used anywhere
+	anm0.Members[1] = NewMember("mName", kMetaClassString)
+	anm0.Members[2] = NewMember("mLength", kMetaFloat)
+	MetaRegisterClass(anm0)
+
+	-- .ANM FILES
+	local anm1 = NewClass("class Animation", 0) -- this one is used
+	anm1.Members[1] = NewMember("mFlags", MetaFlags)
+	anm1.Members[2] = NewMember("mName", kMetaClassString)
+	anm1.Members[3] = NewMember("mLength", kMetaFloat)
+	MetaRegisterClass(anm0)
+
+	-- theres quite a lot more left in boneville... but ill leave that for soon. ANIMATION TODO: has a custom serialiser.
+
+	MetaDumpVersions() -- dbg out
 
 	return true
 end

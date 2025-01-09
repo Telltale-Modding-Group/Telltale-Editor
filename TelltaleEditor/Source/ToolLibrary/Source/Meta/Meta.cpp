@@ -86,7 +86,8 @@ namespace Meta {
             // chcek any duplicate version number
             if(Classes.find(id) != Classes.end())
             {
-                TTE_LOG("Duplicate type detected for '%s': multiple same version indices for the given class!", cls.Name.c_str());
+                TTE_LOG("Duplicate type detected for '%s': multiple same version indices "
+                        "for the given class! Was a class registered twice?", cls.Name.c_str());
                 return 0;
             }
             
@@ -190,7 +191,7 @@ namespace Meta {
                 return false;
             }
             
-            if(((clazz->Flags & CLASS_INTRINSIC) == 0)) // add to version header if needed
+            if(((clazz->Flags & CLASS_INTRINSIC) == 0) && ((clazz->Flags & CLASS_CONTAINER) == 0)) // add to version header if needed
             {
                 if(IsWrite)
                 {

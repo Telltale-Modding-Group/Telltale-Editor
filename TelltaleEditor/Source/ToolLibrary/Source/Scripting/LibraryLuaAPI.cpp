@@ -7,6 +7,7 @@
 
 #include <sstream>
 #include <utility>
+#include <set>
 
 extern thread_local bool _IsMain;
 
@@ -310,6 +311,38 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                         man.SetTable(-3);
                     }
                     
+                    // read flag/enum names
+                    if(m.Flags & MEMBER_ENUM || m.Flags & MEMBER_FLAG)
+                    {
+                        ScriptManager::TableGet(man, m.Flags & MEMBER_ENUM ? "EnumInfo" : "FlagInfo");
+                        if(man.Type(-1) == LuaType::TABLE)
+                        {
+                            // iterate over enum / flag info tabl
+                            man.PushNil();
+                            while(man.TableNext(-2) != 0)
+                            {
+                                if(man.Type(-1) != LuaType::TABLE)
+                                {
+                                    continue; // ignore
+                                }
+                                
+                                EnumFlag Descriptor{};
+                                
+                                ScriptManager::TableGet(man, "Name");
+                                Descriptor.Name = ScriptManager::PopString(man);
+                                
+                                ScriptManager::TableGet(man, "Value");
+                                Descriptor.Value = ScriptManager::PopInteger(man);
+                                
+                                m.Descriptors.push_back(std::move(Descriptor)); // add it
+                                
+                                man.Pop(1); // next
+                                
+                            }
+                        }
+                        man.Pop(1);
+                    }
+                    
                     ScriptManager::TableGet(man, "Class");
                     if(man.Type(-1) != LuaType::TABLE)
                     {
@@ -342,6 +375,65 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             return true;
         }
         
+        // table = regdup(origin, name, versionnumber)
+        static U32 luaMetaRegisterDuplicate(LuaManager& man)
+        {
+            TTE_ASSERT(_IsMain, "MetaRegisterXXX can only be called in snapshot initialisation on the main thread");
+            
+            if(!GetToolContext() || GetToolContext()->GetActiveGame())
+            {
+                TTE_ASSERT(false, "At MetaRegisterXXX: this can only be called during initialisation of a game");
+                man.PushNil();
+                return 1;
+            }
+            
+            TTE_ASSERT(man.GetTop() == 3, "Incorrect usage of MetaRegisterDuplicate");
+            
+            U32 n = (U32)man.ToInteger(-1);
+            String name = man.ToString(-2);
+            
+            if(man.Type(1) != LuaType::TABLE)
+            {
+                TTE_LOG("Duplicate source type is not a table");
+                man.PushNil();
+                return 1;
+            }
+            
+            man.PushLString("__MetaId");
+            man.GetTable(1);
+            U32 cls = ScriptManager::PopUnsignedInteger(man);
+            
+            if(Classes.find(cls) == Classes.end())
+            {
+                TTE_LOG("At MetaRegisterDuplicate: previously not registered origin class");
+                man.PushNil();
+                return 1;
+            }
+            
+            if(FindClass(name, n) != 0)
+            {
+                TTE_LOG("At MetaRegisterDuplicate: new duplicated class name and version number already exist");
+                man.PushNil();
+                return 1;
+            }
+            
+            Class dup = Classes[cls];
+            dup.VersionNumber = n;
+            dup.Name = name;
+            dup.TypeHash = 0;
+            dup.RTSize = 0;
+            dup.VersionCRC = 0; // reset back
+            
+            U32 id = _Impl::_Register(man, std::move(dup), 1);
+            
+            man.PushTable(); // return value
+            man.PushLString("__MetaId");
+            man.PushUnsignedInteger(id);
+            man.SetTable(-3);
+            
+            return 1;
+        }
+        
         // MetaRegisterClass(classInfoTable)
         static U32 luaMetaRegisterClass(LuaManager& man)
         {
@@ -358,7 +450,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             c.VersionNumber = ScriptManager::PopInteger(man);
             ScriptManager::TableGet(man, "Name");
             c.Name = ScriptManager::PopString(man);
-            TTE_ASSERT(c.VersionNumber <= MAX_VERSION_NUMBER, "%s: Version number cannot be larger than %s", c.Name.c_str(), MAX_VERSION_NUMBER);
+            TTE_ASSERT(c.VersionNumber <= MAX_VERSION_NUMBER, "%s: Version number cannot be larger than %d", c.Name.c_str(), MAX_VERSION_NUMBER);
             ScriptManager::TableGet(man, "Flags");
             if(man.Type(-1) == LuaType::NUMBER)
                 c.Flags = ScriptManager::PopInteger(man);
@@ -694,6 +786,54 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             return 2;
         }
         
+        // table GetMemberNames(typename, version index, memberName). returns table of [Name] = value
+        static U32 luaMetaGetEnumFlags(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 3, "Incorrect usage of GetEnumFlags");
+            String tn = man.ToString(-3);
+            I32 ver = man.ToInteger(-2);
+            String mem = man.ToString(-1);
+            U32 cls = FindClass(Symbol(tn), (U32)ver);
+            
+            if(cls == 0)
+            {
+                TTE_LOG("%s with version index %s does not exist", tn.c_str(), ver);
+                man.PushNil();
+                return 1;
+            }
+            
+            man.PushTable();
+            
+            auto& members = Classes[cls].Members;
+            
+            U32 i = 0;
+            for(auto& member: members)
+            {
+                if(CompareCaseInsensitive(member.Name, mem))
+                {
+                    if(!(member.Flags & MEMBER_ENUM || member.Flags & MEMBER_FLAG))
+                    {
+                        TTE_LOG("At GetEnumFlags: member %s is not an enum or flag. It must be marked as one when registered using"
+                                " the appropriate flags.", mem.c_str());
+                        man.Pop(1);
+                        man.PushNil();
+                    }
+                    else
+                    {
+                        for(auto& desc: member.Descriptors)
+                        {
+                            man.PushLString(desc.Name);
+                            man.PushInteger(desc.Value);
+                            man.SetTable(-3);
+                        }
+                    }
+                    break;
+                }
+            }
+            
+            return 1;
+        }
+        
         // table GetMemberNames(typename, version index). returns table of members
         static U32 luaMetaGetMemberNames(LuaManager& man)
         {
@@ -862,6 +1002,22 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             man.PushBool(PerformLessThan(inst2, inst));
             
             return 1;
+        }
+        
+        static U32 luaMetaDumpVersions(LuaManager& man)
+        {
+            std::set<String> sortedClassNames{};
+            for(auto& clazz: Classes)
+            {
+                std::ostringstream ss{};
+                ss << clazz.second.Name << " => 0x";
+                ss << std::hex << std::uppercase << clazz.second.VersionCRC;
+                ss << " [" << std::dec << std::nouppercase << clazz.second.VersionNumber << "]";
+                sortedClassNames.insert(ss.str());
+            }
+            for(auto& it: sortedClassNames)
+                TTE_LOG(it.c_str());
+            return 0;
         }
         
         // bool f(inst, inst)
@@ -1628,6 +1784,8 @@ LuaFunctionCollection luaLibraryAPI()
     Col.Functions.push_back({"MetaHashHexString", &Meta::L::luaMetaHashHexString});
     Col.Functions.push_back({"MetaHashString", &Meta::L::luaMetaHashString});
     Col.Functions.push_back({"MetaSetVersionFn", &Meta::L::luaMetaSetVersionCalc});
+    Col.Functions.push_back({"MetaDumpVersions", &Meta::L::luaMetaDumpVersions});
+    Col.Functions.push_back({"MetaRegisterDuplicate", &Meta::L::luaMetaRegisterDuplicate});
     
     // RUNTIME META API
     
@@ -1636,6 +1794,7 @@ LuaFunctionCollection luaLibraryAPI()
     ADD_FN(Meta::L, "MetaGetClass", luaMetaGetClass);
     ADD_FN(Meta::L, "MetaGetMemberClass", luaMetaGetMemberClass);
     ADD_FN(Meta::L, "MetaGetMember", luaMetaGetMember);
+    ADD_FN(Meta::L, "MetaGetEnumFlags", luaMetaGetEnumFlags);
     ADD_FN(Meta::L, "MetaGetMemberNames", luaMetaGetMemberNames);
     ADD_FN(Meta::L, "MetaCreateInstance", luaMetaCreateInstance);
     ADD_FN(Meta::L, "MetaCopyInstance", luaMetaCopyInstance);

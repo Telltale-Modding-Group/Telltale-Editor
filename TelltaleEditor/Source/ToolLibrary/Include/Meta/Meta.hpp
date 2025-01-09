@@ -82,12 +82,23 @@ namespace Meta {
         CLASS_NON_BLOCKED = 16, // this class is not blocked in serialisation
     };
     
+    // Enum / flag descriptor for a member in a class
+    struct EnumFlag
+    {
+        
+        String Name; // Name of this flag / enum
+        I32 Value; // enum / flag value
+        
+    };
+    
     // A type member
     struct Member {
         
         String Name;
         U32 Flags;
         U32 ClassID; // member type
+        
+        std::vector<EnumFlag> Descriptors{};
         
         U32 RTOffset = 0; // runtime offset in memory
         

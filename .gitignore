@@ -11,3 +11,4 @@ CMakeCache.txt
 *.ttarch
 *.ttarch2
 out/
+.vscode/
