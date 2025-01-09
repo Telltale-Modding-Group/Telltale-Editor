@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
+#include <dlfcn.h>
 #include <unistd.h>
 
 void ThreadSleep(U64 milliseconds)
