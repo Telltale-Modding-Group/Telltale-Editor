@@ -24,7 +24,7 @@ function NewProxyClass(name, memberName, underlyingClassTable)
     local clazz = {}
     clazz.VersionIndex = 0
     clazz.Name = name
-    clazz.Flags = kMetaClassNonBlocked -- ensure no extra block size
+    clazz.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic -- ensure no extra block size and not in headers
     clazz.Members = {}
     clazz.Members[1] = NewMember(memberName, underlyingClassTable, kMetaMemberVersionDisable) -- the actual member
     MetaRegisterClass(clazz)

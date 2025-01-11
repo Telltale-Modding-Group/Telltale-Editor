@@ -109,6 +109,25 @@ function RegisterBoneANMValue(base, typeName)
 	return anmV
 end
 
+function RegisterBoneKeyframedValue(ci, typedInterface, typeName, typeTable)
+	local sample = NewClass("class KeyframedValue<" .. typeName .. ">::Sample", 0)
+	sample.Members[1] = NewMember("mTime", kMetaFloat)
+	sample.Members[2] = NewMember("mbInterpolateToNextKey", kMetaBool)
+	sample.Members[3] = NewMember("mValue", typeTable)
+	MetaRegisterClass(sample)
+
+	arraySample, _ = RegisterBoneCollection(ci, "class DCArray<class KeyframedValue<" .. typeName .. ">::Sample>", nil, sample)
+
+	local keyframed = NewClass("class KeyframedValue<" .. typeName .. ">", 0)
+	keyframed.Members[1] = NewMember("Baseclass_AnimatedValueInterface<T>", NewProxyClass(typedInterface.Name .. " *", "mVal", typedInterface))
+	keyframed.Members[2] = NewMember("mMinVal", typeTable)
+	keyframed.Members[3] = NewMember("mMaxVal", typeTable)
+	keyframed.Members[4] = NewMember("mSamples", arraySample)
+	MetaRegisterClass(keyframed)
+
+	return keyframed
+end
+
 function RegisterBone100(vendor, platform)
 
 	MetaSetVersionFn("VersionCRCBone100") -- Set version CRC calculation function, before anything else.
@@ -221,6 +240,7 @@ function RegisterBone100(vendor, platform)
 
 	-- .PROP FILES
 	local prop = {VersionIndex = 0 }
+	prop.Extension = "prop"
 	prop.Name = "class PropertySet"
 	prop.Members = {}
 	prop.Members[1] = { Name = "mPropertyFlags", Class = MetaFlags }
@@ -372,6 +392,7 @@ function RegisterBone100(vendor, platform)
 
 	-- .AUD FILES
 	local aud = NewClass("class AudioData", 0)
+	aud.Extension = "aud"
 	aud.Members[1] = NewMember("mFilename", kMetaClassString)
 	aud.Members[2] = NewMember("mLength", kMetaFloat)
 	aud.Members[3] = NewMember("mbStreamed", kMetaBool)
@@ -386,24 +407,32 @@ function RegisterBone100(vendor, platform)
 	anmBase.Members[2] = NewMember("mFlags", kMetaInt)
 	MetaRegisterClass(anmBase)
 
-	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<bool>")
-	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Color>")
-	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<float>")
-	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Quaternion>")
-	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class QuaternionCompressed>")
-	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class String>")
-	RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Vector3>")
+	animatedBool = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<bool>")
+	animatedColor = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Color>")
+	animatedFloat = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<float>")
+	animatedQuat = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Quaternion>")
+	animatedStr = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class String>")
+	animatedVec3 = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Vector3>")
 
-	local anm0 = NewClass("class Animation", 1) -- not sure if this used anywhere
-	anm0.Members[1] = NewMember("mName", kMetaClassString)
-	anm0.Members[2] = NewMember("mLength", kMetaFloat)
-	MetaRegisterClass(anm0)
+	RegisterBoneKeyframedValue(MetaCI, animatedBool, "bool", kMetaBool)
+	RegisterBoneKeyframedValue(MetaCI, animatedColor, "class Color", MetaCol)
+	RegisterBoneKeyframedValue(MetaCI, animatedFloat, "float", kMetaFloat)
+	RegisterBoneKeyframedValue(MetaCI, animatedQuat, "class Quaternion", MetaQuat)
+	RegisterBoneKeyframedValue(MetaCI, animatedStr, "class String", kMetaClassString)
+	RegisterBoneKeyframedValue(MetaCI, animatedVec3, "class Vector3", MetaVec3)
+
+	local anm1 = NewClass("class Animation", 1) -- not sure if this used anywhere
+	anm1.Extension = "anm"
+	anm1.Members[1] = NewMember("mName", kMetaClassString)
+	anm1.Members[2] = NewMember("mLength", kMetaFloat)
+	MetaRegisterClass(anm1)
 
 	-- .ANM FILES
-	local anm1 = NewClass("class Animation", 0) -- this one is used
-	anm1.Members[1] = NewMember("mFlags", MetaFlags)
-	anm1.Members[2] = NewMember("mName", kMetaClassString)
-	anm1.Members[3] = NewMember("mLength", kMetaFloat)
+	local anm0 = NewClass("class Animation", 0) -- this one is used
+	anm0.Extension = "anm"
+	anm0.Members[1] = NewMember("mFlags", MetaFlags)
+	anm0.Members[2] = NewMember("mName", kMetaClassString)
+	anm0.Members[3] = NewMember("mLength", kMetaFloat)
 	MetaRegisterClass(anm0)
 	-- ANIMATION TODO: has a custom serialiser.
 
@@ -411,12 +440,14 @@ function RegisterBone100(vendor, platform)
 
 	-- .IMAP FILES
 	local imap = NewClass("class InputMapper", 0)
+	imap.Extension = "imap"
 	imap.Members[1] = NewMember("mName", kMetaClassString)
 	imap.Members[2] = NewMember("mMappedEvents", imapMappingArray)
 	MetaRegisterClass(imap)
 
 	-- .LANGRES FILES
 	local langr = NewClass("class LanguageResource", 0)
+	langr.Extension = "langres"
 	langr.Members[1] = NewMember("mId", kMetaInt)
 	langr.Members[2] = NewMember("mPrefix", kMetaClassString)
 	langr.Members[3] = NewMember("mText", kMetaClassString)
@@ -434,6 +465,7 @@ function RegisterBone100(vendor, platform)
 	langr1.Members[3] = NewMember("mText", kMetaClassString)
 	langr1.Members[4] = NewMember("mhAnimation", hAnim)
 	langr1.Members[5] = NewMember("mhVoiceData", hVoiceData)
+	langr1.Extension = "langres"
 	MetaRegisterClass(langr1)
 
 	local langr2 = NewClass("class LanguageResource", 2)
@@ -444,6 +476,7 @@ function RegisterBone100(vendor, platform)
 	langr2.Members[5] = NewMember("mhVoiceData", hVoiceData)
 	langr2.Members[6] = NewMember("mShared", kMetaBool)
 	langr2.Members[7] = NewMember("mAllowSharing", kMetaBool)
+	langr2.Extension = "langres"
 	MetaRegisterClass(langr2) -- has customer serialise which just calls default
 
 	local langr3 = NewClass("class LanguageResource", 3)
@@ -453,6 +486,7 @@ function RegisterBone100(vendor, platform)
 	langr3.Members[4] = NewMember("mhAnimation", hAnim)
 	langr3.Members[5] = NewMember("mhVoiceData", hVoiceData)
 	langr3.Members[6] = NewMember("mShared", kMetaBool)
+	langr3.Extension = "langres"
 	MetaRegisterClass(langr3) -- has customer serialise which just calls default
 
 	local langp = NewClass("class LanguageResourceProxy", 0)
@@ -469,6 +503,7 @@ function RegisterBone100(vendor, platform)
 
 	-- .LANGDB FILES
 	local langdb = NewClass("class LanguageDatabase", 0)
+	langdb.Extension = "langdb"
 	langdb.Members[1] = NewMember("mLanguageResources", mapIntLangRes)
 	MetaRegisterClass(langdb)
 
@@ -508,14 +543,457 @@ function RegisterBone100(vendor, platform)
 	rule4.Members[5] = NewMember("mActionProperties", prop)
 	MetaRegisterClass(rule4)
 
+	local ruleInf = NewClass("struct Rule::AgentInfo", 0)
+	ruleInf.Members[1] = NewMember("mName", kMetaClassString)
+	ruleInf.Members[2] = NewMember("mConditionalProperties", prop)
+	ruleInf.Members[3] = NewMember("mActionProperties", prop)
+	MetaRegisterClass(ruleInf)
+
 	-- .RULES FILES. TODO we have a custom serialiser
 	local rules = NewClass("class Rules", 0) -- there are two other versions but they are empty (unusable files)
+	rules.Extension = "rules"
 	rules.Members[1] = NewMember("mFlags", MetaFlags)
 	rules.Members[2] = NewMember("mhLogicProps", hProp)
 	MetaRegisterClass(rules)
 
-	-- lots more. i have an exam tommorow so ill cotnonue this after that lol. next:  SAVEGAME
+	local sgAgent = NewClass("class SaveGame::AgentInfo", 0)
+	sgAgent.Members[1] = NewMember("mAgentName", kMetaClassString)
+	sgAgent.Members[2] = NewMember("mPosition", MetaVec3)
+	sgAgent.Members[3] = NewMember("mQuaternion", MetaQuat)
+	sgAgent.Members[4] = NewMember("mbAttached", kMetaBool)
+	sgAgent.Members[5] = NewMember("mAttachedToAgent", kMetaClassString)
+	sgAgent.Members[6] = NewMember("mAttachedToNode", kMetaClassString)
+	MetaRegisterClass(sgAgent)
 
+	local sgAgent1 = NewClass("class SaveGame::AgentInfo", 1) -- older version
+	sgAgent1.Members[1] = NewMember("mAgentName", kMetaClassString)
+	sgAgent1.Members[2] = NewMember("mPosition", MetaVec3)
+	sgAgent1.Members[3] = NewMember("mQuaternion", MetaQuat)
+	MetaRegisterClass(sgAgent1)
+
+	arraySaveGameAgent, _ = RegisterBoneCollection(MetaCI, "class DCArray<class SaveGame::AgentInfo>", nil, sgAgent)
+
+	local setString = { VersionIndex = 0 }
+	setString.Name = "class Set<class String,struct std::less<class String> >"
+	setString.Members = {}
+	setString.Members[1] = { Name = "Baseclass_ContainerInterface", Class = MetaCI, Flags = kMetaMemberMemoryDisable + kMetaMemberBaseClass }
+	MetaRegisterCollection(setString, nil, kMetaClassString)
+
+	local sg0 = NewClass("class SaveGame", 0)
+	sg0.Extension = "save"
+	sg0.Members[1] = NewMember("mLuaDoFile", kMetaClassString)
+	sg0.Members[2] = NewMember("mAgentInfo", arraySaveGameAgent)
+	sg0.Members[3] = NewMember("mRuntimePropNames", setString)
+	sg0.Members[4] = NewMember("mAdditionalPropNames", setString)
+	MetaRegisterClass(sg0)
+
+	local sg1 = NewClass("class SaveGame", 1) -- older versions
+	sg1.Extension = "save"
+	sg1.Members[1] = NewMember("mLuaDoFile", kMetaClassString)
+	sg1.Members[2] = NewMember("mAgentInfo", arraySaveGameAgent)
+	sg1.Members[3] = NewMember("mRuntimePropNames", setString)
+	MetaRegisterClass(sg1)
+
+	local sg2 = NewClass("class SaveGame", 2) -- older versions
+	sg2.Extension = "save"
+	sg2.Members[1] = NewMember("mLuaDoFile", kMetaClassString)
+	sg2.Members[2] = NewMember("mRuntimePropNames", setString)
+	MetaRegisterClass(sg2)
+
+	local sceneAgent0 = NewClass("class Scene::AgentInfo", 0) -- scene agent information. the are like 5 other old versions, won't bother with them, not used.
+	sceneAgent0.Members[1] = NewMember("mAgentName", kMetaClassString)
+	sceneAgent0.Members[2] = NewMember("mStartPos", MetaVec3)
+	sceneAgent0.Members[3] = NewMember("mStartQuat", MetaQuat)
+	sceneAgent0.Members[4] = NewMember("mbVisible", kMetaBool)
+	sceneAgent0.Members[5] = NewMember("mbTransient", kMetaBool)
+	sceneAgent0.Members[6] = NewMember("mbAttached", kMetaBool)
+	sceneAgent0.Members[7] = NewMember("mAttachAgent", kMetaClassString)
+	sceneAgent0.Members[8] = NewMember("mAttachAgentNode", kMetaClassString)
+	sceneAgent0.Members[9] = NewMember("mAgentSceneProps", prop)
+	sceneAgent0.Members[10] = NewMember("mbMembersImportedIntoSceneProps", kMetaBool)
+	MetaRegisterClass(sceneAgent0)
+
+	local scene = NewClass("class Scene", 0) -- TODO custom serialiser
+	scene.Extension = "scene"
+	scene.Members[1] = NewMember("mbHidden", kMetaBool)
+	scene.Members[2] = NewMember("mName", kMetaClassString)
+	MetaRegisterClass(scene)
+
+	mapStringFloat, _ = RegisterBoneCollection(MetaCI, "class Map<class String,float,struct std::less<class String> >", kMetaClassString, kMetaFloat)
+
+	local sklEntry = NewClass("class Skeleton::Entry", 0)
+	sklEntry.Members[1] = NewMember("mJointName", kMetaClassString)
+	sklEntry.Members[2] = NewMember("mParentName", kMetaClassString)
+	sklEntry.Members[3] = NewMember("mParentIndex", kMetaInt)
+	sklEntry.Members[4] = NewMember("mLocalPos", MetaVec3)
+	sklEntry.Members[5] = NewMember("mLocalQuat", MetaQuat)
+	sklEntry.Members[6] = NewMember("mRestXform", transform)
+	sklEntry.Members[7] = NewMember("mGlobalTranslationScale", MetaVec3)
+	sklEntry.Members[8] = NewMember("mLocalTranslationScale", MetaVec3)
+	sklEntry.Members[9] = NewMember("mAnimTranslationScale", MetaVec3)
+	sklEntry.Members[10] = NewMember("mResourceGroupMembership", mapStringFloat)
+	MetaRegisterClass(sklEntry)
+
+	arraySklEntry, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Skeleton::Entry>", nil, sklEntry)
+
+	local skl = NewClass("class Skeleton", 0)
+	skl.Extension = "skl"
+	skl.Members[1] = NewMember("mEntries", arraySklEntry)
+	MetaRegisterClass(skl)
+
+	arrayPaletteClass, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ActingPaletteClass>", nil, actingPaletteClass)
+
+	local style0 = NewClass("class StyleGuide", 0)
+	style0.Extension = "style"
+	style0.Members[1] = NewMember("mDefPaletteClassIndex", kMetaInt)
+	style0.Members[2] = NewMember("mPaletteClasses", arrayPaletteClass)
+	style0.Members[3] = NewMember("mbGeneratesLookAts", kMetaBool)
+	MetaRegisterClass(style0)
+
+	local style1 = NewClass("class StyleGuide", 1)
+	style1.Extension = "style"
+	style1.Members[1] = NewMember("mDefPaletteClassIndex", kMetaInt)
+	style1.Members[2] = NewMember("mPaletteClasses", arrayPaletteClass)
+	MetaRegisterClass(style1)
+
+	local style2 = NewClass("class StyleGuide", 2)
+	style2.Extension = "style"
+	style2.Members[1] = NewMember("mPaletteClasses", arrayPaletteClass)
+	MetaRegisterClass(style2)
+
+	local style3 = NewClass("class StyleGuide", 3)
+	style3.Extension = "style"
+	style3.Members[1] = NewMember("mDefPaletteClassIndex", kMetaInt)
+	style3.Members[2] = NewMember("mPaletteClasses", arrayPaletteClass)
+	style3.Members[3] = NewMember("mAgentName", kMetaClassString)
+	MetaRegisterClass(style3)
+
+	arrayBool, _ = RegisterBoneCollection(MetaCI, "class DArray<bool>", nil, kMetaBool)
+	arrayDInt, _ = RegisterBoneCollection(MetaCI, "class DArray<int>", nil, kMetaInt)
+	arrayDCInt, _ = RegisterBoneCollection(MetaCI, "class DCArray<int>", nil, kMetaInt)
+
+	local styleRef = NewClass("class StyleGuideRef", 0) -- has customer serialiser, just calls default
+	styleRef.Members[1] = NewMember("mhStyleGuide", hStyle)
+	styleRef.Members[2] = NewMember("mPaletteClassIndex", kMetaInt)
+	styleRef.Members[3] = NewMember("mPalettesUsed", arrayBool)
+	MetaRegisterClass(styleRef)
+
+	local vox0 = NewClass("class VoiceData", 0) -- TODO custom serialiser
+	vox0.Extension = "vox"
+	vox0.Members[1] = NewMember("mbEncrypted", kMetaBool)
+	vox0.Members[2] = NewMember("mLength", kMetaFloat)
+	vox0.Members[3] = NewMember("mAllPacketsSize", kMetaInt)
+	vox0.Members[4] = NewMember("mPacketSamples", kMetaInt)
+	vox0.Members[5] = NewMember("mSampleRate", kMetaInt)
+	vox0.Members[6] = NewMember("mMode", kMetaInt)
+	vox0.Members[7] = NewMember("mPacketPositions", arrayDInt)
+	MetaRegisterClass(vox0)
+
+	local vox1 = NewClass("class VoiceData", 1) -- TODO custom serialiser
+	vox1.Extension = "vox"
+	vox1.Members[1] = NewMember("mLength", kMetaFloat)
+	vox1.Members[2] = NewMember("mAllPacketsSize", kMetaInt)
+	vox1.Members[3] = NewMember("mPacketSamples", kMetaInt)
+	vox1.Members[4] = NewMember("mSampleRate", kMetaInt)
+	vox1.Members[5] = NewMember("mMode", kMetaInt)
+	vox1.Members[6] = NewMember("mPacketPositions", arrayDInt)
+	MetaRegisterClass(vox1)
+
+	local wboxEdge = NewClass("class WalkBoxes::Edge", 0) -- there about a billion different vers file for each of these. only doing the one used
+	wboxEdge.Members[1] = NewMember("mV1", kMetaInt)
+	wboxEdge.Members[2] = NewMember("mV2", kMetaInt)
+	wboxEdge.Members[3] = NewMember("mEdgeDest", kMetaInt)
+	wboxEdge.Members[4] = NewMember("mEdgeDestEdge", kMetaInt)
+	wboxEdge.Members[5] = NewMember("mEdgeDir", kMetaInt)
+	wboxEdge.Members[6] = NewMember("mMaxRadius", kMetaFloat)
+	MetaRegisterClass(wboxEdge)
+
+	local array3Int = NewClass("class SArray<int,3>", 0)
+	MetaRegisterCollection(array3Int, 3, kMetaInt)
+
+	local array4Int = NewClass("class SArray<int,4>", 0)
+	MetaRegisterCollection(array4Int, 4, kMetaInt)
+
+	local array3Float = NewClass("class SArray<float,3>", 0)
+	MetaRegisterCollection(array3Float, 3, kMetaFloat)
+
+	local array3Edge = NewClass("class SArray<class WalkBoxes::Edge,3>", 0)
+	MetaRegisterCollection(array3Edge, 3, wboxEdge)
+
+	local wboxTri = NewClass("class WalkBoxes::Tri", 0)
+	wboxTri.Members[1] = NewMember("mFlags", MetaFlags)
+	wboxTri.Members[2] = NewMember("mNormal", kMetaInt)
+	wboxTri.Members[3] = NewMember("mQuadBuddy", kMetaInt)
+	wboxTri.Members[4] = NewMember("mMaxRadius", kMetaFloat)
+	wboxTri.Members[5] = NewMember("mVerts", array3Int)
+	wboxTri.Members[6] = NewMember("mEdgeInfo", array3Edge)
+	wboxTri.Members[7] = NewMember("mVertOffsets", array3Int)
+	wboxTri.Members[8] = NewMember("mVertScales", array3Float)
+	MetaRegisterClass(wboxTri)
+
+	local wboxVert = NewClass("class WalkBoxes::Vert", 0)
+	wboxVert.Members[1] = NewMember("mFlags", MetaFlags)
+	wboxVert.Members[2] = NewMember("mPos", MetaVec3)
+	MetaRegisterClass(wboxVert)
+
+	local wboxQuad = NewClass("class WalkBoxes::Quad", 0)
+	wboxQuad.Members[1] = NewMember("mVerts", array4Int)
+	MetaRegisterClass(wboxQuad)
+
+	arrayVec3, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Vector3>", nil, MetaVec3)
+	arrayQuad, _ = RegisterBoneCollection(MetaCI, "class DCArray<class WalkBoxes::Quad>", nil, wboxQuad)
+	arrayVert, _ = RegisterBoneCollection(MetaCI, "class DCArray<class WalkBoxes::Vert>", nil, wboxVert)
+	arrayTri, _ = RegisterBoneCollection(MetaCI, "class DCArray<class WalkBoxes::Tri>", nil, wboxTri)
+
+	local wbox = NewClass("class WalkBoxes", 0) -- TODO custom serialiser
+	wbox.Extension = "wbox"
+	wbox.Members[1] = NewMember("mName", kMetaClassString)
+	wbox.Members[2] = NewMember("mTris", arrayTri)
+	wbox.Members[3] = NewMember("mVerts", arrayVert)
+	wbox.Members[4] = NewMember("mNormals", arrayVec3)
+	wbox.Members[5] = NewMember("mQuads", arrayQuad)
+	MetaRegisterClass(wbox)
+
+	local choreAgentAttach = NewClass("class ChoreAgent::Attachment", 0)
+	choreAgentAttach.Members[1] = NewMember("mbDoAttach", kMetaBool)
+	choreAgentAttach.Members[2] = NewMember("mAttachTo", kMetaClassString)
+	choreAgentAttach.Members[3] = NewMember("mAttachToNode", kMetaClassString)
+	choreAgentAttach.Members[4] = NewMember("mAttachPos", MetaVec3)
+	choreAgentAttach.Members[5] = NewMember("mAttachQuat", MetaQuat)
+	choreAgentAttach.Members[6] = NewMember("mbAttachPreserveWorldPos", kMetaBool)
+	choreAgentAttach.Members[7] = NewMember("mbLeaveAttachedWhenComplete", kMetaBool)
+	MetaRegisterClass(choreAgentAttach)
+
+	local choreAgent = NewClass("class ChoreAgent", 0) -- TODO custom serialiser
+	choreAgent.Members[1] = NewMember("mAgentName", kMetaClassString)
+	choreAgent.Members[2] = NewMember("mFlags", MetaFlags)
+	choreAgent.Members[3] = NewMember("mResources", arrayDCInt)
+	choreAgent.Members[4] = NewMember("mAttachment", choreAgentAttach)
+	MetaRegisterClass(choreAgent)
+
+	local choreBlock = NewClass("class ChoreResource::Block", 0)
+	choreBlock.Members[1] = NewMember("mStartTime", kMetaFloat)
+	choreBlock.Members[2] = NewMember("mEndTime", kMetaFloat)
+	choreBlock.Members[3] = NewMember("mbLoopingBlock", kMetaBool)
+	choreBlock.Members[4] = NewMember("mScale", kMetaFloat)
+	MetaRegisterClass(choreBlock)
+
+	arrayChoreBlock, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreResource::Block>", nil, choreBlock)
+
+	local choreResource = NewClass("class ChoreResource", 0) -- TODO custom serialiser
+	choreResource.Members[1] = NewMember("mResName", kMetaClassString)
+	choreResource.Members[2] = NewMember("mResLength", kMetaFloat)
+	choreResource.Members[3] = NewMember("mPriority", kMetaInt)
+	choreResource.Members[4] = NewMember("mFlags", MetaFlags)
+	choreResource.Members[5] = NewMember("mResourceGroup", kMetaClassString)
+	choreResource.Members[6] = NewMember("mControlAnimation", anm0)
+	choreResource.Members[7] = NewMember("mBlocks", arrayChoreBlock)
+	choreResource.Members[8] = NewMember("mbNoPose", kMetaBool)
+	choreResource.Members[9] = NewMember("mbEmbedded", kMetaBool)
+	choreResource.Members[10] = NewMember("mbEnabled", kMetaBool)
+	choreResource.Members[11] = NewMember("mbIsAgentResource", kMetaBool)
+	choreResource.Members[12] = NewMember("mbViewGraphs", kMetaBool)
+	choreResource.Members[13] = NewMember("mbViewProperties", kMetaBool)
+	choreResource.Members[14] = NewMember("mbViewResourceGroups", kMetaBool)
+	choreResource.Members[15] = NewMember("mResourceProperties", prop)
+	choreResource.Members[16] = NewMember("mResourceGroupInclude", mapStringFloat)
+	choreResource.Members[17] = NewMember("mAAStatus", NewProxyClass("enum ChoreResource::AAStatus", "mVal", kMetaInt))
+	MetaRegisterClass(choreResource)
+
+	arrayChoreAgent, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreAgent>", nil, choreAgent)
+	arrayChoreResource, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreResource>", nil, choreResource)
+
+	local chore = NewClass("class Chore", 0) -- TODO custom serialiser
+	chore.Extension = "chore"
+	chore.Members[1] = NewMember("mName", kMetaClassString)
+	chore.Members[2] = NewMember("mbResetNavCamsOnExit", kMetaBool)
+	chore.Members[3] = NewMember("mLength", kMetaFloat)
+	chore.Members[4] = NewMember("mNumResources", kMetaInt)
+	chore.Members[5] = NewMember("mNumAgents", kMetaInt)
+	chore.Members[6] = NewMember("mResources", arrayChoreResource)
+	chore.Members[7] = NewMember("mAgents", arrayChoreAgent)
+	chore.Members[8] = NewMember("mEditorProps", prop)
+	chore.Members[9] = NewMember("mbChoreBackgroundFade", kMetaBool)
+	chore.Members[10] = NewMember("mbChoreBackgroundLoop", kMetaBool)
+	chore.Members[11] = NewMember("mChoreSceneFile", kMetaClassString)
+	MetaRegisterClass(chore)
+
+	local indexBuffer = NewClass("class D3DIndexBuffer", 0) -- custom seri todo
+	indexBuffer.Members[1] = NewMember("mbLocked", kMetaBool)
+	indexBuffer.Members[2] = NewMember("mFormat", kMetaInt)
+	indexBuffer.Members[3] = NewMember("mNumIndicies", kMetaInt) -- spelling mate
+	indexBuffer.Members[4] = NewMember("mIndexByteSize", kMetaInt)
+	MetaRegisterClass(indexBuffer)
+
+	local triangleSet = NewClass("class D3DMesh::TriangleSet", 0) -- TODO custom serialiser
+	triangleSet.Members[1] = NewMember("mVertexShaderName", kMetaClassString)
+	triangleSet.Members[2] = NewMember("mPixelShaderName", kMetaClassString)
+	triangleSet.Members[3] = NewMember("mBonePaletteIndex", kMetaInt)
+	triangleSet.Members[4] = NewMember("mGeometryFormat", kMetaInt)
+	triangleSet.Members[5] = NewMember("mMinVertIndex", kMetaInt)
+	triangleSet.Members[6] = NewMember("mMaxVertIndex", kMetaInt)
+	triangleSet.Members[7] = NewMember("mStartIndex", kMetaInt)
+	triangleSet.Members[8] = NewMember("mNumPrimitives", kMetaInt)
+	triangleSet.Members[9] = NewMember("mLightingGroup", kMetaClassString)
+	triangleSet.Members[10] = NewMember("mBoundingBox", bb)
+	triangleSet.Members[11] = NewMember("mhDiffuseMap", hTexture)
+	triangleSet.Members[12] = NewMember("mhDetailMap", hTexture)
+	triangleSet.Members[13] = NewMember("mhLightMap", hTexture)
+	triangleSet.Members[14] = NewMember("mhBumpMap", hTexture)
+	triangleSet.Members[15] = NewMember("mbHasPixelShader_RemoveMe", kMetaBool)
+	triangleSet.Members[16] = NewMember("mTriStrips", arrayDCInt)
+	triangleSet.Members[17] = NewMember("mNumTotalIndices", kMetaInt)
+	triangleSet.Members[18] = NewMember("mbDoubleSided", kMetaBool)
+	triangleSet.Members[19] = NewMember("mfBumpHeight", kMetaFloat)
+	triangleSet.Members[20] = NewMember("mhEnvMap", hTexture)
+	triangleSet.Members[21] = NewMember("mfEccentricity", kMetaFloat)
+	triangleSet.Members[22] = NewMember("mSpecularColor", MetaCol)
+	triangleSet.Members[23] = NewMember("mAmbientColor", MetaCol)
+	triangleSet.Members[24] = NewMember("mbSelfIlluminated", kMetaBool)
+	triangleSet.Members[25] = NewMember("mAlphaMode", kMetaInt)
+	triangleSet.Members[26] = NewMember("mfReflectivity", kMetaFloat)
+	MetaRegisterClass(triangleSet)
+
+	arrayTriangleSet, _ = RegisterBoneCollection(MetaCI, "class DCArray<class D3DMesh::TriangleSet>", nil, triangleSet)
+
+	local meshEntry = NewClass("struct D3DMesh::PaletteEntry", 0)
+	meshEntry.Members[1] = NewMember("mBoneName", kMetaClassString)
+	meshEntry.Members[2] = NewMember("mSkeletonIndex", kMetaInt)
+	MetaRegisterClass(meshEntry)
+
+	arrayMeshPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<struct D3DMesh::PaletteEntry>", nil, meshEntry)
+	arrayArrayMeshPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<class DCArray<struct D3DMesh::PaletteEntry> >", nil, arrayMeshPalette)
+
+	local vertexBuffer = NewClass("class D3DVertexBuffer", 0) -- custom ser todo
+	vertexBuffer.Members[1] = NewMember("mbLocked", kMetaBool)
+	vertexBuffer.Members[2] = NewMember("mNumVerts", kMetaInt)
+	vertexBuffer.Members[3] = NewMember("mVertSize", kMetaInt)
+	vertexBuffer.Members[4] = NewMember("mType", kMetaInt)
+	vertexBuffer.Members[5] = NewMember("mbStoreCompressed", kMetaBool)
+	MetaRegisterClass(vertexBuffer)
+
+	local mesh = NewClass("class D3DMesh", 0) -- todo custom serialisr
+	mesh.Extension = "d3dmesh"
+	mesh.Members[1] = NewMember("mName", kMetaClassString)
+	mesh.Members[2] = NewMember("mbDeformable", kMetaBool)
+	mesh.Members[3] = NewMember("mTriangleSets", arrayTriangleSet)
+	mesh.Members[4] = NewMember("mBonePalettes", arrayArrayMeshPalette)
+	mesh.Members[5] = NewMember("mbLightmaps", kMetaBool)
+	MetaRegisterClass(mesh)
+
+	local tex = NewClass("class D3DTexture", 0) -- todo custom serialise
+	tex.Extension = "d3dtx"
+	tex.Members[1] = NewMember("mName", kMetaClassString)
+	tex.Members[2] = NewMember("mImportName", kMetaClassString)
+	tex.Members[3] = NewMember("mbHasTextureData", kMetaBool)
+	tex.Members[4] = NewMember("mbIsMipMapped", kMetaBool)
+	tex.Members[5] = NewMember("mbIsFiltered", kMetaBool)
+	tex.Members[6] = NewMember("mNumMipLevels", kMetaUnsignedInt)
+	tex.Members[7] = NewMember("mD3DFormat", kMetaUnsignedInt)
+	tex.Members[8] = NewMember("mWidth", kMetaUnsignedInt)
+	tex.Members[9] = NewMember("mHeight", kMetaUnsignedInt)
+	tex.Members[10] = NewMember("mType", kMetaInt)
+	tex.Members[11] = NewMember("mbAlphaHDR", kMetaBool)
+	MetaRegisterClass(tex)
+
+	local glyph = NewClass("struct Font::GlyphInfo", 0)
+	glyph.Members[1] = NewMember("mTexturePage", kMetaInt)
+	glyph.Members[2] = NewMember("mGlyph", MetaTRectF)
+	MetaRegisterClass(glyph)
+
+	arrayGlyph, _ = RegisterBoneCollection(MetaCI, "class DCArray<struct Font::GlyphInfo>", nil, glyph)
+	arrayTex, _ = RegisterBoneCollection(MetaCI, "class DCArray<class D3DTexture>", nil, tex)
+
+	local font = NewClass("class Font", 0) -- todo custom ser
+	font.Extension = "font"
+	font.Members[1] = NewMember("mName", kMetaClassString)
+	font.Members[2] = NewMember("mbFiltered", kMetaBool)
+	font.Members[3] = NewMember("mHeight", kMetaFloat)
+	font.Members[4] = NewMember("mGlyphInfo", arrayGlyph)
+	font.Members[5] = NewMember("mTexturePages", arrayTex)
+	MetaRegisterClass(font)
+
+	local dlg = NewClass("class DialogResource", 0) -- custom serialiser
+	dlg.Extension = "dlg"
+	dlg.Members[1] = NewMember("miNextDialogID", kMetaInt)
+	dlg.Members[2] = NewMember("miNextBranchID", kMetaInt)
+	dlg.Members[3] = NewMember("miNextItemID", kMetaInt)
+	dlg.Members[4] = NewMember("miNextExchangeID", kMetaInt)
+	dlg.Members[5] = NewMember("miNextLineID", kMetaInt)
+	dlg.Members[6] = NewMember("miNextTextID", kMetaInt)
+	dlg.Members[7] = NewMember("miNextChoreID", kMetaInt)
+	dlg.Members[8] = NewMember("mDialogs", arrayDInt)
+	dlg.Members[9] = NewMember("mSoloItems", arrayDInt)
+	dlg.Members[10] = NewMember("mTexts", arrayDInt)
+	MetaRegisterClass(dlg)
+
+	local dlgBase = NewClass("class DialogBase *", 0) -- all dialog ones have custom serialisers. ignore the *. it needs to be there! error in engine
+	dlgBase.Members[1] = NewMember("mDialogElemType", NewProxyClass("enum DialogUtils::DialogElemT", "mVal", kMetaInt))
+	dlgBase.Members[2] = NewMember("mUID", kMetaInt)
+	dlgBase.Members[3] = NewMember("mVisConditions", prop)
+	dlgBase.Members[4] = NewMember("mPostActions", prop)
+	dlgBase.Members[5] = NewMember("mhBackgroundChore", hChore)
+	dlgBase.Members[6] = NewMember("mRule", rule0)
+	dlgBase.Members[7] = NewMember("mbHasStyleGuides", kMetaBool)
+	dlgBase.Members[8] = NewMember("mDependentVisBranch", kMetaClassString)
+	MetaRegisterClass(dlgBase)
+
+	local dlgBranch = NewClass("class DialogBranch", 0)
+	dlgBranch.Members[1] = NewMember("Baseclass_DialogBase", dlgBase)
+	dlgBranch.Members[2] = NewMember("mName", kMetaClassString)
+	dlgBranch.Members[3] = NewMember("mItems", arrayDInt)
+	dlgBranch.Members[4] = NewMember("mEnterItemID", kMetaInt)
+	dlgBranch.Members[5] = NewMember("mExitItemID", kMetaInt)
+	dlgBranch.Members[6] = NewMember("mEnterItems", arrayDInt)
+	dlgBranch.Members[7] = NewMember("mExitItems", arrayDInt)
+	dlgBranch.Members[8] = NewMember("mEnterScript", kMetaClassString)
+	dlgBranch.Members[9] = NewMember("mExitScript", kMetaClassString)
+	MetaRegisterClass(dlgBranch)
+
+	local dlgDlg = NewClass("class DialogDialog", 0)
+	dlgDlg.Members[1] = NewMember("Baseclass_DialogBase", dlgBase)
+	dlgDlg.Members[2] = NewMember("mName", kMetaClassString)
+	dlgDlg.Members[3] = NewMember("mBranches", arrayDInt)
+	MetaRegisterClass(dlgDlg)
+
+	local dlgEx = NewClass("class DialogExchange", 0)
+	dlgEx.Members[1] = NewMember("Baseclass_DialogBase", dlgBase)
+	dlgEx.Members[2] = NewMember("mLines", arrayDInt)
+	dlgEx.Members[3] = NewMember("mBranchLink", kMetaClassString)
+	dlgEx.Members[4] = NewMember("mEnterScript", kMetaClassString)
+	dlgEx.Members[5] = NewMember("mExitScript", kMetaClassString)
+	dlgEx.Members[6] = NewMember("mDispTextProxy", langp)
+	dlgEx.Members[7] = NewMember("mExitTrigger", kMetaInt)
+	dlgEx.Members[8] = NewMember("mhChore", hChore)
+	MetaRegisterClass(dlgEx)
+
+	local dlgItem = NewClass("class DialogItem", 0)
+	dlgItem.Members[1] = NewMember("Baseclass_DialogBase", dlgBase)
+	dlgItem.Members[2] = NewMember("mExchanges", arrayDInt)
+	dlgItem.Members[3] = NewMember("mName", kMetaClassString)
+	dlgItem.Members[4] = NewMember("mDispTextProxy", langp)
+	dlgItem.Members[5] = NewMember("mPlaybackMode", kMetaInt)
+	dlgItem.Members[6] = NewMember("mEnterScript", kMetaClassString)
+	dlgItem.Members[7] = NewMember("mExitScript", kMetaClassString)
+	dlgItem.Members[8] = NewMember("mExitTrigger", kMetaInt)
+	dlgItem.Members[9] = NewMember("mBranchLink", kMetaClassString)
+	dlgItem.Members[10] = NewMember("mbSpoken", kMetaBool)
+	dlgItem.Members[11] = NewMember("mbFallbackModeOn", kMetaBool)
+	dlgItem.Members[12] = NewMember("mFallbackInput", kMetaInt)
+	dlgItem.Members[13] = NewMember("mbResetCurExchangeOnBranchReEntry", kMetaBool)
+	MetaRegisterClass(dlgItem)
+
+	local dlgLine = NewClass("class DialogLine", 0)
+	dlgLine.Members[1] = NewMember("Baseclass_DialogBase", dlgBase)
+	dlgLine.Members[2] = NewMember("mLangResProxy", langp)
+	MetaRegisterClass(dlgLine)
+
+	local dlgText = NewClass("class DialogText", 0)
+	dlgText.Members[1] = NewMember("Baseclass_DialogBase", dlgBase)
+	dlgText.Members[2] = NewMember("mName", kMetaClassString)
+	dlgText.Members[3] = NewMember("mLangResProxy", langp)
+	MetaRegisterClass(dlgText)
+  
 	MetaDumpVersions() -- dbg out
 
 	return true

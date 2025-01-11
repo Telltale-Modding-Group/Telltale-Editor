@@ -195,11 +195,11 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             
             // I define all possible type names used in all games here as it doesn't matter how many there are. (different compiler ones etc)
             
-            REGISTER_INTRINSIC(U32, "uint32", "kMetaUnsignedInt32", 4, &SerialiseU32);
+            REGISTER_INTRINSIC(U32, "uint32", "kMetaUInt32", 4, &SerialiseU32);
             REGISTER_INTRINSIC(I32,"int", "kMetaInt", 4, &SerialiseU32);
-            REGISTER_INTRINSIC(U32,"uint", "kMetaUnsignedInt", 4, &SerialiseU32); // alias (obvious 32)
+            REGISTER_INTRINSIC(U32,"uint", "kMetaUInt", 4, &SerialiseU32); // alias (obvious 32)
             REGISTER_INTRINSIC(I32,"int32", "kMetaInt32", 4, &SerialiseU32); // alias
-            REGISTER_INTRINSIC(U64,"uint64", "kMetaUnsignedInt64", 8, &SerialiseU64);
+            REGISTER_INTRINSIC(U64,"uint64", "kMetaUInt64", 8, &SerialiseU64);
             REGISTER_INTRINSIC(I64,"int64", "kMetaInt64", 8, &SerialiseU64);
             REGISTER_INTRINSIC(U64,"unsigned __int64", "kMeta__UnsignedInt64", 8, &SerialiseU64);
             REGISTER_INTRINSIC(I32,"long", "kMetaLong", 4, &SerialiseU32); // alias for int32 on most windows
@@ -346,7 +346,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                     ScriptManager::TableGet(man, "Class");
                     if(man.Type(-1) != LuaType::TABLE)
                     {
-                        TTE_LOG("ERROR registering type %s: member '%s' class is not the table", c.Name.c_str(), m.Name.c_str());
+                        TTE_LOG("ERROR registering type %s: member '%s' class must be a pre-registered table", c.Name.c_str(), m.Name.c_str());
                         man.Pop(3);
                         return false;
                     }
@@ -450,6 +450,11 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             c.VersionNumber = ScriptManager::PopInteger(man);
             ScriptManager::TableGet(man, "Name");
             c.Name = ScriptManager::PopString(man);
+            ScriptManager::TableGet(man, "Extension");
+            if(man.Type(-1) == LuaType::STRING)
+                c.Extension = ScriptManager::PopString(man);
+            else
+                man.Pop(1);
             TTE_ASSERT(c.VersionNumber <= MAX_VERSION_NUMBER, "%s: Version number cannot be larger than %d", c.Name.c_str(), MAX_VERSION_NUMBER);
             ScriptManager::TableGet(man, "Flags");
             if(man.Type(-1) == LuaType::NUMBER)

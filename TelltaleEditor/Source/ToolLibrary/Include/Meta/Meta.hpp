@@ -120,6 +120,8 @@ namespace Meta {
         // CREATED INTERNALLY.
         U64 TypeHash = 0;
         
+        String Extension; // file extension if this class is a full file
+        
         U32 ClassID;
         U32 VersionCRC;
         U32 VersionNumber; // similar to version crc, but a number (normally 0, 1 etc). Associate a ID for multiple verisons of the same typename.
