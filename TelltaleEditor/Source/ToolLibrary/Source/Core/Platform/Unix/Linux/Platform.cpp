@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <dlfcn.h>
 #include <unistd.h>
+#include <sys/mman.h>
 
 void ThreadSleep(U64 milliseconds)
 {

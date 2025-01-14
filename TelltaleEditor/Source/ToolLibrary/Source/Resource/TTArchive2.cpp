@@ -1,6 +1,8 @@
 #include <Resource/TTArchive2.hpp>
 #include <Meta/Meta.hpp>
 
+#include <algorithm>
+
 Bool TTArchive2::SerialiseIn(DataStreamRef& in)
 {
     if(!in)
