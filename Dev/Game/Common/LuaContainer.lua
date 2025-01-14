@@ -1,4 +1,4 @@
--- Provides exact game engine functionality for the LuaContainer function collection. GAME: TX100
+-- Provides exact game engine functionality for the LuaContainer function collection.
 
 -- int ContainerGetNumElements(container) => Get the number of elements in the container.
 function ContainerGetNumElements(container)
@@ -15,7 +15,12 @@ function ContainerInsertElement(container, element)
 	_ContainerInsertElement(container, element)
 end
 
--- obj ContainerGetElement(container,_index) => Get the item in the container
+-- obj ContainerGetElement(container,_index) => Get the item in the container. 0 based.
 function ContainerGetElement(container, index)
 	return _ContainerGetElement(container, index)
+end
+
+-- nil ContainerClear(container) => Clears the container to size 0.
+function ContainerClear(container)
+	_ContainerClear(container)
 end

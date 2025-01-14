@@ -86,6 +86,15 @@ static U32 luaContainerGetElement(LuaManager& man)
     return 1;
 }
 
+static U32 luaContainerClear(LuaManager& man)
+{
+    TTE_ASSERT(man.GetTop() == 1, "At ContainerClear: one argument required");
+    ClassInstance inst = AcquireScriptInstance(man, -1);
+    if(inst && IsCollection(inst))
+        CastToCollection(inst).Clear();
+    return 0;
+}
+
 LuaFunctionCollection luaGameEngine() {
     LuaFunctionCollection col{};
     
@@ -94,6 +103,7 @@ LuaFunctionCollection luaGameEngine() {
     col.Functions.push_back({"_ContainerRemoveElement", &luaContainerRemoveElement});
     col.Functions.push_back({"_ContainerInsertElement", &luaContainerInsertElement});
     col.Functions.push_back({"_ContainerGetElement", &luaContainerGetElement});
+    col.Functions.push_back({"_ContainerClear", &luaContainerClear});
     
     return col;
 }

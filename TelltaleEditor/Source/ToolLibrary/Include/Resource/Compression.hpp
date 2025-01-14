@@ -10,7 +10,7 @@ namespace Compression
     {
         ZLIB = 0,
         OODLE = 1,
-        // END_LIBRARY = 2
+        END_LIBRARY = 2 // ie none
     };
     
     typedef long long (*OodleLZ_Compress)(int algo, const void *pSrc, unsigned int srcLen, void* dst, long long max, void* a, void* b, void* c);

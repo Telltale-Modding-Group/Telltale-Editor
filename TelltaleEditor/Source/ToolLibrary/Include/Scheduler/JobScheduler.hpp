@@ -272,6 +272,11 @@ class JobScheduler
     /// class.
     /// </summary>
     JobHandle Post(JobDescriptor descriptor);
+    
+    /// <summary>
+    /// See Post(). This version an array of them, with no ordering constraints on their execution. If return true, the out handles array will contain Num waitable handles.
+    /// </summary>
+    Bool PostAll(JobDescriptor* pDescriptors, U32 Num, JobHandle* pOutHandles);
 
     /// <summary>
     /// Attempts to cancel the given job, if it hasn't started yet. If it has or the job handed was invalid, false is returned.
@@ -292,7 +297,7 @@ class JobScheduler
     /// You cannot wait on any of the same jobs from multiple threads! I.e only call once for each set of job handles, otherwise an assert will be
     /// fired. Note that there should NOT be any duplicate handles! Otherwise an assert will be thrown.
     /// </summary>
-    JobResult Wait(const std::vector<JobHandle> &jobHandles);
+    JobResult Wait(U32 N, const JobHandle* jobHandles);
 
     /// <summary>
     /// Enqueue a job such that it is run when the parent job finishes. If the parent job does not exist (ie finished)

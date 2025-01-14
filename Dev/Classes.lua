@@ -55,6 +55,6 @@ function RegisterAll(game_id, platform, vendor)
     else
         print("ERROR: during testing only boneville is supported")
     end
+
     return false
-    
 end

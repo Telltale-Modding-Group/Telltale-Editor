@@ -200,4 +200,19 @@ namespace ScriptManager {
         man.SetMetaTable(-2);
     }
     
+    // Converts a string. If it is in a valid hex format for symbols, that hash is used, else the string is hashed.
+    inline Symbol ToSymbol(LuaManager& man, I32 i)
+    {
+        String v = man.ToString(i);
+        Symbol sym = SymbolFromHexString(v);
+        return sym.GetCRC64() == 0 ? Symbol(v) : sym;
+    }
+    
+    // Tries to find it from the global symbol table first, if not then returns a hex string.
+    inline void PushSymbol(LuaManager& man, Symbol value)
+    {
+        String val = RuntimeSymbols.Find(value);
+        man.PushLString(val.length() == 0 ? SymbolToHexString(value) : val);
+    }
+    
 }

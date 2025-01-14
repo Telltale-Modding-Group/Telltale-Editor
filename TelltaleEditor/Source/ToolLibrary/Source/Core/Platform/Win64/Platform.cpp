@@ -190,3 +190,20 @@ void OodleClose()
     OodleLibrary = nullptr;
 }
 
+U8* AllocateAnonymousMemory(U64 size)
+{
+    void* region = VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READONLY);
+    if (region == nullptr) {
+        TTE_LOG("Failed to allocate %d anonymous zero memory bytes in windows!", (U32)size);
+        return nullptr;
+    }
+
+    return (U8*)region;
+}
+
+void FreeAnonymousMemory(U8* ptr, U64 size)
+{
+    if (ptr)
+        VirtualFree(ptr, 0, MEM_RELEASE);
+}
+

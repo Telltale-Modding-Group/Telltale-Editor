@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <dlfcn.h>
+#include <sys/mman.h>
 
 // THREAD
 
@@ -134,4 +135,20 @@ void OodleClose()
         dlclose(OodleLibrary);
     }
     OodleLibrary = nullptr;
+}
+
+U8* AllocateAnonymousMemory(U64 size)
+{
+    void* region = mmap(nullptr, size, PROT_READ, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+    if (region == MAP_FAILED) {
+        perror("mmap failed");
+        return nullptr;
+    }
+    
+    return (U8*)region;
+}
+
+void FreeAnonymousMemory(U8* ptr, U64 sz)
+{
+    munmap(ptr, sz);
 }

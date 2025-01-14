@@ -23,7 +23,7 @@ ToolContext* CreateToolContext()
     if(GlobalContext == nullptr){
         _IsMain = true; // CreateToolContext sets this current thread as the main thread
         GlobalContext = (ToolContext*)TTE_ALLOC(sizeof(ToolContext), MEMORY_TAG_TOOL_CONTEXT); // alloc raw and construct, as its private.
-        new (GlobalContext) ToolContext();
+        new (GlobalContext) ToolContext(); // construct after as some asserts require
     }else{
         TTE_ASSERT(false, "Trying to create more than one ToolContext. Only one instance is allowed per process.");
     }
@@ -41,7 +41,7 @@ void DestroyToolContext()
     TTE_ASSERT(_IsMain, "Must only be called from main thread");
     
     if(GlobalContext)
-        TTE_FREE(GlobalContext);
+        TTE_DEL(GlobalContext);
     
     GlobalContext = nullptr;
     
@@ -435,13 +435,13 @@ namespace Meta {
             if(IsWeakPtrUnbound(parentRef))
             {
                 // top level
-                sz += sizeof(std::vector<std::shared_ptr<U8>>); // child ref array
+                sz += sizeof(ClassChildMap); // child ref array
             }
             
             return sz;
         }
     
-        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& topLevelParent)
+        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& topLevelParent, Symbol name)
         {
             auto it = Classes.find(ClassID);
             if(it == Classes.end()){
@@ -485,10 +485,10 @@ namespace Meta {
                 
                 if(upvalue_TopLevel) // free children, ensure strong refs == 1 for each
                 {
-                    auto& vec = *((std::vector<std::shared_ptr<U8>>*)
+                    auto& vec = *((ClassChildMap*)
                                  ((U8*)pMem + _ClassChildrenArrayOff(Classes[upvalue_ClassID])));
                     
-                    vec.~vector(); // free all and clear vector memory
+                    DestroyObject<ClassChildMap>(vec); // free all and clear vector memory
                 }
                 
                 // free memory
@@ -498,13 +498,14 @@ namespace Meta {
             
             if(!upvalue_TopLevel) // insert inst into parent children array
             {
+                TTE_ASSERT(name.GetCRC64() != 0, "When constructing non-top level class: name key must be specified");
                 auto vec = topLevelParent._GetInternalChildrenRefs();
-                vec->push_back(inst._InstanceMemory); // ref counted
+                vec->operator[](name) = inst; // ref counted
             }
             else
             {
-                // else we need to construct the child refs array
-                new (inst._GetInternalChildrenRefs()) std::vector<std::shared_ptr<U8>>();
+                // else we need to construct the child refs
+                new (inst._GetInternalChildrenRefs()) ClassChildMap();
             }
             
             return inst;
@@ -863,11 +864,11 @@ namespace Meta {
         return 0;
     }
     
-    std::vector<std::shared_ptr<U8>>* ClassInstance::_GetInternalChildrenRefs()
+    ClassChildMap* ClassInstance::_GetInternalChildrenRefs()
     {
         TTE_ASSERT(IsTopLevel(), "Cannot get internal children references: class is not top level");
         U32 skipBytes = _Impl::_ClassChildrenArrayOff(Classes[_InstanceClassID]);
-        return ((std::vector<std::shared_ptr<U8>>*)((U8*)_InstanceMemory.get() + skipBytes));
+        return ((ClassChildMap*)((U8*)_InstanceMemory.get() + skipBytes));
     }
     
     void ClassInstance::PushScriptRef(LuaManager& man, Bool strong)
@@ -917,21 +918,21 @@ namespace Meta {
         return pRef->Acquire();
     }
     
-    ClassInstance CreateInstance(U32 ClassID, ClassInstance host)
+    ClassInstance CreateInstance(U32 ClassID, ClassInstance host, Symbol n)
     {
-        ClassInstance instance = _Impl::_MakeInstance(ClassID, host);
+        ClassInstance instance = _Impl::_MakeInstance(ClassID, host, n);
         
         _Impl::_DoConstruct(&Classes[ClassID], instance._GetInternal(), host.ObtainParentRef());
         
         return instance;
     }
 
-    ClassInstance CopyInstance(ClassInstance instance, ClassInstance host)
+    ClassInstance CopyInstance(ClassInstance instance, ClassInstance host, Symbol n)
     {
         if(!instance)
             return ClassInstance{};
         
-        ClassInstance instanceNew = _Impl::_MakeInstance(instance.GetClassID(), host);
+        ClassInstance instanceNew = _Impl::_MakeInstance(instance.GetClassID(), host, n);
         
         _Impl::_DoCopyConstruct(&Classes[instance.GetClassID()],
                                 instanceNew._GetInternal(), instance._GetInternal(), host.ObtainParentRef());
@@ -939,12 +940,12 @@ namespace Meta {
         return instanceNew;
     }
     
-    ClassInstance MoveInstance(ClassInstance instance, ClassInstance host)
+    ClassInstance MoveInstance(ClassInstance instance, ClassInstance host, Symbol n)
     {
         if(!instance)
             return ClassInstance{};
 
-        ClassInstance instanceNew = _Impl::_MakeInstance(instance.GetClassID(), host);
+        ClassInstance instanceNew = _Impl::_MakeInstance(instance.GetClassID(), host, n);
         
         _Impl::_DoMoveConstruct(&Classes[instance.GetClassID()],
                                 instanceNew._GetInternal(), instance._GetInternal(), host.ObtainParentRef());
@@ -1162,7 +1163,7 @@ namespace Meta {
         TTE_LOG("Meta shutdown");
     }
     
-    Bool WriteMetaStream(const String& name, ClassInstance instance, DataStreamRef& stream, StreamVersion StreamVersion)
+    Bool WriteMetaStream(const String& name, ClassInstance instance, DataStreamRef& stream, MetaStreamParams params)
     {
         
         // SETUP LOCALS
@@ -1175,13 +1176,13 @@ namespace Meta {
         
         Stream metaStream{};
         U8 Buffer[32]{};
-        String magic =  StreamVersion == MSV6 ? "6VSM" :
-                        StreamVersion == MSV5 ? "5VSM" :
+        String magic =  params.Version == MSV6 ? "6VSM" :
+                        params.Version == MSV5 ? "5VSM" :
                        // StreamVersion == MSV4 ? "4VSM" :
                        // StreamVersion == MCOM ? "MOCM" :
-                        StreamVersion == MTRE ? "ERTM" :
+                        params.Version == MTRE ? "ERTM" :
                        // StreamVersion == MBES ? "SEBM" :
-                        StreamVersion == MBIN ? "NIBM" : "X";
+                        params.Version == MBIN ? "NIBM" : "X";
         
         if(magic == "X")
         {
@@ -1191,10 +1192,10 @@ namespace Meta {
         
         // 1. SETUP META STREAM
         
-        metaStream.Version = StreamVersion;
+        metaStream.Version = params.Version;
         metaStream.CurrentSection = STREAM_SECTION_MAIN;
         metaStream.Sect[STREAM_SECTION_MAIN].Data = DataStreamManager::GetInstance()->CreatePrivateCache(name, 0x8000); // 32 KB
-        if(StreamVersion == MSV5 || StreamVersion  == MSV6)
+        if(params.Version == MSV5 || params.Version  == MSV6)
         {
             // set main and async as memory streams
             metaStream.Sect[STREAM_SECTION_ASYNC].Data = DataStreamManager::GetInstance()->CreatePrivateCache(name, 0x100000);// 1 MB (mesh/tex)
@@ -1215,7 +1216,7 @@ namespace Meta {
             return false;
         }
          
-        if(StreamVersion != MSV5 && StreamVersion != MSV6 &&
+        if(params.Version != MSV5 && params.Version != MSV6 &&
                      metaStream.Sect[STREAM_SECTION_ASYNC].Data->GetSize() > 0 && metaStream.Sect[STREAM_SECTION_DEBUG].Data->GetSize() > 0)
         {
             TTE_ASSERT(false, "Cannot write serialised meta stream: data written to sections invalid for the given stream version");
@@ -1227,7 +1228,7 @@ namespace Meta {
         
         SerialiseDataU32(stream, nullptr, const_cast<char*>(magic.c_str()), true); // magic
         
-        if(StreamVersion == MSV6 || StreamVersion == MSV5) // TODO optional compressed sections (set top bit of size to 1)
+        if(params.Version == MSV6 || params.Version == MSV5) // TODO optional compressed sections (set top bit of size to 1)
         {
             U32 size = (U32)metaStream.Sect[STREAM_SECTION_MAIN].Data->GetSize(); // size MUST fit into a U31 (yes a 1). otherwise file too large.
             TTE_ASSERT((U64)(size & 0x7FFF'FFFF) ==
@@ -1250,7 +1251,7 @@ namespace Meta {
         
         for(U32 i = 0; i < numVersionInfo; i++)
         {
-            if(StreamVersion == MBIN)
+            if(params.Version == MBIN)
             {
                 U32 len = (U32)Classes[metaStream.VersionInf[i]].Name.length();
                 SerialiseDataU32(stream, nullptr, &len, true); // write type name length
@@ -1279,7 +1280,7 @@ namespace Meta {
         
         // 5. WRITE ASYNC AND DEBUG SECTIONS IF NEEDED
         
-        if(StreamVersion == MSV5 || StreamVersion == MSV6)
+        if(params.Version == MSV5 || params.Version == MSV6)
         {
             metaStream.Sect[STREAM_SECTION_ASYNC].Data->SetPosition(0);
             DataStreamManager::GetInstance()->Transfer(metaStream.Sect[STREAM_SECTION_ASYNC].Data, stream,
@@ -1361,11 +1362,32 @@ namespace Meta {
             return {};
         }
         
+        // if the top bit in the meta stream size is set, then this signifies that that meta stream section is wrapped in a container,
+        // which allows for compressed and encrypted meta streams.
+        Bool Wrapped[3] = {false, false, false};
+        
         if(metaStream.Version == MSV5 || metaStream.Version == MSV6) // latest versions
         {
             SerialiseDataU32(stream, nullptr, &mainSectionSize, false);
             SerialiseDataU32(stream, nullptr, &asyncSectionSize, false);
             SerialiseDataU32(stream, nullptr, &debugSectionSize, false);
+            
+            // check top bits. if set, notify they are wrapped and then wrap them, removing the top bit (the rest is the
+            if((mainSectionSize >> 31) != 0)
+            {
+                Wrapped[STREAM_SECTION_MAIN] = true;
+                asyncSectionSize &= 0x7F'FF'FF'FF;
+            }
+            if((asyncSectionSize >> 31) != 0)
+            {
+                Wrapped[STREAM_SECTION_ASYNC] = true;
+                asyncSectionSize &= 0x7F'FF'FF'FF;
+            }
+            if((asyncSectionSize >> 31) != 0)
+            {
+                Wrapped[STREAM_SECTION_DEBUG] = true;
+                asyncSectionSize &= 0x7F'FF'FF'FF;
+            }
         }
         
         U32 numVersionInfo{};
@@ -1434,12 +1456,6 @@ namespace Meta {
             return {};
         }
         
-        if((mainSectionSize & 0x80000000u) || (asyncSectionSize & 0x80000000u) || (debugSectionSize & 0x80000000u))
-        {
-            TTE_ASSERT(false, "Containerised (compressed) meta streams are not supported at the moment");
-            return {}; // TODO add container support wrappers
-        }
-        
         if(metaStream.Version == MSV5 || metaStream.Version == MSV6) // create separate sub streams for each section
         {
             metaStream.Sect[STREAM_SECTION_MAIN].Data = DataStreamManager::GetInstance()->
@@ -1448,6 +1464,7 @@ namespace Meta {
                         CreateSubStream(stream, stream->GetPosition() + (U64)mainSectionSize, (U64)asyncSectionSize);
             metaStream.Sect[STREAM_SECTION_DEBUG].Data = DataStreamManager::GetInstance()->
                         CreateSubStream(stream, stream->GetPosition() + (U64)mainSectionSize + (U64)asyncSectionSize, (U64)debugSectionSize);
+            
         }
         else
         {
@@ -1468,6 +1485,39 @@ namespace Meta {
         {
             TTE_LOG("Could not create instance for class stored in meta stream");
             return instance;
+        }
+        
+        // now check if we need to add unwrappers
+        if(Wrapped[STREAM_SECTION_MAIN])
+        {
+            metaStream.Sect[STREAM_SECTION_MAIN].Data =
+                DataStreamManager::GetInstance()->CreateContainerStream(metaStream.Sect[STREAM_SECTION_MAIN].Data);
+            // ensure its OK
+            if(!std::static_pointer_cast<DataStreamContainer>(metaStream.Sect[STREAM_SECTION_MAIN].Data)->IsValid())
+            {
+                TTE_LOG("When opening meta stream: main section is wrapped but invalid");
+                return {};
+            }
+        }
+        if(Wrapped[STREAM_SECTION_DEBUG])
+        {
+            metaStream.Sect[STREAM_SECTION_DEBUG].Data =
+                DataStreamManager::GetInstance()->CreateContainerStream(metaStream.Sect[STREAM_SECTION_DEBUG].Data);
+            if(!std::static_pointer_cast<DataStreamContainer>(metaStream.Sect[STREAM_SECTION_DEBUG].Data)->IsValid())
+            {
+                TTE_LOG("When opening meta stream: debug section is wrapped but invalid");
+                return {};
+            }
+        }
+        if(Wrapped[STREAM_SECTION_ASYNC])
+        {
+            metaStream.Sect[STREAM_SECTION_ASYNC].Data =
+                DataStreamManager::GetInstance()->CreateContainerStream(metaStream.Sect[STREAM_SECTION_ASYNC].Data);
+            if(!std::static_pointer_cast<DataStreamContainer>(metaStream.Sect[STREAM_SECTION_ASYNC].Data)->IsValid())
+            {
+                TTE_LOG("When opening meta stream: async section is wrapped but invalid");
+                return {};
+            }
         }
     
         // perform actual serialisation of the primary class stored.
@@ -2039,14 +2089,14 @@ namespace Meta {
             index = _Size - 1;
         
         // Move construct both into new value, also call destructors
-        ClassInstance thisProxy{_ColID, (U8*)this, _PrntRef};
+        ClassInstance empty{};
         if(IsKeyedCollection())
         {
-            keyOut = _Impl::_MakeInstance(Classes[_ColID].ArrayKeyClass, thisProxy);
+            keyOut = _Impl::_MakeInstance(Classes[_ColID].ArrayKeyClass, empty, Symbol{});
             _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayKeyClass], keyOut._GetInternal(), GetKey(index)._GetInternal(), _PrntRef);
             _Impl::_DoDestruct(&Classes[Classes[_ColID].ArrayKeyClass], GetKey(index)._GetInternal());
         }
-        valOut = _Impl::_MakeInstance(Classes[_ColID].ArrayValClass, thisProxy);
+        valOut = _Impl::_MakeInstance(Classes[_ColID].ArrayValClass, empty, Symbol{});
         _Impl::_DoMoveConstruct(&Classes[Classes[_ColID].ArrayValClass], valOut._GetInternal(), GetValue(index)._GetInternal(), _PrntRef);
         _Impl::_DoDestruct(&Classes[Classes[_ColID].ArrayValClass], GetValue(index)._GetInternal());
         

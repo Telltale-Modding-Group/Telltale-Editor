@@ -1,67 +1,5 @@
-require("ToolLibrary/Game/BN100/LuaContainer.lua")
-
--- C++ code temp below for calculating version crc in later games.
---[=====[           // endian?
-            U32 buf = (clz.Flags & CLASS_NON_BLOCKED) == 0 ? 0xFFFF'FFFFu : 0u;
-            U32 crc = CRC32((U8*)&buf, 4, 0);
-            for(auto& member: clz.Members)
-            {
-                if((member.Flags & MEMBER_SKIP) != 0)
-                    continue; // skip
-                crc = CRC32((U8*)member.Name.c_str(), (U32)member.Name.size(), crc);
-                crc = CRC32((U8*)&Classes[member.ClassID].TypeHash, 8, crc);
-                U8 blocked = (Classes[member.ClassID].Flags & CLASS_NON_BLOCKED) == 0 ? 1 : 0;
-                crc = CRC32(&blocked, 1, crc);
-            }
-            return crc;
---]=====]
-
--- Calculate the version CRC of a given class in Bone: Out from Boneville. In the macOS executable for Application1, see function at 0xDE28E
-function VersionCRCBone100(classTable)
-	temp = 0
-	if not MetaFlagQuery(classTable.Flags, kMetaClassNonBlocked) then
-		temp = tonumber("0xFFFF")
-	end
-	hash = MetaHashInt(0, temp)
-
-	if type(classTable.Members) == "table" then -- if we have members iterate through them
-		for _,member in pairs(classTable.Members) do
-			if not MetaFlagQuery(member.Flags, kMetaMemberSerialiseDisable) and not MetaFlagQuery(member.Flags, kMetaMemberVersionDisable) then
-				hash = MetaHashString(hash, member.Name)
-				hash = MetaHashString(hash, member.Class.Name)
-			end
-		end
-	end
-
-	return hash
-end
-
--- PROP FILES
-function SerialisePropertySet(metaStream, propInstance, isWrite)
-	-- start by calling default meta serialise (serialise members, so flags and parent list)
-	if not MetaSerialiseDefault(metaStream, propInstance, isWrite) then
-		return false;
-	end
-	MetaStreamBeginBlock(metaStream, isWrite) -- rest is inside a block in the binary
-
-	if not isWrite then
-		numTypes = MetaStreamReadInt(metaStream)
-		for i=1,numTypes do
-			propType, propTypeVersionIndex = MetaStreamFindClass(metaStream, MetaStreamReadSymbol(metaStream)) -- read class symbol
-			numOfThatType = MetaStreamReadInt(metaStream)
-			for j=1, numOfThatType do
-				key = SymbolTableFind(MetaStreamReadSymbol(metaStream))
-				inst_of_type = MetaCreateInstance(propType, propTypeVersionIndex, propInstance)
-				if not MetaSerialise(metaStream, inst_of_type, isWrite) then
-					return false
-				end
-			end
-		end
-	end -- skip writes for now
-
-	MetaStreamEndBlock(metaStream, isWrite)
-	return true -- ok for now
-end
+require("ToolLibrary/Game/Common/LuaPropertySet.lua")
+require("ToolLibrary/Game/VersionCRC.lua")
 
 -- registers two types: one with baseclass_containerinterface and one without (vers exists for both). pass in k and v table (or k being SArray N)
 function RegisterBoneCollection(containerInterfaceTbl, name, k, v)
@@ -90,7 +28,7 @@ function RegisterBoneHandle(name)
 	MetaHandle.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic -- not in version headers ? idk why
 	MetaHandle.Members = {}
 	-- below member doesnt exist in game (has custom serialiser) but lets just store it as a di
-	MetaHandle.Members[1] = { Name = "mHandle", Class = kMetaSymbol, Flags = kMetaMemberVersionDisable } -- serialise yes, no version hash though.
+	MetaHandle.Members[1] = { Name = "mHandle", Class = kMetaClassSymbol, Flags = kMetaMemberVersionDisable } -- serialise yes, no version hash though.
 	MetaRegisterClass(MetaHandle)
 	return MetaHandle
 end
@@ -130,7 +68,7 @@ end
 
 function RegisterBone100(vendor, platform)
 
-	MetaSetVersionFn("VersionCRCBone100") -- Set version CRC calculation function, before anything else.
+	MetaSetVersionFn("VersionCRC_V0") -- Set version CRC calculation function, before anything else.
 	MetaRegisterIntrinsics() -- First, we must register all of the intrinsic types.
 
 	local MetaVec2 = { VersionIndex = 0 }
@@ -245,7 +183,7 @@ function RegisterBone100(vendor, platform)
 	prop.Members = {}
 	prop.Members[1] = { Name = "mPropertyFlags", Class = MetaFlags }
 	prop.Members[2] = { Name = "mParentList", Class = MetaHandleArrayProp }
-	prop.Serialiser = "SerialisePropertySet"
+	prop.Serialiser = "SerialisePropertySet_V0"
 	MetaRegisterClass(prop)
 
 	-- .AAM FILES
@@ -271,17 +209,17 @@ function RegisterBone100(vendor, platform)
 	local enumNavMode = NewClass("enum NavCam::Mode", 0)
 	enumNavMode.Flags = kMetaClassNonBlocked -- this is a wrapper. needed so versions match, just remaps int
 	enumNavMode.Members[1] = NewMember("mVal", kMetaInt, kMetaMemberVersionDisable)
+	AddEnum(enumNavMode, 1, "eNone", 1)
+	AddEnum(enumNavMode, 1, "eLookAt", 2)
+	AddEnum(enumNavMode, 1, "eOrbit", 3)
+	AddEnum(enumNavMode, 1, "eAnimation_Track", 4)
+	AddEnum(enumNavMode, 1, "eAnimation_Time", 5)
+	AddEnum(enumNavMode, 1, "eAnimation_Pos_ProcedualLookAt", 6)
+	AddEnum(enumNavMode, 1, "eScenePosition", 7)
 	MetaRegisterClass(enumNavMode)
 
 	local navCamMode = NewClass("class Enum<enum NavCam::Mode,1,2>", 0)
 	navCamMode.Members[1] = NewMember("mVal", enumNavMode, kMetaMemberEnum) 
-	AddEnum(navCamMode, 1, "eNone", 1)
-	AddEnum(navCamMode, 1, "eLookAt", 2)
-	AddEnum(navCamMode, 1, "eOrbit", 3)
-	AddEnum(navCamMode, 1, "eAnimation_Track", 4)
-	AddEnum(navCamMode, 1, "eAnimation_Time", 5)
-	AddEnum(navCamMode, 1, "eAnimation_Pos_ProcedualLookAt", 6)
-	AddEnum(navCamMode, 1, "eScenePosition", 7)
 	-- mVal type name for versioning must be enum NavCam::Mode, not int, so we need the wrapper above
 	MetaRegisterClass(navCamMode)
 

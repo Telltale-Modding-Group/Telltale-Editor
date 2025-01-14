@@ -72,6 +72,15 @@ namespace Meta
                 reg.ModifiedBlowfish = false; // not modified default
             }
             
+            ScriptManager::TableGet(man, "AllowOodle");
+            if(man.Type(-1) == LuaType::BOOL)
+                reg.DisableOodle = !ScriptManager::PopBool(man);
+            else
+            {
+                man.Pop(1);
+                reg.DisableOodle = true; // oodle not allowed (no dll/dylib/so/etc in game)
+            }
+            
             ScriptManager::TableGet(man, "Key");
             if(man.Type(-1) == LuaType::STRING)
             {
@@ -791,7 +800,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             return 2;
         }
         
-        // table GetMemberNames(typename, version index, memberName). returns table of [Name] = value
+        // table GetEnumFlags(typename, version index, memberName). returns table of [Name] = value
         static U32 luaMetaGetEnumFlags(LuaManager& man)
         {
             TTE_ASSERT(man.GetTop() == 3, "Incorrect usage of GetEnumFlags");
@@ -861,11 +870,174 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             U32 i = 0;
             for(auto& member: members)
             {
-                man.PushInteger(i++);
+                man.PushInteger(++i);
                 man.PushLString(member.Name.c_str());
                 man.SetTable(-3);
             }
             
+            return 1;
+        }
+        
+        // bool isalive(instance) if parent expired returns false
+        static U32 luaMetaInstanceAlive(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaInstanceAlive");
+            
+            if(man.Type(-1) == LuaType::LIGHT_OPAQUE)
+                man.PushBool(AcquireScriptInstance(man, -1));
+            else
+                man.PushBool(false); // invalid
+            
+            return 1;
+        }
+        
+        // nil setvalue(instance, value)
+        static U32 luaMetaSetClassValue(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaSetClassValue");
+            ClassInstance inst = AcquireScriptInstance(man, -2);
+            if(inst)
+            {
+                Symbol type = Classes[inst.GetClassID()].TypeHash;
+                if(type == Symbol("String") || type == Symbol("class String"))
+                {
+                    // push string
+                    ((String*)inst._GetInternal())->assign(man.ToString(-1));
+                }
+                else if(type == Symbol("Symbol") || type == Symbol("class Symbol"))
+                {
+                    *((Symbol*)inst._GetInternal()) = ScriptManager::ToSymbol(man, -1);
+                }
+                else if(Classes[inst.GetClassID()].Serialise == &SerialiseU64)
+                {
+                    *((U64*)inst._GetInternal()) = SymbolFromHexString(man.ToString(-1)).GetCRC64();
+                }
+                else if(type == Symbol("float"))
+                {
+                    *((float*)inst._GetInternal()) = man.ToFloat(-1);
+                }
+                else if(type == Symbol("double"))
+                {
+                    *((double*)inst._GetInternal()) = (double)man.ToFloat(-1);
+                }
+                else if(type == Symbol("bool"))
+                {
+                    *((bool*)inst._GetInternal()) = man.ToBool(-1);
+                }
+                else if(Classes[inst.GetClassID()].Serialise == &SerialiseU8)
+                {
+                    if(Classes[inst.GetClassID()].Name.find('u') != String::npos
+                       || Classes[inst.GetClassID()].Name.find('U') != String::npos)
+                    {
+                        *((U8*)inst._GetInternal()) = (U8)man.ToInteger(-1);
+                    }
+                    else
+                    {
+                        *((I8*)inst._GetInternal()) = (I8)man.ToInteger(-1);
+                    }
+                }
+                else if(Classes[inst.GetClassID()].Serialise == &SerialiseU16)
+                {
+                    if(Classes[inst.GetClassID()].Name.find('u') != String::npos
+                       || Classes[inst.GetClassID()].Name.find('U') != String::npos)
+                    {
+                        *((U16*)inst._GetInternal()) = (U16)man.ToInteger(-1);
+                    }
+                    else
+                    {
+                        *((I16*)inst._GetInternal()) = (I16)man.ToInteger(-1);
+                    }
+                }
+                else if(Classes[inst.GetClassID()].Serialise == &SerialiseU32)
+                {
+                    if(Classes[inst.GetClassID()].Name.find('u') != String::npos
+                       || Classes[inst.GetClassID()].Name.find('U') != String::npos)
+                    {
+                        *((U32*)inst._GetInternal()) = man.ToInteger(-1);
+                    }
+                    else
+                    {
+                        *((I32*)inst._GetInternal()) = (I32)man.ToInteger(-1);
+                    }
+                }
+                else
+                {
+                    TTE_LOG("Warning: trying to assign to non-intrinsic type %s from lua script! Ignoring",
+                            Classes[inst.GetClassID()].Name.c_str());
+                }
+            }
+            return 0;
+        }
+        
+        // value metagetclassvalue(instance)
+        static U32 luaMetaGetClassValue(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaGetClassValue");
+            
+            ClassInstance inst = AcquireScriptInstance(man, -2);
+            if(inst)
+            {
+                Symbol type = Classes[inst.GetClassID()].TypeHash;
+                if(type == Symbol("String") || type == Symbol("class String"))
+                {
+                    // push string
+                    man.PushLString(*((String*)inst._GetInternal()));
+                }
+                else if(type == Symbol("Symbol") || type == Symbol("class Symbol")
+                        || Classes[inst.GetClassID()].Serialise == &SerialiseU64) // for int64 types (signed and un) push as symbol
+                {
+                    man.PushLString(SymbolToHexString(*((Symbol*)inst._GetInternal())));
+                }
+                else if(type == Symbol("float"))
+                {
+                    man.PushFloat(*((float*)inst._GetInternal()));
+                }
+                else if(type == Symbol("double"))
+                {
+                    man.PushFloat((float)*((double*)inst._GetInternal()));
+                }
+                else if(type == Symbol("bool"))
+                {
+                    man.PushBool(*((Bool*)inst._GetInternal()));
+                }
+                else if(Classes[inst.GetClassID()].Serialise == &SerialiseU8)
+                {
+                    if(Classes[inst.GetClassID()].Name.find('u') != String::npos
+                       || Classes[inst.GetClassID()].Name.find('U') != String::npos)
+                    {
+                        man.PushUnsignedInteger(*((U8*)inst._GetInternal()));
+                    }
+                    else
+                    {
+                        man.PushInteger((I32)*((I8*)inst._GetInternal()));
+                    }
+                }
+                else if(Classes[inst.GetClassID()].Serialise == &SerialiseU16)
+                {
+                    if(Classes[inst.GetClassID()].Name.find('u') != String::npos
+                       || Classes[inst.GetClassID()].Name.find('U') != String::npos)
+                    {
+                        man.PushUnsignedInteger(*((U16*)inst._GetInternal()));
+                    }
+                    else
+                    {
+                        man.PushInteger((I32)*((I16*)inst._GetInternal()));
+                    }
+                }
+                else if(Classes[inst.GetClassID()].Serialise == &SerialiseU32)
+                {
+                    if(Classes[inst.GetClassID()].Name.find('u') != String::npos
+                       || Classes[inst.GetClassID()].Name.find('U') != String::npos)
+                    {
+                        man.PushUnsignedInteger(*((U32*)inst._GetInternal()));
+                    }
+                    else
+                    {
+                        man.PushInteger(*((I32*)inst._GetInternal()));
+                    }
+                }
+                else man.PushNil();
+            }
             return 1;
         }
         
@@ -881,7 +1053,9 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 String mem = man.ToString(-1);
                 inst = GetMember(inst, mem);
                 if(inst)
+                {
                     inst.PushScriptRef(man);
+                }
                 else
                     man.PushNil();
             }
@@ -894,13 +1068,17 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             return 1;
         }
         
-        // createinstance(typename_string, version_number, attach) STRONG reference to attach. attach is another instance, which when destroyed
+        // createinstance(typename_string, version_number, attachedName, attach)
+        // STRONG reference to attach. attach is another instance, which when destroyed
         // this one will be destroyed (it owns it) - example in a Chore, a ChoreAgent since its not in a DCArray
         static U32 luaMetaCreateInstance(LuaManager& man)
         {
-            TTE_ASSERT(man.GetTop() == 3, "Incorrect usage of CreateInstance");
-            String tn = man.ToString(-3);
-            I32 ver = man.ToInteger(-2);
+            TTE_ASSERT(man.GetTop() == 4, "Incorrect usage of CreateInstance");
+            String tn = man.ToString(-4);
+            I32 ver = man.ToInteger(-3);
+            
+            Symbol name = ScriptManager::ToSymbol(man, -2);
+            TTE_ASSERT(name.GetCRC64(), "Name must be properly specified in CreateInstance.");
             
             ClassInstance attach = AcquireScriptInstance(man, -1);
             if(!attach)
@@ -919,7 +1097,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 return 1;
             }
             
-            ClassInstance cinst = CreateInstance(cls, attach);
+            ClassInstance cinst = CreateInstance(cls, attach, name);
             cinst.PushScriptRef(man);
             
             return 1;
@@ -1009,6 +1187,85 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             return 1;
         }
         
+        // num getchildcount(instance)
+        static U32 luaMetaGetChildrenCount(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaGetChildrenCount");
+            man.PushInteger((I32)AcquireScriptInstance(man, -1)._GetInternalChildrenRefs()->size());
+            return 1;
+        }
+        
+        // table[symbols] getchildrennames(instance)
+        static U32 luaMetaGetChildrenNames(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaGetChildSymbol");
+            ClassInstance inst = AcquireScriptInstance(man, -1);
+            if(!inst)
+            {
+                TTE_ASSERT("At MetaGetChildrenNames: null instance passed in");
+                man.PushNil();
+                return 1;
+            }
+            man.PushNil();
+            auto refs = inst._GetInternalChildrenRefs();
+            I32 i = 1;
+            for(auto pair = refs->begin(); pair != refs->end(); pair++, i++)
+            {
+                man.PushInteger(i);
+                ScriptManager::PushSymbol(man, pair->first);
+                man.SetTable(-3);
+            }
+            return 1;
+        }
+        
+        // nil release(instance, name)
+        static U32 luaMetaReleaseChild(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaReleaseChild");
+            
+            ClassInstance inst = AcquireScriptInstance(man, -2);
+            
+            if(!inst)
+            {
+                TTE_ASSERT("At MetaReleaseChild: null instance passed in");
+                return 0;
+            }
+            
+            Symbol n = ScriptManager::ToSymbol(man, -1);
+            
+            // remove from map
+            auto children = inst._GetInternalChildrenRefs();
+            auto it = children->find(n);
+            if(it != children->end())
+                children->erase(it);
+            
+            return 0;
+        }
+        
+        // obj getchild(instance, name)
+        static U32 luaMetaGetChild(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaGetChild");
+            ClassInstance inst = AcquireScriptInstance(man, -2);
+            Symbol n = ScriptManager::ToSymbol(man, -1);
+            
+            if(!inst || !n.GetCRC64())
+            {
+                TTE_ASSERT("At MetaGetChild: null instance passed in or empty symbol");
+                man.PushNil();
+                return 1;
+            }
+            
+            auto it = inst._GetInternalChildrenRefs()->find(n);
+            
+            if(it == inst._GetInternalChildrenRefs()->end())
+                man.PushNil();
+            else
+                it->second.PushScriptRef(man);
+            
+            return 1;
+        }
+        
         static U32 luaMetaDumpVersions(LuaManager& man)
         {
             std::set<String> sortedClassNames{};
@@ -1036,41 +1293,43 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             return 1;
         }
         
-        // copyinstance(instance, attach)
+        // copyinstance(instance, attachName, attach)
         static U32 luaMetaCopyInstance(LuaManager& man)
         {
-            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaCopyInstance");
-            ClassInstance inst = AcquireScriptInstance(man, -2);
+            TTE_ASSERT(man.GetTop() == 3, "Incorrect usage of MetaCopyInstance");
+            ClassInstance inst = AcquireScriptInstance(man, -3);
+            Symbol name = ScriptManager::ToSymbol(man, -2);
             ClassInstance attach = AcquireScriptInstance(man, -1);
             
-            if(!inst || !attach)
+            if(!inst || !attach || !name.GetCRC64())
             {
-                TTE_LOG("Cannot CopyInstance, source or destination instance are null");
+                TTE_LOG("Cannot CopyInstance, source, destination or name are either null or not specified");
                 man.PushNil();
                 return 1;
             }
             
-            ClassInstance cinst = CopyInstance(inst, attach);
+            ClassInstance cinst = CopyInstance(inst, attach, name);
             cinst.PushScriptRef(man);
             
             return 1;
         }
         
-        // move instance(instance, attach)
+        // move instance(instance, attachName, attach)
         static U32 luaMetaMoveInstance(LuaManager& man)
         {
-            TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaMoveInstance");
-            ClassInstance inst = AcquireScriptInstance(man, -2);
+            TTE_ASSERT(man.GetTop() == 3, "Incorrect usage of MetaMoveInstance");
+            ClassInstance inst = AcquireScriptInstance(man, -3);
+            Symbol name = ScriptManager::ToSymbol(man, -2);
             ClassInstance attach = AcquireScriptInstance(man, -1);
             
-            if(!inst || !attach)
+            if(!inst || !attach || !name.GetCRC64())
             {
-                TTE_LOG("Cannot MoveInstance, source or destination instance are null");
+                TTE_LOG("Cannot MoveInstance, source, destination or name are either null or not specified");
                 man.PushNil();
                 return 1;
             }
             
-            ClassInstance cinst = MoveInstance(inst, attach);
+            ClassInstance cinst = MoveInstance(inst, attach, name);
             cinst.PushScriptRef(man);
             
             return 1;
@@ -1244,14 +1503,14 @@ namespace MS
         return 0;
     }
     
-    // readbuffer(stream, buffer_member, size)
+    // Bffer(stream, buffer_member, size)
     static U32 luaMetaStreamReadBuffer(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 3, "Incorrect usage of MetaStreamReadBuffer");
         
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-3));
-        I32 size = man.ToInteger(-2);
-        Meta::ClassInstance bufInst = Meta::AcquireScriptInstance(man, -1);
+        I32 size = man.ToInteger(-1);
+        Meta::ClassInstance bufInst = Meta::AcquireScriptInstance(man, -2);
         
         TTE_ASSERT(bufInst, "Invalid buffer");
         TTE_ASSERT(size >= 0 && size < 0x100000, "Buffer size invalid"); // increase size limit?
@@ -1446,7 +1705,8 @@ namespace LuaMisc
     {
         TTE_ASSERT(man.GetTop() == 1, "Incorrect usage for SymbolFind")
         Symbol sym = SymbolFromHexString(man.ToString(-1));
-        man.PushLString(RuntimeSymbols.Find(sym));
+        String str = RuntimeSymbols.Find(sym);
+        man.PushLString(std::move(str));
         return 1;
     }
     
@@ -1456,6 +1716,33 @@ namespace LuaMisc
         TTE_ASSERT(man.GetTop() == 1, "Incorrect usage for SymbolRegister")
         RuntimeSymbols.Register(man.ToString(-1));
         return 0;
+    }
+    
+    // bool SymbolCompare(left, right)
+    static U32 luaSymbolCmp(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 2, "Incorrect usage for SymbolCompare");
+        String l = man.ToString(-2);
+        String r = man.ToString(-1);
+        if(CompareCaseInsensitive(l, r))
+        {
+            man.PushBool(true);
+        }
+        else
+        {
+            Symbol ls = SymbolFromHexString(l);
+            Symbol rs = SymbolFromHexString(r);
+            ls = ls.GetCRC64() == 0 ? Symbol(l) : ls;
+            rs = rs.GetCRC64() == 0 ? Symbol(r) : rs;
+            man.PushBool(ls == rs);
+        }
+        return 1;
+    }
+    
+    static U32 luaSymbol(LuaManager& man)
+    {
+        man.PushLString(SymbolToHexString(Symbol(man.ToString(-1))));
+        return 1;
     }
     
     static U32 luaSymbolClear(LuaManager&)
@@ -1576,7 +1863,11 @@ namespace TTE
             Meta::ClassInstance inst = Meta::AcquireScriptInstance(man, -1);
             if(inst)
             {
-                if(Meta::WriteMetaStream(path, std::move(inst), r, Context->GetActiveGame()->MetaVersion))
+                
+                Meta::MetaStreamParams params{}; // in the future we can allow users to compress/encrypt these if they want.
+                params.Version = Context->GetActiveGame()->MetaVersion;
+                
+                if(Meta::WriteMetaStream(path, std::move(inst), r, params))
                     man.PushBool(true);
                 else
                 {
@@ -1596,7 +1887,7 @@ namespace TTE
     static U32 luaActiveGame(LuaManager& man)
     {
         ToolContext* Context = ::GetToolContext();
-        TTE_ASSERT(Context, "At TTE_ActiveGame: no context is present. Ensure any modding scripts are run after context initialisation.");
+        TTE_ASSERT(Context, "At TTE_GetActiveGame: no context is present. Ensure any modding scripts are run after context initialisation.");
         if(!Context || !Context->GetActiveGame())
         {
             man.PushNil();
@@ -1709,6 +2000,22 @@ namespace TTE
         return 1;
     }
     
+    static U32 luaLog(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 1, "Invalid use TTE_Log. Must have one string argument");
+        
+        String s = man.ToString(-1);
+        TTE_LOG(s.c_str());
+        
+        return 0;
+    }
+    
+    static U32 luaDumpMemLeaks(LuaManager& man)
+    {
+        DumpTrackedMemory();
+        return 0;
+    }
+    
     // files = listfiles(archive)
     static U32 luaArchiveListFiles(LuaManager& man)
     {
@@ -1772,6 +2079,8 @@ LuaFunctionCollection luaLibraryAPI()
     Col.Functions.push_back({"TTE_OpenTTArchive", &TTE::luaOpenTTArch});
     Col.Functions.push_back({"TTE_OpenTTArchive2", &TTE::luaOpenTTArch2});
     Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles});
+    Col.Functions.push_back({"TTE_Log", &TTE::luaLog});
+    Col.Functions.push_back({"TTE_DumpMemoryLeaks", &TTE::luaDumpMemLeaks});
     
     // REGISTER META API
     
@@ -1799,6 +2108,8 @@ LuaFunctionCollection luaLibraryAPI()
     ADD_FN(Meta::L, "MetaGetClass", luaMetaGetClass);
     ADD_FN(Meta::L, "MetaGetMemberClass", luaMetaGetMemberClass);
     ADD_FN(Meta::L, "MetaGetMember", luaMetaGetMember);
+    ADD_FN(Meta::L, "MetaSetClassValue", luaMetaSetClassValue);
+    ADD_FN(Meta::L, "MetaGetClassValue", luaMetaGetClassValue);
     ADD_FN(Meta::L, "MetaGetEnumFlags", luaMetaGetEnumFlags);
     ADD_FN(Meta::L, "MetaGetMemberNames", luaMetaGetMemberNames);
     ADD_FN(Meta::L, "MetaCreateInstance", luaMetaCreateInstance);
@@ -1808,6 +2119,11 @@ LuaFunctionCollection luaLibraryAPI()
     ADD_FN(Meta::L, "MetaToString", luaMetaToString);
     ADD_FN(Meta::L, "MetaEquals", luaMetaEquals);
     ADD_FN(Meta::L, "MetaLessThan", luaMetaLessThan);
+    ADD_FN(Meta::L, "MetaGetChild", luaMetaGetChild);
+    ADD_FN(Meta::L, "MetaGetNumChildren", luaMetaGetChildrenCount);
+    ADD_FN(Meta::L, "MetaGetChildNames", luaMetaGetChildrenNames);
+    ADD_FN(Meta::L, "MetaReleaseChild", luaMetaReleaseChild);
+    ADD_FN(Meta::L, "MetaInstanceAlive", luaMetaInstanceAlive);
     
     // META STREAM API
     
@@ -1835,6 +2151,9 @@ LuaFunctionCollection luaLibraryAPI()
     ADD_FN(LuaMisc, "SymbolTableFind", luaSymbolFind);
     ADD_FN(LuaMisc, "SymbolTableRegister", luaSymbolReg);
     ADD_FN(LuaMisc, "SymbolTableClear", luaSymbolClear);
+    ADD_FN(LuaMisc, "SymbolCompare", luaSymbolCmp);
+    ADD_FN(LuaMisc, "SymbolCreate", luaSymbol);
+    
     
     return Col;
 }

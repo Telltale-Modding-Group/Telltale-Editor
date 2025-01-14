@@ -152,6 +152,10 @@ void OodleOpen(void*& CompressorOut, void*& DecompressorOut); // opens oodle lib
 
 void OodleClose(); // close oodle lib
 
+U8* AllocateAnonymousMemory(U64 size); // allocates READ-ONLY memory which doesn't exist anywhere but always reads zeros.
+
+void FreeAnonymousMemory(U8*, U64); // free memory associated with allocate anonymous memory. pass in the total size you allocated.
+
 // ===================================================================         UTILS
 // ===================================================================
 
@@ -190,6 +194,13 @@ inline bool IsWeakPtrUnbound(const std::weak_ptr<T>& weak) {
     return !(weak.owner_before(std::weak_ptr<T>()) || std::weak_ptr<T>().owner_before(weak));
 }
 
+// helper to call object destructor
+template<typename T>
+inline void DestroyObject(T& val)
+{
+    val.~T();
+}
+
 class ToolContext; // forward declaration. used a lot. see context.hpp
 
 class DataStream; // See DataStream.hpp
@@ -207,23 +218,39 @@ enum MemoryTag
     MEMORY_TAG_SCRIPTING, // Lua and Script Manager allocation
     MEMORY_TAG_DATASTREAM, // DataStream allocation
     MEMORY_TAG_TEMPORARY, // small timescale temp allocation
-    MEMORY_TAG_CONTEXT, // tool context allocation
+    MEMORY_TAG_TOOL_CONTEXT, // tool context allocation
     MEMORY_TAG_META_TYPE, // meta type instance
     MEMORY_TAG_META_COLLECTION, // meta dynamic array
     MEMORY_TAG_RUNTIME_BUFFER, // runtime buffer
     MEMORY_TAG_BLOWFISH, // blowfish encryption data
     MEMORY_TAG_SCRIPT_OBJECT, // similar to SCRIPTING, however it is a object managed by the lua GC
+    MEMORY_TAG_TEMPORARY_ASYNC, // temporary async stuff
 };
 
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.
 enum ObjectTag : U32
 {
     TTARCHIVE1 = 1, // TTArchive instance, see TTArchive.hpp
-    TTARCHIVE2 = 2, // TTArchive2 instance
-    
+    TTARCHIVE2 = 2, // TTArchive2 instance, see TTArchive2.hpp
 };
 
-// Basic memory API here, the idea is in the future if we want to have some more complex memory management or segregation system we can do that by changing these macros. Memory tags used for future use.
+#ifdef DEBUG // use tracked memory
+
+U8* _DebugAllocateTracked(U64 _Nbytes, MemoryTag tag, CString filename, U32 number);
+void _DebugDeallocateTracked(U8* Ptr);
+
+#define TTE_ALLOC(_Nbytes, _MemoryTag) _DebugAllocateTracked(_Nbytes, _MemoryTag, (CString) __FILE__, (U32) __LINE__)
+
+#define TTE_FREE(ptr) _DebugDeallocateTracked((U8*)ptr)
+
+#define TTE_NEW(_Type, _MemoryTag, ...) new (_DebugAllocateTracked(sizeof(_Type), _MemoryTag, (CString) __FILE__, (U32) __LINE__)) \
+                                        _Type(__VA_ARGS__)
+
+#define TTE_DEL(_Inst) { if(_Inst) { DestroyObject(*_Inst); TTE_FREE((U8*)_Inst); } }
+
+#else
+
+// Release. Dont need to track any allocations.
 
 #define TTE_NEW(_Type, _MemoryTag, ...) new _Type(__VA_ARGS__)
 
@@ -233,3 +260,7 @@ enum ObjectTag : U32
 #define TTE_ALLOC(_NBytes, _MemoryTag) new U8[_NBytes]()
 
 #define TTE_FREE(_ByteArray) delete[] ((U8*)_ByteArray)
+
+#endif
+
+void DumpTrackedMemory(); // if in debug mode, prints all tracked memory allocations.

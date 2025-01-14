@@ -185,7 +185,7 @@ namespace Meta {
         String _PerformToString(U8* pMemory, Class* pClass);
         
         // for c++ controlled: host is empty. if script object: host MUST be a reference to a c++ controlled one.
-        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host); // allocates but does not construct anything in the memory
+        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host, Symbol name); // allocates but does not construct anything in the memory
         
         // some serialisers have 'host' argument: top level class object
         Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
@@ -264,9 +264,12 @@ namespace Meta {
         BlowfishKey MasterKey; // key used for all platforms
         Bool ModifiedBlowfish = false;
         Bool UsesArchive2 = false; // if the game uses .ttarch2 instead of .ttarch
+        Bool DisableOodle = true; // some games are not shipped with oodle, so keep this safe as true. If they are, this is true.
         U32 ArchiveVersion = 0; // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
         
     };
+    
+    using ClassChildMap = std::map<Symbol, ClassInstance>;
     
     // ======================================== PUBLIC META TYPES ========================================
     
@@ -280,7 +283,7 @@ namespace Meta {
         
         friend ClassInstance GetMember(ClassInstance& inst, const String& name);
         
-        friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&);
+        friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&, Symbol);
         
         friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
         
@@ -295,8 +298,9 @@ namespace Meta {
         // Default constructor refers to no instance in memory.
         inline ClassInstance() : _InstanceClassID(0), _InstanceMemory(nullptr) {}
         
+        // returns if the instance is valid, if the parent (if has one) is valid
         inline operator Bool() const {
-            return _InstanceClassID && (_InstanceMemory ? true : false); // call bool operator on ptr
+            return Expired() ? false : _InstanceClassID && (_InstanceMemory ? true : false); // call bool operator on ptr
         }
         
         // Internal use. Returns the deleter
@@ -314,7 +318,7 @@ namespace Meta {
         void PushScriptRef(LuaManager& man, Bool PushStrong = false);
         
         // returns true if this instance has expired because its parent is no longer alive.
-        inline Bool Expired()
+        inline Bool Expired() const
         {
             return !IsWeakPtrUnbound(_ParentAttachMemory) && _ParentAttachMemory.expired();
         }
@@ -360,6 +364,9 @@ namespace Meta {
             return lck ? lck.get() == _InstanceMemory.get() : false;
         }
         
+        // after memory and sarray elements, this is stored if we are a top level (ie no parent)
+        ClassChildMap* _GetInternalChildrenRefs();
+        
     private:
         
         // Use by _MakeInstance. Deleter is defined in the meta.cpp TU.
@@ -373,9 +380,6 @@ namespace Meta {
         // Use by the script ref to create an acquired reference from a script object
         inline ClassInstance(U32 storedID, std::shared_ptr<U8> acquired, ParentWeakReference prnt) : _InstanceClassID(storedID),
             _InstanceMemory(std::move(acquired)), _ParentAttachMemory(std::move(prnt)) {}
-        
-        // after memory and sarray elements, this is stored if we are a top level (ie no parent)
-        std::vector<std::shared_ptr<U8>>* _GetInternalChildrenRefs();
         
         U32 _InstanceClassID; // class id
         std::shared_ptr<U8> _InstanceMemory; // memory pointer to instance in memory
@@ -507,7 +511,8 @@ namespace Meta {
         
         void Clear(); // Clears the array to a size zero, clearing memory.
         
-        // Pops the element at the given index. If index is bigger than or equal to GetSize(), pops top element.
+        // Pops the element at the given index. If index is bigger than or equal to GetSize(), pops top element. Warning: after
+        // completion if key or val out are assigned, they are not owned by anything (ie are top-level)!
         Bool Pop(U32 index, ClassInstance& keyOut, ClassInstance& valOut);
         
         // See Pop. Ignores any key, useful for non keyed types
@@ -582,9 +587,23 @@ namespace Meta {
         return FindClass(Symbol(typeName).GetCRC64(), versionNumber);
     }
     
+    // Optional parameters
+    struct MetaStreamParams
+    {
+        
+        StreamVersion Version = StreamVersion::MSV6;
+        
+        // Optionally compress each meta section
+        Compression::Type Compression[STREAM_SECTION_COUNT] = {Compression::Type::END_LIBRARY, Compression::Type::END_LIBRARY, Compression::Type::END_LIBRARY};
+        
+        // Optionally encrypt each meta section
+        Bool Encryption[STREAM_SECTION_COUNT] = {false, false, false}; // if one is true, it is compressed (if not defined, then Zlib used)
+        
+    };
+    
     // Writes a meta stream file to the output stream, from the instance. This can kick off async jobs, so could block while waiting to finish.
     // Pass in the name of the file you are writing, the instance to write to it, the output stream and the version of the meta stream.
-    Bool WriteMetaStream(const String& name, ClassInstance instance, DataStreamRef& stream, StreamVersion StreamVersion);
+    Bool WriteMetaStream(const String& name, ClassInstance instance, DataStreamRef& stream, MetaStreamParams params);
     
     // Reads a meta stream file from the input stream, into return value. This can kick off async jobs, so could block while waiting to finish.
     ClassInstance ReadMetaStream(DataStreamRef& stream);
@@ -592,15 +611,17 @@ namespace Meta {
     // ===== CLASS FUNCTIONALITY FOR SINGLE INSTANCES ======
 
     // Creates an instance of the given class. Thread safe between game switches. If creating a type which belongs inside another parent
-    // type (ie a non top-level) type, then pass the parent instance as the second argument.
-    ClassInstance CreateInstance(U32 ClassID, ClassInstance host = {});
+    // type (ie a non top-level) type, then pass the parent instance as the second argument along with the name to give to that child
+    // class. This is needed as child classes are all named. If you just want it to hold a reference, generate a random symbol, or a known
+    // one that is only set once, as if it already exists the previous one will be replaced in the underlying map.
+    ClassInstance CreateInstance(U32 ClassID, ClassInstance host = {}, Symbol name = {});
     
-    // Creates an exact copy of the given instance. Thread safe between game switches. See CreateInstance second argument information.
-    ClassInstance CopyInstance(ClassInstance instance, ClassInstance host = {});
+    // Creates an exact copy of the given instance. Thread safe between game switches. See CreateInstance second/third argument information.
+    ClassInstance CopyInstance(ClassInstance instance, ClassInstance host = {}, Symbol name = {});
     
     // Moves the instance argument to a new instance, leaving the old one still alive but with none of its previous data (now in new returned one).
-    // Thread safe between game switches. See CreateInstance second argument information.
-    ClassInstance MoveInstance(ClassInstance instance, ClassInstance host = {});
+    // Thread safe between game switches. See CreateInstance second/third argument information.
+    ClassInstance MoveInstance(ClassInstance instance, ClassInstance host = {}, Symbol name = {});
     
     // Acquires a reference to the given script object on the stack. After using ClassInstance::PushScriptRef, this can be used on the pushed value
     // Thread safe between game switches.

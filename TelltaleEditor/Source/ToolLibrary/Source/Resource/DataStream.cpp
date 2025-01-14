@@ -2,9 +2,11 @@
 #include <Resource/DataStream.hpp>
 #include <Resource/Blowfish.hpp>
 #include <Meta/Meta.hpp>
+#include <Core/Context.hpp>
 
 #include <algorithm>
 #include <stdexcept>
+#include <deque>
 
 // ===================================================================
 // SCHEMES
@@ -59,6 +61,26 @@ void DataStreamManager::Initialise()
     {
         Instance = TTE_NEW(DataStreamManager, MEMORY_TAG_DATASTREAM);
     }
+}
+
+void DataStreamManager::WriteZeros(DataStreamRef& ref, U64 N)
+{
+    U8 Zeros[128]{0};
+    if(N <= 128)
+        ref->Write(Zeros, N);
+    else
+    {
+        U8* Temp = AllocateAnonymousMemory(N);
+        ref->Write(Temp, N);
+        FreeAnonymousMemory(Temp, N);
+    }
+}
+
+void DataStreamManager::WriteString(DataStreamRef &stream, const String &str)
+{
+    U32 sz = (U32)str.length();
+    SerialiseDataU32(stream, nullptr, &sz, true);
+    stream->Write((const U8*)str.c_str(), str.length());
 }
 
 String DataStreamManager::ReadString(DataStreamRef& str)
@@ -131,6 +153,12 @@ std::shared_ptr<DataStreamMemory> DataStreamManager::CreatePrivateCache(const St
     return std::shared_ptr<DataStreamMemory>(pDSFile, &DataStreamDeleter);
 }
 
+std::shared_ptr<DataStreamSequentialStream> DataStreamManager::CreateSequentialStream(const String& url)
+{
+    DataStreamSequentialStream *pDS = TTE_NEW(DataStreamSequentialStream, MEMORY_TAG_DATASTREAM, url);
+    return std::shared_ptr<DataStreamSequentialStream>(pDS, &DataStreamDeleter);
+}
+
 std::shared_ptr<DataStreamMemory> DataStreamManager::FindCache(const String &path)
 {
     for (auto it = _Cache.begin(); it != _Cache.end(); it++)
@@ -167,7 +195,7 @@ DataStreamRef DataStreamManager::CreateCachedStream(const DataStreamRef& src)
         return nullptr;
     }
     
-    DataStreamBuffer *pDS = TTE_NEW(DataStreamBuffer, MEMORY_TAG_DATASTREAM, src->GetURL(), src->GetSize(), Buffer);
+    DataStreamBuffer *pDS = TTE_NEW(DataStreamBuffer, MEMORY_TAG_DATASTREAM, src->GetURL(), src->GetSize(), Buffer, true);
     return DataStreamRef(pDS, &DataStreamDeleter);
 }
 
@@ -177,9 +205,9 @@ DataStreamRef DataStreamManager::CreateNullStream()
     return DataStreamRef(pDS, &DataStreamDeleter);
 }
 
-DataStreamRef DataStreamManager::CreateBufferStream(const ResourceURL &url, U64 size, U8 *b)
+DataStreamRef DataStreamManager::CreateBufferStream(const ResourceURL &url, U64 size, U8 *b, Bool o)
 {
-    DataStreamBuffer *pDSFile = TTE_NEW(DataStreamBuffer, MEMORY_TAG_DATASTREAM, url, size, b);
+    DataStreamBuffer *pDSFile = TTE_NEW(DataStreamBuffer, MEMORY_TAG_DATASTREAM, url, size, b, o);
     return DataStreamRef(pDSFile, &DataStreamDeleter);
 }
 
@@ -348,13 +376,13 @@ ResourceURL::ResourceURL(const Symbol &symbol)
     }
 }
 
-ResourceURL::ResourceURL(const String &path)
+ResourceURL::ResourceURL(String path)
 {
     // Split from scheme.
     size_t pos = path.find_first_of(':');
     if (pos == std::string::npos)
     { // no ':', default file.
-        _Path = path;
+        _Path = std::move(path);
         _Scheme = ResourceScheme::FILE;
     }
     else
@@ -574,7 +602,7 @@ DataStreamNull::~DataStreamNull() {}
 
 Bool DataStreamBuffer::Read(U8 *OutputBuffer, U64 Nbytes)
 {
-    TTE_ASSERT(_Off + Nbytes < _Size, "Trying to read too many bytes from buffer stream");
+    TTE_ASSERT(_Off + Nbytes <= _Size, "Trying to read too many bytes from buffer stream");
     memcpy(OutputBuffer, _Buffer + _Off, Nbytes);
     _Off += Nbytes;
     return true;
@@ -582,7 +610,7 @@ Bool DataStreamBuffer::Read(U8 *OutputBuffer, U64 Nbytes)
 
 Bool DataStreamBuffer::Write(const U8 *InputBuffer, U64 Nbytes)
 {
-    TTE_ASSERT(_Off + Nbytes < _Size, "Trying to write too many bytes to buffer stream");
+    TTE_ASSERT(_Off + Nbytes <= _Size, "Trying to write too many bytes to buffer stream");
     memcpy(_Buffer + _Off, InputBuffer, Nbytes);
     _Off += Nbytes;
     return true;
@@ -590,16 +618,17 @@ Bool DataStreamBuffer::Write(const U8 *InputBuffer, U64 Nbytes)
 
 DataStreamBuffer::~DataStreamBuffer()
 {
-    if (_Buffer)
+    if (_Owns && _Buffer)
         TTE_FREE(_Buffer);
     _Buffer = nullptr;
     _Size = _Off = 0;
 }
 
-DataStreamBuffer::DataStreamBuffer(const ResourceURL &url, U64 sz, U8 *buf) : DataStream(url)
+DataStreamBuffer::DataStreamBuffer(const ResourceURL &url, U64 sz, U8 *buf, Bool f) : DataStream(url)
 {
     _Size = sz;
     _Off = 0;
+    _Owns = buf && f;
     if (buf == nullptr)
         _Buffer = TTE_ALLOC(sz, MEMORY_TAG_DATASTREAM);
     else
@@ -724,6 +753,144 @@ DataStreamLegacyEncrypted::DataStreamLegacyEncrypted(const DataStreamRef& p, U64
     memset(_Rb, 0, 0x100);
 }
 
+// ===================================================================         APPEND STREAM
+// ===================================================================
+
+DataStreamAppendStream::DataStreamAppendStream(const ResourceURL& url, DataStreamRef* pRef, U32 N) : DataStream(url)
+{
+    _AppendStreams.reserve(N);
+    for(U32 i = 0; i < N; i++)
+    {
+        _AppendStreams.push_back(pRef[i]);
+    }
+}
+
+Bool DataStreamAppendStream::Write(const U8 *InputBuffer, U64 Nbytes)
+{
+    Bool result = true;
+    
+    for(auto& stream: _AppendStreams)
+        if(!stream->Write(InputBuffer, Nbytes))
+            result = false;
+    
+    return result;
+}
+
+// ===================================================================         SEQUENTIAL DATA STREAM
+// ===================================================================
+
+DataStreamSequentialStream::DataStreamSequentialStream(const ResourceURL& url) : DataStream(url) {}
+
+U64 DataStreamSequentialStream::GetSize()
+{
+    U64 totalSize = _BytesRead;
+    if(_StreamIndex < (U64)_OrderedStreams.size())
+        totalSize += _OrderedStreams[_StreamIndex]->GetSize() - _StreamPos; // remaining from current
+    for(U32 i = _StreamIndex + 1; i < (U64)_OrderedStreams.size(); i++)
+    {
+        totalSize += _OrderedStreams[i]->GetSize();
+    }
+    return totalSize;
+}
+
+U64 DataStreamSequentialStream::GetPosition()
+{
+    return _BytesRead;
+}
+
+void DataStreamSequentialStream::SetPosition(U64 pos)
+{
+    U64 running = 0;
+    U32 streamIndex = 0;
+    for(auto& stream: _OrderedStreams)
+    {
+        U64 ssize = stream->GetSize();
+        if(pos >= running && pos <= running + ssize)
+        {
+            _BytesRead = pos;
+            _StreamIndex = streamIndex;
+            _StreamPos = pos - running;
+            return;
+        }
+        streamIndex++;
+    }
+    TTE_ASSERT(false, "DataStreamSequentialStream::SetPosition => position 0x%llX too large", pos);
+}
+
+Bool DataStreamSequentialStream::Read(U8 *OutputBuffer, U64 Nbytes)
+{
+    if(!Nbytes)
+        return true; // edge case
+    
+    if(_StreamIndex >= (U64)_OrderedStreams.size()) // finished
+    {
+        TTE_ASSERT(false, "Cannot read bytes from sequential stream: no data available");
+        return false;
+    }
+    
+    // first read bytes from current page
+    U64 remInCurrentStream = _OrderedStreams[_StreamIndex]->GetSize() - _StreamPos;
+    
+    if (remInCurrentStream > Nbytes)
+    {
+        if(!_OrderedStreams[_StreamIndex]->Read(OutputBuffer, Nbytes))
+            return false;
+        _StreamPos += Nbytes;
+        _BytesRead += Nbytes;
+        return true; // enough bytes were read from the current stream
+    }
+    else if(remInCurrentStream > 0)
+    {
+        // read remaining bytes from the current page
+        if(!_OrderedStreams[_StreamIndex]->Read(OutputBuffer, remInCurrentStream))
+            return false;
+        Nbytes -= remInCurrentStream; // decrease pending bytes to be read
+        OutputBuffer += remInCurrentStream;
+        _BytesRead += remInCurrentStream;
+    }
+    
+    _StreamIndex++;
+    _StreamPos = 0;
+    
+    // next loop through and streams fully
+    while (Nbytes)
+    {
+        if(_StreamIndex >= (U64)_OrderedStreams.size()) // finished
+        {
+            TTE_ASSERT(false, "Cannot read bytes from sequential stream: no data available");
+            return false;
+        }
+        U64 ssize = _OrderedStreams[_StreamIndex]->GetSize();
+        if(Nbytes < ssize)
+            break;
+        if(_OrderedStreams[_StreamIndex]->Read(OutputBuffer, ssize))
+            return false;
+        OutputBuffer += ssize;
+        Nbytes -= ssize;
+        _BytesRead += ssize;
+       _StreamIndex++;
+       _StreamPos = 0;
+    }
+    
+    // finally read any remainding bytes
+    if (Nbytes)
+    {
+        if(_StreamIndex >= (U64)_OrderedStreams.size()) // finished
+        {
+            TTE_ASSERT(false, "Cannot read bytes from sequential stream: no data available");
+            return false;
+        }
+        if(_OrderedStreams[_StreamIndex]->Read(OutputBuffer, Nbytes))
+            return false;
+        _StreamPos = Nbytes;
+        _BytesRead += Nbytes;
+    }
+    else
+        _StreamPos = 0;
+    
+    return true;
+}
+
 // ===================================================================         CONTAINER (COMPRESSABLE) DATA STREAM
 // ===================================================================
 
@@ -806,7 +973,7 @@ DataStreamContainer::DataStreamContainer(const DataStreamRef& p) : DataStreamDef
         U32 compressor = {};
         SerialiseDataU32(_Prnt, 0, &compressor, false);
         _Compression = compressor == 0 ? Compression::ZLIB : Compression::OODLE;
-        if(compressor != 1) // 0: zlib, 1: oodle. if not oodle or zlib, error
+        if(compressor > 1) // 0: zlib, 1: oodle. if not oodle or zlib, error
         {
             TTE_LOG("When reading container: unknown compression type");
             return;
@@ -854,4 +1021,493 @@ DataStreamContainer::DataStreamContainer(const DataStreamRef& p) : DataStreamDef
     }
     
     _Valid = true; // DONE
+}
+
+#define CONTAINER_BULK_SIZE 16
+#define MAX_FOOTPRINT_MB 512
+
+struct _AsyncContainerContext
+{
+    
+    std::mutex Input; // input data mutex
+    DataStreamRef Src;
+    volatile U32 InputIndex; // current index of next page(s) to be read from src
+    
+    std::timed_mutex Output; // output stream mutex: locks the following:
+    DataStreamRef Dst;
+    volatile U32 FlushIndex; // next page index to be flushed (always a multiple of BulkSize)
+    std::vector<U32> FinalCompressedSizes;
+    
+    U32 NumSlaves; // number of threads, including master, actively running and compressing pages. between 1 and NUM_SCHEDULER_THREADS.
+    U32 NumPages; // total number of pages to be compressed
+    U32 MaxPendingFlushes; // maximum number of pages which can fit in to the stashed pending buffer for each thread
+    U64 SrcSize; // total bytes in from src to read
+    U64 SrcDataStart; // position in src to start reading SrcSize bytes from
+    U64 DstContainerStart; // position in dst stream of magic bytes for container
+    
+    U8* WorkingBuffersIn[NUM_SCHEDULER_THREADS]; // inputs for each thread
+    U8* WorkingBuffersOut[NUM_SCHEDULER_THREADS]; // output for each thread
+    U8* OverflowWorkingOut[NUM_SCHEDULER_THREADS]; // if compression is larger than uncompressed size. size of each is 2*0x10000
+    
+    U8* StashedPending[NUM_SCHEDULER_THREADS];
+    
+    // information
+    Compression::Type Compression;
+    Bool Encrypt;
+    // U32 BlockSize; we will always use 65536
+    
+};
+
+struct ProcessedPageBulk
+{
+    U32 FirstPageIndex;
+    U32 FlushSlot; // slot in stashed buffer
+    U32 CompressedSizes[CONTAINER_BULK_SIZE];
+    std::shared_ptr<U8> Overflow[CONTAINER_BULK_SIZE];
+    // if compressed data is larger than window size (ie couldn't compress well) store it externally.
+};
+
+static void _U8Deleter(U8* F)
+{
+    TTE_FREE(F);
+}
+
+static Bool _DoPage(U8* In, U8* Out, _AsyncContainerContext* ctx, ProcessedPageBulk& blk, U32 blkIndex, U32 pgIndex)
+{
+    
+    U64 compressedSize = Compression::Compress(In, 0x10000, Out, 0x10000, ctx->Compression);
+    if(compressedSize == 0)
+    {
+        // try again with larger output buffer.
+        U8* OutputBuffer = TTE_ALLOC(0x11000, MEMORY_TAG_TEMPORARY);
+        compressedSize = Compression::Compress(In, 0x10000, OutputBuffer, 0x11000, ctx->Compression);
+        if(compressedSize == 0)
+        {
+            TTE_FREE(OutputBuffer);
+            TTE_LOG("Failed to compress page %d (output buffer is 2x input size) of container input. Failing...",
+                    (blkIndex*CONTAINER_BULK_SIZE)+pgIndex);
+            return false;
+        }
+        Out = OutputBuffer;
+        blk.Overflow[pgIndex] = std::shared_ptr<U8>(Out, &_U8Deleter);
+    }
+    
+    blk.CompressedSizes[pgIndex] = (U32)compressedSize;
+    
+    // encrypt if needed
+    if(ctx->Encrypt)
+        Blowfish::GetInstance()->Encrypt(Out, (U32)compressedSize);
+    
+    return true;
+}
+
+// slave async job: compresses pages needed
+static Bool _AsyncCreateContainerSlave(const JobThread& thread, void* pCtx, void* _n)
+{
+    _AsyncContainerContext* ctx = (_AsyncContainerContext*)pCtx;
+    U32 myIndex = (U32)((U64)_n & 0xFFFFllu); // worker slave index. give priority to myIndex 0 as no wait for the thread to start (direct call)
+    
+    std::deque<ProcessedPageBulk> PendingFlushesInfo{}; // data info about what is written in the pending file
+    
+    U32 PagesRead = 0; // number of pages we have read in so far (not neccesarily compressed).
+    U32 BulkIndex = 0; // current index of compression in working buffers
+    Bool Finished = false;
+    
+    while(!Finished || PendingFlushesInfo.size() > 0) // keep going until we can
+    {
+        
+        ProcessedPageBulk blk{};
+        
+        Bool bThisPageNeedsPendingFlush = !Finished; // set false if we can flush already
+
+        if(!Finished)
+        {
+            // read all pages we can
+            ctx->Input.lock();
+            // check first, have we finished? ie have we *read* all pages (ignoring the remainder pages, done first).
+            if(ctx->InputIndex >= (ctx->NumPages - (ctx->NumPages % CONTAINER_BULK_SIZE)))
+            {
+                Finished = true;
+                bThisPageNeedsPendingFlush = false;
+                ctx->Input.unlock();
+                continue;
+            }
+            else
+            {
+                // egde case: perfect multiple of bulk size: last page very likely (65535-1/65535) to have less bytes
+                U64 skipEndBytes = 0;
+                if(ctx->InputIndex + CONTAINER_BULK_SIZE == ctx->NumPages)
+                {
+                    skipEndBytes = 0x10000 - (ctx->SrcSize & 0xFFFF);
+                }
+                
+                // do the read
+                if(!ctx->Src->Read(ctx->WorkingBuffersIn[myIndex], (CONTAINER_BULK_SIZE * 0x10000) - skipEndBytes))
+                {
+                    TTE_LOG("Could not read from source stream while flushing container stream!");
+                    ctx->Input.unlock();
+                    return false;
+                }
+                
+                // edge case: fill remaining with zeros.
+                if(skipEndBytes)
+                    memset(ctx->WorkingBuffersIn[myIndex] + (CONTAINER_BULK_SIZE * 0x10000) - skipEndBytes, 0, skipEndBytes);
+                
+                blk.FirstPageIndex = ctx->InputIndex;
+                ctx->InputIndex += CONTAINER_BULK_SIZE;
+            }
+            ctx->Input.unlock();
+            
+            // process the data: compress and encrypt.
+            for(U32 i = 0; i < CONTAINER_BULK_SIZE; i++)
+            {
+                if(!_DoPage(ctx->WorkingBuffersIn[myIndex] + i * 0x10000,
+                            ctx->WorkingBuffersOut[myIndex] + i * 0x10000, ctx, blk, blk.FirstPageIndex / CONTAINER_BULK_SIZE, i))
+                {
+                    TTE_LOG("Failed to compress container page!");
+                    return false;
+                }
+            }
+        }
+        
+        if(PendingFlushesInfo.size()) // try and flush as many as we can out of the stashed pending buffer
+        {
+            // Check if we can flush
+            Bool bLocked = true;
+            
+            if(ctx->Output.try_lock_for(std::chrono::milliseconds(1)))
+            {
+                // output it open, lock is held. (yay!)
+            }
+            else if((PendingFlushesInfo.size() >= (ctx->MaxPendingFlushes * CONTAINER_BULK_SIZE)) || Finished)
+            {
+                ctx->Output.lock(); // if we really need to lock it, force it here (ie we have a lot of pages finished) OR are finished reading.
+            }
+            else bLocked = false;
+            
+            if(bLocked)
+            {
+                // ensure order of output writes. write all the pages we want to flush until the order does not match.
+                while(PendingFlushesInfo.size() && ctx->FlushIndex == PendingFlushesInfo.front().FirstPageIndex)
+                {
+                    ProcessedPageBulk pg = std::move(PendingFlushesInfo.front());
+                    PendingFlushesInfo.pop_front();
+                    
+                    // transfer to output stream. we can use working buffer IN, as its not used at the moment.
+                    for(U32 i = 0; i < CONTAINER_BULK_SIZE; i++)
+                    {
+                        U8* Buf = ctx->StashedPending[myIndex] + (pg.FlushSlot * 0x10000 * CONTAINER_BULK_SIZE) + i * 0x10000;
+                        if(pg.Overflow[i])
+                            Buf = pg.Overflow[i].get();
+                        if(!ctx->Dst->Write(Buf, pg.CompressedSizes[i]))
+                        {
+                            TTE_LOG("Failed to write compressed page to output container stream!");
+                            ctx->Output.unlock();
+                            return false;
+                        }
+                    }
+
+                    // add compressed sizes to final
+                    ctx->FinalCompressedSizes.insert(ctx->FinalCompressedSizes.end(), &pg.CompressedSizes[0], &pg.CompressedSizes[CONTAINER_BULK_SIZE]);
+                    
+                    ctx->FlushIndex +=CONTAINER_BULK_SIZE;
+                }
+                
+                // we may actually be able to flush the data just processed already. check.
+                if(blk.FirstPageIndex == ctx->FlushIndex)
+                {
+                    // yay! write the compressed chunks
+                    for(U32 i = 0; i < CONTAINER_BULK_SIZE; i++)
+                    {
+                        U8* Buf = ctx->WorkingBuffersOut[myIndex] + i * 0x10000;
+                        if(blk.Overflow[i])
+                            Buf = blk.Overflow[i].get();
+                        if(!ctx->Dst->Write(Buf, blk.CompressedSizes[i]))
+                        {
+                            TTE_LOG("Failed to write compressed page to output container stream (2)!");
+                            ctx->Output.unlock();
+                            return false;
+                        }
+                    }
+                    
+                    // add compressed sizes to final
+                    ctx->FinalCompressedSizes.insert(ctx->FinalCompressedSizes.end(), &blk.CompressedSizes[0], &blk.CompressedSizes[CONTAINER_BULK_SIZE]);
+                    
+                    ctx->FlushIndex +=CONTAINER_BULK_SIZE;
+                   
+                    bThisPageNeedsPendingFlush = false;
+                }
+                
+                // unlock
+                ctx->Output.unlock();
+            }
+        }
+        
+        // finally, flush if needed
+        if(bThisPageNeedsPendingFlush)
+        {
+            // find a slot, the lowest one. (common problem: finding lowest number not in array. use fact we know max number).
+            constexpr U32 bitsetSize = ((MAX_FOOTPRINT_MB * 1024 * 1024)/(0x10000 * CONTAINER_BULK_SIZE)) >> 3; // = 64
+            U8 localBitset[bitsetSize]{};
+            I32 slot = -1;
+            for(auto& it: PendingFlushesInfo)
+            {
+                TTE_ASSERT(it.FlushSlot < ctx->MaxPendingFlushes, "Invalid flush slot");
+                localBitset[it.FlushSlot >> 3] |= (1u << (it.FlushSlot & 7));
+            }
+            // could use bitscan routines. compilers might optimise
+            for(U32 i = 0; i < bitsetSize; i++)
+            {
+                if(localBitset[i] == 0xFF)
+                    continue; // no free in this byte
+                for(U32 j = 0; j < 7; j++)
+                {
+                    if((localBitset[i] & (1u << j)) == 0)
+                    {
+                        slot = (i << 3) + j;
+                        break;
+                    }
+                }
+                // slot is MSB
+                slot = slot ? slot : (i << 3) + 7;
+                break;
+            }
+            blk.FlushSlot = slot;
+            
+            // flush it all
+            memcpy(ctx->StashedPending[myIndex] + (blk.FlushSlot * 0x10000 * CONTAINER_BULK_SIZE),
+                   ctx->WorkingBuffersOut[myIndex], CONTAINER_BULK_SIZE * 0x10000);
+            PendingFlushesInfo.push_back(std::move(blk));
+        }
+    }
+    
+    return true;
+}
+
+// master async job: dispatches more jobs to do each page
+static Bool _AsyncCreateContainerMaster(const JobThread* pThread, void* pCtx, void* _Del)
+{
+    _AsyncContainerContext* ctx = (_AsyncContainerContext*)pCtx;
+    Bool bResult = true;
+    
+    // 1. reserve and write offset bytes to dst to be done later
+    ctx->FinalCompressedSizes.reserve(ctx->NumPages);
+    U64 offsetsOffset = ctx->Dst->GetPosition();
+    DataStreamManager::GetInstance()->WriteZeros(ctx->Dst, ((U64)ctx->NumPages + 1) << 3);
+    U64 dstDataOffset = ctx->Dst->GetPosition() - ctx->DstContainerStart;
+    
+    // 2. set the maximum number of stashable pages per slave while waiting for their turn in the ordered final writes
+    ctx->MaxPendingFlushes = MIN((MAX_FOOTPRINT_MB * 1024 * 1024 - (2 * 0x10000 * ctx->NumSlaves * CONTAINER_BULK_SIZE))
+                        / (0x10000 * ctx->NumSlaves  * CONTAINER_BULK_SIZE), ctx->NumPages / ctx->NumSlaves); // 512MB MAXIMUM in memory.
+  
+    // 3. allocate temp buffers
+    U8* TempMemory = TTE_ALLOC(ctx->NumSlaves * 0x10000 * (2 + CONTAINER_BULK_SIZE * (2 + ctx->MaxPendingFlushes)),
+                               MEMORY_TAG_TEMPORARY_ASYNC); // + 2 for in and out, then plus on stashed pending. +2 for overflow compress
+    
+    // 4. assign buffer regions
+    U8* ToFreeBuffer = TempMemory;
+    for(U32 i = 0; i < ctx->NumSlaves; i++)
+    {
+        ctx->WorkingBuffersIn[i] = TempMemory;
+        TempMemory += CONTAINER_BULK_SIZE * 0x10000;
+        ctx->WorkingBuffersOut[i] = TempMemory;
+        TempMemory += CONTAINER_BULK_SIZE * 0x10000;
+        ctx->OverflowWorkingOut[i] = TempMemory;
+        TempMemory += 2 * 0x10000;
+        ctx->StashedPending[i] = TempMemory;
+        TempMemory += ctx->MaxPendingFlushes * 0x10000 * CONTAINER_BULK_SIZE;
+    }
+    
+    JobHandle Handles[NUM_SCHEDULER_THREADS-1]{}; // job handles to wait after
+    
+    // 5. if we have any remaining pages, read them first here.
+    U32 RemPages = ctx->NumPages % CONTAINER_BULK_SIZE;
+    U32 NBulks = (ctx->NumPages - RemPages) / CONTAINER_BULK_SIZE; // number of bulks slaves will do
+    U8* RemPagesTemp = nullptr;
+    if(RemPages)
+    {
+        U64 skipEndBytes = 0x10000 - (ctx->SrcSize & 0xFFFF);
+        ctx->Src->SetPosition(ctx->SrcDataStart + ((ctx->NumPages - RemPages)) * 0x10000); // seek to last remaining pages
+        RemPagesTemp = TTE_ALLOC((RemPages + 1) * 0x10000, MEMORY_TAG_TEMPORARY);// add +1 for working buffer
+        bResult = ctx->Src->Read(RemPagesTemp + 0x10000, RemPages * 0x10000 - skipEndBytes); // this must succeed
+        ctx->Src->SetPosition(ctx->SrcDataStart); // reset pos
+    }
+    
+    if(bResult)
+    {
+        ProcessedPageBulk remBlk{};
+        
+        // 5. kick off other slave jobs (not 0, thats here)
+        JobDescriptor Descriptors[NUM_SCHEDULER_THREADS-1];
+        for(U32 i = 1; i < ctx->NumSlaves; i++)
+        {
+            Descriptors[i-1].AsyncFunction = &_AsyncCreateContainerSlave;
+            Descriptors[i-1].Priority = JOB_PRIORITY_NORMAL;
+            Descriptors[i-1].UserArgA = ctx;
+            Descriptors[i-1].UserArgB = (void*)((U64)i);
+        }
+        JobScheduler::Instance->PostAll(Descriptors, ctx->NumSlaves - 1, Handles);
+        
+        // 6. do compress and encrypt on remaining pages
+        if(RemPages)
+        {
+            U8* WorkingBufferIn = RemPagesTemp;
+            for(U32 i = 1; i <= RemPages; i++)
+            {
+                U8* WorkingBufferOut = RemPagesTemp + (i * 0x10000);
+                if(!_DoPage(WorkingBufferIn, WorkingBufferOut, ctx, remBlk, NBulks, i - 1))
+                {
+                    TTE_LOG("Failed to compress container page!");
+                    bResult = false;
+                    break;
+                }
+            }
+        }
+        
+        // 7. we already have this job running, make it slave 0
+        if(bResult)
+            bResult = _AsyncCreateContainerSlave(*pThread, ctx, nullptr); // index 0
+        else
+        {
+            for(U32 i = 0; i < ctx->NumSlaves - 1; i++)
+                JobScheduler::Instance->Cancel(Handles[i], false); // cancel if fail
+        }
+        
+        // 8. wait for others to complete.
+        JobScheduler::Instance->Wait(ctx->NumSlaves - 1, Handles);
+        
+        if(bResult)
+        {
+            
+            // write remaining pages. first ensure we have read all bulks.
+            TTE_ASSERT(ctx->Src->GetPosition() == ctx->SrcDataStart + NBulks * 0x10000 * CONTAINER_BULK_SIZE, "Internal error with container");
+            
+            for(U32 i = 1; i <= RemPages; i++)
+            {
+                U8* Buf = RemPagesTemp + (i * 0x10000);
+                if(remBlk.Overflow[i-1])
+                    Buf = remBlk.Overflow[i-1].get();
+                bResult = ctx->Dst->Write(Buf, remBlk.CompressedSizes[i-1]);
+                if(!bResult)
+                    break;
+                ctx->FinalCompressedSizes.push_back(remBlk.CompressedSizes[i-1]);
+            }
+            
+            if(bResult)
+            {
+                
+                // finally write compressed offsets.
+                ctx->Dst->SetPosition(offsetsOffset);
+                U64 runningOffset = dstDataOffset;
+                for(auto size: ctx->FinalCompressedSizes)
+                {
+                    SerialiseDataU64(ctx->Dst, nullptr, &runningOffset, true);
+                    runningOffset += (U64)size;
+                }
+                SerialiseDataU64(ctx->Dst, nullptr, &runningOffset, true);
+                ctx->Dst->SetPosition(ctx->Dst->GetSize());
+                
+            }
+        }
+    }
+    
+    if(RemPagesTemp)
+        TTE_FREE(RemPagesTemp);
+    TTE_FREE(ToFreeBuffer); // free large buffer
+    if(_Del)
+        TTE_DEL(ctx); // done
+    return bResult;
+}
+
+Bool _AsyncCreateContainerMasterDelegate(const JobThread& pThread, void* pCtx, void* _Del)
+{
+    return _AsyncCreateContainerMaster(&pThread, pCtx, _Del); // job thread can be 0 if just running from calling thread
+}
+
+// write telltale container using async jobs if needed
+Bool DataStreamManager::FlushContainer(DataStreamRef& src, U64 n, DataStreamRef& dst, ContainerParams p, JobHandle& jobout)
+{
+    TTE_ASSERT(IsCallingFromMain(), "Flush container can only be called from the main thread!");
+    TTE_ASSERT(JobScheduler::Instance, "Job scheduler is not initialised");
+    
+    if(!src || !dst || n > src->GetPosition() + src->GetSize())
+        return false;
+    
+    if(p.Compression == Compression::END_LIBRARY && p.Encrypt)
+        p.Compression = Compression::ZLIB; // must compress if encrypting
+    
+    if(p.Compression == Compression::OODLE && GetToolContext()->GetActiveGame()->DisableOodle)
+    {
+        TTE_LOG("Cannot use oodle compression for the current game snapshot - it is not supported in the game. Please specify Zlib and retry!");
+        return false;
+    }
+    
+    if(p.Compression == Compression::END_LIBRARY)
+    {
+        // no compression, easy mode: magic, size, data. no async.
+        dst->Write((const U8*)"NCTT", 4);
+        SerialiseDataU64(dst, nullptr, &n, true);
+        Transfer(src, dst, n);
+    }
+    else
+    {
+        
+        U64 dstStart = dst->GetPosition();
+        
+        if(p.Compression == Compression::OODLE)
+        {
+            dst->Write(p.Encrypt ? (const U8*)"eCTT" : (const U8*)"zCTT", 4);
+            U32 compressionLib = 1; // oodle
+            SerialiseDataU32(dst, nullptr, &compressionLib, true);
+        }
+        else
+        {
+            dst->Write(p.Encrypt ? (const U8*)"ECTT" : (const U8*)"ZCTT", 4);
+        }
+        
+        U32 windowSize = 0x10000; // default as all archive to 65536
+        SerialiseDataU32(dst, nullptr, &windowSize, true);
+        
+        U32 nPages = (U32)((n + 0xFFFF) >> 16); // last page is padded with zeros
+        SerialiseDataU32(dst, nullptr, &nPages, true);
+        
+        if(nPages < 32) // anything less than 32 pages we can on this thread, anything more we will need async.
+        {
+            _AsyncContainerContext ctx{};
+            ctx.Compression = p.Compression;
+            ctx.Src = src;
+            ctx.Dst = dst;
+            ctx.DstContainerStart = dstStart;
+            ctx.Encrypt = p.Encrypt;
+            ctx.SrcDataStart = src->GetPosition();
+            ctx.NumSlaves = 1;
+            ctx.SrcSize = n;
+            ctx.NumPages = nPages;
+            return _AsyncCreateContainerMaster(nullptr, &ctx, nullptr);
+        }
+        else
+        {
+            _AsyncContainerContext* pContext = TTE_NEW(_AsyncContainerContext, MEMORY_TAG_TEMPORARY_ASYNC);
+            pContext->Compression = p.Compression;
+            pContext->Src = src;
+            pContext->SrcSize = n;
+            pContext->Dst = dst;
+            pContext->DstContainerStart = dstStart;
+            pContext->SrcDataStart = src->GetPosition();
+            pContext->Encrypt = p.Encrypt;
+            // pages 32 to 1024 use 2 slaves, 1024 to 4096 use 4, else 8
+            pContext->NumSlaves = nPages > 4096 ? 8 : nPages > 1024 ? 4 : 2;
+            pContext->NumPages = nPages;
+            
+            JobDescriptor desc{};
+            desc.AsyncFunction = &_AsyncCreateContainerMasterDelegate;
+            desc.Priority = JOB_PRIORITY_COUNT;
+            desc.UserArgA = pContext;
+            desc.UserArgB = pContext; // if non zero we need to delete it after
+            jobout = JobScheduler::Instance->Post(std::move(desc));
+        }
+        
+    }
+    
+    return true;
 }

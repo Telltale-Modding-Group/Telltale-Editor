@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Resource/DataStream.hpp>
+#include <Scheduler/JobScheduler.hpp>
 #include <vector>
 
 //.TTARCH2 FILES. CACHES, UNTIL DESTROYED, ANY STREAM(S) PASSED INTO SERIALISE IN.
@@ -11,7 +12,8 @@ public:
     
     Bool SerialiseIn(DataStreamRef& in);
     
-    Bool SerialiseOut(DataStreamRef& in);
+    // May be async. Do not reference out between. If return false it failed and no async. Else check handle validity.
+    Bool SerialiseOut(DataStreamRef& out, ContainerParams params, JobHandle& handle);
     
     // Returns the binary stream of the given file name symbol in this data archive.
     inline DataStreamRef Find(const Symbol& fn) const
@@ -55,11 +57,24 @@ private:
     
     struct FileInfo // file
     {
+        
         String Name;
         DataStreamRef Stream;
+        
     };
     
-    struct InternalFileInfo // internal while reading / writing
+    // for internal sorting before writes
+    struct FileInfoSort
+    {
+        
+        inline Bool operator()(const FileInfo& lhs, const FileInfo& rhs)
+        {
+            return Symbol(lhs.Name) < Symbol(rhs.Name);
+        }
+        
+    };
+    
+    struct InternalFileInfo // internal while reading
     {
         U64 Offset; // offset in archive
         U32 Size; // size of file

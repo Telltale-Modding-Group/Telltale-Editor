@@ -3,6 +3,8 @@
 #include <Core/Config.hpp>
 #include <Core/Symbol.hpp>
 #include <Resource/Compression.hpp>
+#include <Scheduler/JobScheduler.hpp>
+
 #include <map>
 #include <memory>
 #include <vector>
@@ -34,12 +36,12 @@ class ResourceURL
     ResourceURL() = default;
 
     // Constructs with the given path. Path can start with 'xxx:path/path' where xxx is the scheme string.
-    ResourceURL(const String &path);
+    ResourceURL(String path);
 
     // Constructs with the symbol scheme. The resource URL that points to that symbol. If GetScheme() is still symbol, it was not found.
     // You can still call open and another find attempt is made, so Open() may succeed if it now exists.
     // If it is not this, then it was found and you can open it.
-    ResourceURL(const Symbol &symbol);
+    explicit ResourceURL(const Symbol &symbol);
 
     // Construct manually
     inline ResourceURL(ResourceScheme scheme, const String &path) : _Path(path), _Scheme(scheme) { _Normalise(); }
@@ -198,11 +200,13 @@ class DataStreamBuffer : public DataStream
     virtual ~DataStreamBuffer();
 
   protected:
-    DataStreamBuffer(const ResourceURL &url, U64 size, U8 *pBuffer = nullptr); // Optional buffer, if set will be deallocated with tte_free
+    DataStreamBuffer(const ResourceURL &url, U64 size, U8 *pBuffer, Bool FreeAfter);
+    // Optional buffer, if set will be deallocated with tte_free if not Free
 
     U8 *_Buffer;
     U64 _Off;
     U64 _Size;
+    Bool _Owns;
 
     friend class DataStreamManager;
 };
@@ -268,7 +272,23 @@ protected:
     friend class DataStreamManager;
 };
 
-// compressable, encryptable wrapper. ZCTT/zCTT/ECTT/eCTT/NCTT (TTC meaning telltale container) N = none, e = specific compression lib & encrypt.
+/// Data stream containers are where you see the 'ZCTT/zCTT/NCTT/etc' file magic headers. These are not intrinsically related to TTARCH2 files or anything. They wrap another data stream.
+/// They allow for it to be compressed, with either zlib or oodle, as well as encrypted. If they are encrypted, it must be compressed. They compress in blocks of a set uncompressed size,
+/// pretty much always 65536 bytes. These bytes are compressed into a smaller block, and the offsets of each of these blocks as well as the number of them are stored at the beginning of the
+/// stream in memory. Its a wrapper, so of course there is a mode where it does not compress or encrypt, just writes the bytes as is (NCTT - ideally meaning Telltale Container None or equivalent).
+/// The magic is written in this mode, followed by the U64 total remaining size. If its one of the others, the magic determines only the compression, and encryption. The little or big E means its encrypted
+/// and compressed. If its a little z or c there is a U32 after stating the compression type used, while if a big E or Z is used the compression is assumed zlib - and should be. If compressed, after the
+/// magic and compression type there are a list of block offsets (not sizes). The last offset is the end of the file and the first offset is the start of the first compressed block in the file, relative to the offset
+/// of the magic number (eg ECTT). The sizes of compressed blocks are calculated as just the difference of the block at the offset with the offset of the  block after, which is why the offset of the end of the
+/// file is also stored in the array of offsets at the top of the stream. The uncompressed size is the same for each and also stored in the first few bytes of the stream.  Seeking is therefore quite easy, given
+/// an offset in the uncompressed version to read bytes at that offset you just divide the offset by the block size to find the start block index. You then get that block by reading the compressed size and
+/// decompressing it into a local buffer. You can then seek in that buffer to the modulo of the offset given with the block size. You can see here that reading is therefore a paged read, which is why we
+/// used the deferred data stream and just use an overriden get page function to decompress pages. Note that if encrypted, obviously, we encrypt the compressed block not the unencrypted data - such that
+/// we still obtain good compression ratios - although I see the logic here, Blowfish encryption is pretty repetitive on the same data - but for zeros - whicih in a lot of uncompressed data there are - we would
+/// defintely want to compress that instead of the encrypted version. Therefore you first decrypt the compressed block, then decompress it. The compression used in all games is Zlib 1.2.8 and oodle
+/// LZNA (rare, in some Batman archives). Note that all zlib compressed blocks have a negative block size (namely -15), meaning we raw compress it. The first byte of all compressed zlib streams
+/// in telltale games is the byte 0xEB.
+/// To write containers, use the flush container in the manager class below. Use this one to read from the stream with paged reads and a cached internally buffer.
 class DataStreamContainer : public DataStreamDeferred
 {
 public:
@@ -286,6 +306,12 @@ public:
         if(_IntPage)
             TTE_FREE(_IntPage);
         _IntPage = nullptr;
+    }
+    
+    // returns if valid
+    inline Bool IsValid()
+    {
+        return _Valid;
     }
     
 protected:
@@ -341,6 +367,97 @@ protected:
     friend class DataStreamManager;
 };
 
+///
+/// You can only call Write() on this stream. Writes any buffers to all the children streams it contains. Children steams should not
+/// wrap around and back reference this stream, as it would cause circular writing which would cause a stack overflow as it would go on forever.
+///
+class DataStreamAppendStream : public DataStream
+{
+public:
+    
+    // Pass in begin iterator if copying from vector.
+    DataStreamAppendStream(const ResourceURL& url, DataStreamRef* pStreams, U32 N);
+    
+    inline virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override
+    {
+        TTE_ASSERT(false, "Cannot read from appending data stream");
+        return false;
+    }
+    
+    virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
+    
+    inline virtual U64 GetPosition() override
+    {
+        TTE_ASSERT(false, "DataStreamAppendStream::GetPosition() is unavailable");
+        return 0;
+    }
+    
+    inline virtual void SetPosition(U64) override
+    {
+        TTE_ASSERT(false, "DataStreamAppendStream::SetPosition(U64) is unavailable");
+    }
+    
+    inline virtual U64 GetSize() override
+    { // stream only meant for appending to multiple others.
+        TTE_ASSERT(false, "DataStreamAppendStream::GetSize() is unavailable");
+        return 0;
+    }
+    
+    virtual ~DataStreamAppendStream() = default;
+
+private:
+    
+    std::vector<DataStreamRef> _AppendStreams;
+    
+};
+
+/// This stream reads from multiple streams. Calls to set and get position can be slow as well as get size, so try to only call once and then read.
+class DataStreamSequentialStream : public DataStream
+{
+public:
+    
+    inline virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override
+    {
+        TTE_ASSERT(false, "DataStreamSequentialStream::Write() is unavailable"); // use append stream. only readable.
+        return false;
+    }
+    
+    /// Pushes a stream. Does not change current position. Don't change its size while reading from this stream after this call!
+    inline virtual void PushStream(DataStreamRef& stream)
+    {
+        TTE_ASSERT(stream.get() != this, "Cannot push this stream as a child stream");
+        if(stream)
+            _OrderedStreams.push_back(stream);
+    }
+    
+    DataStreamSequentialStream(const ResourceURL& url);
+    
+    virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
+    
+    virtual U64 GetPosition() override;
+    
+    virtual void SetPosition(U64) override;
+    
+    virtual U64 GetSize() override;
+    
+    virtual ~DataStreamSequentialStream() = default;
+    
+private:
+    
+    U32 _StreamIndex = 0; // current stream in ordered streams
+    U64 _BytesRead = 0; // total bytes read from 0 from first 0, ie total position.
+    U64 _StreamPos = 0; // position in streamIndex stream
+    std::vector<DataStreamRef> _OrderedStreams{};
+    
+};
+
+// Parameters for creating containers
+struct ContainerParams
+{
+    Bool Encrypt = false; // if true, compression should be set (else default zlib is used)
+    Compression::Type Compression = Compression::Type::END_LIBRARY;
+};
+
 // This manages lifetimes of data streams, finding URLs, opening files, and everything related to sources and destinations of byte streams.
 class DataStreamManager
 {
@@ -355,7 +472,8 @@ class DataStreamManager
     DataStreamRef CreateNullStream();
 
     // Creates a memory stream that is a fixed size (DataStreamBuffer). Optionally pass a pre-allocated buffer, which will be TTE_FREE'd after.
-    DataStreamRef CreateBufferStream(const ResourceURL &path, U64 Size, U8 *pPreAllocated = nullptr);
+    // If you pass in your own buffer, set the last argument to true such that it will get deleted with free after.
+    DataStreamRef CreateBufferStream(const ResourceURL &path, U64 Size, U8 *pPreAllocated, Bool bTransferOwnership);
 
     // Creates a sub stream which reads from the specific part of the parent stream. The parent stream must be seekable (ie not network etc).
     DataStreamRef CreateSubStream(const DataStreamRef &parent, U64 offset, U64 size);
@@ -376,6 +494,9 @@ class DataStreamManager
 
     // Searches cached (memory) files for the given path, in the cache scheme.
     std::shared_ptr<DataStreamMemory> FindCache(const String &path);
+    
+    // Creates a sequential stream used for reading from multiple sources. Pass in the temporary URL.
+    std::shared_ptr<DataStreamSequentialStream> CreateSequentialStream(const String& path);
 
     // Creates a new private cache memory stream. Once you destroy the return value, the stream is deleted. Ie, CreateMemoryStream.
     std::shared_ptr<DataStreamMemory> CreatePrivateCache(const String &path, U32 pageSize = MEMORY_STREAM_DEFAULT_PAGESIZE);
@@ -384,6 +505,13 @@ class DataStreamManager
     // It is publicly accessible after this call not just by the returned value. If a cached file at the path exists, it is replaced -
     // any subsequent calls to FindCache returns this new returned stream.
     std::shared_ptr<DataStreamMemory> CreatePublicCache(const String &path, U32 pageSize = MEMORY_STREAM_DEFAULT_PAGESIZE);
+    
+    // Writes and fully flushes a data stream from the source stream, reading Nbytes, into the output destination stream, with parameters.
+    // Passes out the JOB HANDLE. This runs asynchronously this can take a lot of time for large game data. Returns false if invalid inputs.
+    // Wait on the output job. NOTE: If this returns true but outJob is 0, then it was just done on the main thread as no need for async.
+    // If an async job is pushed, YOU MUST NOT access source or dest UNTIL the job finishes! If you want to finish asap, just wait on it
+    // immidiately after this call if needed.
+    Bool FlushContainer(DataStreamRef& src, U64 Nbytes, DataStreamRef& dst, ContainerParams params, JobHandle& outJob);
 
     // Releases the internal reference such that FindCache after this call will not return the stream anymore.
     // Only call after CreatePublicCache.
@@ -399,6 +527,12 @@ class DataStreamManager
     
     // Reads a string from the data stream argument. Reads the size, then ASCII string. Checks if size is valid.
     String ReadString(DataStreamRef& stream);
+    
+    // Writes a string to the data stream argument. Writes the size, then the ASCII string.
+    void WriteString(DataStreamRef& stream, const String& str);
+    
+    // Write N bytes to the given stream
+    void WriteZeros(DataStreamRef& stream, U64 N);
 
     static void Initialise();
 

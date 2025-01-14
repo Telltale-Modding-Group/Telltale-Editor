@@ -8,9 +8,6 @@ namespace Compression
     OodleLZ_Compress OodleCompressFn = nullptr;
     OodleLZ_Decompress OodleDecompressFn = nullptr;
     
-    thread_local static U8 i_buf[0x10000] { 0 }; // intermediate buffer. for each thread
-    thread_local static U8 o_buf[0x10000] { 0 }; // intermediate buffer. for each thread
-    
     U64 Compress(U8* src, U64 srcSize, U8* dst, U64 dstSize, Type type)
     {
         if (type == ZLIB)
@@ -22,7 +19,7 @@ namespace Compression
             strm.zfree = Z_NULL;
             strm.opaque = Z_NULL;
             
-            ret = deflateInit2_(&strm, Z_BEST_SPEED, Z_DEFLATED, -15, MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY, "1.2.8", sizeof(strm));
+            ret = deflateInit2_(&strm, Z_BEST_COMPRESSION, Z_DEFLATED, -15, MAX_MEM_LEVEL, Z_DEFAULT_STRATEGY, "1.2.8", sizeof(strm));
             if (ret != Z_OK)
                 return 0;
             
@@ -34,6 +31,7 @@ namespace Compression
             ret = deflate(&strm, Z_FINISH);
             if (ret != Z_STREAM_END)
             {
+                // not enough output space likely.
                 deflateEnd(&strm);
                 return 0;
             }
