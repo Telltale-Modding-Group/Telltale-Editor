@@ -1179,7 +1179,7 @@ static Bool _AsyncCreateContainerSlave(const JobThread& thread, void* pCtx, void
             {
                 // output it open, lock is held. (yay!)
             }
-            else if((PendingFlushesInfo.size() >= (ctx->MaxPendingFlushes * CONTAINER_BULK_SIZE)) || Finished)
+            else if((PendingFlushesInfo.size() >= ctx->MaxPendingFlushes) || Finished)
             {
                 ctx->Output.lock(); // if we really need to lock it, force it here (ie we have a lot of pages finished) OR are finished reading.
             }
