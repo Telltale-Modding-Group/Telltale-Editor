@@ -11,6 +11,7 @@
 struct TrackedAllocation
 {
     String SrcFile; // src file name
+    CString ObjName;
     U64 Timestamp;
     U64 Size; // allocation size
     U32 SrcLine; // line in src file
@@ -20,7 +21,7 @@ struct TrackedAllocation
 static std::map<U8*, TrackedAllocation> _TrackedAllocs{}; // ptr => info
 static std::mutex _TrackedLock{};
 
-U8* _DebugAllocateTracked(U64 _Nbytes, MemoryTag tag, CString filename, U32 number)
+U8* _DebugAllocateTracked(U64 _Nbytes, MemoryTag tag, CString filename, U32 number, CString objName)
 {
     
     U8* Alloc = new U8[_Nbytes];
@@ -32,6 +33,7 @@ U8* _DebugAllocateTracked(U64 _Nbytes, MemoryTag tag, CString filename, U32 numb
     alloc.MemoryTag = (U32)tag;
     alloc.SrcLine = number;
     alloc.Size = _Nbytes;
+    alloc.ObjName = objName;
     
     // ensure only file name not full path
     String str = filename;
@@ -85,7 +87,7 @@ void DumpTrackedMemory()
         CopyOfAllocs = _TrackedAllocs; // copy it locally in case it gets called in logger.
     }
     
-    TTE_LOG("================ TRACKED MEMORY ALLOCATION DUMP ================");
+    TTE_LOG("================ UNFREED MEMORY ALLOCATION DUMP ================");
     
     for(auto& it: CopyOfAllocs)
     {
@@ -94,18 +96,25 @@ void DumpTrackedMemory()
         std::stringstream ss{};
         ss << std::put_time(std::localtime(&time), "%b %d - %H:%M:%S ");
         ss << it.second.SrcFile << ":" << it.second.SrcLine << "[" << TAG_NAMES[it.second.MemoryTag] << "] ";
-        ss << it.second.Size << " bytes => [ ";
-        U64 bytes = MIN(8, it.second.Size);
-        for(U64 i = 0; i < bytes; i++)
+        if(it.second.ObjName)
         {
-            U8 byte = it.first[i];
-            if (std::isprint(byte))
-                ss << static_cast<char>(byte);
-            else
-                ss << "\\x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
-            ss << " ";
+            ss << "CXX Object: " << it.second.ObjName;
         }
-        ss << "]";
+        else
+        {
+            ss << it.second.Size << " bytes => [ ";
+            U64 bytes = MIN(8, it.second.Size);
+            for(U64 i = 0; i < bytes; i++)
+            {
+                U8 byte = it.first[i];
+                if (std::isprint(byte))
+                    ss << static_cast<char>(byte);
+                else
+                    ss << "\\x" << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
+                ss << " ";
+            }
+            ss << "]";
+        }
         String str = ss.str();
         TTE_LOG(str.c_str());
     }
