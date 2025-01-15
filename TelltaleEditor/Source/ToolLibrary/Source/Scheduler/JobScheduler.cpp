@@ -11,8 +11,8 @@ void JobScheduler::Initialise()
 
 void JobScheduler::Shutdown()
 {
-    if (Instance != 0)
-        delete Instance;
+    if (Instance != nullptr)
+        TTE_DEL(Instance);
     Instance = 0;
 }
 
@@ -450,6 +450,12 @@ void JobScheduler::_Shutdown(Bool bKillAwaiting)
     TTE_ASSERT(bKillAwaiting || _pendingJobs.size() == 0, "Jobs were posted after Shutdown called from external thread");
 }
 
+Bool JobScheduler::PostAll(JobDescriptor *pDescriptors, U32 Num, JobHandle *pOutHandles)
+{
+    _RegisterJobs(Num, pDescriptors, pOutHandles);
+    return true;
+}
+
 JobHandle JobScheduler::Post(JobDescriptor descriptor)
 {
     JobHandle handle{};
@@ -631,13 +637,13 @@ JobResult JobScheduler::Wait(const JobHandle &hJob)
     return Result;
 }
 
-JobResult JobScheduler::Wait(const std::vector<JobHandle> &jobHandles)
+JobResult JobScheduler::Wait(U32 N, const JobHandle* pJobHandles)
 {
     // Sanity checks
-    if (jobHandles.size() == 0)
+    if (N == 0)
         return JOB_RESULT_OK; // No jobs
-    else if (jobHandles.size() == 1)
-        return Wait(jobHandles[0]); // Wait normally on the single job
+    else if (N == 1)
+        return Wait(pJobHandles[0]); // Wait normally on the single job
 
     // Go through the array and take all valid (active jobs) under the lock. Set the counter post increment (check none are set already). Wait.
     U32 LocalWaiter = 0; // This is going to be incremented but multiple threads, UNDER the aliveJobsLock. So only access within that lock.
@@ -646,11 +652,13 @@ JobResult JobScheduler::Wait(const std::vector<JobHandle> &jobHandles)
     {
         std::lock_guard<std::mutex> _Guard(_aliveJobsLock); // Lock counters array
 
-        for (auto &handle : jobHandles)
+        for (U32 i = 0; i < N; i++)
         {
+            const JobHandle& handle = pJobHandles[i];
+            
             auto it = _jobCounters.find(handle._jobID);
             if (it != _jobCounters.end())
-            { // CHheck if valid
+            { // Check if valid (eg wait on cancelled job, which should succeed and ignore)
 
                 // First assert
                 TTE_ASSERT(it->second.PostIncrement == 0, "Wait() called multiple times on a job handle from different threads, or duplicates!");

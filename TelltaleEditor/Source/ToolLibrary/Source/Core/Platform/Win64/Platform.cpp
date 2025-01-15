@@ -7,8 +7,7 @@
 #include <string>
 #include <vector>
 
-// Windows workaround for set thread name. See below link 
-// =========================================================
+// Windows workaround for set thread name. See below link =========================================================
 // https://learn.microsoft.com/en-gb/previous-versions/visualstudio/visual-studio-2015/debugger/how-to-set-a-thread-name-in-native-code?view=vs-2015&redirectedfrom=MSDN
 
 #pragma pack(push, 8)
@@ -152,3 +151,59 @@ void FileSeek(U64 Handle, U64 Offset)
     BOOL success = SetFilePointerEx(hFile, move, NULL, FILE_BEGIN);
     TTE_ASSERT(success, "Could not set file position. Windows error: %d", GetLastError());
 }
+
+static HMODULE OodleLibrary = nullptr; // can be static. only loaded at init.
+
+void OodleOpen(void*& c, void*& d)
+{
+    if(OodleLibrary == nullptr)
+    {
+        OodleLibrary = LoadLibraryA("oodle_win_x86.dll");
+        if (OodleLibrary == nullptr)
+        {
+            TTE_LOG("Cannot load oodle library: does not exist");
+            return;
+        }
+    }
+    
+    c = (void*)GetProcAddress(OodleLibrary, "OodleLZ_Compress");
+    if (!c)
+    {
+        TTE_LOG("Cannot load oodle compress function from DLL");
+        return;
+    }
+    
+    d = GetProcAddress(OodleLibrary, "OodleLZ_Decompress");
+    if (!d)
+    {
+        TTE_LOG("Cannot load oodle compress function from DLL");
+        return;
+    }
+}
+
+void OodleClose()
+{
+    if(OodleLibrary)
+    {
+        FreeLibrary(OodleLibrary);
+    }
+    OodleLibrary = nullptr;
+}
+
+U8* AllocateAnonymousMemory(U64 size)
+{
+    void* region = VirtualAlloc(nullptr, size, MEM_RESERVE | MEM_COMMIT, PAGE_READONLY);
+    if (region == nullptr) {
+        TTE_LOG("Failed to allocate %d anonymous zero memory bytes in windows!", (U32)size);
+        return nullptr;
+    }
+
+    return (U8*)region;
+}
+
+void FreeAnonymousMemory(U8* ptr, U64 size)
+{
+    if (ptr)
+        VirtualFree(ptr, 0, MEM_RELEASE);
+}
+

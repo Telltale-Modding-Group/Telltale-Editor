@@ -1,5 +1,5 @@
-#include <Core/Context.hpp>
 #include <Scripting/ScriptManager.hpp>
+#include <Core/Context.hpp>
 
 LuaManager::~LuaManager()
 {
@@ -13,40 +13,40 @@ LuaManager::~LuaManager()
     }
 }
 
-// Overriden 'require' lua function to load ourselfs. 'ToolLibrary/XXX' loads from lib resources XXX.
-U32 luaRequireOverride(LuaManager &man)
+//overriden 'require' lua function to load ourselfs. 'ToolLibrary/XXX' loads from lib resources XXX.
+U32 luaRequireOverride(LuaManager& man)
 {
     TTE_ASSERT(man.Type(-1) == LuaType::STRING, "Invalid argument passed to require");
     String value = ScriptManager::PopString(man);
-
-    // Check not already required
+    
+    // check not already required
     ScriptManager::GetGlobal(man, value, true);
-    if (man.Type(-1) != LuaType::NIL)
+    if(man.Type(-1) != LuaType::NIL)
     {
         man.Pop(1);
         TTE_LOG("Trying to re-require '%s', it has already been included in the VM", value.c_str());
         return 0;
     }
     man.Pop(1);
-
-    if (StringStartsWith(value, "ToolLibrary/"))
+    
+    if(StringStartsWith(value, "ToolLibrary/"))
     {
-
+        
         value = value.substr(12);
         String script = GetToolContext()->LoadLibraryStringResource(value);
-
-        if (script.length() == 0)
+        
+        if(script.length() == 0)
             TTE_LOG("When loading script '%s': file empty or could not be read", value.c_str());
-
-        if (man.RunText(script.c_str(), (U32)script.length(), value.c_str()))
-        {
-            man.PushNil();                                               // value of it doesn't matter, only that it exists
+        
+        if(man.RunText(script.c_str(), (U32)script.length(), value.c_str())){
+            man.PushNil(); // value of it doesn't matter, only that it exists
             ScriptManager::SetGlobal(man, "ToolLibrary/" + value, true); // set global
         }
-    }
-    else
-    {
+        
+    }else{
+        
         TTE_ASSERT(false, "Non tool library requires not supported yet."); // TODO find resource.
+        
     }
     return 0;
 }
@@ -63,26 +63,80 @@ void LuaManager::Initialise(LuaVersion Vers)
         _Adapter = TTE_NEW(LuaAdapter_502, MEMORY_TAG_SCRIPTING, *this);
     else
         TTE_ASSERT(false, "Invalid or unsupported lua version %d", (U32)Vers);
-
+    
     _Adapter->Initialise();
-
+    
     PushFn(&luaRequireOverride);
     ScriptManager::SetGlobal(*this, "require", false);
+    
 }
 
-Bool LuaManager::RunText(CString Code, U32 Len, CString ChunkName)
+static int _CompileWriter(lua_State*, const void* p, size_t sz, void* strm)
+{
+    if(sz > 0)
+    {
+        DataStreamRef& stream = *((DataStreamRef*)strm);
+        return stream->Write((const U8*)p, sz) ? 0 : 1; // write bytes
+    }
+    return 0;
+}
+
+Bool LuaManager::Compile(DataStreamRef& stream)
+{
+    if(!stream)
+    {
+        TTE_ASSERT("Cannot compile script: output data stream invalid or not specified");
+        return false;
+    }
+    return _Adapter->DoDump(&_CompileWriter, &stream);
+}
+
+void LuaManager::GC()
+{
+    _Adapter->GC();
+}
+
+Bool LuaManager::RunText(CString Code, U32 Len, Bool bBlock, CString ChunkName)
 {
     TTE_ASSERT(_Version != LuaVersion::LUA_NONE, "Lua not initialised");
-    return _Adapter->RunChunk((U8 *)Code, Len, false, ChunkName);
+    if(bBlock)
+    {
+        GetToolContext()->_LockedCallDepth++;
+    }
+    Bool bResult = _Adapter->RunChunk((U8 *)Code, Len, false, ChunkName);
+    if(bBlock)
+    {
+        GetToolContext()->_LockedCallDepth--;
+    }
+    return bResult;
 }
 
-I32 LuaManager::ToInteger(I32 index) { return _Adapter->ToInteger(index); }
+I32 LuaManager::ToInteger(I32 index){
+    return _Adapter->ToInteger(index);
+}
 
-void LuaManager::CallFunction(U32 Nargs, U32 Nresults) { return _Adapter->CallFunction(Nargs, Nresults); }
+void LuaManager::CallFunction(U32 Nargs, U32 Nresults, Bool bBlock)
+{
+    if(bBlock)
+    {
+        GetToolContext()->_LockedCallDepth++;
+    }
+    _Adapter->CallFunction(Nargs, Nresults);
+    if(bBlock)
+    {
+        GetToolContext()->_LockedCallDepth--;
+    }
+}
 
-Bool LuaManager::CheckStack(U32 extra) { return _Adapter->CheckStack(extra); }
+Bool LuaManager::CheckStack(U32 extra)
+{
+    return _Adapter->CheckStack(extra);
+}
 
-void LuaManager::PushBool(Bool value) { _Adapter->Push(LuaType::BOOL, &value); }
+void LuaManager::PushBool(Bool value)
+{
+    _Adapter->Push(LuaType::BOOL, &value);
+}
 
 void LuaManager::PushEnv()
 {
@@ -91,65 +145,177 @@ void LuaManager::PushEnv()
 
 void LuaManager::PushInteger(I32 value)
 {
+    _Adapter->Push((LuaType)777, &value); // proxy
+}
+
+void LuaManager::PushUnsignedInteger(U32 value)
+{
     _Adapter->Push((LuaType)888, &value); // proxy
 }
 
-void LuaManager::PushOpaque(void *value) { _Adapter->Push(LuaType::LIGHT_OPAQUE, value); }
+void LuaManager::PushOpaque(void* value)
+{
+    _Adapter->Push(LuaType::LIGHT_OPAQUE, value);
+}
 
-void LuaManager::PushLString(String value) { _Adapter->Push(LuaType::STRING, (void *)value.c_str()); }
+void LuaManager::PushLString(String value)
+{
+    _Adapter->Push(LuaType::STRING, (void*)&value);
+}
 
-void LuaManager::PushNil() { _Adapter->Push(LuaType::NIL, 0); }
+void LuaManager::PushNil()
+{
+    _Adapter->Push(LuaType::NIL, 0);
+}
 
-void LuaManager::PushFloat(Float value) { _Adapter->Push(LuaType::NUMBER, &value); }
+void LuaManager::PushFloat(Float value)
+{
+    _Adapter->Push(LuaType::NUMBER, &value);
+}
 
-void LuaManager::PushTable() { _Adapter->Push(LuaType::TABLE, 0); }
+void LuaManager::PushTable()
+{
+    _Adapter->Push(LuaType::TABLE, 0);
+}
 
-void LuaManager::Pop(U32 N) { _Adapter->Pop(N); }
+void LuaManager::Pop(U32 N)
+{
+    _Adapter->Pop(N);
+}
 
-I32 LuaManager::GetTop() { return _Adapter->GetTop(); }
+I32 LuaManager::GetTop()
+{
+    return _Adapter->GetTop();
+}
 
-void LuaManager::GetTable(I32 index, Bool bRaw) { _Adapter->GetTable(index, bRaw); }
+void LuaManager::GetTable(I32 index, Bool bRaw)
+{
+    _Adapter->GetTable(index, bRaw);
+}
 
-void LuaManager::SetTable(I32 index, Bool bRaw) { _Adapter->SetTable(index, bRaw); }
+void LuaManager::SetTable(I32 index, Bool bRaw)
+{
+    _Adapter->SetTable(index, bRaw);
+}
 
-void LuaManager::SetTableRaw(I32 index, I32 arrayIndex) { _Adapter->SetTableRaw(index, arrayIndex); }
+void LuaManager::SetTableRaw(I32 index, I32 arrayIndex)
+{
+    _Adapter->SetTableRaw(index, arrayIndex);
+}
 
-I32 LuaManager::UpvalueIndex(I32 index) { return _Adapter->UpvalueIndex(index); }
+I32 LuaManager::UpvalueIndex(I32 index){
+    return _Adapter->UpvalueIndex(index);
+}
 
-void LuaManager::GetTableRaw(I32 index, I32 arrayIndex) { _Adapter->GetTableRaw(index, arrayIndex); }
+void LuaManager::GetTableRaw(I32 index, I32 arrayIndex)
+{
+    _Adapter->GetTableRaw(index, arrayIndex);
+}
 
-Bool LuaManager::LoadChunk(const String &nm, const U8 *c, U32 s, Bool cm) { return _Adapter->LoadChunk(nm, c, s, cm); }
+Bool LuaManager::LoadChunk(const String& nm, const U8* c, U32 s, Bool cm){
+    return _Adapter->LoadChunk(nm, c, s, cm);
+}
 
-void LuaManager::PushFn(LuaCFunction f) { _Adapter->Push(LuaType::FUNCTION, (void *)f); }
+void LuaManager::PushFn(LuaCFunction f){
+    _Adapter->Push(LuaType::FUNCTION, (void*)f);
+}
 
-I32 LuaManager::TableNext(I32 index) { return _Adapter->TableNext(index); }
+I32 LuaManager::TableNext(I32 index)
+{
+    return _Adapter->TableNext(index);
+}
 
-LuaType LuaManager::Type(I32 index) { return _Adapter->Type(index); }
+void* LuaManager::CreateUserData(U32 z)
+{
+    return _Adapter->CreateUserData(z);
+}
 
-Bool LuaManager::Compare(I32 lhs, I32 rhs, LuaOp op) { return _Adapter->Compare(lhs, rhs, op); }
+Bool LuaManager::GetMetaTable(I32 i)
+{
+    return _Adapter->GetMetatable(i);
+}
 
-CString LuaManager::Typename(LuaType t) { return _Adapter->Typename(t); }
+I32 LuaManager::ToAbsolute(I32 i)
+{
+    return _Adapter->Abs(i);
+}
 
-Bool LuaManager::GetMetatable(I32 index) { return _Adapter->GetMetatable(index); }
+Bool LuaManager::SetMetaTable(I32 i)
+{
+    return _Adapter->SetMetatable(i);
+}
 
-Bool LuaManager::SetMetatable(I32 index) { return _Adapter->SetMetatable(index); }
+LuaType LuaManager::Type(I32 index)
+{
+    return _Adapter->Type(index);
+}
 
-void LuaManager::SetTop(I32 index) { _Adapter->SetTop(index); }
+Bool LuaManager::Compare(I32 lhs, I32 rhs, LuaOp op)
+{
+    return _Adapter->Compare(lhs, rhs, op);
+}
 
-void LuaManager::PushCopy(I32 index) { _Adapter->PushCopy(index); }
+CString LuaManager::Typename(LuaType t)
+{
+    return _Adapter->Typename(t);
+}
 
-void LuaManager::Remove(I32 index) { _Adapter->Remove(index); }
+Bool LuaManager::GetMetatable(I32 index)
+{
+    return _Adapter->GetMetatable(index);
+}
 
-void LuaManager::Insert(I32 index) { _Adapter->Insert(index); }
+Bool LuaManager::SetMetatable(I32 index)
+{
+    return _Adapter->SetMetatable(index);
+}
 
-void LuaManager::Replace(I32 index) { _Adapter->Replace(index); }
+void LuaManager::SetTop(I32 index)
+{
+    _Adapter->SetTop(index);
+}
 
-Bool LuaManager::ToBool(I32 index) { return _Adapter->ToBool(index); }
+void LuaManager::PushCopy(I32 index)
+{
+    _Adapter->PushCopy(index);
+}
 
-Float LuaManager::ToFloat(I32 index) { return _Adapter->ToFloat(index); }
+void LuaManager::Remove(I32 index)
+{
+    _Adapter->Remove(index);
+}
 
-String LuaManager::ToString(I32 index) { return _Adapter->ToString(index); }
+void LuaManager::Insert(I32 index)
+{
+    _Adapter->Insert(index);
+}
 
-void *LuaManager::ToPointer(I32 index) { return _Adapter->ToPointer(index); }
+void LuaManager::Replace(I32 index)
+{
+    _Adapter->Replace(index);
+}
 
-void LuaManager::Error() { _Adapter->Error(); }
+Bool LuaManager::ToBool(I32 index)
+{
+    return _Adapter->ToBool(index);
+}
+
+Float LuaManager::ToFloat(I32 index)
+{
+    return _Adapter->ToFloat(index);
+}
+
+String LuaManager::ToString(I32 index)
+{
+    return _Adapter->ToString(index);
+}
+
+void* LuaManager::ToPointer(I32 index)
+{
+    return _Adapter->ToPointer(index);
+}
+
+void LuaManager::Error()
+{
+    _Adapter->Error();
+}
