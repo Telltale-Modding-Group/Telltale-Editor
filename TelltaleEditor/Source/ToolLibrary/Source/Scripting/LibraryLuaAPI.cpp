@@ -2074,6 +2074,45 @@ namespace TTE
         return 1;
     }
     
+    // bool blowfish(bufferInstance, size, encrypt (true) or decrypt (false)) . size must be less than or equal to buffer size
+    static U32 luaBlowfish(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 3, "Invalid use of TTE_Blowfish()");
+        
+        Meta::ClassInstance buf = Meta::AcquireScriptInstance(man, -3);
+        Bool enc = man.ToBool(-1);
+        U32 sz = (U32)man.ToInteger(-2);
+        
+        if(!buf)
+        {
+            man.PushBool(false);
+            return 1;
+        }
+        
+        Meta::BinaryBuffer* pBuffer = (Meta::BinaryBuffer*)buf._GetInternal();
+        
+        if(!pBuffer)
+        {
+            man.PushBool(false);
+            return 1;
+        }
+        
+        if(sz > pBuffer->BufferSize)
+        {
+            TTE_LOG("At TTE_Blowfish: buffer size is %d - cannot crypt %d bytes", pBuffer->BufferSize, sz);
+            man.PushBool(false);
+            return 1;
+        }
+        
+        if(enc)
+            Blowfish::GetInstance()->Encrypt(pBuffer->Buffer, sz);
+        else
+            Blowfish::GetInstance()->Decrypt(pBuffer->Buffer, sz);
+        
+        man.PushBool(true);
+        return 1;
+    }
+    
 }
 
 
@@ -2097,6 +2136,7 @@ LuaFunctionCollection luaLibraryAPI()
     Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles});
     Col.Functions.push_back({"TTE_Log", &TTE::luaLog});
     Col.Functions.push_back({"TTE_DumpMemoryLeaks", &TTE::luaDumpMemLeaks});
+    Col.Functions.push_back({"TTE_Blowfish", &TTE::luaBlowfish});
     
     // REGISTER META API
     
