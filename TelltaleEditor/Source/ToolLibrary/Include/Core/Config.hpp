@@ -236,15 +236,15 @@ enum ObjectTag : U32
 
 #ifdef DEBUG // use tracked memory
 
-U8* _DebugAllocateTracked(U64 _Nbytes, MemoryTag tag, CString filename, U32 number);
+U8* _DebugAllocateTracked(U64 _Nbytes, MemoryTag tag, CString filename, U32 number, CString objName);
 void _DebugDeallocateTracked(U8* Ptr);
 
-#define TTE_ALLOC(_Nbytes, _MemoryTag) _DebugAllocateTracked(_Nbytes, _MemoryTag, (CString) __FILE__, (U32) __LINE__)
+#define TTE_ALLOC(_Nbytes, _MemoryTag) _DebugAllocateTracked(_Nbytes, _MemoryTag, (CString) __FILE__, (U32) __LINE__, nullptr)
 
 #define TTE_FREE(ptr) _DebugDeallocateTracked((U8*)ptr)
 
-#define TTE_NEW(_Type, _MemoryTag, ...) new (_DebugAllocateTracked(sizeof(_Type), _MemoryTag, (CString) __FILE__, (U32) __LINE__)) \
-                                        _Type(__VA_ARGS__)
+#define TTE_NEW(_Type, _MemoryTag, ...) new (_DebugAllocateTracked(sizeof(_Type), _MemoryTag, (CString)  \
+                                        __FILE__, (U32) __LINE__, #_Type)) _Type(__VA_ARGS__)
 
 #define TTE_DEL(_Inst) { if(_Inst) { DestroyObject(*_Inst); TTE_FREE((U8*)_Inst); } }
 
