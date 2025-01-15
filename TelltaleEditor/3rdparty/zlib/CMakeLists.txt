@@ -11,6 +11,7 @@ ${zlib_SOURCE_DIR}/inffast.c
 ${zlib_SOURCE_DIR}/inflate.c
 ${zlib_SOURCE_DIR}/inftrees.c
 ${zlib_SOURCE_DIR}/trees.c
+${zlib_SOURCE_DIR}/zutil.c
 )
 
 target_include_directories(zlib PUBLIC ${zlib_SOURCE_DIR}) 

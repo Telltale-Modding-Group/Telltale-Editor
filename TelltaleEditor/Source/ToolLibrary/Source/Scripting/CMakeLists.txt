@@ -1,1 +1,1 @@
-target_sources(${TARGET_NAME} PRIVATE ScriptManager.cpp LuaManager.cpp Adapter/Lua523.cpp Adapter/Lua514.cpp Adapter/Lua502.cpp)
+target_sources(${TARGET_NAME} PRIVATE ScriptManager.cpp LuaManager.cpp EngineLuaAPI.cpp LibraryLuaAPI.cpp Adapter/Lua523.cpp Adapter/Lua514.cpp Adapter/Lua502.cpp)

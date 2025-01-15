@@ -8,3 +8,7 @@ build/*
 *.DS_Store
 CMakeFiles/*
 CMakeCache.txt
+*.ttarch
+*.ttarch2
+out/
+.vscode/
