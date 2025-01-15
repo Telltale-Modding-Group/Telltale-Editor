@@ -1830,7 +1830,7 @@ namespace TTE
                 // open from archive
                 U32 tag = ScriptManager::GetScriptObjectTag(man, 2);
                 if(tag == TTARCHIVE1)
-                    r = ((TTArchive*)man.ToPointer(2))->Find(path); // open stream
+                    r = (ScriptManager::GetScriptObject<TTArchive>(man, 2))->Find(path); // open stream
                 else
                 {
                     TTE_LOG("At TTE_OpenMetaStream: invalid argument(s()");
