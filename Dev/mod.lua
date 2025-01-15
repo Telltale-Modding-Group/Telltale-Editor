@@ -2,8 +2,15 @@
 
 TTE_Switch("BN100", "MacOS", "")
 
--- archive = TTE_OpenTTArchive("../../Dev/data.ttarch") -- pass in the relative path for exe. we need this for testing in the editor.
+function ends_with(str, suffix)
+    return str:sub(-#suffix) == suffix
+end
 
--- prop = TTE_OpenMetaStream("poker_text_button.prop", archive) -- BN100 is set, but loading a texas archive, ehhh not good, but the games are pretty much same
+archive = TTE_OpenTTArchive("/Users/lucassaragosa/Desktop/BN100.ttarch") -- YES I KNOW. the file is 200mb lol
 
---print("Done! The file type is: " .. select(1, MetaGetClass(prop)))
+for i, file in pairs(TTE_ArchiveListFiles(archive)) do
+    if ends_with(file, ".d3dtx") then
+        TTE_Log("Loading " .. file)
+        TTE_OpenMetaStream(file, archive) -- open to test.
+    end
+end

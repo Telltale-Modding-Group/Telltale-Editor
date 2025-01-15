@@ -403,8 +403,8 @@ void ResourceURL::_Normalise()
     _Path.erase(std::remove_if(_Path.begin(), _Path.end(), [&validChars](char c) { return validChars.find(c) == std::string::npos; }), _Path.end());
 
     // remove leading/trailing whitespace 'trim' and slashes
-    _Path.erase(0, _Path.find_first_not_of(" \t\n\r/"));
-    _Path.erase(_Path.find_last_not_of(" \t\n\r/") + 1);
+    _Path.erase(0, _Path.find_first_not_of(" \t\n\r\\")); // dont remove '/' prefix, macos absolute paths / linux
+    _Path.erase(_Path.find_last_not_of(" \t\n\r\\/") + 1);
 }
 
 // ===================================================================         PAGED DATA STREAM

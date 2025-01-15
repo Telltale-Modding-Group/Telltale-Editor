@@ -16,9 +16,14 @@ function SerialisePropertySet_V0(metaStream, propInstance, isWrite)
     else
 		numTypes = MetaStreamReadInt(metaStream)
 		for i=1,numTypes do
-			propType, propTypeVersionIndex = MetaStreamFindClass(metaStream, MetaStreamReadSymbol(metaStream)) -- read class symbol
+            typeSymbol = MetaStreamReadSymbol(metaStream)
+			propType, propTypeVersionIndex = MetaStreamFindClass(metaStream, typeSymbol) -- read class symbol
             if propType == nil then
-                TTE_Log("Unregistered or unknown type in property set. Failing")
+                typeNameString = SymbolTableFind(typeSymbol)
+                if string.len(typeNameString) == 0 then
+                    typeNameString = typeSymbol
+                end
+                TTE_Log("Unregistered or unknown type in property set: " .. typeNameString)
                 return false
             end
 			numOfThatType = MetaStreamReadInt(metaStream)

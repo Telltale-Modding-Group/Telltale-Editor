@@ -78,6 +78,7 @@ namespace Meta {
             TTE_ASSERT(_IsMain, "Must only be called from main thread"); // modifications to Classes should only happen at beginning on main.
             
             cls.TypeHash = CRC64LowerCase((const U8*)cls.Name.c_str(), (U32)cls.Name.length());
+            RuntimeSymbols.Register(cls.Name);
             U32 crc = _DoLuaVersionCRC(man, stackIndex);
             if(crc == 0)
                 return 0; // errored
@@ -962,7 +963,8 @@ namespace Meta {
         {
             if(CompareCaseInsensitive(name, mem.Name))
             {
-                return ClassInstance(mem.ClassID, inst._GetInternal() + mem.RTOffset, inst.ObtainParentRef());
+                return ClassInstance(mem.ClassID, std::shared_ptr<U8>(inst._InstanceMemory, // same control block, different pointer.
+                                    inst._GetInternal() + mem.RTOffset), inst.ObtainParentRef());
             }
         }
         return {}; // not found
@@ -1440,8 +1442,20 @@ namespace Meta {
             
             if(Classes.find(ClassID) == Classes.end())
             {
-                TTE_LOG("Cannot serialise in meta stream: a serialised class does not match any runtime class version."
-                        " Type hash 0x%llX and version %X", typeHash, versionCRC);
+                // COMMON ERROR! The calculated version hash was wrong, or the class does not exist yet.
+                String resolved = RuntimeSymbols.Find(typeHash);
+                if(resolved.length())
+                {
+                    TTE_LOG("Cannot serialise in meta stream: a serialised class does not match any runtime class version."
+                            " Class '%s' and version %X. Most likely it exists, and its calculated version"
+                            " has was not correct. Check the class, possibly with the compiled executable.", resolved.c_str(), versionCRC);
+                }
+                else
+                {
+                    TTE_LOG("Cannot serialise in meta stream: a serialised class does not match any runtime class version."
+                            " Type hash 0x%llX and version %X. Most likely it exists, and its calculated version"
+                            " has was not correct. Check the class, possibly with the compiled executable.", typeHash, versionCRC);
+                }
                 return {};
             }
             

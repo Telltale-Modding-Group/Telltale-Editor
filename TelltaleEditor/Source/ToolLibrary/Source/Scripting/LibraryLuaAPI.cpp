@@ -1513,7 +1513,7 @@ namespace MS
         Meta::ClassInstance bufInst = Meta::AcquireScriptInstance(man, -2);
         
         TTE_ASSERT(bufInst, "Invalid buffer");
-        TTE_ASSERT(size >= 0 && size < 0x100000, "Buffer size invalid"); // increase size limit?
+        TTE_ASSERT(size >= 0 && size < 0x10000000, "Buffer size invalid (>256MB)"); // increase size limit?
         
         Meta::BinaryBuffer& buf = *((Meta::BinaryBuffer*)bufInst._GetInternal());
         
@@ -1522,9 +1522,23 @@ namespace MS
         buf.Buffer = TTE_ALLOC(size, MEMORY_TAG_RUNTIME_BUFFER);
         buf.BufferSize = (U32)size;
         
-        TTE_ASSERT(stream.Read(buf.Buffer, (U64)size), "Binary buffer read fail");
+        TTE_ASSERT(stream.Read(buf.Buffer, (U64)size), "Binary buffer read fail - size is likely too large.");
         
         return 0;
+    }
+    
+    static U32 luaMetaBufferSize(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaGetBufferSize");
+        Meta::ClassInstance bufInst = Meta::AcquireScriptInstance(man, -1);
+        
+        TTE_ASSERT(bufInst, "Invalid buffer");
+        
+        Meta::BinaryBuffer& buf = *((Meta::BinaryBuffer*)bufInst._GetInternal());
+        
+        man.PushUnsignedInteger(buf.BufferSize);
+        
+        return 1;
     }
     
     // writebuffer(stream, buffer_member)
@@ -1665,7 +1679,8 @@ namespace MS
             if(it != ::Meta::Classes.end()) // the class is valid, test header
             {
                 
-                Bool Found = (it->second.Flags & ::Meta::CLASS_INTRINSIC) != 0; // if intrinsic its not in the header, so we are ok
+                Bool Found = (it->second.Flags &
+                              (::Meta::CLASS_INTRINSIC | ::Meta::CLASS_CONTAINER)) != 0; // if intrinsic its not in the header, so we are ok
                 
                 if(!Found) // try and find it in the meta stream header
                 {
@@ -1705,7 +1720,7 @@ namespace LuaMisc
     {
         TTE_ASSERT(man.GetTop() == 1, "Incorrect usage for SymbolFind")
         Symbol sym = SymbolFromHexString(man.ToString(-1));
-        String str = RuntimeSymbols.Find(sym);
+        String str = sym.GetCRC64() == 0 ? man.ToString(-1) : RuntimeSymbols.Find(sym);
         man.PushLString(std::move(str));
         return 1;
     }
@@ -2035,7 +2050,8 @@ namespace TTE
                 man.PushLString(std::move(it)); // move
                 man.SetTable(-3);
             }
-        }else if(tag == TTARCHIVE2)
+        }
+        else if(tag == TTARCHIVE2)
         {
             TTArchive2* pArchive = (TTArchive2*)man.ToPointer(-1);
             man.PushTable();
@@ -2142,6 +2158,9 @@ LuaFunctionCollection luaLibraryAPI()
     ADD_FN(MS, "MetaStreamSetDebugSection", luaMetaStreamSetDebugSection);
     ADD_FN(MS, "MetaStreamBeginBlock", luaMetaStreamBeginBlock);
     ADD_FN(MS, "MetaStreamEndBlock", luaMetaStreamEndBlock);
+    ADD_FN(MS, "MetaGetBufferSize", luaMetaBufferSize);
+    ADD_FN(MS, "MetaStreamReadBuffer", luaMetaStreamReadBuffer);
+    ADD_FN(MS, "MetaStreamWriteBuffer", luaMetaStreamWriteBuffer);
     ADD_FN(MS, "MetaStreamFindClass", luaMetaStreamFindClass);
     ADD_FN(Meta::L, "MetaSerialiseDefault", luaMetaSerialiseDefault); // serialise related
     ADD_FN(Meta::L, "MetaSerialise", luaMetaSerialise);

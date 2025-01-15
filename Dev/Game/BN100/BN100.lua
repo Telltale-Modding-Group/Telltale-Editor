@@ -1,6 +1,8 @@
 require("ToolLibrary/Game/Common/LuaPropertySet.lua")
 require("ToolLibrary/Game/VersionCRC.lua")
 
+require("ToolLibrary/Game/BN100/D3DTexture.lua")
+
 -- registers two types: one with baseclass_containerinterface and one without (vers exists for both). pass in k and v table (or k being SArray N)
 function RegisterBoneCollection(containerInterfaceTbl, name, k, v)
 	local withBaseclass = { VersionIndex = 0 } -- eg DCArray_String_(1j6j2xe).vers. each array has two versions, one without the baseclass container member
@@ -132,6 +134,7 @@ function RegisterBone100(vendor, platform)
 
 	local MetaQuat = { VersionIndex = 0 }
 	MetaQuat.Name = "class Quaternion"
+	MetaQuat.Flags = kMetaClassNonBlocked
 	MetaQuat.Members = {}
 	MetaQuat.Members[1] = { Name = "x", Class = kMetaFloat }
 	MetaQuat.Members[2] = { Name = "y", Class = kMetaFloat }
@@ -164,11 +167,13 @@ function RegisterBone100(vendor, platform)
 	hTexture = RegisterBoneHandle("class Handle<class D3DTexture>")
 	hDlgResource = RegisterBoneHandle("class Handle<class DialogResource>")
 	hProp = RegisterBoneHandle("class Handle<class PropertySet>")
+	hAud = RegisterBoneHandle("class Handle<class AudioData")
 	hScene = RegisterBoneHandle("class Handle<class Scene>")
 	hSkeleton = RegisterBoneHandle("class Handle<class Skeleton>")
 	hStyle = RegisterBoneHandle("class Handle<class StyleGuide>")
 	hVoiceData = RegisterBoneHandle("class Handle<class VoiceData>")
-	hWalkBoxes = RegisterBoneHandle("class Handle<class WalkBoxes")
+	hWalkBoxes = RegisterBoneHandle("class Handle<class WalkBoxes>")
+	hFont = RegisterBoneHandle("class Handle<class Font>")
 	
 	-- array of prop file names (for parent list in prop). only list in this game, rest are arrays etc
 	local MetaHandleArrayProp = { VersionIndex = 0}
@@ -819,20 +824,7 @@ function RegisterBone100(vendor, platform)
 	mesh.Members[5] = NewMember("mbLightmaps", kMetaBool)
 	MetaRegisterClass(mesh)
 
-	local tex = NewClass("class D3DTexture", 0) -- todo custom serialise
-	tex.Extension = "d3dtx"
-	tex.Members[1] = NewMember("mName", kMetaClassString)
-	tex.Members[2] = NewMember("mImportName", kMetaClassString)
-	tex.Members[3] = NewMember("mbHasTextureData", kMetaBool)
-	tex.Members[4] = NewMember("mbIsMipMapped", kMetaBool)
-	tex.Members[5] = NewMember("mbIsFiltered", kMetaBool)
-	tex.Members[6] = NewMember("mNumMipLevels", kMetaUnsignedInt)
-	tex.Members[7] = NewMember("mD3DFormat", kMetaUnsignedInt)
-	tex.Members[8] = NewMember("mWidth", kMetaUnsignedInt)
-	tex.Members[9] = NewMember("mHeight", kMetaUnsignedInt)
-	tex.Members[10] = NewMember("mType", kMetaInt)
-	tex.Members[11] = NewMember("mbAlphaHDR", kMetaBool)
-	MetaRegisterClass(tex)
+	tex = RegisterBoneD3DTexture(vendor, platform)
 
 	local glyph = NewClass("struct Font::GlyphInfo", 0)
 	glyph.Members[1] = NewMember("mTexturePage", kMetaInt)
@@ -931,6 +923,9 @@ function RegisterBone100(vendor, platform)
 	dlgText.Members[2] = NewMember("mName", kMetaClassString)
 	dlgText.Members[3] = NewMember("mLangResProxy", langp)
 	MetaRegisterClass(dlgText)
+
+	RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AudioData> >", nil, hAud)
+	RegisterBoneCollection(MetaCI, "class Map<class String,class String,struct std::less<class String> >", kMetaClassString, kMetaClassString)
   
 	MetaDumpVersions() -- dbg out
 
