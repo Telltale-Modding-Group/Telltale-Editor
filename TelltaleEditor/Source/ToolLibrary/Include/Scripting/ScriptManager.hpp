@@ -160,19 +160,20 @@ namespace ScriptManager {
     template<typename T>
     inline U32 __InternalDeleter(LuaManager& man)
     {
+        man.PushLString("__tteobj");
+        man.GetTable(-2);
         TTE_DEL(((T*)man.ToPointer(-1)));
+        man.Pop(1);
         return 0;
     }
     
     // returns 0 if invalid, or not found.
     inline U32 GetScriptObjectTag(LuaManager& man, I32 stackIndex)
     {
-        if(!man.GetMetatable(stackIndex))
-            return 0; // not found
+        stackIndex = man.ToAbsolute(stackIndex);
         man.PushLString("__ttetag");
-        man.GetTable(-2);
-        U32 tag = man.ToInteger(-1);
-        man.Pop(2);
+        man.GetTable(stackIndex);
+        U32 tag = (U32)PopInteger(man);
         return tag;
     }
     
@@ -182,13 +183,8 @@ namespace ScriptManager {
     inline void PushScriptOwned(LuaManager& man, T* obj, U32 tag)
     {
         TTE_ASSERT(tag != 0, "Tag value is not allowed to be 0");
-        man.PushOpaque(obj); // push
         
-        man.PushTable(); // meta table
-        
-        man.PushLString("__gc");
-        man.PushFn(&__InternalDeleter<T>);
-        man.SetTable(-3); // set gc method
+        man.PushTable(); // we want to ideally use a full opaque. however __gc is only managed for userdata/table. so table is used.
         
         if(tag != 0)
         {
@@ -197,7 +193,27 @@ namespace ScriptManager {
             man.SetTable(-3);
         }
         
+        man.PushLString("__tteobj");
+        man.PushOpaque(obj);
+        man.SetTable(-3);
+    
+        man.PushTable(); // meta table
+        
+        man.PushLString("__gc");
+        man.PushFn(&__InternalDeleter<T>);
+        man.SetTable(-3); // set gc method
+        
         man.SetMetaTable(-2);
+    }
+    
+    // Gets the underlying object pointer for a script owned object. Its type is not checked, check get get object tag.
+    template<typename T>
+    inline T* GetScriptObject(LuaManager& man, I32 stackIndex)
+    {
+        I32 idx = man.ToAbsolute(stackIndex);
+        man.PushLString("__tteobj");
+        man.GetTable(idx);
+        return (T*)PopOpaque(man);
     }
     
     // Converts a string. If it is in a valid hex format for symbols, that hash is used, else the string is hashed.

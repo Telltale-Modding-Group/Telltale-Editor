@@ -269,10 +269,11 @@ Bool LuaAdapter_514::GetMetatable(I32 index)
     return lua_getmetatable(_State, index) != 0;
 }
 
-I32 LuaAdapter_514::Abs(I32 _idx)
+I32 LuaAdapter_514::Abs(I32 index)
 {
-    return (_idx > 0) ? _idx : (_idx <= LUA_REGISTRYINDEX) ? _idx : (lua_gettop(_State) + 1 + _idx);
+    return (index < 0 && index > LUA_REGISTRYINDEX) ? lua_gettop(_State) + index + 1 : index;
 }
+
 
 Bool LuaAdapter_514::SetMetatable(I32 index)
 {

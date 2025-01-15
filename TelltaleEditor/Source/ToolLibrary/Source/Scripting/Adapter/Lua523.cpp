@@ -277,9 +277,9 @@ void LuaAdapter_523::SetTop(I32 index)
     lua_settop(_State,(int)index);
 }
 
-I32 LuaAdapter_523::Abs(I32 _idx)
+I32 LuaAdapter_523::Abs(I32 index)
 {
-    return (_idx > 0) ? _idx : (_idx <= LUA_REGISTRYINDEX) ? _idx : (lua_gettop(_State) + 1 + _idx);
+    return (index < 0 && index > LUA_REGISTRYINDEX) ? GetTop() + index + 1 : index;
 }
 
 void LuaAdapter_523::PushCopy(I32 index)

@@ -2039,7 +2039,7 @@ namespace TTE
         U32 tag = ScriptManager::GetScriptObjectTag(man, -1);
         if(tag == TTARCHIVE1)
         {
-            TTArchive* pArchive = (TTArchive*)man.ToPointer(-1);
+            TTArchive* pArchive = ScriptManager::GetScriptObject<TTArchive>(man, -1);
             man.PushTable();
             std::vector<String> files{};
             pArchive->GetFiles(files);
@@ -2053,7 +2053,7 @@ namespace TTE
         }
         else if(tag == TTARCHIVE2)
         {
-            TTArchive2* pArchive = (TTArchive2*)man.ToPointer(-1);
+            TTArchive2* pArchive = ScriptManager::GetScriptObject<TTArchive2>(man, -1);
             man.PushTable();
             std::vector<String> files{};
             pArchive->GetFiles(files);

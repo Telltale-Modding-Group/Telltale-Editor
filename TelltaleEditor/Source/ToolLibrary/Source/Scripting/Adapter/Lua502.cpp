@@ -277,10 +277,11 @@ void LuaAdapter_502::Insert(I32 index)
     lua_insert(_State, (int)index);
 }
 
-I32 LuaAdapter_502::Abs(I32 _idx)
+I32 LuaAdapter_502::Abs(I32 index)
 {
-    return (_idx > 0) ? _idx : (_idx <= LUA_REGISTRYINDEX) ? _idx : (lua_gettop(_State) + 1 + _idx);
+    return (index < 0 && index > LUA_REGISTRYINDEX) ? lua_gettop(_State) + index + 1 : index;
 }
+
 
 void LuaAdapter_502::Replace(I32 index)
 {
