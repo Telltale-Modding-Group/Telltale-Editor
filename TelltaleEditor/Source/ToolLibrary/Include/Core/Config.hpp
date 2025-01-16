@@ -225,6 +225,7 @@ enum MemoryTag
     MEMORY_TAG_BLOWFISH, // blowfish encryption data
     MEMORY_TAG_SCRIPT_OBJECT, // similar to SCRIPTING, however it is a object managed by the lua GC
     MEMORY_TAG_TEMPORARY_ASYNC, // temporary async stuff
+    MEMORY_TAG_RENDERER, // renderer linear heap etc
 };
 
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.

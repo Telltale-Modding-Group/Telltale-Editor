@@ -120,6 +120,8 @@ int main( int argc, char* args[] )
                 }
             }
             
+            
+            
             //Fill the surface white
             SDL_FillSurfaceRect( gScreenSurface, nullptr, SDL_MapSurfaceRGB( gScreenSurface, 0xFF, 0x00, 0xFF ) );
             

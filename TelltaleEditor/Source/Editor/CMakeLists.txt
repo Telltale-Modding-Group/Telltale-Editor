@@ -1,7 +1,7 @@
 set(TARGET_NAME Editor)
 
-file(GLOB EDITOR_HEADERS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Include/*.h) # Recursively get all headers
-file(GLOB EDITOR_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/*.cpp) # Recursively get all sources
+file(GLOB_RECURSE EDITOR_HEADERS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Include/*.hpp) # Recursively get all headers
+file(GLOB_RECURSE EDITOR_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Source/*.cpp) # Recursively get all sources
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${EDITOR_HEADERS} ${EDITOR_SOURCES})
 
 add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES})
@@ -9,6 +9,8 @@ add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES})
 target_link_libraries(${TARGET_NAME} PUBLIC ToolLibrary)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${THIRD_PARTY_DIR}/sdl3")
+
+target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 
 set_target_properties(${TARGET_NAME} PROPERTIES CXX_STANDARD 14 OUTPUT_NAME "TelltaleEditor")
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "TelltaleEditor")
