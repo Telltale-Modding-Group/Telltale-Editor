@@ -108,6 +108,8 @@ class LinearHeap {
         _CurrentPage = _ContextStack->_Page;
         _CurrentPos = _ContextStack->_PagePos;
         _ContextStack = _ContextStack->_Next;
+        if(_ContextStack == nullptr)
+            _ContextStack = &_BaseContext;
     }
     
 public:
@@ -261,8 +263,6 @@ public:
     inline void FreeAll() {
         while (_ContextStack && _ContextStack->_Next)
             PopContext();
-        if (_ContextStack)
-            _PopContextInt();
         _ContextStack = &_BaseContext;
     }
     

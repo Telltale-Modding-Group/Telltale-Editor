@@ -1,1 +1,1 @@
-target_sources(${TARGET_NAME} PRIVATE Config.hpp Thread.hpp Symbol.hpp Context.hpp)
+target_sources(${TARGET_NAME} PRIVATE Config.hpp Thread.hpp Symbol.hpp Context.hpp Math.hpp)

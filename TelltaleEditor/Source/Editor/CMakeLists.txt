@@ -41,7 +41,7 @@ if(UNIX)
 elseif(WIN32)
     add_copy_cmd("oodle_win_x86.dll" "${THIRD_PARTY_DIR}/oodle" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
     add_copy_cmd("libsdl3_win64_x86.dll" "${THIRD_PARTY_DIR}/sdl3" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
-    target_link_libraries(${TARGET_NAME} PRIVATE "${THIRD_PARTY_DIR}/sdl3/libsdl3_win64_x86.dll")
+    target_link_libraries(${TARGET_NAME} PRIVATE "${THIRD_PARTY_DIR}/sdl3/libsdl3_win64_x86.lib")
 endif()
 
 # Enable platform specific defines
