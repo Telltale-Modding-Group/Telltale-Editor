@@ -138,7 +138,7 @@ struct alignas(4) Vector2 {
         if (mag < 9.9999997e-21f)
             mag = 0.f;
         else
-            mag = std::sqrtf(mag);
+            mag = sqrtf(mag);
         return mag;
     }
     
@@ -252,7 +252,7 @@ struct alignas(4) Vector3 {
         if (mag < 9.9999997e-21f)
             mag = 0.f;
         else
-            mag = std::sqrtf(mag);
+            mag = sqrtf(mag);
         return mag;
     }
     
@@ -343,7 +343,7 @@ struct alignas(4) Vector3 {
     // Calculates, using the a dot b = 2ab cos theta, the angle between two vectors
     static inline float AngleBetween(const Vector3& lhs, const Vector3& rhs)
     {
-        return std::acosf(Dot(lhs, rhs) / std::sqrtf(lhs.MagnitudeSquared() * rhs.MagnitudeSquared()));
+        return acosf(Dot(lhs, rhs) / sqrtf(lhs.MagnitudeSquared() * rhs.MagnitudeSquared()));
     }
     
     // Completes the (normalised) orthonormal basis, given the normal vector. Outputs into the last two arguments.
@@ -504,7 +504,7 @@ struct alignas(4) Vector4 {
     inline float Magnitude() const
     {
         float mag = MagnitudeSquared();
-        return std::sqrtf(mag);
+        return sqrtf(mag);
     }
     
     // Returns the squared length of this vector with no square root.
@@ -776,7 +776,7 @@ struct Quaternion {
         if (mag < 9.9999997e-21f)
             mag = 0.f;
         else
-            mag = 1.0f / std::sqrtf(mag);
+            mag = 1.0f / sqrtf(mag);
         x *= mag;
         y *= mag;
         z *= mag;
@@ -802,7 +802,7 @@ struct Quaternion {
     {
         float v4 = v.x;
         float v5 = (float)((float)(v4 * v4) + (float)(v.y * v.y)) + (float)(v.z * v.z);
-        float v6 = std::sqrtf(v5);
+        float v6 = sqrtf(v5);
         float v7 = cosf(v6 * 0.5);
         float v8;
         if (v6 >= 0.064996749f)
