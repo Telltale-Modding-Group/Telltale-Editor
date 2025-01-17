@@ -47,15 +47,18 @@ Bool RenderContext::_Render(const JobThread& jobThread, void* pRenderCtx, void* 
     RenderContext* pContext = static_cast<RenderContext*>(pRenderCtx);
     RenderFrame* pFrame = static_cast<RenderFrame*>(pRenderFrame);
     
+    // just fill in purple for now
+    SDL_SetRenderDrawColor(pContext->_Renderer, 0xFF, 0x00, 0xFF, 0xFF);
+    SDL_RenderClear(pContext->_Renderer);
+    SDL_RenderPresent(pContext->_Renderer);
+    
     return true;
 }
 
 // generate render info about what will be rendererd
 void RenderContext::_RenderMain()
 {
-    // just fill in purple for now
-    SDL_FillSurfaceRect( _BackBuffer, nullptr, SDL_MapSurfaceRGB( _BackBuffer, 0xFF, 0x00, 0xFF ) );
-    SDL_UpdateWindowSurface( _Window );
+    // ;
 }
 
 Bool RenderContext::FrameUpdate(Bool isLastFrame)
