@@ -50,7 +50,7 @@ Colour Colour::RGBToRGBM(float ex, float scale) {
     if (maxRGB >= 1.0f)
         maxRGB = 1.0f;
     maxRGB *= 255.0f;
-    maxRGB = std::ceilf(maxRGB);
+    maxRGB = ceilf(maxRGB);
     float v16 = maxRGB * 0.0039215689f;// 1/255
     if (v16 <= 1e-6f)
         return Colour::Black;
@@ -564,7 +564,7 @@ Bool Sphere::CollideWithCone(Vector3 &conePos, Vector3 &coneNorm, float coneRadi
     float finalZ = (inverseDist * closestZ) * cosAngle + coneNorm.z * dotProduct;
     
     // Calculate the collision condition by comparing distances
-    float penetration = std::max((finalX * dy + finalY * dx + finalZ * dz), 0.0f);
+    float penetration = MAX((finalX * dy + finalY * dx + finalZ * dz), 0.0f);
     if (penetration - coneRadius < 0.0f)
         coneRadius = penetration;
     
@@ -641,7 +641,7 @@ Quaternion Quaternion::BetweenVector3(const Vector3& va, const Vector3& vb)
         if (dot >= -0.99999899f)
         {
             // Calculate the axis of rotation
-            float angle = std::sqrtf((dot + dot) + 2.0f);
+            float angle = sqrtf((dot + dot) + 2.0f);
             res.x = (vb.z * va.y - vb.y * va.z) / angle;
             res.y = (vb.x * va.z - vb.z * va.x) / angle;
             res.z = (vb.y * va.x - vb.x * va.y) / angle;
@@ -656,7 +656,7 @@ Quaternion Quaternion::BetweenVector3(const Vector3& va, const Vector3& vb)
             float v13 = va.x * Vector3::Left.y - va.y * Vector3::Left.x;
             
             float len = v11 * v11 + v12 * v12 + v13 * v13;
-            float invLength = len < 1e-10f ? 1.0f : 1.0f / std::sqrtf(len);
+            float invLength = len < 1e-10f ? 1.0f : 1.0f / sqrtf(len);
             
             res.x = v11 * invLength;
             res.y = v12 * invLength;
@@ -1407,7 +1407,7 @@ float Matrix4::CompareMatrices(const Matrix4& Left, const Matrix4& Right)
     {
         for (U32 i2 = 0; i2 < 4; i2++)
         {
-            Sum += std::fabsf(Left[i][i2] - Right[i][i2]);
+            Sum += fabsf(Left[i][i2] - Right[i][i2]);
         }
     }
     return Sum / 16.0f;
