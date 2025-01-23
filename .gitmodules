@@ -1,6 +1,3 @@
 [submodule "TelltaleEditor/3rdparty/SDL3"]
 	path = TelltaleEditor/3rdparty/SDL3
 	url = https://github.com/libsdl-org/SDL
-[submodule "TelltaleEditor/3rdparty/crossshader"]
-	path = TelltaleEditor/3rdparty/crossshader
-	url = https://github.com/alaingalvan/crossshader.git
