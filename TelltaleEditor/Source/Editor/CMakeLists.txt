@@ -7,8 +7,7 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${EDITOR_HEADERS} ${EDITOR
 add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES})
 
 target_link_libraries(${TARGET_NAME} PUBLIC ToolLibrary)
-
-target_include_directories(${TARGET_NAME} PUBLIC "${THIRD_PARTY_DIR}/sdl3")
+target_link_libraries(${TARGET_NAME} PUBLIC SDL3::SDL3)
 
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 
@@ -30,18 +29,12 @@ endfunction()
 if(UNIX)
     if(APPLE)
         add_copy_cmd("oodle_mac_arm_x86.dylib" "${THIRD_PARTY_DIR}/oodle" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
-        add_copy_cmd("libsdl3_mac_arm64.dylib" "${THIRD_PARTY_DIR}/sdl3" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
-        target_link_libraries(${TARGET_NAME} PRIVATE "${THIRD_PARTY_DIR}/sdl3/libsdl3_mac_arm64.dylib")
     else()
         add_copy_cmd("oodle_linux_arm.so" "${THIRD_PARTY_DIR}/oodle" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
         add_copy_cmd("oodle_linux_x86.so" "${THIRD_PARTY_DIR}/oodle" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
-      	add_copy_cmd("libsdl3_linux_x86.so" "${THIRD_PARTY_DIR}/sdl3" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
-        target_link_libraries(${TARGET_NAME} PRIVATE "${THIRD_PARTY_DIR}/sdl3/libsdl3_linux_x86.so")
     endif()
 elseif(WIN32)
     add_copy_cmd("oodle_win_x86.dll" "${THIRD_PARTY_DIR}/oodle" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
-    add_copy_cmd("libsdl3_win64_x86.dll" "${THIRD_PARTY_DIR}/sdl3" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
-    target_link_libraries(${TARGET_NAME} PRIVATE "${THIRD_PARTY_DIR}/sdl3/libsdl3_win64_x86.lib")
 endif()
 
 # Enable platform specific defines

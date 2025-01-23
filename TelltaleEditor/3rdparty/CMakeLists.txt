@@ -19,3 +19,7 @@ if(NOT TARGET lua502)
     include(lua502/CMakeLists.txt) # Probably have to change to lua.cmake
     set_target_properties(lua502 PROPERTIES FOLDER ${third_party_folder}/lua502)
 endif()
+
+if(NOT TARGET SDL3::SDL3)
+    add_subdirectory(SDL3 EXCLUDE_FROM_ALL)
+endif()
