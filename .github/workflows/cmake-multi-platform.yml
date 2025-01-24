@@ -56,7 +56,20 @@ jobs:
         # Initialize and update submodules.
         submodules: true
         # Fetch full history for proper submodule handling.
-        fetch-depth: 0    
+        fetch-depth: 0   
+        
+    - name: Install dependencies on Linux
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libx11-dev \
+          libwayland-dev \
+          libxrandr-dev \
+          libxinerama-dev \
+          libxcursor-dev \
+          libxi-dev \
+          libgl-dev        
 
     - name: Set reusable strings
       # Turn repeated input strings (such as the build output directory) into step outputs. These step outputs can be used throughout the workflow file.
