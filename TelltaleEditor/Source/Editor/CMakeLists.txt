@@ -6,8 +6,11 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${EDITOR_HEADERS} ${EDITOR
 
 add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES})
 
-target_link_libraries(${TARGET_NAME} PUBLIC ToolLibrary)
-target_link_libraries(${TARGET_NAME} PUBLIC SDL3::SDL3)
+target_link_libraries(${TARGET_NAME} PRIVATE
+    ToolLibrary
+    SDL3_shadercross::SDL3_shadercross-static
+    SDL3::SDL3-static
+)
 
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 
@@ -18,9 +21,9 @@ set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE
 
 function(add_copy_cmd fname thirddir target_name output_dir)
     add_custom_command(
-        TARGET ${target_name} POST_BUILD 
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different 
-        "${thirddir}/${fname}" 
+        TARGET ${target_name} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${thirddir}/${fname}"
         "${output_dir}/$<$<CONFIG:Release>:Release>$<$<CONFIG:Debug>:Debug>/${fname}"
     )
 endfunction()
