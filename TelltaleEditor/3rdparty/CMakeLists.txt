@@ -21,16 +21,8 @@ if(NOT TARGET lua502)
 endif()
 
 if(NOT TARGET SDL3::SDL3-static)
-    # TODO! Fix folder hierarchy
+    # TODO! Explore building SDL3 beforehand. That should fix the find_package issue in SDL_shadercross.
     set(CMAKE_FOLDER ${THIRD_PARTY_FOLDER}/SDL3) # Apply FOLDER to all targets in the SDL3 folder
     add_subdirectory(SDL3 EXCLUDE_FROM_ALL)
-    unset(CMAKE_FOLDER) # Unset it
-endif()
-
-if(NOT TARGET SDL3_shadercross::SDL3_shadercross-static)
-    # TODO! Fix folder hierarchy
-    set(CMAKE_FOLDER ${THIRD_PARTY_FOLDER}/SDL3_shadercross) # Apply FOLDER to all targets in the SDL3 folder
-    set(SDLSHADERCROSS_VENDORED on)
-    add_subdirectory(SDL_shadercross EXCLUDE_FROM_ALL)
     unset(CMAKE_FOLDER) # Unset it
 endif()

@@ -8,7 +8,6 @@ add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES})
 
 target_link_libraries(${TARGET_NAME} PRIVATE
     ToolLibrary
-    SDL3_shadercross::SDL3_shadercross-static
     SDL3::SDL3-static
 )
 
