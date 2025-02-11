@@ -264,4 +264,13 @@ void _DebugDeallocateTracked(U8* Ptr);
 
 #endif
 
+template<typename T> inline void _TTEDeleter(T* _Instance)
+{
+	_Instance->~T();
+	TTE_DEL(_Instance);
+}
+
+// create managed shared ptr
+#define TTE_NEW_PTR(_Type, _MemoryTag, ...) std::shared_ptr<_Type>(TTE_NEW(_Type, _MemoryTag, __VA_ARGS__), &_TTEDeleter<_Type>)
+
 void DumpTrackedMemory(); // if in debug mode, prints all tracked memory allocations.

@@ -85,7 +85,7 @@ class LinearHeap {
         ObjWrapperBase* pObject = context._FirstObject;
         while(pObject){
             ObjWrapperBase* next = pObject->_Next;
-            next->~ObjWrapperBase();
+            pObject->~ObjWrapperBase();
             pObject = next;
         }
         context._LastObject = context._FirstObject = NULL;
@@ -209,7 +209,7 @@ public:
      * Pops a context. This will call destructors of any objects created using New or NewArray between the last call of PushContext and this call.
      */
     inline void PopContext() {
-        if(_ContextStack && _ContextStack->_Next){
+        if(_ContextStack){
             _PopContextInt();
             if (!_CurrentPage)
                 _CurrentPage = _BasePage;
@@ -261,9 +261,8 @@ public:
      * Pops all contexts in this linear heap, calling all destructors.
      */
     inline void FreeAll() {
-        while (_ContextStack && _ContextStack->_Next)
+        while (_ContextStack != &_BaseContext)
             PopContext();
-        _ContextStack = &_BaseContext;
     }
     
     /**
