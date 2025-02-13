@@ -16,6 +16,19 @@
 
 class RenderContext;
 
+enum class RenderTextureAddressMode
+{
+	CLAMP = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE,
+	WRAP = SDL_GPU_SAMPLERADDRESSMODE_REPEAT,
+	//BORDER. Border colors arent supported by SDL3 :( (if outside UV range)
+};
+
+enum class RenderTextureMipMapMode
+{
+	NEAREST = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST,
+	LINEAR = SDL_GPU_SAMPLERMIPMAPMODE_LINEAR,
+};
+
 enum class RenderShaderType
 {
 	FRAGMENT,
@@ -26,6 +39,27 @@ enum class RenderSurfaceFormat
 {
 	UNKNOWN,
 	RGBA8,
+};
+
+enum class RenderBufferAttributeFormat
+{
+	UNKNOWN,
+	
+	I32x1,
+	I32x2,
+	I32x3,
+	I32x4,
+	
+	F32x1,
+	F32x2,
+	F32x3,
+	F32x4,
+	
+	U32x1,
+	U32x2,
+	U32x3,
+	U32x4,
+	
 };
 
 /// A renderable object in the scene
@@ -67,6 +101,8 @@ struct RenderTexture
 	
 	// If not created, creates the texture to a 2D texture all black.
 	void Create2D(RenderContext*, U32 width, U32 height, RenderSurfaceFormat format, U32 nMips);
+	
+	~RenderTexture();
 	
 };
 

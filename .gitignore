@@ -11,3 +11,4 @@ CMakeCache.txt
 *.ttarch2
 *.ttarch
 Dev/.vscode/tasks.json
+TelltaleEditor/3rdparty/SDL-shadercross/*
