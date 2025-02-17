@@ -543,6 +543,7 @@ class DataStreamManager
   private:
     // Map of cache URL paths to cached streams. Not thread safe, operations on each memory stream must not be done simulateously.
     std::map<String, std::shared_ptr<DataStreamMemory>> _Cache;
+	std::mutex _CacheLock;
 
     static DataStreamManager *Instance;
 };

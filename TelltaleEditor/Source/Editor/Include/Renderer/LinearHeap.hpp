@@ -68,7 +68,10 @@ class LinearHeap {
         memset(pg, 0, size);
         pg->_Index = _PageCount++;
         pg->_Size = size;
-        pg->_Next = 0;
+		pg->_Next = _CurrentPage;
+		if(_CurrentPage == nullptr)
+			_BasePage = pg;
+		_CurrentPage = pg;
         _TotalMemUsed += size;
         return pg;
     }
@@ -138,8 +141,6 @@ public:
             }else{
                 Page* pNext = _AllocatePage(size);
                 _CurrentPos = size;
-                pNext->_Next = currentPage;
-                _CurrentPage = pNext;
                 pRet = (U8*)pNext + sizeof(Page);
             }
         }else{
@@ -217,13 +218,6 @@ public:
     }
     
     /**
-     * Gets the index of the base page in this linear heap. Return -1 if no pages.
-     */
-    inline int GetBasePageIndex() {
-        return _BasePage ? _BasePage->_Index : -1;
-    }
-    
-    /**
      * Returns the number of bytes free in the current page - anymore would require a new allocation.
      */
     inline int GetCurrentPageBytesFree(){
@@ -271,6 +265,7 @@ public:
     inline void ReleaseAll(){
         FreeAll();
         _ReleasePageList(_BasePage);
+		_BasePage = _CurrentPage = nullptr;
     }
     
     /**

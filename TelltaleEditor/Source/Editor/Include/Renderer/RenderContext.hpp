@@ -221,7 +221,7 @@ public:
     ~RenderContext(); // closes window and exists the context, freeing memory
     
     // Call each frame on the main thread to wait for the renderer job (render last frame) and prepare next scene render
-    // Pass in if you want to force this to be the last frame (destructor called after). Returns if user wants to quit.
+    // Pass in if you want to force this to be the last frame (destructor called after). Returns if still running
     Bool FrameUpdate(Bool isLastFrame);
     
     // Current frame index.
@@ -254,24 +254,21 @@ public:
     
 private:
 	
-	inline RenderFrame& GetFrame(Bool bGetRenderFrame)
+	inline RenderFrame& GetFrame(Bool bGetPopulatingFrame)
 	{
-		return bGetRenderFrame ? _Frame[_MainFrameIndex^ 1] : _Frame[_MainFrameIndex];
+		return bGetPopulatingFrame ? _Frame[_MainFrameIndex^ 1] : _Frame[_MainFrameIndex];
 	}
 	
-	// Checks and ensures are being called from not the main thread.
-	inline void AssertRenderThread()
-	{
-		TTE_ASSERT(!IsCallingFromMain(), "This function cannot be called from anywhere but the render job!");
-	}
-	
-	// Checks and ensures are being called from not the main thread.
+	// Checks and ensures are being called from the main thread.
 	inline void AssertMainThread()
 	{
 		TTE_ASSERT(IsCallingFromMain(), "This function cannot be called from anywhere but the main thread!");
 	}
 	
 	// =========== INTERNAL RENDERING FUNCTIONALITY
+	
+	// Perform rendering of high level instructions into command buffers.
+	void _Render(Float dt, RenderCommandBuffer* pMainCommandBuffer);
 	
 	// Allocate, Create() must be called after. New render pipeline state.
 	std::shared_ptr<RenderPipelineState> _AllocatePipelineState();
@@ -293,14 +290,11 @@ private:
 	
 	// =========== GENERIC FUNCTIONALITY
     
-    // Perform main thread render
-    void _RenderMain(Float deltaTimeSeconds);
-    
-    // async render job to perform render of last frame
-    static Bool _Render(const JobThread& jobThread, void* pRenderCtx, void* pFrame);
+    // async job to populate render instructions
+    static Bool _Populate(const JobThread& jobThread, void* pRenderCtx, void* pFrame);
     
     RenderFrame _Frame[2]; // index swaps, main thread and render thread frame
-    JobHandle _RenderJob; // actual gpu render job
+    JobHandle _PopulateJob; // populate render instructions job
     U32 _MainFrameIndex; // 0 or 1. NOT of this value is the render frame index, into the _Frame array.
 	U64 _StartTimeMicros = 0; // start time of current mt frame
     

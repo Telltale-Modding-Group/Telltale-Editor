@@ -77,6 +77,7 @@ static CString TAG_NAMES[]
     "Blowfish",
     "ScriptObj",
     "TemporaryAsync",
+	"Renderer",
 };
 
 void DumpTrackedMemory()

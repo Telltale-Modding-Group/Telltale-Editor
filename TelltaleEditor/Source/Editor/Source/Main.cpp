@@ -3,8 +3,14 @@
 
 #include <Renderer/RenderContext.hpp>
 
-void RunMod(ToolContext* Context)
+#include <TelltaleEditor.hpp>
+
+// Simply run mod.lua
+static void RunMod()
 {
+	
+	ToolContext* Context = CreateToolContext();
+	Context->Switch({"BN100", "MacOS", ""});
     
     {
 
@@ -14,26 +20,29 @@ void RunMod(ToolContext* Context)
         Context->GetLibraryLVM().GC(); // gc after
         
     }
+	
+	DestroyToolContext();
     
     DumpTrackedMemory(); // dump all memort leaks. after destroy context, nothing should exist
 }
 
+// Run full application, with optional GUI
+static void RunApp(Bool runUI)
+{
+	{
+		TelltaleEditor editor{{"BN100", "MacOS", ""}, runUI};
+		Bool running;
+		do
+		{
+			running = editor.Update(false);
+		}
+		while(running);
+	}
+	DumpTrackedMemory();
+}
+
 int main()
 {
-    ToolContext* Context = CreateToolContext();
-    Context->Switch({"BN100", "MacOS", ""});
-    RenderContext::Initialise();
-    
-    {
-        RenderContext testContext{"Bone: Out from Boneville"};
-        
-        Bool bQuit = false;
-        while(!bQuit)
-            bQuit = testContext.FrameUpdate(bQuit);
-        
-    }
-    
-    RenderContext::Shutdown();
-    DestroyToolContext();
+	RunApp(false);
     return 0;
 }

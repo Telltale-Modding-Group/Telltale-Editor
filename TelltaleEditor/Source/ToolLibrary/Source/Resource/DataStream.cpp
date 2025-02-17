@@ -120,6 +120,7 @@ ResourceURL DataStreamManager::Resolve(const Symbol &unresolved)
 
 void DataStreamManager::Publicise(std::shared_ptr<DataStreamMemory> &stream)
 {
+	std::lock_guard<std::mutex> G{_CacheLock};
     for (auto &it : _Cache)
     {
         if (it.second == stream)
@@ -130,6 +131,7 @@ void DataStreamManager::Publicise(std::shared_ptr<DataStreamMemory> &stream)
 
 void DataStreamManager::ReleaseCache(const String &path)
 {
+	std::lock_guard<std::mutex> G{_CacheLock};
     for (auto it = _Cache.begin(); it != _Cache.end(); it++)
     {
         if (CompareCaseInsensitive(it->first, path))
@@ -142,6 +144,7 @@ void DataStreamManager::ReleaseCache(const String &path)
 
 std::shared_ptr<DataStreamMemory> DataStreamManager::CreatePublicCache(const String &path, U32 pageSize)
 {
+	std::lock_guard<std::mutex> G{_CacheLock};
     std::shared_ptr<DataStreamMemory> pMemoryStream = _Cache[path] = CreatePrivateCache(path, pageSize);
     return pMemoryStream; // Create privately, make public, return it.
 }
@@ -161,6 +164,7 @@ std::shared_ptr<DataStreamSequentialStream> DataStreamManager::CreateSequentialS
 
 std::shared_ptr<DataStreamMemory> DataStreamManager::FindCache(const String &path)
 {
+	std::lock_guard<std::mutex> G{_CacheLock};
     for (auto it = _Cache.begin(); it != _Cache.end(); it++)
     {
         if (CompareCaseInsensitive(it->first, path))

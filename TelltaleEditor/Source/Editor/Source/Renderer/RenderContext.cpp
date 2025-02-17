@@ -118,9 +118,9 @@ RenderContext::RenderContext(String wName)
 	TTE_ASSERT(SDL3_Initialised, "SDL3 has not been initialised, or failed to.");
 	
 	_MainFrameIndex = 0;
-	_RenderJob = JobHandle();
+	_PopulateJob = JobHandle();
 	_Frame[0].Reset(0);
-	_Frame[1].Reset(0);
+	_Frame[1].Reset(1);
 	
 	// Create window and renderer
 	_Window = SDL_CreateWindow(wName.c_str(), 780, 326, 0);
@@ -158,88 +158,38 @@ RenderContext::~RenderContext()
 
 // ============================ HIGH LEVEL RENDER FUNCTIONS
 
-// RENDER THREAD CALL: take in high level calls to render objects, eg sphere, mesh
-Bool RenderContext::_Render(const JobThread& jobThread, void* pRenderCtx, void* pRenderFrame)
+// NON-MAIN THREAD CALL: perform all higher level render calls and do any skinning / animation updates, etc.
+Bool RenderContext::_Populate(const JobThread& jobThread, void* pRenderCtx, void* pDT)
 {
 	
 	// LOCALS
 	
+	Float dt = *((Float*)&pDT);
 	RenderContext* pContext = static_cast<RenderContext*>(pRenderCtx);
-	RenderFrame* pFrame = static_cast<RenderFrame*>(pRenderFrame);
+	RenderFrame& frame = pContext->GetFrame(true);
 	
-	// Translate high level render operations, eg draw text, draw verts, into command buffer operations for GPU optimised.
+	// HIGH LEVEL RENDER (ASYNC)
 	
-	{
-		
-		RenderCommandBuffer* pMainCommandBuffer = pContext->_NewCommandBuffer();
-		
-		// setup swapchain tex
-		pFrame->_BackBuffer = pFrame->_Heap.New<RenderTexture>();
-		pFrame->_BackBuffer->_Context = pContext;
-		pFrame->_BackBuffer->Format = FromSDLFormat(SDL_GetGPUSwapchainTextureFormat(pContext->_Device, pContext->_Window));
-		SDL_WaitAndAcquireGPUSwapchainTexture(pMainCommandBuffer->_Handle,
-											  pContext->_Window, &pFrame->_BackBuffer->_Handle,
-											  &pFrame->_BackBuffer->Width,  &pFrame->_BackBuffer->Height);
-		
-		// RENDER
-		
-		// command buffer is submitted below
-		
-	}
-	
-	// SUBMIT ALL UNSUBMITTED COMMAND buffers
-	
-	U32 activeCommandBuffers = 0;
-	SDL_GPUFence** awaitingFences = pFrame->_Heap.NewArray<SDL_GPUFence*>((U32)pFrame->_CommandBuffers.size());
-	for(auto& commandBuffer: pFrame->_CommandBuffers)
-	{
-		if(!commandBuffer->_Submitted)
-			commandBuffer->Submit(); // submit if needed
-		
-		if(commandBuffer->_SubmittedFence && !commandBuffer->Finished())
-			awaitingFences[activeCommandBuffers++] = commandBuffer->_SubmittedFence; // add waiting fences
-	}
-	
-	// WAIT ON ALL ACTIVE COMMAND BUFFERS TO FINISH GPU EXECUTION
-	
-	if(activeCommandBuffers > 0)
-		SDL_WaitForGPUFences(pContext->_Device, true, awaitingFences, activeCommandBuffers);
-	for(auto& commandBuffer: pFrame->_CommandBuffers) // free the fences
-	{
-		if(commandBuffer->_SubmittedFence != nullptr)
-		{
-			SDL_ReleaseGPUFence(pContext->_Device, commandBuffer->_SubmittedFence);
-			commandBuffer->_SubmittedFence = nullptr;
-		}
-	}
-	
-	// RECLAIM TRANSFER BUFFERS
-	for(auto& cmd: pFrame->_CommandBuffers)
-		pContext->_ReclaimTransferBuffers(*cmd);
-	
-	// CLEAR COMMAND BUFFERS. DONE.
-	pFrame->_CommandBuffers.clear();
 	
 	return true;
 }
 
-// ============================ MAIN THREAD UPDATERS
-
-// MAIN THREAD CALL: take in scene information and perform anim, updates, call mesh renders, etc
-void RenderContext::_RenderMain(Float deltaSeconds)
+void RenderContext::_Render(Float dt, RenderCommandBuffer* pMainCommandBuffer)
 {
+	RenderFrame& frame = GetFrame(false);
 	
-	;
+	// LOW LEVEL RENDER (MAIN THREAD)
+	
+	
 	
 }
 
-// USER CALL: called every frame by user to update render and kick off render job
+// USER CALL: called every frame by user to render the previous frame
 Bool RenderContext::FrameUpdate(Bool isLastFrame)
 {
-	Bool bUserWantsQuit = false;
 	
-	// 1. increase frame number
-	_Frame[_MainFrameIndex].Reset(_Frame[_MainFrameIndex]._FrameNumber + 1);
+	// 1. locals
+	Bool bUserWantsQuit = false;
 	
 	// 2. poll SDL events
 	SDL_Event e {0};
@@ -251,8 +201,7 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 		}
 	}
 	
-	// 3. Do rendering and calculate delta time
-	
+	// 3. Calculate delta time
 	Float dt = 0.0f;
 	if(_StartTimeMicros != 0)
 	{
@@ -261,31 +210,91 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 		_StartTimeMicros = myTime; // reset timer for next frame
 	}
 	
-	_RenderMain(dt); // DO RENDER!
-	
-	// 4. Wait for previous render to complete if needed
-	if(_RenderJob)
+	// 4. Perform rendering. Create main command buffer to acquire swapchain texture. Then wait on all to finish.
+	RenderFrame* pFrame = &GetFrame(false);
+	if(pFrame->_FrameNumber != 0)
 	{
-		JobScheduler::Instance->Wait(_RenderJob);
-		_RenderJob.Reset(); // reset handle to empty
+		
+		// Translate high level render operations, eg draw text, draw verts, into command buffer operations for GPU optimised
+		
+		{
+			
+			RenderCommandBuffer* pMainCommandBuffer = _NewCommandBuffer();
+			
+			// setup swapchain tex
+			pFrame->_BackBuffer = pFrame->_Heap.New<RenderTexture>();
+			pFrame->_BackBuffer->_Context = this;
+			pFrame->_BackBuffer->Format = FromSDLFormat(SDL_GetGPUSwapchainTextureFormat(_Device, _Window));
+			SDL_WaitAndAcquireGPUSwapchainTexture(pMainCommandBuffer->_Handle,
+												  _Window, &pFrame->_BackBuffer->_Handle,
+												  &pFrame->_BackBuffer->Width,  &pFrame->_BackBuffer->Height);
+			
+			_Render(dt, pMainCommandBuffer);
+			
+			// command buffer is submitted below
+			
+		}
+		
+		// SUBMIT ALL UNSUBMITTED COMMAND buffers
+		
+		U32 activeCommandBuffers = 0;
+		SDL_GPUFence** awaitingFences = pFrame->_Heap.NewArray<SDL_GPUFence*>((U32)pFrame->_CommandBuffers.size());
+		for(auto& commandBuffer: pFrame->_CommandBuffers)
+		{
+			if(!commandBuffer->_Submitted)
+				commandBuffer->Submit(); // submit if needed
+			
+			if(commandBuffer->_SubmittedFence && !commandBuffer->Finished())
+				awaitingFences[activeCommandBuffers++] = commandBuffer->_SubmittedFence; // add waiting fences
+		}
+		
+		// WAIT ON ALL ACTIVE COMMAND BUFFERS TO FINISH GPU EXECUTION
+		
+		if(activeCommandBuffers > 0)
+			SDL_WaitForGPUFences(_Device, true, awaitingFences, activeCommandBuffers);
+		for(auto& commandBuffer: pFrame->_CommandBuffers) // free the fences
+		{
+			if(commandBuffer->_SubmittedFence != nullptr)
+			{
+				SDL_ReleaseGPUFence(_Device, commandBuffer->_SubmittedFence);
+				commandBuffer->_SubmittedFence = nullptr;
+			}
+		}
+		
+		// RECLAIM TRANSFER BUFFERS
+		for(auto& cmd: pFrame->_CommandBuffers)
+			_ReclaimTransferBuffers(*cmd);
+		
+		// CLEAR COMMAND BUFFERS.
+		pFrame->_CommandBuffers.clear();
 	}
 	
-	// 5. NO RENDER THREAD JOB ACTIVE, SO NO LOCKING NEEDED UNTIL SUBMIT. Give render frame our new processed frame to render, and swap.
-	_MainFrameIndex ^= 1;
+	// 5. Wait for previous populater to complete if needed
+	if(_PopulateJob)
+	{
+		JobScheduler::Instance->Wait(_PopulateJob);
+		_PopulateJob.Reset(); // reset handle to empty
+	}
 	
-	// 6. Kick off render job to render the last thread data (if needed)
+	// 6. NO POPULATE THREAD JOB ACTIVE, SO NO LOCKING NEEDED UNTIL SUBMIT. Give our new processed frame, and swap.
+
+	_MainFrameIndex ^= 1; // swap
+	GetFrame(true).Reset(GetFrame(true)._FrameNumber + 2); // increase populater frame index (+2 from swap, dont worry)
+	
+	// 7. Kick off populater job to render the last thread data (if needed)
 	if(!isLastFrame && !bUserWantsQuit)
 	{
 		JobDescriptor job{};
-		job.AsyncFunction = &_Render;
+		job.AsyncFunction = &_Populate;
 		job.Priority = JOB_PRIORITY_HIGHEST;
 		job.UserArgA = this;
-		job.UserArgB = &_Frame[_MainFrameIndex ^ 1]; // render thread frame
-		_RenderJob = JobScheduler::Instance->Post(job);
-		// in the future, maybe we can queue the next render job if we want more than just 2 snapshots of render state.
+		union {void* a; Float b;} _cvt{};
+		_cvt.b = dt;
+		job.UserArgB = _cvt.a;
+		_PopulateJob = JobScheduler::Instance->Post(job);
 	}
 	
-	return bUserWantsQuit;
+	return !bUserWantsQuit && !isLastFrame;
 }
 
 // ============================ FRAME MANAGEMENT
@@ -510,7 +519,7 @@ void RenderPipelineState::Create()
 {
 	if(_Internal._Handle == nullptr)
 	{
-		_Internal._Context->AssertRenderThread();
+		_Internal._Context->AssertMainThread();
 		TTE_ASSERT(VertexState.NumVertexBuffers < 4 && VertexState.NumVertexAttribs < 32, "Vertex state has too many attributes / buffers");
 		
 		// calculate hash
@@ -560,8 +569,8 @@ RenderShader::~RenderShader()
 
 RenderCommandBuffer* RenderContext::_NewCommandBuffer()
 {
-	AssertRenderThread();
-	RenderFrame& frame = GetFrame(true);
+	AssertMainThread();
+	RenderFrame& frame = GetFrame(false);
 	RenderCommandBuffer* pBuffer = frame._Heap.New<RenderCommandBuffer>();
 	
 	pBuffer->_Handle = SDL_AcquireGPUCommandBuffer(_Device);
@@ -577,7 +586,7 @@ void RenderCommandBuffer::StartCopyPass()
 	TTE_ASSERT(_Handle != nullptr, "Render command buffer was not initialised properly");
 	TTE_ASSERT(_CurrentPass == nullptr, "Already within a pass. End the current pass before starting a new one.");
 	
-	RenderPass* pPass = _Context->GetFrame(true)._Heap.New<RenderPass>();
+	RenderPass* pPass = _Context->GetFrame(false)._Heap.New<RenderPass>();
 	pPass->_CopyHandle = SDL_BeginGPUCopyPass(_Handle);
 	
 	_CurrentPass = pPass;
@@ -599,7 +608,7 @@ void RenderCommandBuffer::StartPass(RenderPass&& pass, RenderTexture& sw)
 	swChain.clear_color.b = pass.ClearCol.b;
 	swChain.clear_color.a = pass.ClearCol.a;
 	
-	RenderPass* pPass = _Context->GetFrame(true)._Heap.New<RenderPass>();
+	RenderPass* pPass = _Context->GetFrame(false)._Heap.New<RenderPass>();
 	*pPass = std::move(pass);
 	pPass->_Handle = SDL_BeginGPURenderPass(_Handle, &swChain, 1, nullptr);
 	
@@ -702,7 +711,7 @@ void RenderCommandBuffer::BindPipeline(std::shared_ptr<RenderPipelineState> &sta
 	if(_Context)
 	{
 		TTE_ASSERT(_CurrentPass && _CurrentPass->_Handle, "No active non copy pass");
-		_Context->AssertRenderThread();
+		_Context->AssertMainThread();
 		SDL_BindGPUGraphicsPipeline(_CurrentPass->_Handle, state->_Internal._Handle);
 	}
 }
