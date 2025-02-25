@@ -78,6 +78,7 @@ static CString TAG_NAMES[]
     "ScriptObj",
     "TemporaryAsync",
 	"Renderer",
+	"LinearHeap",
 };
 
 void DumpTrackedMemory()

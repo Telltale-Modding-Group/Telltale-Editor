@@ -238,7 +238,7 @@ struct alignas(4) Vector3 {
     float z;
     
     // Sets the components
-    inline void Set(float x, float y, float z, float w)
+    inline void Set(float x, float y, float z)
     {
         this->x = x;
         this->y = y;
@@ -765,23 +765,20 @@ struct Quaternion {
         return Quaternion(-x, -y, -z, w);
     }
     
-    inline Quaternion(const Vector3& normalizedAxis, float radians)
-    {
-        float sine = sinf(radians * 0.5f);
-        float cosine = cosf(radians * 0.5f);
-        x = normalizedAxis.x * sine;
-        y = normalizedAxis.y * sine;
-        z = normalizedAxis.z * sine;
-        float mag = x * x + y * y + z * z + cosine * cosine;
-        if (mag < 9.9999997e-21f)
-            mag = 0.f;
-        else
-            mag = 1.0f / sqrtf(mag);
-        x *= mag;
-        y *= mag;
-        z *= mag;
-        w = mag < 9.9999997e-21f ? 1.0f : mag * cosine;
-    }
+	inline Quaternion(const Vector3& normalizedAxis, float radians)
+	{
+		// Calculate half angle
+		float halfAngle = radians * 0.5f;
+		float sine = sinf(halfAngle);
+		float cosine = cosf(halfAngle);
+		
+		// Set the quaternion components
+		x = normalizedAxis.x * sine;
+		y = normalizedAxis.y * sine;
+		z = normalizedAxis.z * sine;
+		w = cosine;
+	}
+
     
     inline void SetEuler(float xrot, float yrot, float zrot)
     { // expanded matrix stuff
@@ -1026,6 +1023,13 @@ public:
     Matrix4();
     Matrix4(const Matrix4& M);
     Matrix4(const Vector3& V0, const Vector3& V1, const Vector3& V2);
+	Matrix4(Vector4 Row[4]);
+	
+	// input in row major order, 64 bytes, of matrix
+	inline Matrix4(float* entries)
+	{
+		memcpy(_Entries, entries, 64);
+	}
     
     //
     // Assignment

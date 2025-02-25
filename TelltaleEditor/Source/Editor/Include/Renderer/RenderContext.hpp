@@ -1,218 +1,18 @@
 #pragma once
 
-// Low level render API. Use RenderContext and then everything else from the higher level API.
+// Render context synthesizes all of the render types into one scene runtime
 
 #include <Core/Context.hpp>
 #include <Renderer/RenderAPI.hpp>
 
 #include <Resource/DataStream.hpp>
 
+#include <Scene.hpp>
+
 #include <vector>
 #include <set>
 
-class RenderContext;
-
-struct RenderScene;
-struct RenderTexture;
-struct RenderFrame;
-
-enum class RenderBufferUsage
-{
-	VERTEX = SDL_GPU_BUFFERUSAGE_VERTEX,
-	INDICES = SDL_GPU_BUFFERUSAGE_INDEX,
-	READONLY = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ,
-};
-
-/// A buffer in the renderer holding data. You own these and can create them below.
-struct RenderBuffer
-{
-	
-	RenderContext* _Context = nullptr;
-	SDL_GPUBuffer* _Handle = nullptr;
-	
-	RenderBufferUsage Usage = RenderBufferUsage::VERTEX;
-	U64 SizeBytes = 0; // size of the bytes of the buffer
-	
-	~RenderBuffer();
-	
-};
-
-/// Internal transfer buffer for uploads.
-struct _RenderTransferBuffer
-{
-	
-	SDL_GPUTransferBuffer* Handle = nullptr;
-	U32 Capacity = 0; // total number available
-	U32 Size = 0; // total used at the moment if acquired
-	
-	inline bool operator<(const _RenderTransferBuffer& rhs) const
-	{
-		return Capacity < rhs.Capacity;
-	}
-	
-};
-
-/// Render sampler which is bindable
-struct RenderSampler
-{
-	
-	SDL_GPUSampler* _Handle = nullptr;
-	
-	Float MipBias = 0.0f;
-	RenderTextureAddressMode WrapU = RenderTextureAddressMode::WRAP;
-	RenderTextureAddressMode WrapV = RenderTextureAddressMode::WRAP;
-	RenderTextureMipMapMode MipMode = RenderTextureMipMapMode::NEAREST;
-	
-	// Test description, not the handle.
-	inline Bool operator==(const RenderSampler& rhs)
-	{
-		return MipBias == rhs.MipBias && MipMode == rhs.MipMode && WrapU == rhs.WrapU && WrapV == rhs.WrapV;
-	}
-	
-};
-
-/// Used in pipeline state. Represents the format of a vertex data input array and input attributes. No ownership and they are part of a pipeline state descriptor.
-struct RenderVertexState
-{
-	
-	RenderContext* _Context = nullptr;
-	
-	struct VertexAttrib
-	{
-		RenderBufferAttributeFormat Format = RenderBufferAttributeFormat::UNKNOWN;
-		U16 VertexBufferIndex = 0; // 0 to 3 (which vertex buffer to use)
-		U16 VertexBufferLocation = 0; // index of the attribute in the current vertex buffer (index). 0 to 31
-	};
-
-	VertexAttrib Attribs[32];
-	
-	U8 NumVertexBuffers = 0; // between 0 and 4
-	U8 NumVertexAttribs = 0; // between 0 and 32
-	
-	void Release(); // Releases this vertex state. Called automatically. Find() in context will return a new one after this.
-	
-};
-
-/// Bindable pipeline state. Create lots at initialisation and then bind each and render, this is the modern typical best approach to rendering. Internal use. Represents a state of the rasterizer.
-struct RenderPipelineState
-{
-	
-	struct
-	{
-		
-		SDL_GPUGraphicsPipeline* _Handle = nullptr; // SDL handle
-		RenderContext* _Context; // handle to context
-		
-	} _Internal;
-	
-	U64 Hash = 0; // calculated pipeline hash. draw calls etc specify this.
-	
-	// SET BY INTERNAL USER
-	
-	String FragmentSh = ""; // fragment shader name
-	String VertexSh = ""; // vertex shader name
-	
-	// FUNCTIONALITY
-	
-	RenderVertexState VertexState; // bindable buffer information (format)
-	
-	void Create(); // creates and sets hash.
-	
-	~RenderPipelineState(); // destroy if needed
-	
-};
-
-/// A render pass
-struct RenderPass
-{
-
-	SDL_GPURenderPass* _Handle = nullptr;
-	SDL_GPUCopyPass* _CopyHandle = nullptr;
-	
-	Colour ClearCol = Colour::Black;
-	
-};
-
-/// Internal shader, lightweight object.
-struct RenderShader
-{
-	
-	String Name; // no extension
-	RenderContext* Context = nullptr;
-	SDL_GPUShader* Handle = nullptr;
-	
-	~RenderShader();
-	
-};
-
-/// A set of draw commands which are appended to and then finally submitted in one batch.
-struct RenderCommandBuffer
-{
-	
-	RenderContext* _Context = nullptr;
-	SDL_GPUCommandBuffer* _Handle = nullptr;
-	SDL_GPUFence* _SubmittedFence = nullptr; // wait object for command buffer in render thread
-	RenderPass* _CurrentPass = nullptr; // pass stack for command buffer
-	Bool _Submitted = false;
-	
-	std::vector<_RenderTransferBuffer> _AcquiredTransferBuffers; // cleared given to context once done.
-	
-	// bind a pipeline to this command list
-	void BindPipeline(std::shared_ptr<RenderPipelineState>& state);
-	
-	// bind vertex buffers, (array). First is the first slot to bind to. Offsets can be NULL to mean all from start. Offsets is each offset.
-	void BindVertexBuffers(std::shared_ptr<RenderBuffer>* buffers, U32* offsets, U32 first, U32 num);
-	
-	// bind an index buffer for a draw call. isHalf = true means U16 indices in the buffer, false = U32 indices. Pass in offset into buffer.
-	void BindIndexBuffer(std::shared_ptr<RenderBuffer> indexBuffer, U32 offset, Bool isHalf);
-	
-	// Binds num textures along with samplers, starting at the given slot, to the pipeline fragment shader. num is 0 to 32.
-	void BindTextures(U32 slot, U32 num, std::shared_ptr<RenderTexture>* pTextures, std::shared_ptr<RenderSampler>* pSamplers);
-	
-	// Binds num generic storage buffers (eg camera) to a specific shader in the pipeline.
-	void BindGenericBuffers(U32 slot, U32 num, std::shared_ptr<RenderBuffer>* pBuffers, RenderShaderType shaderSlot);
-	
-	// Perform a buffer upload.
-	void UploadBufferData(std::shared_ptr<RenderBuffer>& buffer, DataStreamRef srcStream, U64 srcOffset, U32 destOffset, U32 numBytes);
-	
-	// Perform a texture sub-image upload
-	void UploadTextureData(std::shared_ptr<RenderTexture>& texture, DataStreamRef srcStream,
-						   U64 srcOffset, U32 mip, U32 slice, U32 dataSize);
-	
-	// push a render pass to the stack. Pop the pass when needed. BindXXX calls must have a pass pushed.
-	void StartPass(RenderPass&& pass, RenderTexture& swapchainTex);
-	
-	RenderPass EndPass(); // end pass, its invalid but its information is in the return value.
-	
-	// By default all memory uploads and other related operations create their own copy pass if this isn't called. Batch them ideally together
-	void StartCopyPass();
-	
-	void Submit(); // submit. will not wait.
-	
-	void Wait(); // wait for commands to finish executing, if submitted. use in render thread.
-	
-	Bool Finished(); // Returns true if finished, or was never submitted.
-	
-};
-
-/// A render frame. Two are active at one time, one is filled up my the main thread and then executed and run on the GPU in the render job which is done async.
-struct RenderFrame
-{
-
-    U64 _FrameNumber = 0; // this frame number
-    RenderScene* _SceneStack = nullptr; // ordered scene stack
-	RenderTexture* _BackBuffer = nullptr; // set at begin render frame internally
-	
-	std::vector<RenderCommandBuffer*> _CommandBuffers; // command buffers which will be destroyed at frame end
-	
-	LinearHeap _Heap; // frame heap memory
-    
-    // Reset and clear the frame to new frame number
-	void Reset(U64 newFrameNumber);
-    
-};
-
-/// This render context represents a window in which a scene stack can be rendered to.
+/// Represents an execution environment for running scenes, which holds a window.
 class RenderContext
 {
 public:
@@ -246,11 +46,83 @@ public:
 	// Create an index buffer which can be filled up later
 	std::shared_ptr<RenderBuffer> CreateIndexBuffer(U64 sizeBytes);
 	
+	// Create a generic buffer
+	std::shared_ptr<RenderBuffer> CreateGenericBuffer(U64 szBytes);
+	
 	// Create a texture. Call its create member function to create.
 	inline std::shared_ptr<RenderTexture> AllocateTexture()
 	{
 		return TTE_NEW_PTR(RenderTexture, MEMORY_TAG_RENDERER);
 	}
+	
+	// Pushes a scene to the currently rendering scene stack. No accesses to this can be made directly after this (internally held).
+	// Stop the scene using a stop message
+	void PushScene(Scene&&);
+	
+	void* AllocateMessageArguments(U32 size); // freed automatically when executing the message (temp aloc)
+	
+	void SendMessage(SceneMessage message); // send a message to a scene to do something
+	
+	// Purge unused transfer buffers and other GPU resources to free up memory
+	void PurgeResources();
+	
+	/**
+	 Allocates a useable parameter stack for the current given frame
+	 */
+	ShaderParametersStack* AllocateParametersStack(RenderFrame& frame);
+	
+	// Pushes a render instance (call in populater) and executes it next render frame.
+	// If a default mesh, param stack can be null (if it requires no other inputs). alloc param stack from the alloc function, not on stack!
+	// But 9/10 a vertex buffer and index buffer are needed (not in defaults they are bound automatically) so parameters are needed.
+	void PushRenderInst(RenderFrame& frame, ShaderParametersStack* paramStack, RenderInst&& inst);
+	
+	/**
+	 Pushes another parameter stack to the given parameter stack
+	 */
+	void PushParameterStack(RenderFrame& frame, ShaderParametersStack* self, ShaderParametersStack* stack);
+	
+	/**
+	 Pushes a parameter group to the given parameter stack
+	 */
+	void PushParameterGroup(RenderFrame& frame, ShaderParametersStack* self, ShaderParametersGroup* group);
+	
+	/**
+	 Allocates parameters. Push it to the stack when needed.
+	 */
+	inline ShaderParametersGroup* AllocateParameters(RenderFrame& frame, ShaderParameterTypes types)
+	{
+		return _CreateParameterGroup(frame, types);
+	}
+	
+	/**
+	 Allocates parameters. Push it to the stack when needed.
+	 */
+	inline ShaderParametersGroup* AllocateParameter(RenderFrame& frame, ShaderParameterType type)
+	{
+		ShaderParameterTypes types{};
+		types.Set(type, true);
+		return AllocateParameters(frame, types);
+	}
+	
+	// Sets a texture parameter
+	void SetParameterTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
+							 std::shared_ptr<RenderTexture> tex, std::shared_ptr<RenderSampler> sampler);
+	
+	// Sets a uniform parameter
+	void SetParameterUniform(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
+							 const void* uniformData, U32 size);
+	
+	// Sets a generic buffer parameter
+	void SetParameterGenericBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
+							 std::shared_ptr<RenderBuffer> buffer, U32 bufferOffset);
+	
+	// Set a vertex buffer parameter
+	void SetParameterVertexBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
+								  std::shared_ptr<RenderBuffer> buffer, U32 startOffset);
+	
+	// Set an index buffer parameter input.
+	void SetParameterIndexBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
+								  std::shared_ptr<RenderBuffer> buffer, U32 startIndex);
     
 private:
 	
@@ -267,6 +139,8 @@ private:
 	
 	// =========== INTERNAL RENDERING FUNCTIONALITY
 	
+	ShaderParametersGroup* _CreateParameterGroup(RenderFrame&, ShaderParameterTypes);
+	
 	// Perform rendering of high level instructions into command buffers.
 	void _Render(Float dt, RenderCommandBuffer* pMainCommandBuffer);
 	
@@ -280,13 +154,22 @@ private:
 	// swap chain slot is put into slot 0!
 	RenderCommandBuffer* _NewCommandBuffer();
 	
-	SDL_GPUShader* _FindShader(String name, RenderShaderType); // find a shader, load if needed and not previously loaded.]
+	std::shared_ptr<RenderShader> _FindShader(String name, RenderShaderType); // find a shader, load if needed and not previously loaded.]
 
 	// note the transfer buffers below are UPLOAD ONES. DOWNLOAD BUFFERS COULD BE DONE IN THE FUTURE, BUT NO NEED ANY TIME SOON.
 	
 	_RenderTransferBuffer _AcquireTransferBuffer(U32 size, RenderCommandBuffer& cmds); // find an available transfer buffer to use
 	
 	void _ReclaimTransferBuffers(RenderCommandBuffer& cmds); // called after a submit command list finishes
+	
+	// Draws a render command
+	void _Draw(RenderFrame& frame, RenderInst inst, RenderCommandBuffer& cmds);
+	
+	// dont create desc but fill in its params. finds by hash. will create one if not found - lazy
+	std::shared_ptr<RenderPipelineState> _FindPipelineState(RenderPipelineState desc);
+	
+	// calculates pipeline state
+	U64 _HashPipelineState(RenderPipelineState& state);
 	
 	// =========== GENERIC FUNCTIONALITY
     
@@ -304,9 +187,17 @@ private:
 	
 	std::mutex _Lock; // for below
 	std::vector<std::shared_ptr<RenderPipelineState>> _Pipelines; // pipeline states
-	std::vector<RenderShader> _LoadedShaders; // in future can replace certain ones and update pipelines for hot reloads.
+	std::vector<std::shared_ptr<RenderShader>> _LoadedShaders; // in future can replace certain ones and update pipelines for hot reloads.
 	std::set<_RenderTransferBuffer> _AvailTransferBuffers;
 	std::vector<std::shared_ptr<RenderSampler>> _Samplers;
+	
+	std::vector<DefaultRenderMesh> _DefaultMeshes;
+	std::vector<DefaultRenderTexture> _DefaultTextures;
+	
+	std::vector<Scene> _AsyncScenes; // populator job access ONLY (ensure one thread access at a time). list of active rendering scenes.
+	
+	std::mutex _MessagesLock; // for below
+	std::priority_queue<SceneMessage> _AsyncMessages; // messages stack
     
 	friend struct RenderPipelineState;
 	friend struct RenderShader;
@@ -314,5 +205,10 @@ private:
 	friend struct RenderTexture;
 	friend struct RenderVertexState;
 	friend struct RenderBuffer;
+	friend class Scene;
+	
+	// Both defined in render defaults source.
+	friend void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* cmds, std::vector<DefaultRenderTexture>& textures);
+	friend void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* cmds, std::vector<DefaultRenderMesh>& meshes);
 	
 };

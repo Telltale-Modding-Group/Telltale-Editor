@@ -1,0 +1,44 @@
+// UniformBuffers:2 BufferCamera:0 BufferObject:1
+// line above needed.
+#include <metal_stdlib>
+using namespace metal;
+
+struct VertexIn {
+    float3 position [[attribute(0)]];
+    float2 uv [[attribute(1)]];
+};
+
+struct VertexOut {
+    float4 position [[position]];
+    float2 uv;
+};
+
+struct UniformCamera
+{
+    float4x4 viewProj;
+    float4 transposeZ;
+    float2 fov;
+    float cam_near;
+    float cam_far;
+    float aspect;
+};
+
+struct UniformObject
+{
+    float4 worldMatrix[3];
+};
+
+vertex VertexOut main0(VertexIn in [[stage_in]], constant UniformCamera& cam [[buffer(0)]], constant UniformObject& obj [[buffer(1)]]) {
+    VertexOut out;
+
+    float4x4 objectMatrix = transpose(float4x4(
+        obj.worldMatrix[0], 
+        obj.worldMatrix[1], 
+        obj.worldMatrix[2], 
+        float4(0.0, 0.0, 0.0, 1.0)
+    ));
+
+    out.position = cam.viewProj * objectMatrix * float4(in.position, 1.0f);
+    out.uv = in.uv;
+    return out;
+}

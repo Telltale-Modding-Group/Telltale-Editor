@@ -23,15 +23,12 @@ TelltaleEditor::TelltaleEditor(GameSnapshot s, Bool ui)
 	_ModdingContext = CreateToolContext();
 	_ModdingContext->Switch(s);
 	RenderContext::Initialise();
-	_RenderContext = TTE_NEW(RenderContext, MEMORY_TAG_RENDERER, "Telltale Editor " TTE_VERSION);
 }
 
 TelltaleEditor::~TelltaleEditor()
 {
 	TTE_ASSERT(!_Running, "Update was not called properly in Telltale Editor: still running");
-	TTE_DEL(_RenderContext);
 	
-	_RenderContext = nullptr;
 	RenderContext::Shutdown();
 	
 	DestroyToolContext();
@@ -40,7 +37,5 @@ TelltaleEditor::~TelltaleEditor()
 
 Bool TelltaleEditor::Update(Bool forceQuit)
 {
-	Bool state = _RenderContext->FrameUpdate(forceQuit);
-	_Running = state;
-	return state;
+	return true;
 }

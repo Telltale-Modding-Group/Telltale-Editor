@@ -1,6 +1,6 @@
 #include <Core/Context.hpp>
-#include <Resource/TTArchive2.hpp>
 
+#include <Scene.hpp>
 #include <Renderer/RenderContext.hpp>
 
 #include <TelltaleEditor.hpp>
@@ -27,22 +27,34 @@ static void RunMod()
 }
 
 // Run full application, with optional GUI
-static void RunApp(Bool runUI)
+static void RunApp()
 {
+	CreateToolContext();
+	GetToolContext()->Switch({"BN100","Macos",""});
+	RenderContext::Initialise(); // multiple render contexts can be created. so a static initialisataion and shutdown is needed for SDL3
+	
 	{
-		TelltaleEditor editor{{"BN100", "MacOS", ""}, runUI};
-		Bool running;
-		do
-		{
-			running = editor.Update(false);
-		}
-		while(running);
+		RenderContext context("Bone: Out from Boneville");
+		
+		// setup a scene
+		Scene scene{};
+		scene.SetName("adv_testing");
+		
+		context.PushScene(std::move(scene)); // push scene to render
+		
+		Bool running = true;
+		while((running = context.FrameUpdate(!running)))
+			;
 	}
+	
+	RenderContext::Shutdown();
+	DestroyToolContext();
 	DumpTrackedMemory();
+	abort(); // I KNOW. this is temp
 }
 
 int main()
 {
-	RunApp(false);
+	RunApp();
     return 0;
 }

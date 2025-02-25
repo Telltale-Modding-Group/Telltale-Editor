@@ -28,7 +28,6 @@ public:
 private:
 	
 	ToolContext* _ModdingContext = nullptr;
-	RenderContext* _RenderContext = nullptr; // private
 	Bool _UI = false; // if running renderer
 	Bool _Running = false; // if render window is still running and no exit request
 	

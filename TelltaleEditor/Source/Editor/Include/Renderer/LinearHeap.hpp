@@ -38,7 +38,11 @@ class LinearHeap {
         U32 _Size;
         T* _Array;
         
-        inline virtual ~ObjArrayWrapper() {}
+        inline virtual ~ObjArrayWrapper()
+		{
+			for(U32 i = 0; i < _Size; i++)
+				_Array[i].~T();
+		}
         
     };
     
@@ -52,6 +56,7 @@ class LinearHeap {
         
     };
     
+	U32 _FragmentedBytes; // number of fragmented (unused) bytes
     U32 _PageCount; // number of active pages
     U32 _TotalMemUsed; // total bytes used so far
     U32 _PageSize; // page size, constant and large, eg 0x100000
@@ -60,21 +65,59 @@ class LinearHeap {
     Context _BaseContext; // base context stack
     Page* _BasePage, * _CurrentPage; // page info
     
-    inline Page* _AllocatePage(U32 size = 0){
-        size = MAX(size, _PageSize);
-        Page* pg = (Page*)TTE_ALLOC(size, MEMORY_TAG_RENDERER);
-        if (!pg)
-            return 0;
-        memset(pg, 0, size);
-        pg->_Index = _PageCount++;
-        pg->_Size = size;
-		pg->_Next = _CurrentPage;
-		if(_CurrentPage == nullptr)
+	// allocates page at end of list
+	inline Page* _AllocatePage(U32 size) {
+		size = MAX(size, _PageSize);
+		Page* pg = (Page*)TTE_ALLOC(size + sizeof(Page), MEMORY_TAG_LINEAR_HEAP);
+		if (!pg)
+			return nullptr;
+		memset(pg, 0, size + sizeof(Page));
+		pg->_Index = _PageCount++;
+		pg->_Size = size;
+		pg->_Next = nullptr;
+		
+		if (!_BasePage) // first page
+		{
 			_BasePage = pg;
+		}
+		else
+		{
+			// append to the end of the list
+			Page* iter = _BasePage;
+			while (iter->_Next)
+			{
+				iter = iter->_Next;
+			}
+			iter->_Next = pg;
+		}
+		
 		_CurrentPage = pg;
-        _TotalMemUsed += size;
-        return pg;
-    }
+		_TotalMemUsed += size;
+		return pg;
+	}
+	
+	// cant fit in current page, finds next available page allocating if needed
+	inline Page* _RequestNextPage(U32 size)
+	{
+		if(_CurrentPage == nullptr)
+			_CurrentPage = _BasePage;
+		if(_BasePage == nullptr)
+			return _AllocatePage(size);
+		
+		for(Page* page = _CurrentPage->_Next; page; page = page->_Next)
+		{
+			if(page->_Size >= size)
+			{
+				// fits here, reset and clear page
+				memset(page + sizeof(Page), 0, page->_Size);
+				return page;
+			}
+			else
+				_FragmentedBytes += page->_Size;
+		}
+		
+		return _AllocatePage(size); // none found so new one needed
+	}
     
     inline void _ReleasePageList(Page* pPage) {
         while(pPage){
@@ -119,7 +162,7 @@ public:
     
     // Construct with optional non-default page size
     inline LinearHeap(U32 pageSize = 0x100000) : _ContextStack(&_BaseContext), _CurrentPage(0), _BasePage(0),
-        _TotalMemUsed(0), _PageSize(pageSize), _CurrentPos(0), _PageCount(0) {}
+        _TotalMemUsed(0), _PageSize(pageSize), _CurrentPos(0), _PageCount(0), _FragmentedBytes(0) {}
     
     // destruct normally.
     inline ~LinearHeap() {
@@ -135,16 +178,17 @@ public:
         if(currentPage){
             U32 alignedOffset = (_CurrentPos + (align - 1)) & ~(align - 1);
             if (alignedOffset + size <= currentPage->_Size){
-                //OK found a page!
+                // fits in current page
                 pRet = (U8*)currentPage + sizeof(Page) + alignedOffset;
-                _CurrentPos = size + alignedOffset;
+                _CurrentPos += size + alignedOffset;
             }else{
-                Page* pNext = _AllocatePage(size);
+				_FragmentedBytes += (currentPage->_Size - (alignedOffset + size));
+                Page* pNext = _RequestNextPage(size);
                 _CurrentPos = size;
                 pRet = (U8*)pNext + sizeof(Page);
             }
         }else{
-            _CurrentPage = currentPage = _AllocatePage(size);
+			_CurrentPage = currentPage = _AllocatePage(size);
             pRet = (U8*)currentPage + sizeof(Page);
             _CurrentPos = size;
         }
@@ -166,11 +210,13 @@ public:
     /**
      * See New. Allocates an array of numElem consecutively in memory and returns it. Destructors will be called when the current context is popped.
      */
-    template<typename T>
-    inline T* NewArray(U32 numElem) {
+    template<typename T, typename... Args>
+    inline T* NewArray(U32 numElem, Args&&... argsForEachElem) {
         ObjArrayWrapper<T>* pArrayWrapper = (ObjArrayWrapper<T>*)Alloc(sizeof(ObjArrayWrapper<T>), alignof(ObjArrayWrapper<T>));
         pArrayWrapper->_Array = NewArrayNoDestruct<T>(numElem);
         pArrayWrapper->_Next = 0;
+		for(U32 i = 0; i < numElem; i++)
+			new (pArrayWrapper->_Array + i) T(argsForEachElem...);
         _AddObject(pArrayWrapper);
         return pArrayWrapper->_Array;
     }
@@ -220,14 +266,28 @@ public:
     /**
      * Returns the number of bytes free in the current page - anymore would require a new allocation.
      */
-    inline int GetCurrentPageBytesFree(){
+    inline I32 GetCurrentPageBytesFree(){
         return _CurrentPage ? _CurrentPage->_Size - _CurrentPos : _PageSize;
     }
+	
+	/**
+	 Returns the number of fragmented bytes
+	 */
+	inline U32 GetFragmentedBytes()
+	{
+		return _FragmentedBytes;
+	}
+	
+	// Returns fragmentation factor, 0-100%, being number of fragmented and wasted space of bytes.
+	inline Float GetFragmentationFactor()
+	{
+		return _TotalMemUsed ? ((Float)_FragmentedBytes / (Float)_TotalMemUsed) * 100.f : 0.0f;
+	}
     
     /**
      * Gets the page index for a given pointer, checking the pointer is in the range of one the pages. Else returns -1.
      */
-    inline int GetPageIndexForAlloc(void* pAlloc){
+    inline I32 GetPageIndexForAlloc(void* pAlloc){
         for(Page* i = _BasePage; i; i = i->_Next){
             if (pAlloc >= ((U8*)i + sizeof(Page)) && pAlloc <= ((U8*)i + sizeof(Page) + i->_Size))
                 return i->_Index;
@@ -241,6 +301,7 @@ public:
     inline void FreeFirstPage() {
         if(_BasePage){
             Page* b = _BasePage->_Next;
+			_TotalMemUsed -= b->_Size;
             TTE_FREE(_BasePage);
             _BasePage = b;
             _PageCount--;
@@ -252,20 +313,31 @@ public:
     }
     
     /**
-     * Pops all contexts in this linear heap, calling all destructors.
+     * Pops all contexts in this linear heap, calling all destructors. Then resets to next allocation being in the first page
      */
-    inline void FreeAll() {
+    inline void Rollback()
+	{
         while (_ContextStack != &_BaseContext)
             PopContext();
+		_CurrentPage = _BasePage;
+		_CurrentPos = 0;
+		_FragmentedBytes = 0;
+		if(_BasePage)
+		{
+			// clear page
+			memset(_BasePage + sizeof(Page), 0, _BasePage->_Size);
+		}
     }
     
     /**
      * Releases all memory associated with this linear heap, along with popping all contexts and calling destructors.
      */
-    inline void ReleaseAll(){
-        FreeAll();
+    inline void ReleaseAll()
+	{
+		Rollback();
         _ReleasePageList(_BasePage);
 		_BasePage = _CurrentPage = nullptr;
+		_TotalMemUsed = _FragmentedBytes = 0;
     }
     
     /**
