@@ -104,17 +104,26 @@ using Bool = bool;
 // Lua library platform
 #define LUA_WIN
 
+#define POP_COUNT(x) __popcnt(x)
+#define CLZ_BITS(x)  _tzcnt_u32(x)
+
 #elif defined(MACOS)
 
 // MacOS Platform Specifics
 #define PLATFORM_NAME "MacOS"
 #define LUA_MACOSX
 
+#define POP_COUNT(x) __builtin_popcount(x)
+#define CLZ_BITS(x) __builtin_ctz(x)
+
 #elif defined(LINUX)
 
 // Linux Platform Specifics
 #define PLATFORM_NAME "Linux"
 #define LUA_LINUX
+
+#define POP_COUNT(x) __builtin_popcount(x)
+#define CLZ_BITS(x) __builtin_ctz(x)
 
 #else
 
@@ -225,6 +234,8 @@ enum MemoryTag
     MEMORY_TAG_BLOWFISH, // blowfish encryption data
     MEMORY_TAG_SCRIPT_OBJECT, // similar to SCRIPTING, however it is a object managed by the lua GC
     MEMORY_TAG_TEMPORARY_ASYNC, // temporary async stuff
+    MEMORY_TAG_RENDERER, // renderer linear heap etc
+	MEMORY_TAG_LINEAR_HEAP, // linear heap pages
 };
 
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.
@@ -262,5 +273,14 @@ void _DebugDeallocateTracked(U8* Ptr);
 #define TTE_FREE(_ByteArray) delete[] ((U8*)_ByteArray)
 
 #endif
+
+template<typename T> inline void _TTEDeleter(T* _Instance)
+{
+	_Instance->~T();
+	TTE_DEL(_Instance);
+}
+
+// create managed shared ptr
+#define TTE_NEW_PTR(_Type, _MemoryTag, ...) std::shared_ptr<_Type>(TTE_NEW(_Type, _MemoryTag, __VA_ARGS__), &_TTEDeleter<_Type>)
 
 void DumpTrackedMemory(); // if in debug mode, prints all tracked memory allocations.

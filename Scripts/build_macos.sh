@@ -15,9 +15,9 @@ fi
 
 
 if test \( \( -n "$1" \) -a \( "$1" = "debug" \) \);then
-    CONFIG=" Debug"
+    CONFIG="Debug"
 elif test \( \( -n "$1" \) -a \( "$1" = "release" \) \);then
-    CONFIG=" Release"
+    CONFIG="Release"
 else
     echo "The config \"$1\" is not supported!"
     echo ""
@@ -30,4 +30,6 @@ fi
 
 cmake -S . -B build -G "Xcode" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
 
-cmake --build build --config "${CONFIG}" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+echo cmake --build build --config "${CONFIG}" -DCMAKE_C_COMPILER="clang" -DCMAKE_CXX_COMPILER="clang++"
+
+cmake --build build --config "${CONFIG}" -DCMAKE_C_COMPILER="clang" -DCMAKE_CXX_COMPILER="clang++"

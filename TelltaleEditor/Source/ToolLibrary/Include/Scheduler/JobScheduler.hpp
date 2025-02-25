@@ -139,6 +139,12 @@ struct JobHandle
         rhs._jobID = 0;
         return *this;
     }
+    
+    // empty the handle
+    inline void Reset()
+    {
+        _jobID = 0;
+    }
 
   private:
     // Constructor for internal use.

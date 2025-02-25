@@ -3,6 +3,7 @@
 #include <Core/Config.hpp>
 #include <vector>
 #include <map>
+#include <mutex>
 
 // Perform ECMA-182 Poly CRC64
 U64 CRC64(const U8 *Buffer, U32 BufferLength, U64 InitialCRC64 = 0);
@@ -91,6 +92,7 @@ public:
     
 private:
     
+	std::mutex _Lock{};
     std::vector<String> _Table{};
     std::map<U64, U32> _SortedHashed{}; // hash => index into _Table
     
