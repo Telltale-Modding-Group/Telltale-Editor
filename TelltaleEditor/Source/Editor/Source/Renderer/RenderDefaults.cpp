@@ -196,7 +196,7 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 			Float y = sinLat;
 			Float z = sinLon * cosLat;
 			
-			ColouredVertex q{x, y, z, 1.0f, 1.0f, 1.0f}; // WHITE
+			ColouredVertex q{x, y, z, 255.f/255.f, 218.0f/255.f, 115.f/255.f}; // LIGHT YELLOW
 			verts->Write((const U8*)&q, sizeof(ColouredVertex));
 		}
 	}
@@ -218,7 +218,7 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 			Float y = sinLat;
 			Float z = sinLon * cosLat;
 			
-			ColouredVertex q{x, y, z, 1.0f, 1.0f, 1.0f}; // WHITE
+			ColouredVertex q{x, y, z,  255.f/255.f, 218.0f/255.f, 115.f/255.f}; // LIGHT YELLOW
 			verts->Write((const U8*)&q, sizeof(ColouredVertex));
 		}
 	}

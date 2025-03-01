@@ -3,11 +3,13 @@ require("ToolLibrary/Game/VersionCRC.lua")
 
 require("ToolLibrary/Game/BN100/D3DTexture.lua")
 require("ToolLibrary/Game/BN100/D3DMesh.lua")
+require("ToolLibrary/Game/BN100/Scene.lua")
 
 -- registers two types: one with baseclass_containerinterface and one without (vers exists for both). pass in k and v table (or k being SArray N)
-function RegisterBoneCollection(containerInterfaceTbl, name, k, v)
+function DoRegisterBoneCollection(containerInterfaceTbl, name, k, v, fl)
 	local withBaseclass = { VersionIndex = 0 } -- eg DCArray_String_(1j6j2xe).vers. each array has two versions, one without the baseclass container member
 	withBaseclass.Name = name
+	withBaseclass.Flags = fl
 	withBaseclass.Members = {}
 	withBaseclass.Members[1] = { Name = "Baseclass_ContainerInterface", Class = containerInterfaceTbl, Flags = kMetaMemberMemoryDisable + kMetaMemberBaseClass }
 	withBaseclass.Members[2] = { Name = "mSize", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
@@ -17,6 +19,7 @@ function RegisterBoneCollection(containerInterfaceTbl, name, k, v)
 	local without = { VersionIndex = 1 } -- two array types exist, one with no members (here) and the one above....
 	without.Name = name
 	without.Members = {}
+	without.Flags = fl
 	without.Members[1] = { Name = "mSize", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
 	without.Members[2] = { Name = "mCapacity", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
 	MetaRegisterCollection(without, k, v)
@@ -24,11 +27,15 @@ function RegisterBoneCollection(containerInterfaceTbl, name, k, v)
 	return withBaseclass, without -- return both
 end
 
+function RegisterBoneCollection(containerInterfaceTbl, name, k, v)
+	return DoRegisterBoneCollection(containerInterfaceTbl, name, k, v, 0)
+end
+
 -- registers Handle<T>. ensure the name is correct.
 function RegisterBoneHandle(name)
 	local MetaHandle = { VersionIndex = 0 }
 	MetaHandle.Name = name
-	MetaHandle.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic -- not in version headers ? idk why
+	MetaHandle.Flags = kMetaClassIntrinsic -- not in version headers ? idk why
 	MetaHandle.Members = {}
 	-- below member doesnt exist in game (has custom serialiser) but lets just store it as a di
 	MetaHandle.Members[1] = { Name = "mHandle", Class = kMetaClassSymbol, Flags = kMetaMemberVersionDisable } -- serialise yes, no version hash though.
@@ -185,6 +192,7 @@ function RegisterBone100(vendor, platform)
 	-- .PROP FILES
 	local prop = {VersionIndex = 0 }
 	prop.Extension = "prop"
+	prop.Flags = kMetaClassAttachable
 	prop.Name = "class PropertySet"
 	prop.Members = {}
 	prop.Members[1] = { Name = "mPropertyFlags", Class = MetaFlags }
@@ -557,10 +565,16 @@ function RegisterBone100(vendor, platform)
 	sceneAgent0.Members[10] = NewMember("mbMembersImportedIntoSceneProps", kMetaBool)
 	MetaRegisterClass(sceneAgent0)
 
+	arrayAgents, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Scene::AgentInfo>", nil, sceneAgent0, kMetaClassIntrinsic)
+
 	local scene = NewClass("class Scene", 0) -- TODO custom serialiser
 	scene.Extension = "scene"
+	scene.Serialiser = "SerialiseScene_Bone1"
+	scene.Normaliser = "NormaliseScene_Bone1"
 	scene.Members[1] = NewMember("mbHidden", kMetaBool)
 	scene.Members[2] = NewMember("mName", kMetaClassString)
+	scene.Members[3] = NewMember("_mAgents", arrayAgents, kMetaMemberVersionDisable + kMetaMemberSerialiseDisable)
+
 	MetaRegisterClass(scene)
 
 	mapStringFloat, _ = RegisterBoneCollection(MetaCI, "class Map<class String,float,struct std::less<class String> >", kMetaClassString, kMetaFloat)

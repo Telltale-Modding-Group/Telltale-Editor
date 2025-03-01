@@ -1,5 +1,6 @@
 #include <Scripting/ScriptManager.hpp>
 #include <Core/Context.hpp>
+#include <Resource/DataStream.hpp>
 
 LuaManager::~LuaManager()
 {
@@ -38,7 +39,7 @@ U32 luaRequireOverride(LuaManager& man)
         if(script.length() == 0)
             TTE_LOG("When loading script '%s': file empty or could not be read", value.c_str());
         
-        if(man.RunText(script.c_str(), (U32)script.length(), value.c_str())){
+        if(man.RunText(script.c_str(), (U32)script.length(), false, value.c_str())){
             man.PushNil(); // value of it doesn't matter, only that it exists
             ScriptManager::SetGlobal(man, "ToolLibrary/" + value, true); // set global
         }
@@ -75,20 +76,20 @@ static int _CompileWriter(lua_State*, const void* p, size_t sz, void* strm)
 {
     if(sz > 0)
     {
-        DataStreamRef& stream = *((DataStreamRef*)strm);
+		DataStream* stream = (DataStream*)strm;
         return stream->Write((const U8*)p, sz) ? 0 : 1; // write bytes
     }
     return 0;
 }
 
-Bool LuaManager::Compile(DataStreamRef& stream)
+Bool LuaManager::Compile(DataStream* stream)
 {
     if(!stream)
     {
         TTE_ASSERT("Cannot compile script: output data stream invalid or not specified");
         return false;
     }
-    return _Adapter->DoDump(&_CompileWriter, &stream);
+    return _Adapter->DoDump(&_CompileWriter, stream);
 }
 
 void LuaManager::GC()
@@ -119,6 +120,7 @@ void LuaManager::CallFunction(U32 Nargs, U32 Nresults, Bool bBlock)
 {
     if(bBlock)
     {
+		TTE_ASSERT(!JobScheduler::IsRunningFromWorker(), "Worker threads cannot lock the tool context");
         GetToolContext()->_LockedCallDepth++;
     }
     _Adapter->CallFunction(Nargs, Nresults);

@@ -193,8 +193,17 @@ template <typename T> class hacked_priority_queue : public std::priority_queue<T
 };
 
 // Checks if a string starts with the other string prefix
-inline bool StringStartsWith(const std::string& str, const std::string& prefix) {
+inline Bool StringStartsWith(const String& str, const String& prefix) {
     return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
+}
+
+// Checks if a string ends with the other string suffix
+inline Bool StringEndsWith(const String& str, const String& suffix)
+{
+	if (str.length() < suffix.length()) {
+		return false;
+	}
+	return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
 template <typename T> // checks if the weak ptr has no reference at all, even to an std::shared_ptr that has been reset.
@@ -236,6 +245,7 @@ enum MemoryTag
     MEMORY_TAG_TEMPORARY_ASYNC, // temporary async stuff
     MEMORY_TAG_RENDERER, // renderer linear heap etc
 	MEMORY_TAG_LINEAR_HEAP, // linear heap pages
+	MEMORY_TAG_TRANSIENT_FENCE, // small U32 allocation. could be optimised in the future
 };
 
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.
@@ -276,7 +286,6 @@ void _DebugDeallocateTracked(U8* Ptr);
 
 template<typename T> inline void _TTEDeleter(T* _Instance)
 {
-	_Instance->~T();
 	TTE_DEL(_Instance);
 }
 

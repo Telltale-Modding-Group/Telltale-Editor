@@ -1,12 +1,16 @@
 #include <Core/Thread.hpp>
 #include <Scheduler/JobScheduler.hpp>
+#include <Meta/Meta.hpp> // for lua modules
+#include <Scripting/ScriptManager.hpp>
 
 JobScheduler *JobScheduler::Instance = 0;
 
-void JobScheduler::Initialise()
+thread_local Bool ImAWorker = false;
+
+void JobScheduler::Initialise(LuaFunctionCollection Col)
 {
     if (Instance == 0)
-        Instance = TTE_NEW(JobScheduler, MEMORY_TAG_SCHEDULER);
+        Instance = TTE_NEW(JobScheduler, MEMORY_TAG_SCHEDULER, std::move(Col));
 }
 
 void JobScheduler::Shutdown()
@@ -16,13 +20,25 @@ void JobScheduler::Shutdown()
     Instance = 0;
 }
 
+Bool JobScheduler::IsRunningFromWorker()
+{
+	return ImAWorker;
+}
+
 // This is the function run per job thread, which runs the jobs.
 void JobScheduler::_JobThreadFn(JobScheduler &scheduler, U32 threadIndex)
 {
+	ImAWorker = true;
     // Initialise.
     JobThread myself{};
     myself.ThreadNumber = threadIndex;
     myself.ThreadName = std::string("Worker Thread ") + std::to_string(threadIndex);
+	myself.L.Initialise(LuaVersion::LUA_5_2_3); // latest
+	
+	ScriptManager::RegisterCollection(myself.L, luaLibraryAPI(false)); // Register editor library
+	ScriptManager::RegisterCollection(myself.L, luaGameEngine(false)); // Register telltale engine
+	ScriptManager::RegisterCollection(myself.L, scheduler._workerScriptCollection); // register anything eles
+	
     SetThreadName(myself.ThreadName); // Set name in debugger for future use
 
     // Main job thread loop.
@@ -421,7 +437,8 @@ void JobScheduler::_RegisterJobs(U32 nJobs, JobDescriptor *pJobDescriptors, JobH
     }
 }
 
-JobScheduler::JobScheduler() : _jobThreadNotifierCount(0), _running(true), _cancelJobs(false), _runningID(0)
+JobScheduler::JobScheduler(LuaFunctionCollection&& col) : _workerScriptCollection(std::move(col)),
+	_jobThreadNotifierCount(0), _running(true), _cancelJobs(false), _runningID(0)
 {
     // Job thread notifier counter is 0 to begin with, ie threads will wait until jobs come.
 
@@ -431,6 +448,8 @@ JobScheduler::JobScheduler() : _jobThreadNotifierCount(0), _running(true), _canc
         _workers[threadIndex] = std::thread(_JobThreadFn, std::ref(*this), threadIndex);
     }
 }
+
+JobScheduler::JobScheduler() : JobScheduler(LuaFunctionCollection{}) {}
 
 void JobScheduler::_Shutdown(Bool bKillAwaiting)
 {

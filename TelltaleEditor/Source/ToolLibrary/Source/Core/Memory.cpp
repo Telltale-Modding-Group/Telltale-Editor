@@ -79,6 +79,7 @@ static CString TAG_NAMES[]
     "TemporaryAsync",
 	"Renderer",
 	"LinearHeap",
+	"TransienceFence",
 };
 
 void DumpTrackedMemory()

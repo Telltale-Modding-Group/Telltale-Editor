@@ -1,7 +1,8 @@
 #include <Core/Context.hpp>
 
-#include <Scene.hpp>
+#include <Common/Scene.hpp>
 #include <Renderer/RenderContext.hpp>
+#include <Meta/Meta.hpp>
 
 #include <TelltaleEditor.hpp>
 
@@ -29,32 +30,42 @@ static void RunMod()
 // Run full application, with optional GUI
 static void RunApp()
 {
-	CreateToolContext();
-	GetToolContext()->Switch({"BN100","Macos",""});
-	RenderContext::Initialise(); // multiple render contexts can be created. so a static initialisataion and shutdown is needed for SDL3
-	
 	{
-		RenderContext context("Bone: Out from Boneville");
-		
-		// setup a scene
-		Scene scene{};
-		scene.SetName("adv_testing");
-		
-		context.PushScene(std::move(scene)); // push scene to render
-		
-		Bool running = true;
-		while((running = context.FrameUpdate(!running)))
-			;
+		TelltaleEditor editor{{"BN100","MacOS",""}, false}; // editor. dont run UI yet (doesn't exist)
+		{
+			// This simple examples loads a scene and runs it
+			RenderContext context("Bone: Out from Boneville");
+			
+			// Loading and previewing a mesh example
+			
+			// 1. load a mesh
+			DataStreamRef stream = editor.LoadLibraryResource("TestResources/ui_icon.d3dmesh");
+			Meta::ClassInstance inst = Meta::ReadMetaStream(stream);
+			
+			// 2. create a dummy scene, add an agent, attach a renderable module to it.
+			Scene scene{};
+			SceneModuleTypes types{};
+			types.Set(SceneModuleType::RENDERABLE, true);
+			scene.AddAgent("Icon", types);
+			
+			// 3. normalise the mesh above into the scene agent 'Icon' in the scene, from telltale specific to the common format
+			editor.EnqueueNormaliseMeshTask(&scene, "Icon", std::move(inst));
+			editor.Wait();
+			
+			// 4. push scene to renderer
+			context.PushScene(std::move(scene)); // push scene to render
+			
+			// 5. Run renderer and show the mesh!
+			Bool running = true;
+			while((running = context.FrameUpdate(!running)))
+				;
+		}
 	}
-	
-	RenderContext::Shutdown();
-	DestroyToolContext();
 	DumpTrackedMemory();
-	abort(); // I KNOW. this is temp
 }
 
 int main()
 {
 	RunApp();
-    return 0;
+	return 0;
 }

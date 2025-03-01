@@ -3,7 +3,10 @@
 #include <Core/Config.hpp>
 #include <Core/Context.hpp>
 
-#include <Renderer/RenderAPI.hpp>
+#include <BitSet.hpp>
+#include <Meta/Meta.hpp>
+
+#include <Common/Mesh.hpp>
 
 #include <vector>
 
@@ -16,72 +19,24 @@ enum class SceneModuleType : I32
 	UNKNOWN = -1,
 };
 
+// Bitset for specifying module types attached to an agent
+using SceneModuleTypes = BitSet<SceneModuleType, (U32)SceneModuleType::NUM, (SceneModuleType)0>;
+
+template<SceneModuleType> struct SceneModule;
+class Scene;
+struct SceneAgent;
+
 // Renderable scene component (RenderObject_Mesh* obj). Any actual render types (eg RenderVertexState) can be filled up, but not created
 // As in the actual buffers should only be in data streams on CPU side.
-struct Scene_Renderable
+template<> struct SceneModule<SceneModuleType::RENDERABLE>
 {
 	
 	static constexpr SceneModuleType ModuleType = SceneModuleType::RENDERABLE;
 	
-	// separate triangle sets for default and shadow parts
-	enum RenderViewType
-	{
-		DEFAULT = 0,
-		SHADOW = 1,
-		NUM = 2,
-	};
+	Mesh Renderable; // the renderable mesh
 	
-	// A mesh batch. This is a optimised way telltale use to draw once per material. Most members TODO.
-	struct MeshBatch
-	{
-		
-		BoundingBox BBox;
-		Sphere BSphere;
-		U32 BatchUsage = 0; // not in use right now but in future. 1:deformable, 2:single deformable, 4:double sided, 8:triangle strip
-		U32 MinVertIndex = 0;
-		U32 MaxVertIndex = 0;
-		U32 BaseIndex = 0;
-		U32 StartIndex = 0; // start index buffer indicie (index) index
-		U32 NumPrimitives = 0;
-		U32 NumIndices = 0;
-		I32 TextureIndices[RenderViewType::NUM]{-1, -1}; // index into textures array for the bound texture.
-		I32 MaterialIndex = -1; // material index
-		U32 AdjacencyStartIndex = 0;
-		
-	};
-	
-	// May be extended. Vertex state.
-	struct VertexState
-	{
-		RenderVertexState Default; // default. in future we can have more for skinning (compute etc). DO NOT CREATE. only set info members.
-	};
-	
-	// LOD in mesh
-	struct LODInstance
-	{
-		
-		Sphere BSphere; // bounding sphere for this LOD
-		BoundingBox BBox; // bounding box for this LOD
-		
-		U32 VertexStateIndex = 0; // index into MeshInstance::VertexState
-		
-		std::vector<MeshBatch> Batches[RenderViewType::NUM]; // batches for default and shadow
-		
-	};
-	
-	// Renderable objects are a list of meshes (in props it has the 'D3D Mesh List' key or 'D3D Mesh'. base mesh + list
-	struct MeshInstance
-	{
-		
-		Sphere BSphere; // bounding sphere for total mesh
-		BoundingBox BBox; // bounding box for total mesh
-		
-		std::vector<LODInstance> LODs; // mesh LODs
-		std::vector<VertexState> VertexStates; // vertex states (draw call bind sets), containing verts/inds/etc.
-		
-	};
-	
-	std::vector<MeshInstance> MeshList; // list of meshes
+	// Gets this module for the scene
+	static inline SceneModule<SceneModuleType::RENDERABLE>& GetForScene(Scene& scene, const SceneAgent& agent);
 	
 };
 
@@ -93,12 +48,12 @@ struct SceneAgent
 	String Name; // agent name
 	
 	// points into arrays inside scene.
-	SceneModuleType ModuleIndices[(I32)SceneModuleType::NUM];
+	mutable I32 ModuleIndices[(I32)SceneModuleType::NUM];
 	
 	inline SceneAgent() : Name("")
 	{
 		for(I32 i = 0; i < (I32)SceneModuleType::NUM; i++)
-			ModuleIndices[i] = SceneModuleType::UNKNOWN;
+			ModuleIndices[i] = -1;
 	}
 	
 	inline Bool operator==(const SceneAgent& rhs) const
@@ -162,9 +117,38 @@ public:
 		return Name;
 	}
 	
+	// Add a new agent
+	void AddAgent(const String& Name, SceneModuleTypes modules);
+	
+	// Adds an agent module to the given agent
+	void AddAgentModule(const String& Name, SceneModuleType module);
+	
+	// Removes an agent module from a given agent
+	void RemoveAgentModule(const Symbol& Name, SceneModuleType module);
+	
+	// Returns if the given agent exists
+	Bool ExistsAgent(const Symbol& Name);
+	
+	// Returns if the given agent has the given module
+	Bool HasAgentModule(const Symbol& Name, SceneModuleType module);
+	
+	// Gets the given module for the given agent. This agent must have this module!
+	template<SceneModuleType Type>
+	inline SceneModule<Type>& GetAgentModule(const Symbol& Agent)
+	{
+		SceneAgent ag{};
+		ag.NameSymbol = Agent;
+		auto it = _Agents.find(ag);
+		TTE_ASSERT(it != _Agents.end(), "The agent does not exist [GetAgentModule<>]");
+		return SceneModule<Type>::GetForScene(*this, *it);
+	}
+	
+	// Registers scene normalisers and specialisers
+	static void RegisterScriptAPI(LuaFunctionCollection& Col);
+	
 private:
 	
-	// ==== RENDER CONTEXT USE ONLY
+	// ==== RENDER CONTEXT USE ONLY. THESE FUNCTIONS ARE DEFINED IN RENDERSCENE.CPP, SEPARATE TO REST DEFINED IN COMMON/SCENE.CPP
 	
 	// Internal call. Called by render context in async to process scene messages
 	void AsyncProcessRenderMessage(RenderContext& context, SceneMessage message, const SceneAgent* pAgent);
@@ -186,9 +170,17 @@ private:
 	
 	// ==== DATA ORIENTATED AGENT MODULE ATTACHMENTS
 	
-	std::vector<Scene_Renderable> _Renderables;
+	std::vector<SceneModule<SceneModuleType::RENDERABLE>> _Renderables;
 	
 	friend class RenderContext;
 	friend struct SceneAgent;
 	
+	friend struct SceneModule<SceneModuleType::RENDERABLE>;
+	
 };
+
+inline SceneModule<SceneModuleType::RENDERABLE>& SceneModule<SceneModuleType::RENDERABLE>::GetForScene(Scene& scene, const SceneAgent& agent)
+{
+	TTE_ASSERT(agent.ModuleIndices[(U32)SceneModuleType::RENDERABLE] != -1, "Agent %s does not have this module", agent.Name.c_str());
+	return scene._Renderables[agent.ModuleIndices[(U32)SceneModuleType::RENDERABLE]];
+}

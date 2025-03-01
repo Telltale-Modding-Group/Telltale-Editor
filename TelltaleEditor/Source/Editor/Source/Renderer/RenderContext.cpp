@@ -334,6 +334,14 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 	_MainFrameIndex ^= 1; // swap
 	GetFrame(true).Reset(GetFrame(true)._FrameNumber + 2); // increase populater frame index (+2 from swap, dont worry)
 	
+	// free resources which are not needed
+	if(_Flags & RENDER_CONTEXT_NEEDS_PURGE)
+	{
+		_Flags &= ~RENDER_CONTEXT_NEEDS_PURGE;
+		PurgeResources();
+	}
+	_FreePendingDeletions(GetFrame(false)._FrameNumber);
+	
 	// 7. Kick off populater job to render the last thread data (if needed)
 	if(!isLastFrame && !bUserWantsQuit)
 	{
@@ -410,6 +418,7 @@ std::shared_ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
 	desc._Handle = SDL_CreateGPUSampler(_Device, &info);
 	std::shared_ptr<RenderSampler> pSampler = TTE_NEW_PTR(RenderSampler, MEMORY_TAG_RENDERER);
 	*pSampler = desc;
+	_Samplers.push_back(pSampler);
 	return pSampler;
 }
 
@@ -420,6 +429,23 @@ RenderTexture::~RenderTexture()
 	_Handle = nullptr;
 }
 
+void RenderContext::_FreePendingDeletions(U64 frame)
+{
+	AssertMainThread();
+	std::lock_guard<std::mutex> G{_Lock};
+	for(auto it = _PendingSDLResourceDeletions.begin(); it != _PendingSDLResourceDeletions.end();)
+	{
+		if(frame - it->_LastUsedFrame > 1)
+		{
+			TTE_ASSERT(it->_Resource.use_count() == 1, "SDL GPU Resource has been cached when it should not be.");
+			_PendingSDLResourceDeletions.erase(it);
+		}
+		else
+		{
+			it++;
+		}
+	}
+}
 
 void RenderCommandBuffer::UploadTextureData(std::shared_ptr<RenderTexture> &texture,
 											DataStreamRef src, U64 srcOffset, U32 mip, U32 slice, U32 dataZ)
@@ -536,7 +562,7 @@ std::shared_ptr<RenderShader> RenderContext::_FindShader(String name, RenderShad
 	
 	// read binding information. we need to store this.
 	// in text, first line of format 'Samplers:10 StorageTextures:1 StorageBuffers:2 GenericBuffers:1
-	// in binary, first 4 bytes are 0xFEEDFACE (endian safe), then the 4 one for each, followed by sampler,bufs,tex,uni map (U8=>U8)
+	// in binary, first 4 bytes are 0xFEEDFACE, then the 4 one for each, followed by sampler,bufs,tex,uni map (U8=>U8)
 	if(bin) // if compiled read the binary version
 	{
 		const U8* inf = info.code;
@@ -765,10 +791,22 @@ RenderPipelineState::~RenderPipelineState()
 
 RenderShader::~RenderShader()
 {
-	if(Handle)
+	if(Handle && Context)
 	{
+		Context->AssertMainThread();
 		SDL_ReleaseGPUShader(Context->_Device, Handle);
 		Handle = nullptr;
+	}
+}
+
+
+RenderSampler::~RenderSampler()
+{
+	if(_Handle && _Context)
+	{
+		_Context->AssertMainThread();
+		SDL_ReleaseGPUSampler(_Context->_Device, _Handle);
+		_Handle = nullptr;
 	}
 }
 
@@ -1300,7 +1338,6 @@ RenderBuffer::~RenderBuffer()
 
 // ================================== PARAMETERS
 
-
 void RenderContext::PushParameterStack(RenderFrame& frame, ShaderParametersStack* self, ShaderParametersStack* stack)
 {
 	if(stack->Parent)
@@ -1478,10 +1515,21 @@ void RenderContext::PushScene(Scene&& scene)
 
 void RenderContext::PurgeResources()
 {
-	std::lock_guard<std::mutex> G{_Lock};
-	for(auto& b: _AvailTransferBuffers)
-		SDL_ReleaseGPUTransferBuffer(_Device, b.Handle);
-	_AvailTransferBuffers.clear();
+	if(IsCallingFromMain())
+	{
+		std::lock_guard<std::mutex> G{_Lock};
+		for(auto& b: _AvailTransferBuffers)
+			SDL_ReleaseGPUTransferBuffer(_Device, b.Handle);
+		_AvailTransferBuffers.clear();
+		for(auto& sampler: _Samplers)
+		{
+			std::shared_ptr<RenderSampler> s = std::move(sampler);
+			_PendingSDLResourceDeletions.push_back(PendingDeletion{std::move(s), GetFrame(false)._FrameNumber});
+		}
+		_Samplers.clear();
+	}
+	else
+		_Flags |= RENDER_CONTEXT_NEEDS_PURGE;
 }
 
 ShaderParametersStack* RenderContext::AllocateParametersStack(RenderFrame& frame)

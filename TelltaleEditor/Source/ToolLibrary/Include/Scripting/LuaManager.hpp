@@ -1,7 +1,8 @@
 #pragma once
 
 #include <Core/Config.hpp>
-#include <Resource/DataStream.hpp>
+
+class DataStream;
 
 // This is the low level LUA API. This deals with calls to the lua library for compilation and running of scripts. Decompilation is also managed here
 // in terms of luadec.
@@ -58,7 +59,7 @@ class LuaManager
 
     // Runs a chunk of uncompiled lua source. Pass in the C string and its length. Pass in the Name of the lua file as the optional last argument.
     // Set lock context to true such that the context cannot be modified during this call from scripts, ensuring eg TTE_Switch fails.
-    Bool RunText(CString Code, U32 Len, Bool LockContext, CString Name = "defaultrun.lua");
+    Bool RunText(CString Code, U32 Len, Bool LockContext, CString Name);
     
     // Calls the function along with its arguments on the stack. Push the function FIRST, then Nargs arguments. Then call this.
     // Use LUA_MULTRET for Nresults if you want all returned values, else use a lower number to cap the number of return values pushed.
@@ -197,10 +198,15 @@ class LuaManager
     Bool SetMetaTable(I32);
     
     // DOES NOT POP. Compiles the function at the top of the stack and writes the compiled script to the given data stream argument.
-    Bool Compile(DataStreamRef& dst);
+    Bool Compile(DataStream* dst);
 
     // Default constructor.
     LuaManager() = default;
+	
+	LuaManager(LuaManager&&) = default;
+	LuaManager& operator=(LuaManager&&) = default;
+	LuaManager(const LuaManager&) = delete;
+	LuaManager& operator=(const LuaManager&) = delete;
 
     // Releases lua.
     ~LuaManager();

@@ -15,6 +15,11 @@ function ContainerInsertElement(container, element)
 	_ContainerInsertElement(container, element)
 end
 
+-- obj ContainerEmplaceElement(container) => Inserts a new item at the end of the container and returns a temporary handle to that object.
+function ContainerEmplaceElement(container)
+	return _ContainerEmplaceElement(container)
+end
+
 -- obj ContainerGetElement(container,_index) => Get the item in the container. 0 based.
 function ContainerGetElement(container, index)
 	return _ContainerGetElement(container, index)

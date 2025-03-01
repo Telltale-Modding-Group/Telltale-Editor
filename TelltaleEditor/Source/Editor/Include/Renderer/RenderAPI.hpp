@@ -3,11 +3,12 @@
 // Render types
 
 #include <Core/Config.hpp>
+
 #include <Renderer/LinearHeap.hpp>
 #include <Renderer/Camera.hpp>
-#include <Scheduler/JobScheduler.hpp>
-
 #include <Renderer/RenderParameters.hpp>
+
+#include <Scheduler/JobScheduler.hpp>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_gpu.h>
@@ -146,6 +147,7 @@ struct _RenderTransferBuffer
 struct RenderSampler
 {
 	
+	RenderContext* _Context = nullptr;
 	SDL_GPUSampler* _Handle = nullptr;
 	
 	Float MipBias = 0.0f;
@@ -158,6 +160,8 @@ struct RenderSampler
 	{
 		return MipBias == rhs.MipBias && MipMode == rhs.MipMode && WrapU == rhs.WrapU && WrapV == rhs.WrapV;
 	}
+	
+	~RenderSampler();
 	
 };
 

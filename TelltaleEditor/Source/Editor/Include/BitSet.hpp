@@ -98,5 +98,61 @@ public:
 		
 		return (EnumClass)-1;
 	}
+	
+	// for iterating over set enum values
+	class Iterator
+	{
+		
+		const BitSet& _Bitset;
+		U32 _CurrentIndex;
+		
+	public:
+		
+		inline Iterator(const BitSet& bitset, U32 startIndex)
+		: _Bitset(bitset), _CurrentIndex(startIndex) {}
+		
+		inline Bool operator!=(const Iterator& other) const
+		{
+			return _CurrentIndex != other._CurrentIndex;
+		}
+		
+		inline Iterator& operator++(int)
+		{
+			return ++(*this);
+		}
+		
+		inline Iterator& operator++()
+		{
+			// Find the next set bit
+			for (++_CurrentIndex; _CurrentIndex < NumValues; ++_CurrentIndex)
+			{
+				if (_Bitset[(EnumClass)_CurrentIndex])
+					break;
+			}
+			return *this;
+		}
+		
+		inline EnumClass operator*() const
+		{
+			return (EnumClass)_CurrentIndex;
+		}
+		
+	};
+	
+	inline Iterator begin() const
+	{
+		U32 startIndex = MinValue;
+		for (; startIndex < MaxValue; ++startIndex)
+		{
+			if ((*this)[(EnumClass)startIndex])
+				break;
+		}
+		return Iterator(*this, startIndex);
+	}
+	
+	inline Iterator end() const
+	{
+		return Iterator(*this, MaxValue);
+	}
 
 };

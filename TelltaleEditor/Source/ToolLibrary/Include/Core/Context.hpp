@@ -50,7 +50,7 @@ public:
         TTE_ASSERT(_Snapshot.ID.length() && _Snapshot.Platform.length(), "Game or platform not specified");
         
         Meta::InitGame();
-        JobScheduler::Initialise();
+        JobScheduler::Initialise(_PerStateCollection);
         
         _Setup = true;
     }
@@ -58,7 +58,7 @@ public:
 private:
     
     // Call Switch with the game to setup the context to the given game. This constructor initialised low level APIs, constant for each game.
-    inline ToolContext()
+	inline ToolContext(LuaFunctionCollection PerState = {})
     {
         DataStreamManager::Initialise();
         Compression::Initialise();
@@ -66,6 +66,11 @@ private:
         _L[1].Initialise(LuaVersion::LUA_5_1_4);
         _L[2].Initialise(LuaVersion::LUA_5_0_2);
         Meta::Initialise();
+		
+		// higher level lua api for each thread, including this context
+		_PerStateCollection = std::move(PerState);
+		ScriptManager::RegisterCollection(GetLibraryLVM(), _PerStateCollection);
+		
     }
     
 public:
@@ -141,13 +146,15 @@ private:
     U32 _LockedCallDepth = 0; // tracks number of library calls to lua scripts, ensuring we cant change context stuff from the scripts during.
     GameSnapshot _Snapshot = {};
     LuaManager _L[3];
+	LuaFunctionCollection _PerStateCollection; // functions to register for each worker thread lua state.
     
-    friend ToolContext* CreateToolContext();
+    friend ToolContext* CreateToolContext(LuaFunctionCollection);
     
 };
 
-// Creates the global tool context. Only one call per process.
-ToolContext* CreateToolContext();
+// Creates the global tool context. Only one call per process. Optionally pass in lua API to register to each state, including
+// the library LVM and also the worker thread local states.
+ToolContext* CreateToolContext(LuaFunctionCollection PerStateAPI = {});
 
 // Call at the end of the process
 void DestroyToolContext();

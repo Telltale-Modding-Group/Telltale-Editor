@@ -14,10 +14,10 @@ function SerialisePropertySet_V0(metaStream, propInstance, isWrite)
 	if isWrite then
         
     else
-		numTypes = MetaStreamReadInt(metaStream)
+		local numTypes = MetaStreamReadInt(metaStream)
 		for i=1,numTypes do
-            typeSymbol = MetaStreamReadSymbol(metaStream)
-			propType, propTypeVersionIndex = MetaStreamFindClass(metaStream, typeSymbol) -- read class symbol
+            local typeSymbol = MetaStreamReadSymbol(metaStream)
+			local propType, propTypeVersionIndex = MetaStreamFindClass(metaStream, typeSymbol) -- read class symbol
             if propType == nil then
                 typeNameString = SymbolTableFind(typeSymbol)
                 if string.len(typeNameString) == 0 then
@@ -26,7 +26,7 @@ function SerialisePropertySet_V0(metaStream, propInstance, isWrite)
                 TTE_Log("Unregistered or unknown type in property set: " .. typeNameString)
                 return false
             end
-			numOfThatType = MetaStreamReadInt(metaStream)
+			local numOfThatType = MetaStreamReadInt(metaStream)
 			for j=1, numOfThatType do
 				key = SymbolTableFind(MetaStreamReadSymbol(metaStream))
 				inst_of_type = MetaCreateInstance(propType, propTypeVersionIndex, key, propInstance)
@@ -44,7 +44,7 @@ end
 -- Sets a value. The value must exist already. If it doesn't, you should use PropertyCreate first.
 -- Value can either be an existing class instance which will be copied, else can be the matching lua type.
 function PropertySet(propertySet, key, value)
-    property = MetaGetChild(propertySet, key)
+   local property = MetaGetChild(propertySet, key)
     if property == nil then
         -- find in parents todo!
         TTE_Log("At PropertySet: property key does not exist [Parent property sets not supported yet]")
@@ -70,7 +70,7 @@ end
 -- Creates a new property in the property set. Optionally pass in the value to initialise or copy from. Such that this is consistent with the telltale API,
 -- the version number can be optionally passed in when resolving the type of the property, which defaults to 0.
 function PropertyCreate(propertySet, key, typeName, --[[optional]] value, --[[typeVersionNumber]] typeVersionNumber)
-    property = nil
+    local property = nil
     if value and type(value) == "table" then
         property = MetaCopyInstance(value, key, propertySet)
     else
@@ -83,7 +83,7 @@ end
 
 -- Clears all key-value pairs from the input property set
 function PropertyClearKeys(propertySet)
-    keys = PropertyGetKeys(propertySet)
+    local keys = PropertyGetKeys(propertySet)
     for _, child in keys do
         MetaReleaseChild(propertySet, child)
     end
@@ -104,11 +104,11 @@ end
 -- Finds a property value by its key.
 function PropertyGet(propertySet, key)
     -- parent support !
-    value = MetaGetChild(propertySet, key)
+    local value = MetaGetChild(propertySet, key)
     if value == nil then
         return nil
     end
-    tryLuaValue = MetaGetClassValue(value)
+    local tryLuaValue = MetaGetClassValue(value)
     if type(tryLuaValue) ~= "nil" then -- intrinsic type eg string, int, etc..
         return tryLuaValue
     end
@@ -117,15 +117,15 @@ end
 
 -- Returns a table of the parent property names
 function PropertyGetGlobals(propertySet)
-    parents = MetaGetMember(propertySet, "mParentList")
+    local parents = MetaGetMember(propertySet, "mParentList")
     if not parents then
         return nil
     end
     -- parent list is container<handle<prop>>. handle for any game should have 1 member, so get that
-    globals = {}
-    numGlobals = ContainerGetNumElements(parents)
+    local globals = {}
+    local numGlobals = ContainerGetNumElements(parents)
     for i=1,numGlobals do
-        globalHandle = ContainerGetElement(parents, i-1)
+        local globalHandle = ContainerGetElement(parents, i-1)
         globalHandle = MetaGetMember(globalHandle, "mHandle")
         if not globalHandle then
             TTE_Log("PropertyGetGlobal: Handle<T> type classes must have only one member 'mHandle' which is a symbol.")
@@ -137,20 +137,20 @@ end
 
 -- Pass in the file name or file name symbol. Returns true if it a parent of the given property set instance. Optionally search parents recursively
 function PropertyHasGlobal(propertySet, parentName, --[[optional]] searchParents)
-    parents = MetaGetMember(propertySet, "mParentList")
+    local parents = MetaGetMember(propertySet, "mParentList")
     if not parents then
         return nil
     end
     -- parent list is container<handle<prop>>. handle for any game should have 1 member, so get that
-    numGlobals = ContainerGetNumElements(parents)
+    local numGlobals = ContainerGetNumElements(parents)
     for i=1,numGlobals do
-        globalHandle = ContainerGetElement(parents, i-1)
+        local globalHandle = ContainerGetElement(parents, i-1)
         globalHandle = MetaGetMember(globalHandle, "mHandle")
         if not globalHandle then
             TTE_Log("PropertyHasGlobal: Handle<T> type classes must have only one member 'mHandle' which is a symbol.")
             return nil
         end
-        parentNameToCheck = MetaGetClassValue(globalHandle)
+        local parentNameToCheck = MetaGetClassValue(globalHandle)
         if SymbolCompare(parentNameToCheck, parentName) then
             return true
         end
@@ -176,20 +176,20 @@ end
 
 -- See PropertyGetKeyType. This returns 2 values, the type name and version number
 function PropertyGetKeyTypeAndVersion(propertySet, key)
-    prop = MetaGetChild(propertySet, key)
-    clazz, ver = MetaGetClass(prop)
+    local prop = MetaGetChild(propertySet, key)
+    local clazz, ver = MetaGetClass(prop)
     return clazz, ver
 end
 
 -- Returns just the typename of the key. To get the version number too, use the sister version. For compatibility with actual telltale scripts.
 function PropertyGetKeyType(propertySet, key)
-    clazz, _ = PropertyGetKeyTypeAndVersion(propertySet, key)
+    local clazz, _ = PropertyGetKeyTypeAndVersion(propertySet, key)
     return clazz
 end
 
 -- Returns true if the given key is local to the given property set, ie it does not only exist in a parent of the argument.
 function PropertyIsLocal(propertySet, key)
-    keys = PropertyGetKeys(propertySet)
+    local keys = PropertyGetKeys(propertySet)
     for _, k in keys do
         if SymbolCompare(key, k) then
             return true

@@ -1,5 +1,6 @@
-#include <Scene.hpp>
 #include <Renderer/RenderContext.hpp>
+
+#include <Common/Scene.hpp>
 
 // Called whenever a message for the scene needs to be processed.
 void Scene::AsyncProcessRenderMessage(RenderContext& context, SceneMessage message, const SceneAgent* pAgent)
@@ -50,7 +51,7 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
 	cam.CameraFar = ac._FarClip;
 	
 	// SETUP TEST MODEL UNIFORM
-	angle += deltaTime * 2 * M_PI * /*freq*/ 0.1f;
+	angle += deltaTime * 2 * M_PI * /*freq*/ 0.05f; // for now it just rotates using simple formula speed = distance/time
 	ShaderParameter_Object& obj = *frame._Heap.NewNoDestruct<ShaderParameter_Object>();
 	Vector3 axis = Vector3(1.0f,1.0f,0.0f);
 	axis.Normalize();
@@ -77,7 +78,7 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
 	
 	// Queue the draw command
 	RenderInst draw {};
-	draw.DrawDefaultMesh(DefaultRenderMeshType::WIREFRAME_CAPSULE);
+	draw.DrawDefaultMesh(DefaultRenderMeshType::WIREFRAME_SPHERE);
 	context.PushRenderInst(frame, paramStack, std::move(draw)); // push draw command
 	
 }

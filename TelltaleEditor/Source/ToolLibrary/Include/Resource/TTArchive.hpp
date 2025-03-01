@@ -49,7 +49,7 @@ public:
     // Puts all file names inside this archive into the output result array
     inline void GetFiles(std::vector<String>& result)
     {
-        result.resize(_Files.size());
+        result.reserve(_Files.size());
         for(auto& file : _Files)
             result.push_back(file.Name);
     }

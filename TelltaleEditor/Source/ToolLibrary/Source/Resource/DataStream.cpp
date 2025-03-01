@@ -243,22 +243,34 @@ Bool DataStreamManager::Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nby
 
             Result = src->Read(Tmp, 0x10000);
             if (!Result)
-                return false;
+			{
+				TTE_FREE(Tmp);
+				return false;
+			}
 
             Result = dst->Write(Tmp, 0x10000);
-            if (!Result)
-                return false;
+			if (!Result)
+			{
+				TTE_FREE(Tmp);
+				return false;
+			}
         }
         
         if(Nbytes & 0xFFFF) // transfer remaining bytes
         {
             Result = src->Read(Tmp, Nbytes & 0xFFFF);
-            if (!Result)
-                return false;
+			if (!Result)
+			{
+				TTE_FREE(Tmp);
+				return false;
+			}
             
             Result = dst->Write(Tmp, Nbytes & 0xFFFF);
-            if (!Result)
-                return false;
+			if (!Result)
+			{
+				TTE_FREE(Tmp);
+				return false;
+			}
         }
 
         TTE_FREE(Tmp);
@@ -472,7 +484,10 @@ Bool DataStreamDeferred::Read(U8 *OutputBuffer, U64 Nbytes)
         _PagePos = Nbytes;
     }
     else
-        _PagePos = 0;
+	{
+		_PageIdx++;
+		_PagePos = 0;
+	}
 
     return true;
 }
@@ -522,7 +537,10 @@ Bool DataStreamDeferred::Write(const U8 *InputBuffer, U64 Nbytes)
         _PagePos = Nbytes;
     }
     else
-        _PagePos = 0;
+	{
+		_PagePos = 0;
+		_PageIdx++;
+	}
     
     return true;
 }
@@ -632,7 +650,7 @@ DataStreamBuffer::DataStreamBuffer(const ResourceURL &url, U64 sz, U8 *buf, Bool
 {
     _Size = sz;
     _Off = 0;
-    _Owns = buf && f;
+	_Owns = buf ? f : true;
     if (buf == nullptr)
         _Buffer = TTE_ALLOC(sz, MEMORY_TAG_DATASTREAM);
     else
@@ -867,7 +885,7 @@ Bool DataStreamSequentialStream::Read(U8 *OutputBuffer, U64 Nbytes)
         U64 ssize = _OrderedStreams[_StreamIndex]->GetSize();
         if(Nbytes < ssize)
             break;
-        if(_OrderedStreams[_StreamIndex]->Read(OutputBuffer, ssize))
+        if(!_OrderedStreams[_StreamIndex]->Read(OutputBuffer, ssize))
             return false;
         OutputBuffer += ssize;
         Nbytes -= ssize;
@@ -875,22 +893,25 @@ Bool DataStreamSequentialStream::Read(U8 *OutputBuffer, U64 Nbytes)
        _StreamIndex++;
        _StreamPos = 0;
     }
+	
+	if(_StreamIndex >= (U64)_OrderedStreams.size()) // finished
+	{
+		TTE_ASSERT(false, "Cannot read bytes from sequential stream: no data available");
+		return false;
+	}
     
     // finally read any remainding bytes
     if (Nbytes)
     {
-        if(_StreamIndex >= (U64)_OrderedStreams.size()) // finished
-        {
-            TTE_ASSERT(false, "Cannot read bytes from sequential stream: no data available");
-            return false;
-        }
-        if(_OrderedStreams[_StreamIndex]->Read(OutputBuffer, Nbytes))
+        if(!_OrderedStreams[_StreamIndex]->Read(OutputBuffer, Nbytes))
             return false;
         _StreamPos = Nbytes;
         _BytesRead += Nbytes;
     }
     else
-        _StreamPos = 0;
+	{
+		_StreamPos = 0;
+	}
     
     return true;
 }

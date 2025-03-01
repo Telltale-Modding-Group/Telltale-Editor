@@ -3,6 +3,8 @@
 #include <Scripting/LuaManager.hpp>
 #include <vector>
 
+#include <Core/Symbol.hpp>
+
 // High level LUA scripting API. This builds upon the Lua Manager which leads with the
 // lua API for different lua versions supported by the range of Telltale Games.
 
@@ -23,6 +25,9 @@ struct LuaFunctionCollection
     String Name;
     std::vector<LuaFunctionRegObject> Functions;
 };
+
+LuaFunctionCollection luaGameEngine(Bool bWorker); // actual engine game api in EngineLUAApi.cpp
+LuaFunctionCollection luaLibraryAPI(Bool bWorker); // actual api in LibraryLUAApi.cpp
 
 // Provides high level scripting access. Most of the functions are the same as Telltales actual ScriptManager API.
 namespace ScriptManager {
@@ -103,9 +108,9 @@ namespace ScriptManager {
     }
     
     // Run lua source code on the VM
-    inline void RunText(LuaManager& man, const String& code, CString Chunkname = "defaultrun.lua")
+    inline void RunText(LuaManager& man, const String& code, CString Chunkname, Bool lockContext)
     {
-        man.RunText(code.c_str(), (U32)code.length(), Chunkname);
+        man.RunText(code.c_str(), (U32)code.length(), lockContext, Chunkname);
     }
     
     inline String PopString(LuaManager& man) {

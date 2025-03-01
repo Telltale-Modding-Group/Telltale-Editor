@@ -7,10 +7,21 @@
 
 #include <Resource/DataStream.hpp>
 
-#include <Scene.hpp>
+#include <Common/Scene.hpp>
 
 #include <vector>
 #include <set>
+
+struct PendingDeletion
+{
+	std::shared_ptr<void> _Resource;
+	U64 _LastUsedFrame;
+};
+
+enum RenderContextFlags
+{
+	RENDER_CONTEXT_NEEDS_PURGE,
+};
 
 /// Represents an execution environment for running scenes, which holds a window.
 class RenderContext
@@ -171,6 +182,8 @@ private:
 	// calculates pipeline state
 	U64 _HashPipelineState(RenderPipelineState& state);
 	
+	void _FreePendingDeletions(U64 currentFrameNumber); // main thread call
+	
 	// =========== GENERIC FUNCTIONALITY
     
     // async job to populate render instructions
@@ -190,6 +203,8 @@ private:
 	std::vector<std::shared_ptr<RenderShader>> _LoadedShaders; // in future can replace certain ones and update pipelines for hot reloads.
 	std::set<_RenderTransferBuffer> _AvailTransferBuffers;
 	std::vector<std::shared_ptr<RenderSampler>> _Samplers;
+	std::vector<PendingDeletion> _PendingSDLResourceDeletions{};
+	U32 _Flags = 0;
 	
 	std::vector<DefaultRenderMesh> _DefaultMeshes;
 	std::vector<DefaultRenderTexture> _DefaultTextures;
@@ -203,6 +218,7 @@ private:
 	friend struct RenderShader;
 	friend struct RenderCommandBuffer;
 	friend struct RenderTexture;
+	friend struct RenderSampler;
 	friend struct RenderVertexState;
 	friend struct RenderBuffer;
 	friend class Scene;
