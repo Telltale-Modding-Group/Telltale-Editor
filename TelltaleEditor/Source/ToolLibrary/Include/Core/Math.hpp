@@ -4,6 +4,8 @@
 
 #include <Core/Config.hpp>
 
+#define PI_F 3.14159265f
+
 // This header file defines all math types, same as Telltale API, which is used in rendering, etc.
 
 // HDR Colour

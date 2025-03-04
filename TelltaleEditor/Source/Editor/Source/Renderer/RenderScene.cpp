@@ -54,7 +54,7 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
 	Colour sphereColour {255.f/255.f, 218.0f/255.f, 115.f/255.f, 1.0f};
 	
 	// rotating
-	angle += deltaTime * 2 * M_PI * 0.1f; // speed 0.1rads-1
+	angle += deltaTime * 2 * PI_F * 0.1f; // speed 0.1rads-1
 	sphereColour.r = 0.5f * (sinf(angle) + 1.0f);
 	
 	Quaternion rotAxis{Vector3::Normalize({1.0f, 1.0f, 0.0f}), angle};

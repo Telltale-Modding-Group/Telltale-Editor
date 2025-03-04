@@ -25,7 +25,7 @@ namespace MeshAPI
 	{
 		TTE_ASSERT(man.GetTop() == 1, "Requires 1 arguments");
 		MeshNormalisationTask* t = Task(man);
-		t->Renderable.Flags += Mesh::FLAG_DEFORMABLE;
+		t->Renderable.MeshFlags += Mesh::FLAG_DEFORMABLE;
 		return 0;
 	}
 	

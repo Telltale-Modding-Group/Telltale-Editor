@@ -80,7 +80,7 @@ struct Mesh
 	{
 		
 		String Name;
-		Flags Flags;
+		Flags MeshFlags;
 		
 		Sphere BSphere; // bounding sphere for total mesh
 		BoundingBox BBox; // bounding box for total mesh

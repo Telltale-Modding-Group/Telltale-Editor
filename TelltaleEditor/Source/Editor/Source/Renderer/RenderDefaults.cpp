@@ -1,5 +1,7 @@
 #include <Renderer/RenderContext.hpp>
 
+#include <Core/Math.hpp>
+
 #include <array>
 
 static DataStreamRef Stream(U64 sz)
@@ -66,15 +68,13 @@ static void _GenerateSemicircle(Vector3 p1, Vector3 p2, Vector3 normal, U32 step
 	Float radius = sqrtf(Vector3::Dot(diff, diff)) * 0.5f;
 	
 	for (U32 i = 0; i <= steps; ++i) {
-		Float angle = M_PI * (Float(i) / Float(steps)); // Angle from 0 to pi
+		Float angle = PI_F * (Float(i) / Float(steps)); // Angle from 0 to pi
 		Float s = std::sin(angle);
 		Float c = std::cos(angle);
 		
 		Vector3 point = midpoint + normal * (s * radius) + dir * (c * radius);
 		result.push_back(point);
 	}
-	
-	return result;
 }
 
 void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, std::vector<DefaultRenderMesh>& meshes)

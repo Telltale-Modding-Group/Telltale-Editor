@@ -7,6 +7,7 @@
 #include <cfloat>
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 
 #define INTERNAL_START_PRIORITY 0x0F0C70FF
 
@@ -204,6 +205,7 @@ Bool RenderContext::IsRowMajor()
 	else
 	{
 		TTE_ASSERT(false, "Unknown graphics device driver: %s", device);
+		return false;
 	}
 }
 
@@ -753,7 +755,7 @@ std::shared_ptr<RenderPipelineState> RenderContext::_AllocatePipelineState()
 	
 	// add to array
 	{
-		std::lock_guard<std::mutex>{_Lock};
+		std::lock_guard<std::mutex> G{_Lock};
 		_Pipelines.push_back(val);
 	}
 	
