@@ -697,31 +697,27 @@ namespace Meta {
         
         void CtorBinaryBuffer(void* pMemory, U32, ParentWeakReference)
         {
-            memset(pMemory, 0, sizeof(BinaryBuffer)); // clear to zeros (its just a pointer and size)
+			new (pMemory) BinaryBuffer();
         }
         
         void DtorBinaryBuffer(void* pMemory, U32)
         {
-            BinaryBuffer* pBuffer = (BinaryBuffer*)pMemory;
-            if(pBuffer->Buffer)
-                TTE_FREE(pBuffer->Buffer); // free it
-            memset(pBuffer, 0, sizeof(BinaryBuffer)); // just in case
+			((BinaryBuffer*)pMemory)->~BinaryBuffer();
         }
         
         void CopyBinaryBuffer(const void* pSrc, void* pDst,ParentWeakReference host) // copy CONSTRUCT.
         {
             const BinaryBuffer* pSrcBuffer = (const BinaryBuffer*)pSrc;
             BinaryBuffer* pDstBuffer = (BinaryBuffer*)pDst;
+			
+			new(pDst) BinaryBuffer();
             
             pDstBuffer->BufferSize = pSrcBuffer->BufferSize;
-            if(pDstBuffer->BufferSize) // if we have a buffer, copy the alloc
+            if(pSrcBuffer->BufferData) // if we have a buffer, DEEP copy the memory
             {
-                pDstBuffer->Buffer = TTE_ALLOC(pDstBuffer->BufferSize, MEMORY_TAG_RUNTIME_BUFFER);
-                memcpy(pDstBuffer->Buffer, pSrcBuffer->Buffer, sizeof(BinaryBuffer));
-            }
-            else
-            {
-                pDstBuffer->Buffer = nullptr;
+                U8* Buffer = TTE_ALLOC(pDstBuffer->BufferSize, MEMORY_TAG_RUNTIME_BUFFER);
+                memcpy(Buffer, pSrcBuffer->BufferData.get(), pSrcBuffer->BufferSize);
+				pDstBuffer->BufferData = std::shared_ptr<U8>(Buffer, [](U8* p){TTE_FREE(p);});
             }
         }
         
@@ -1065,7 +1061,7 @@ namespace Meta {
         return instanceNew;
     }
     
-    ClassInstance GetMember(ClassInstance& inst, const String& name)
+    ClassInstance GetMember(ClassInstance& inst, const String& name, Bool bi)
     {
         if(!inst)
             return {}; // edge case
@@ -1078,6 +1074,8 @@ namespace Meta {
                                     inst._GetInternal() + mem.RTOffset), inst.ObtainParentRef());
             }
         }
+		if(bi)
+			TTE_ASSERT(false, "Member %s::%s does not exist!", clazz.Name.c_str(), name.c_str());
         return {}; // not found
     }
     
@@ -1211,7 +1209,7 @@ namespace Meta {
             }
         }
         
-        TTE_LOG("Meta fully initialised with snapshot of %s: registered %d State.Classes", snap.ID.c_str(), (U32)State.Classes.size());
+        TTE_LOG("Meta fully initialised with snapshot of %s: registered %d classes", snap.ID.c_str(), (U32)State.Classes.size());
 		State.GameIndex = (I32)gameIdx;
     }
     
@@ -1697,6 +1695,16 @@ namespace Meta {
             TTE_ASSERT(false, "Could not seralise meta stream primary class");
             return {};
         }
+		
+		for(U32 i = 0; i < STREAM_SECTION_COUNT; i++)
+		{
+			U64 diff = (U64)(metaStream.Sect[i].Data->GetSize()-metaStream.Sect[i].Data->GetPosition());
+			if(diff != 0)
+			{
+				TTE_ASSERT(false, "At section %s: not all bytes were read from stream! Remaining: 0x%X bytes",
+						   StreamSectionName[i], (U32)diff);
+			}
+		}
         
         return instance; // OK
     }
@@ -1852,7 +1860,7 @@ namespace Meta {
         _ColFl = rhs._ColFl;
         _ValuSize = rhs._ValuSize;
         _PairSize = rhs._PairSize;
-        _PrntRef = std::move(host);
+		_PrntRef = host;
         
         // reset RHS stuff to defaults (its still now a valid collection, just size 0)
         rhs._Size = rhs._ColFl & _COL_IS_SARRAY ? State.Classes[_ColID].ArraySize : 0;
@@ -1915,7 +1923,7 @@ namespace Meta {
     ClassInstanceCollection::ClassInstanceCollection(const ClassInstanceCollection& rhs, ParentWeakReference host)
     {
         // copy construct. call operator= copy as its a big function (ensuring Clear succeeds)
-        _PrntRef = std::move(host);
+		_PrntRef = host;
         _ValuSize = rhs._ValuSize;
         _PairSize = rhs._PairSize;
         _ColFl = rhs._ColFl;

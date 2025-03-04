@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Scripting/ScriptManager.hpp>
-
+#include <Renderer/RenderAPI.hpp>
 #include <Common/Mesh.hpp>
 #include <Common/Scene.hpp>
 
@@ -12,6 +12,8 @@
 inline LuaFunctionCollection CreateScriptAPI()
 {
 	LuaFunctionCollection Col{};
+	
+	RegisterRenderConstants(Col);
 	
 	Mesh::RegisterScriptAPI(Col);
 	Scene::RegisterScriptAPI(Col);

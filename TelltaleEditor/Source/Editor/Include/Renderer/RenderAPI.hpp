@@ -66,6 +66,36 @@ enum class RenderBufferAttributeFormat
 	
 };
 
+enum class RenderAttributeType
+{
+	UNKNOWN,
+	POSITION,
+	NORMAL,
+	BINORMAL,
+	TANGENT,
+	BLEND_WEIGHT,
+	BLEND_INDEX,
+	COLOUR,
+	UV,
+};
+
+static struct AttribInfo {
+	RenderAttributeType Type;
+	CString ConstantName;
+}
+constexpr AttribInfoMap[]
+{
+	{RenderAttributeType::POSITION, "kCommonMeshAttributePosition"},
+	{RenderAttributeType::NORMAL, "kCommonMeshAttributeNormal"},
+	{RenderAttributeType::BINORMAL, "kCommonMeshAttributeBinormal"},
+	{RenderAttributeType::TANGENT, "kCommonMeshAttributeTangent"},
+	{RenderAttributeType::BLEND_WEIGHT, "kCommonMeshAttributeBlendWeight"},
+	{RenderAttributeType::BLEND_INDEX, "kCommonMeshAttributeBlendIndex"},
+	{RenderAttributeType::COLOUR, "kCommonMeshAttributeColour"},
+	{RenderAttributeType::UV, "kCommonMeshAttributeUV"},
+	{RenderAttributeType::UNKNOWN},
+};
+
 /// A texture.
 struct RenderTexture
 {
@@ -132,6 +162,7 @@ struct RenderBuffer
 struct _RenderTransferBuffer
 {
 	
+	U64 LastUsedFrame = 0;
 	SDL_GPUTransferBuffer* Handle = nullptr;
 	U32 Capacity = 0; // total number available
 	U32 Size = 0; // total used at the moment if acquired
@@ -173,17 +204,18 @@ struct RenderVertexState
 	
 	struct VertexAttrib
 	{
+		RenderAttributeType Attrib = RenderAttributeType::UNKNOWN;
 		RenderBufferAttributeFormat Format = RenderBufferAttributeFormat::UNKNOWN;
-		U16 VertexBufferIndex = 0; // 0 to 3 (which vertex buffer to use)
+		U16 VertexBufferIndex = 0; // 0 to 31 (which vertex buffer to use)
 		U16 VertexBufferLocation = 0; // index of the attribute in the current vertex buffer (index). 0 to 31
 	};
 	
 	// === INFO FORMAT
 	
 	VertexAttrib Attribs[32];
-	U32 BufferPitches[4] = {0,0,0,0}; // byte pitch between consecutive elements in each vertex buffer
+	U32 BufferPitches[32] = {0,0,0,0}; // byte pitch between consecutive elements in each vertex buffer
 	
-	U8 NumVertexBuffers = 0; // between 0 and 4
+	U8 NumVertexBuffers = 0; // between 0 and 32
 	U8 NumVertexAttribs = 0; // between 0 and 32
 	
 	Bool IsHalf = true; // true means U16 indices, false meaning U32
@@ -530,4 +562,131 @@ struct RenderFrame
 	
 };
 
+// registers common mesh constants
+void RegisterRenderConstants(LuaFunctionCollection& Col);
 
+// Utilities for rendering. Only to be used in scene::asyncrender and its calls
+namespace RenderUtility
+{
+	
+	/**
+	 Sets the camera uniform buffer parameters from a given camera.
+	 */
+	void SetCameraParameters(RenderContext& context, ShaderParameter_Camera* cam, Camera* pCamera);
+	
+	/**
+	 Creates a scaling and transforming matrix for the given bounding box so its the same
+	 */
+	inline Matrix4 CreateBoundingBoxModelMatrix(BoundingBox box) {
+		// Calculate the center of the bounding box from _Min and _Max
+		Float centerX = (box._Min.x + box._Max.x) / 2.0f;
+		Float centerY = (box._Min.y + box._Max.y) / 2.0f;
+		Float centerZ = (box._Min.z + box._Max.z) / 2.0f;
+		
+		// Calculate the size (dimensions) of the bounding box
+		Float width = box._Max.x - box._Min.x;
+		Float height = box._Max.y - box._Min.y;
+		Float depth = box._Max.z - box._Min.z;
+		
+		// Scale factors to transform the bounding box into a unit box from -1 to 1
+		Float scaleX = 0.5f * width;
+		Float scaleY = 0.5f * height;
+		Float scaleZ = 0.5f * depth;
+		
+		// Translation to move the center of the bounding box to the origin
+		Float translateX = -centerX;
+		Float translateY = -centerY;
+		Float translateZ = -centerZ;
+		
+		// Create the transformation matrix using scaling and translation
+		Matrix4 modelMatrix{};
+		
+		modelMatrix = MatrixScaling(scaleX, scaleY, scaleZ) * MatrixTranslation(Vector3(translateX, translateY, translateZ));
+		
+		return modelMatrix;
+	}
+
+	/**
+	 Creates a scaling and transforming matrix for the given sphere such that it can be drawn as default sphere or wireframe sphere
+	 */
+	inline Matrix4 CreateSphereModelMatrix(Sphere sphere)
+	{
+		return MatrixTransformation(Vector3(sphere._Radius), Quaternion::kIdentity, sphere._Center);
+	}
+	
+	// internal draw. null camera means a higher level camera will be searched for in the base parameters stack
+	void _DrawInternal(RenderContext& context, Camera* cam, Matrix4 world, Colour col, DefaultRenderMeshType primitive, ShaderParametersStack* pBaseParams);
+	
+	/**
+	 Draws a wire sphere with the given camera and model matrix specifying its world transformation. Vertices from -1 to 1. Camera can be null. Pass in base parameters.
+	 */
+	inline void DrawWireSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+	{
+		_DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_SPHERE, pBaseParams);
+	}
+	
+	/**
+	 Draws a wireframe unit capsule with the given camera and model matrix specifying its world transformation. Vertices are from -1 to 1! Camera can be null. Pass in base parameters.
+	 */
+	inline void DrawWireCapsule(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+	{
+		_DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CAPSULE, pBaseParams);
+	}
+	
+	/**
+	 Draws a wireframe box with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
+	 */
+	inline void DrawWireBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+	{
+		_DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_BOX, pBaseParams);
+	}
+	
+	/**
+	 Draws a filled coloured box with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
+	 */
+	inline void DrawFilledBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+	{
+		_DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_BOX, pBaseParams);
+	}
+	
+	/**
+	 Draws a filled in sphere with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
+	 */
+	inline void DrawFilledSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+	{
+		_DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_SPHERE, pBaseParams);
+	}
+	
+	/**
+	 Draws a filled in cone with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 in height and width. Camera can be null. Pass in base parameters.
+	 */
+	inline void DrawFilledCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+	{
+		_DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CONE, pBaseParams);
+	}
+	
+	/**
+	 Draws a wireframe cone with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
+	 */
+	inline void DrawWireCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+	{
+		_DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CONE, pBaseParams);
+	}
+	
+	/**
+	 Draws a filled in cylinder with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 in height and width. Camera can be null. Pass in base parameters.
+	 */
+	inline void DrawFilledCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+	{
+		_DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CYLINDER, pBaseParams);
+	}
+	
+	/**
+	 Draws a wireframe cylinder with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
+	 */
+	inline void DrawWireCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+	{
+		_DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CYLINDER, pBaseParams);
+	}
+	
+}

@@ -18,7 +18,7 @@ void Scene::OnAsyncRenderAttach(RenderContext& context)
 	SDL_GetWindowSize(context._Window, (int*)&cam._ScreenWidth, (int*)&cam._ScreenHeight);
 	cam.SetAspectRatio();
 	
-	Vector3 cameraPosition = Vector3(0.0f, 0.0f, -20.0f); // Camera position in world space
+	Vector3 cameraPosition = Vector3(0.0f, 0.0f, -10.0f); // Camera position in world space
 	
 	cam.SetWorldPosition(cameraPosition);
 	
@@ -37,48 +37,59 @@ static float angle = 0.0f;
 void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float deltaTime)
 {
 	
-	// here we setup the parameters (camera and object) for rendering a default simple model with just vertices.
+	// CAMERA PARAMETERS AND BASE SETUP
 	
-	// SETUP CAMERA UNIFORM
-	ShaderParameter_Camera& cam = *frame._Heap.NewNoDestruct<ShaderParameter_Camera>();
-	Camera& ac = _ViewStack.front();
-	cam.ViewProj = (ac.GetProjectionMatrix() * ac.GetViewMatrix()).Transpose();
-	cam.TransposeViewZ = ac.GetViewMatrix().GetRow(2);
-	cam.HFOVParam = ac._HFOV * ac._HFOVScale;
-	cam.VFOVParam = ac._HFOV * ac._HFOVScale;
-	cam.Aspect = ac.GetAspectRatio();
-	cam.CameraNear = ac._NearClip;
-	cam.CameraFar = ac._FarClip;
-	
-	// SETUP TEST MODEL UNIFORM
-	angle += deltaTime * 2 * M_PI * /*freq*/ 0.05f; // for now it just rotates using simple formula speed = distance/time
-	ShaderParameter_Object& obj = *frame._Heap.NewNoDestruct<ShaderParameter_Object>();
-	Vector3 axis = Vector3(1.0f,1.0f,0.0f);
-	axis.Normalize();
-	Matrix4 model = MatrixTransformation(Vector3(1.f,1.f,1.f), Quaternion(axis, angle), Vector3::Zero);
-	obj.WorldMatrix[0] = model.GetRow(0);
-	obj.WorldMatrix[1] = model.GetRow(1);
-	obj.WorldMatrix[2] = model.GetRow(2);
-	
-	// SET PARAMETERS REQUIRED. (we are drawing a default mesh)
-	ShaderParameterTypes types{};
-	types.Set(PARAMETER_CAMERA, true);
-	types.Set(PARAMETER_OBJECT, true);
-	
-	// Parameter stack abstracts lots of groups, binding top down until all required from the shaders have been bound.
 	ShaderParametersStack* paramStack = context.AllocateParametersStack(frame);
-	ShaderParametersGroup* group = context.AllocateParameters(frame, types);
 	
-	// Link the uniforms to be uploaded. Note the uniform data when taking the address is on the frame heap, NOT this stack frame.
-	context.SetParameterUniform(frame, group, PARAMETER_CAMERA, &cam, sizeof(ShaderParameter_Camera));
-	context.SetParameterUniform(frame, group, PARAMETER_OBJECT, &obj, sizeof(ShaderParameter_Object));
+	ShaderParameter_Camera* cam = frame._Heap.NewNoDestruct<ShaderParameter_Camera>();
+	RenderUtility::SetCameraParameters(context, cam, &_ViewStack.front());
 	
-	// Push the group to the stack
-	context.PushParameterGroup(frame, paramStack, group); // push the group to this param stack
+	ShaderParametersGroup* camGroup = context.AllocateParameter(frame, ShaderParameterType::PARAMETER_CAMERA);
+	context.SetParameterUniform(frame, camGroup, ShaderParameterType::PARAMETER_CAMERA, cam, sizeof(ShaderParameter_Camera));
 	
-	// Queue the draw command
-	RenderInst draw {};
-	draw.DrawDefaultMesh(DefaultRenderMeshType::WIREFRAME_SPHERE);
-	context.PushRenderInst(frame, paramStack, std::move(draw)); // push draw command
+	context.PushParameterGroup(frame, paramStack, camGroup);
+	
+	// test rotating sphere
+	
+	Colour sphereColour {255.f/255.f, 218.0f/255.f, 115.f/255.f, 1.0f};
+	
+	// rotating
+	angle += deltaTime * 2 * M_PI * 0.1f; // speed 0.1rads-1
+	sphereColour.r = 0.5f * (sinf(angle) + 1.0f);
+	
+	Quaternion rotAxis{Vector3::Normalize({1.0f, 1.0f, 0.0f}), angle};
+	
+	for(auto& renderable: _Renderables)
+	{
+		for(auto& meshInstance: renderable.Renderable.MeshList)
+		{
+			// Draw bounding box
+			Matrix4 m = RenderUtility::CreateBoundingBoxModelMatrix(meshInstance.BBox);
+			m = RenderUtility::CreateSphereModelMatrix(meshInstance.BSphere) * MatrixRotation(rotAxis);
+			RenderUtility::DrawWireBox(context, nullptr, m, sphereColour, paramStack);
+			
+			for(auto& vstate: meshInstance.VertexStates)
+			{
+				if(vstate.IndexBuffer.BufferData && !vstate.RuntimeData.GPUIndexBuffer)
+				{
+					// TODO FRAME UPDATE LIST.
+				}
+			}
+			
+			// For each LOD
+			for(auto& lod : meshInstance.LODs)
+			{
+				// For default and shadow. For now skip shadow. 
+				for(U32 i = 0; i < 1; i++)
+				{
+					// For each batch
+					for(auto& batch : lod.Batches[i])
+					{
+						
+					}
+				}
+			}
+		}
+	}
 	
 }

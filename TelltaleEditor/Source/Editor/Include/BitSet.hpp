@@ -156,3 +156,46 @@ public:
 	}
 
 };
+
+/**
+ Simple type to help with flags.
+ */
+class Flags
+{
+	
+	U32 _Value;
+	
+public:
+	
+	Flags() = default;
+	
+	inline Flags(U32 val) : _Value(val) {}
+	
+	inline operator U32() const
+	{
+		return _Value;
+	}
+	
+	template<typename IntOrEnum>
+	inline void Add(IntOrEnum fl)
+	{
+		_Value |= (U32)fl;
+	}
+	
+	template<typename IntOrEnum>
+	inline void Remove(IntOrEnum fl)
+	{
+		_Value &= ~((U32)fl);
+	}
+	
+	inline void operator+=(U32 fl)
+	{
+		Add(fl);
+	}
+	
+	inline void operator-=(U32 fl)
+	{
+		Remove(fl);
+	}
+	
+};

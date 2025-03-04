@@ -12,6 +12,12 @@
 #include <vector>
 #include <set>
 
+// Default capped frame rate to stop CPU usage going through the roof. Between 1 and 120.
+#define DEFAULT_FRAME_RATE_CAP 60
+
+// Threshold on the number of frames between last use and current frame at which a resource will be freed due to not being hot in use.
+#define DEFAULT_HOT_RESOURCE_THRESHOLD 256
+
 struct PendingDeletion
 {
 	std::shared_ptr<void> _Resource;
@@ -28,12 +34,16 @@ class RenderContext
 {
 public:
     
-    RenderContext(String windowName); // creates window. start rendering by calling frame update each main thread frame
+	// creates window. start rendering by calling frame update each main thread frame. frame rate cap from 1 to 120!
+    RenderContext(String windowName, U32 frameRateCap = DEFAULT_FRAME_RATE_CAP);
     ~RenderContext(); // closes window and exists the context, freeing memory
     
     // Call each frame on the main thread to wait for the renderer job (render last frame) and prepare next scene render
     // Pass in if you want to force this to be the last frame (destructor called after). Returns if still running
     Bool FrameUpdate(Bool isLastFrame);
+	
+	// Returns if the current API uses a row major matrix ordering
+	Bool IsRowMajor();
     
     // Current frame index.
     inline U64 GetCurrentFrameNumber()
@@ -50,6 +60,9 @@ public:
     // Call these before and after any instance is created. Initialises SDL for multiple contexts
     static Bool Initialise();
     static void Shutdown();
+	
+	// Allocate, Create() must be called after. New render pipeline state. Note this should only be used in renderer internally.
+	std::shared_ptr<RenderPipelineState> _AllocatePipelineState();
 	
 	// Create a vertex buffer which can be filled up later
 	std::shared_ptr<RenderBuffer> CreateVertexBuffer(U64 sizeBytes);
@@ -135,12 +148,26 @@ public:
 	void SetParameterIndexBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
 								  std::shared_ptr<RenderBuffer> buffer, U32 startIndex);
     
-private:
-	
+	// Unsafe call, ensure calling from the correct place!
 	inline RenderFrame& GetFrame(Bool bGetPopulatingFrame)
 	{
 		return bGetPopulatingFrame ? _Frame[_MainFrameIndex^ 1] : _Frame[_MainFrameIndex];
 	}
+	
+	// Call from main thread only (ie high level outside of this class). Default cap macro is above. Range from 1 to 120
+	inline void CapFrameRate(U32 fps)
+	{
+		TTE_ASSERT(fps > 0 && fps <= 120, "Frame rate can only be from 1 to 120!");
+		_MinFrameTimeMS = (U32)(1000.0f / ((Float)fps));
+	}
+	
+	// Call from the main thread. See the default macro
+	inline void AdjustHotResourceThreshold(U32 newValue)
+	{
+		_HotResourceThresh = newValue;
+	}
+	
+private:
 	
 	// Checks and ensures are being called from the main thread.
 	inline void AssertMainThread()
@@ -154,9 +181,6 @@ private:
 	
 	// Perform rendering of high level instructions into command buffers.
 	void _Render(Float dt, RenderCommandBuffer* pMainCommandBuffer);
-	
-	// Allocate, Create() must be called after. New render pipeline state.
-	std::shared_ptr<RenderPipelineState> _AllocatePipelineState();
 	
 	// Find a sampler or allocate new if doesn't exist.
 	std::shared_ptr<RenderSampler> _FindSampler(RenderSampler desc);
@@ -172,6 +196,8 @@ private:
 	_RenderTransferBuffer _AcquireTransferBuffer(U32 size, RenderCommandBuffer& cmds); // find an available transfer buffer to use
 	
 	void _ReclaimTransferBuffers(RenderCommandBuffer& cmds); // called after a submit command list finishes
+	
+	void _PurgeColdResources(RenderFrame*); // free resources kept for too long
 	
 	// Draws a render command
 	void _Draw(RenderFrame& frame, RenderInst inst, RenderCommandBuffer& cmds);
@@ -193,6 +219,8 @@ private:
     JobHandle _PopulateJob; // populate render instructions job
     U32 _MainFrameIndex; // 0 or 1. NOT of this value is the render frame index, into the _Frame array.
 	U64 _StartTimeMicros = 0; // start time of current mt frame
+	U32 _MinFrameTimeMS; // min frame time (ie max frame rate)
+	U32 _HotResourceThresh; // hot resource threshold
     
     SDL_Window* _Window; // SDL3 window handle
 	SDL_GPUDevice* _Device; // SDL3 graphics device (vulkan,d3d,metal)
@@ -228,3 +256,24 @@ private:
 	friend void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* cmds, std::vector<DefaultRenderMesh>& meshes);
 	
 };
+
+/**
+ Finalises the given matrix into the out vectors. These can then be passed into shaders
+ */
+inline void FinalisePlatformMatrix(RenderContext& context, Vector4 (&out)[4], const Matrix4& in)
+{
+	if(context.IsRowMajor())
+	{
+		out[0] = in.GetRow(0);
+		out[1] = in.GetRow(1);
+		out[2] = in.GetRow(2);
+		out[3] = in.GetRow(3);
+	}
+	else
+	{
+		out[0] = in.GetColumn(0);
+		out[1] = in.GetColumn(1);
+		out[2] = in.GetColumn(2);
+		out[3] = in.GetColumn(3);
+	}
+}

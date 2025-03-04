@@ -16,7 +16,6 @@ struct VertexOut {
 struct UniformCamera
 {
     float4x4 viewProj;
-    float4 transposeZ;
     float2 fov;
     float cam_near;
     float cam_far;
@@ -31,12 +30,12 @@ struct UniformObject
 vertex VertexOut main0(VertexIn in [[stage_in]], constant UniformCamera& cam [[buffer(0)]], constant UniformObject& obj [[buffer(1)]]) {
     VertexOut out;
 
-    float4x4 objectMatrix = transpose(float4x4(
+    float4x4 objectMatrix = float4x4(
         obj.worldMatrix[0], 
         obj.worldMatrix[1], 
         obj.worldMatrix[2], 
         float4(0.0, 0.0, 0.0, 1.0)
-    ));
+    );
 
     out.position = cam.viewProj * objectMatrix * float4(in.position, 1.0f);
     out.uv = in.uv;

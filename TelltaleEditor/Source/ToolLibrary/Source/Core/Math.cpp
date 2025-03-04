@@ -35,11 +35,14 @@ Quaternion Quaternion::kBackward{ 0.f, 0.f, 0.f, -4.3711388e-8f };
 Quaternion Quaternion::kUp{ 0.f, 0.f, 0.f, 0.70710677f };//2^-0.5
 Quaternion Quaternion::kDown{ 0.f, 0.f, 0.f, 0.70710677f };//2^-0.5
 
+Quaternion Quaternion::Zero{};
+
+Transform Transform::Zero{};
+
 Colour Colour::RGBToRGBM(float ex, float scale) {
     Colour ret{};
     float exponented = powf(scale, ex);
     float RED = r;
-    float exponeted = exponented;
     float GREEN = g;
     float BLUE = b;
     float maxRGB = 1.0f;
@@ -364,40 +367,41 @@ Vector3 BoundingBox::GetFaceCenter(eFace face)
 
 BoundingBox::eFace BoundingBox::HitFace(Vector3 hitPos)
 {
-    // Retrieve the x, y, and z components from mMin and mMax
-    float minX = _Min.x;
-    float minY = _Min.y;
-    float minZ = _Min.z;
-    float maxX = _Max.x;
-    float maxY = _Max.y;
-    float maxZ = _Max.z;
-    
-    // Tolerance value for comparison
-    const float tolerance = 0.000001f;
-    
-    // Check if the hit position is on the front or back faces (z-axis)
-    if (hitPos.z >= (maxZ - tolerance) && hitPos.z <= (maxZ + tolerance))
-        return kFace_Back;  // Back face
-    
-    if (hitPos.z >= (minZ - tolerance) && hitPos.z <= (minZ + tolerance))
-        return kFace_Front;  // Front face
-    
-    // Check if the hit position is on the left or right faces (x-axis)
-    if (hitPos.x >= (maxX - tolerance) && hitPos.x <= (maxX + tolerance))
-        return kFace_Right;  // Right face
-    
-    if (hitPos.x >= (minX - tolerance) && hitPos.x <= (minX + tolerance))
-        return kFace_Left;  // Left face
-    
-    // Check if the hit position is on the top or bottom faces (y-axis)
-    if (hitPos.y < (maxY - tolerance))
-        return kFace_Bottom;  // Bottom face
-    
-    if (hitPos.y > (maxY + tolerance))
-        return kFace_Top;  // Top face
-    
-    return kFace_None;  // Default case if the point is not on any face
+	// Retrieve the x, y, and z components from mMin and mMax
+	float minX = _Min.x;
+	float minY = _Min.y;
+	float minZ = _Min.z;
+	float maxX = _Max.x;
+	float maxY = _Max.y;
+	float maxZ = _Max.z;
+	
+	// Tolerance value for comparison
+	const float tolerance = 0.000001f;
+	
+	// Check if the hit position is on the front or back faces (z-axis)
+	if (hitPos.z >= (maxZ - tolerance) && hitPos.z <= (maxZ + tolerance))
+		return kFace_Back;  // Back face
+	
+	if (hitPos.z >= (minZ - tolerance) && hitPos.z <= (minZ + tolerance))
+		return kFace_Front;  // Front face
+	
+	// Check if the hit position is on the left or right faces (x-axis)
+	if (hitPos.x >= (maxX - tolerance) && hitPos.x <= (maxX + tolerance))
+		return kFace_Right;  // Right face
+	
+	if (hitPos.x >= (minX - tolerance) && hitPos.x <= (minX + tolerance))
+		return kFace_Left;  // Left face
+	
+	// Check if the hit position is on the top or bottom faces (y-axis)
+	if (hitPos.y >= (maxY - tolerance) && hitPos.y <= (maxY + tolerance))
+		return kFace_Top;  // Top face
+	
+	if (hitPos.y >= (minY - tolerance) && hitPos.y <= (minY + tolerance))
+		return kFace_Bottom;  // Bottom face
+	
+	return kFace_None;  // Default case if the point is not on any face
 }
+
 
 BoundingBox::eFace BoundingBox::HitFace(Vector3 rayPos, Vector3 rayEnd, Vector3 &outHitPos)
 {
@@ -741,40 +745,45 @@ Matrix4 MatrixRotation(const Quaternion& q) {
     return ret;
 }
 
-
 Matrix4 MatrixTranslation(const Vector3& Translation)
 {
-    Matrix4 ret{};
-    ret._Entries[3][0] = Translation.x;
-    ret._Entries[3][1] = Translation.y;
-    ret._Entries[3][2] = Translation.z;
-    ret._Entries[3][3] = 1.0f;
-    return ret;
+	Matrix4 ret = Matrix4::Identity();  // Identity matrix
+	ret._Entries[0][3] = Translation.x;  // Translation along X
+	ret._Entries[1][3] = Translation.y;  // Translation along Y
+	ret._Entries[2][3] = Translation.z;  // Translation along Z
+	ret._Entries[3][3] = 1.0f;  // Homogeneous coordinate
+	return ret;
 }
 
 Matrix4 MatrixTransformation(const Quaternion& rot, const Vector3& Translation)
 {
-    Matrix4 ret = MatrixRotation(rot);
-    ret._Entries[3][0] += Translation.x;
-    ret._Entries[3][1] += Translation.y;
-    ret._Entries[3][2] += Translation.z;
-    return ret;
+	Matrix4 ret = MatrixRotation(rot);  // Get the rotation matrix
+	ret._Entries[0][3] = Translation.x;  // Translation along X
+	ret._Entries[1][3] = Translation.y;  // Translation along Y
+	ret._Entries[2][3] = Translation.z;  // Translation along Z
+	ret._Entries[3][3] = 1.0f;  // Homogeneous coordinate
+	return ret;
 }
 
 Matrix4 MatrixTransformation(const Vector3 scale, const Quaternion& rot, const Vector3& Translation)
 {
-    Matrix4 ret = MatrixTransformation(rot, Translation);
-    return ret * Matrix4::Scaling(scale);
+	// Apply scaling, then rotation, then translation
+	Matrix4 scaleMatrix = MatrixScaling(scale);
+	Matrix4 rotMat = MatrixRotation(rot);
+	Matrix4 trans = MatrixTranslation(Translation);
+	return trans * rotMat * scaleMatrix;
 }
 
 Matrix4 MatrixScaling(float ScaleX, float ScaleY, float ScaleZ)
 {
-    Matrix4 ret = Matrix4::Identity();
-    ret._Entries[0][0] = ScaleX;
-    ret._Entries[1][1] = ScaleY;
-    ret._Entries[2][2] = ScaleZ;
-    return ret;
+	Matrix4 ret = Matrix4::Identity();  // Identity matrix
+	ret._Entries[0][0] = ScaleX;  // Scale along X
+	ret._Entries[1][1] = ScaleY;  // Scale along Y
+	ret._Entries[2][2] = ScaleZ;  // Scale along Z
+	ret._Entries[3][3] = 1.0f;  // Homogeneous coordinate
+	return ret;
 }
+
 
 Matrix4 MatrixRotationYawPitchRollDegrees(float yaw, float pitch, float roll)
 {
@@ -823,7 +832,11 @@ Bool Frustum::Visible(const BoundingBox& box, bool* pbStraddlesNearPlane) {
 
 Matrix4::Matrix4()
 {
-    
+	memset(_Entries, 0, sizeof(Float) * 16);
+	_Entries[0][0] = 1.0f;
+	_Entries[1][1] = 1.0f;
+	_Entries[2][2] = 1.0f;
+	_Entries[3][3] = 1.0f;
 }
 
 Matrix4::Matrix4(const Matrix4& M)

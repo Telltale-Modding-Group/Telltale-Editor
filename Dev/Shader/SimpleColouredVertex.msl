@@ -5,7 +5,6 @@ using namespace metal;
 
 struct VertexIn {
     float3 position [[attribute(0)]];
-    float3 colour [[attribute(1)]];
 };
 
 struct VertexOut {
@@ -16,7 +15,6 @@ struct VertexOut {
 struct UniformCamera
 {
     float4x4 viewProj;
-    float4 transposeZ;
     float2 fov;
     float cam_near;
     float cam_far;
@@ -25,20 +23,15 @@ struct UniformCamera
 
 struct UniformObject
 {
-    float4 worldMatrix[3];
+    float4x4 worldMatrix;
+    float3 diffuse;
+    float alpha;
 };
 
 vertex VertexOut main0(VertexIn in [[stage_in]], constant UniformCamera& cam [[buffer(0)]], constant UniformObject& obj [[buffer(1)]]) {
     VertexOut out;
 
-    float4x4 objectMatrix = transpose(float4x4(
-        obj.worldMatrix[0], 
-        obj.worldMatrix[1], 
-        obj.worldMatrix[2], 
-        float4(0.0, 0.0, 0.0, 1.0)
-    ));
-
-    out.position = cam.viewProj * objectMatrix * float4(in.position, 1.0f);
-    out.colour = in.colour;
+    out.position = cam.viewProj * obj.worldMatrix * float4(in.position, 1.0f);
+    out.colour = obj.diffuse;
     return out;
 }

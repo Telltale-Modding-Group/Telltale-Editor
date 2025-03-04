@@ -24,6 +24,12 @@ namespace Meta {
         STREAM_SECTION_DEBUG = 2,
         STREAM_SECTION_COUNT = 3,
     };
+	
+	constexpr CString StreamSectionName[] {
+		"Main",
+		"Async",
+		"Debug"
+	};
     
     // Binary stream versions
     enum StreamVersion {
@@ -245,7 +251,7 @@ namespace Meta {
     // Special type internally used to store binary buffers. No serialiser in this type, but just holds a reference to the memory (frees it)
     struct BinaryBuffer
     {
-        U8* Buffer = nullptr;
+		std::shared_ptr<U8> BufferData;
         U32 BufferSize = 0;
     };
     
@@ -289,7 +295,7 @@ namespace Meta {
         
         friend class ClassInstanceScriptRef;
         
-        friend ClassInstance GetMember(ClassInstance& inst, const String& name);
+        friend ClassInstance GetMember(ClassInstance& inst, const String& name, Bool bInsist);
         
         friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&, Symbol);
         
@@ -719,8 +725,8 @@ namespace Meta {
     }
     
     // Gets a member of a complex type, ie a meta type (type is not intrinsic, can be, but for that prefer GetMember<T>).
-    // Thread safe between game switches.
-    ClassInstance GetMember(ClassInstance& inst, const String& name);
+    // Thread safe between game switches. If last argument is true, will error if not found
+    ClassInstance GetMember(ClassInstance& inst, const String& name, Bool bInsist);
     
     // Performs the less than operator '<' with the left and right hand side arguments (must be same type).
     Bool PerformLessThan(ClassInstance& lhs, ClassInstance& rhs);
@@ -750,7 +756,7 @@ namespace Meta {
                 return *((T*)(inst._GetInternal() + member.RTOffset)); // Offset in memory, skip header.
             }
         }
-        TTE_ASSERT(false, "Member does not exist. HasMember should always be checked first, abort!");
+        TTE_ASSERT(false, "Member %s::%s does not exist! Abort!!", pClass->Name.c_str(), name.c_str());
         return *((T*)0); // !! abort.
     }
     

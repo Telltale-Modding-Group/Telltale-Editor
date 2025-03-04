@@ -100,6 +100,7 @@ public:
     
     // Loads a library resource, ie a resource which is required by the library. Eventually will all be stored in a ZIP next to executable,
     // for now it only needs to load from dev directory. This can be called even if switched has not be called yet.
+	// THIS CAN BE CALLED ASYNC
     inline DataStreamRef LoadLibraryResource(String name)
     {
         // Fow now just load from the Dev/ directory, relative to cmake build dir.

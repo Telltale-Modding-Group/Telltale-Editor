@@ -13,11 +13,6 @@
 
 // Telltale CAMERA CLASS implementation
 
-inline void MatrixFinalizePlatformProject(Matrix4& mat)
-{
-    //Telltale platform specific finalize projection matrix. Change RH LH etc. Needed?
-}
-
 /// A camera. Screen width, height, aspect ratio and agent transform should be updated manually to the camera agent location information and screen info. Ensure if the screen size changes
 /// then you update the aspect ratio and screen w/h and also call on screen modified to mark it as dirty. When the agent transform, ie camera moves, call on agent transform modified.
 class Camera

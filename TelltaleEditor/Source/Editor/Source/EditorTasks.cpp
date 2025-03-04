@@ -39,6 +39,10 @@ Bool MeshNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* p
 	{
 		TTE_LOG("Normalise failed for mesh in %s", fn.c_str());
 	}
+	else
+	{
+		Renderable.FinaliseNormalisationAsync();
+	}
 	
 	return result;
 }
@@ -47,7 +51,8 @@ void MeshNormalisationTask::Finalise(TelltaleEditor& editor)
 {
 	TTE_ASSERT(Output->ExistsAgent(Agent), "Agent does not exist anymore for output mesh normalisation");
 	
-	Output->GetAgentModule<SceneModuleType::RENDERABLE>(Agent) = std::move(Renderable); // move processed new mesh renderable
+	// move processed new mesh renderable instance to array, ready to be used
+	Output->GetAgentModule<SceneModuleType::RENDERABLE>(Agent).Renderable.MeshList.push_back(std::move(Renderable));
 }
 
 // ARCHIVE EXTRACTION

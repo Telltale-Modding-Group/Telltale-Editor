@@ -222,6 +222,18 @@ struct alignas(4) Vector3 {
         y = _y;
         z = _z;
     }
+	
+	inline Float DistanceSquared(const Vector3& other) const {
+		float dx = x - other.x;
+		float dy = y - other.y;
+		float dz = z - other.z;
+		return (dx * dx + dy * dy + dz * dz);
+	}
+	
+	inline Float Distance(const Vector3& other) const
+	{
+		return sqrtf(DistanceSquared(other));
+	}
     
     // Returns component by index
     inline float operator[](int index) const
@@ -712,7 +724,16 @@ struct BoundingBox {
     
     // Returns the merged bounding box of this and rhs.
     BoundingBox Merge(const BoundingBox &rhs);
-    
+	
+	inline Float Volume() const
+	{
+		Float width  = _Max.x - _Min.x;
+		Float height = _Max.y - _Min.y;
+		Float depth  = _Max.z - _Min.z;
+		
+		return MAX(width * height * depth, 0);
+	}
+
 };
 
 // A sphere
@@ -732,11 +753,18 @@ struct Sphere
     
     // Perform collision with a cone
     Bool CollideWithCone(Vector3 &conePos, Vector3 &coneNorm, float coneRadius, float dotProduct);
+	
+	inline Float Volume() const
+	{
+		return 4.1887902f * _Radius * _Radius * _Radius; // 4/3 pi r cubed
+	}
     
 };
 
 // Quaternion
 struct Quaternion {
+	
+	static Quaternion Zero;
     
     inline Quaternion() { x = y = z = 0.f; w = 1.0f; }
     
@@ -960,6 +988,8 @@ Vector3 operator*(const Vector3& vec, const Quaternion& quat);
 
 // A rotation and translation, a transformation.
 struct Transform {
+	
+	static Transform Zero;
     
     Quaternion _Rot;
     Vector3 _Trans;
@@ -1095,7 +1125,7 @@ public:
         _Entries[Row][3] = Values.w;
     }
     
-    inline Vector4 GetColumn(U32 Column)
+    inline Vector4 GetColumn(U32 Column) const
     {
         Vector4 Result;
         Result.x = _Entries[0][Column];
@@ -1104,7 +1134,7 @@ public:
         Result.w = _Entries[3][Column];
         return Result;
     }
-    inline Vector4 GetRow(U32 Row)
+    inline Vector4 GetRow(U32 Row) const
     {
         Vector4 Result;
         Result.x = _Entries[Row][0];
@@ -1161,6 +1191,11 @@ Matrix4 MatrixTransformation(const Vector3 scale, const Quaternion& rot, const V
 
 // Matrix which scales differently in each direction
 Matrix4 MatrixScaling(float ScaleX, float ScaleY, float ScaleZ);
+
+inline Matrix4 MatrixScaling(const Vector3 scale)
+{
+	return MatrixScaling(scale.x, scale.y, scale.z);
+}
 
 // Matrix which rotates by yaw pitch and roll
 Matrix4 MatrixRotationYawPitchRollDegrees(float yaw, float pitch, float roll);

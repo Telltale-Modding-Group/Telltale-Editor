@@ -49,7 +49,7 @@ struct SceneNormalisationTask : EditorTask
 	
 };
 
-// Normalises a mesh into a scene agent renderable.
+// Normalises a mesh into a scene agent renderable's meshes list. inserts a new mesh instance.
 struct MeshNormalisationTask : EditorTask
 {
 	
@@ -63,7 +63,7 @@ struct MeshNormalisationTask : EditorTask
 	
 	Symbol Agent; // agent name
 	
-	SceneModule<SceneModuleType::RENDERABLE> Renderable; // output object.
+	Mesh::MeshInstance Renderable; // output object.
 	
 	Meta::ClassInstance Instance; // D3DMesh instance in the meta system
 	

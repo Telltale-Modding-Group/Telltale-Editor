@@ -1061,7 +1061,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             if(inst)
             {
                 String mem = man.ToString(-1);
-                ClassInstance meminst = GetMember(inst, mem);
+                ClassInstance meminst = GetMember(inst, mem, false);
                 if(meminst)
                 {
                     meminst.PushWeakScriptRef(man, inst.ObtainParentRef());
@@ -1071,7 +1071,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             }
             else
             {
-                TTE_LOG("MetGetMember called with invalid instance. Returning nil");
+				String v = man.ToString(-1);
+                TTE_LOG("MetaGetMember(%s) called with invalid instance. Returning nil", v.c_str());
                 man.PushNil();
             }
             
@@ -1469,7 +1470,7 @@ namespace MS
 		Bool val = ScriptManager::PopBool(man);
 		I8 wval = val ? (U8)0x31 : (U8)0x30;
 		::Meta::ClassInstance e{}; // empty
-		SerialiseU8(stream, e, 0, &val, true);
+		SerialiseU8(stream, e, 0, &wval, true);
 		
 		return 0;
 	}
@@ -1522,7 +1523,7 @@ namespace MS
         I32 val = ScriptManager::PopInteger(man);
         I16 wval = val & 0xFFFF;
         ::Meta::ClassInstance e{}; // empty
-        SerialiseU8(stream, e, 0, &val, true);
+        SerialiseU8(stream, e, 0, &wval, true);
         
         return 0;
     }
@@ -1593,12 +1594,12 @@ namespace MS
         
         Meta::BinaryBuffer& buf = *((Meta::BinaryBuffer*)bufInst._GetInternal());
         
-        if(buf.Buffer)
-            TTE_FREE(buf.Buffer);
-        buf.Buffer = TTE_ALLOC(size, MEMORY_TAG_RUNTIME_BUFFER);
+        U8* Buffer = TTE_ALLOC(size, MEMORY_TAG_RUNTIME_BUFFER);
         buf.BufferSize = (U32)size;
         
-        TTE_ASSERT(stream.Read(buf.Buffer, (U64)size), "Binary buffer read fail - size is likely too large.");
+        TTE_ASSERT(stream.Read(Buffer, (U64)size), "Binary buffer read fail - size is likely too large.");
+		
+		buf.BufferData = std::shared_ptr<U8>(Buffer, [](U8* p){TTE_FREE(p);});
         
         return 0;
     }
@@ -1629,7 +1630,7 @@ namespace MS
 
         Meta::BinaryBuffer& buf = *((Meta::BinaryBuffer*)bufInst._GetInternal());
         
-        TTE_ASSERT(buf.Buffer && stream.Write(buf.Buffer, (U64)buf.BufferSize), "Binary buffer is null or buffer write fail");
+        TTE_ASSERT(buf.BufferData && stream.Write(buf.BufferData.get(), (U64)buf.BufferSize), "Binary buffer is null or buffer write fail");
         
         return 0;
     }
@@ -2149,6 +2150,16 @@ namespace TTE
         }
         return 1;
     }
+	
+	static U32 luaAssert(LuaManager& man)
+	{
+		if(man.GetTop() >= 1 && man.Type(1) == LuaType::BOOL)
+		{
+			String reason = man.GetTop() > 1 && man.Type(2) == LuaType::STRING ? man.ToString(2) : "General lua script assertion failed!";
+			TTE_ASSERT(man.ToBool(1), reason.c_str());
+		}
+		return 0;
+	}
     
     // bool blowfish(bufferInstance, size, encrypt (true) or decrypt (false)) . size must be less than or equal to buffer size
     static U32 luaBlowfish(LuaManager& man)
@@ -2181,9 +2192,9 @@ namespace TTE
         }
         
         if(enc)
-            Blowfish::GetInstance()->Encrypt(pBuffer->Buffer, sz);
+            Blowfish::GetInstance()->Encrypt(pBuffer->BufferData.get(), sz);
         else
-            Blowfish::GetInstance()->Decrypt(pBuffer->Buffer, sz);
+            Blowfish::GetInstance()->Decrypt(pBuffer->BufferData.get(), sz);
         
         man.PushBool(true);
         return 1;
@@ -2216,14 +2227,17 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
 		Col.Functions.push_back({"TTE_Switch", &TTE::luaSwitch});
 		Col.Functions.push_back({"TTE_OpenMetaStream", &TTE::luaOpenMetaStream});
 		Col.Functions.push_back({"TTE_SaveMetaStream", &TTE::luaSaveMetaStream});
-		Col.Functions.push_back({"TTE_GetActiveGame", &TTE::luaActiveGame});
 		Col.Functions.push_back({"TTE_OpenTTArchive", &TTE::luaOpenTTArch});
 		Col.Functions.push_back({"TTE_OpenTTArchive2", &TTE::luaOpenTTArch2});
 		Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles});
-		Col.Functions.push_back({"TTE_Log", &TTE::luaLog});
-		Col.Functions.push_back({"TTE_DumpMemoryLeaks", &TTE::luaDumpMemLeaks});
 		Col.Functions.push_back({"TTE_Blowfish", &TTE::luaBlowfish});
 	}
+	
+	// part of the TTE but can be called async
+	Col.Functions.push_back({"TTE_DumpMemoryLeaks", &TTE::luaDumpMemLeaks});
+	Col.Functions.push_back({"TTE_GetActiveGame", &TTE::luaActiveGame});
+	Col.Functions.push_back({"TTE_Assert", &TTE::luaAssert});
+	Col.Functions.push_back({"TTE_Log", &TTE::luaLog});
     
     // REGISTER META API
     

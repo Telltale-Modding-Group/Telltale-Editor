@@ -2,7 +2,7 @@
 
 #include <Scripting/LuaManager.hpp>
 #include <vector>
-
+#include <unordered_map>
 #include <Core/Symbol.hpp>
 
 // High level LUA scripting API. This builds upon the Lua Manager which leads with the
@@ -24,7 +24,17 @@ struct LuaFunctionCollection
 {
     String Name;
     std::vector<LuaFunctionRegObject> Functions;
+	
+	std::unordered_map<String, String> StringGlobals; // global name to value to reg
+	std::unordered_map<String, U32> IntegerGlobals; // global name to value to reg
+	
 };
+
+#define PUSH_FUNC(Col, Name, Fn) Col.Functions.push_back({Name, Fn})
+
+#define PUSH_GLOBAL_S(Col, Name, Str) Col.StringGlobals[Name] = Str
+
+#define PUSH_GLOBAL_I(Col, Name, Val) Col.IntegerGlobals[Name] = Val
 
 LuaFunctionCollection luaGameEngine(Bool bWorker); // actual engine game api in EngineLUAApi.cpp
 LuaFunctionCollection luaLibraryAPI(Bool bWorker); // actual api in LibraryLUAApi.cpp
@@ -76,6 +86,20 @@ namespace ScriptManager {
             man.SetTable(-3, true);
             
         }
+		
+		for(auto& st: collection.StringGlobals)
+		{
+			man.PushLString(st.first.c_str());
+			man.PushLString(st.second.c_str());
+			man.SetTable(-3, true);
+		}
+		
+		for(auto& st: collection.IntegerGlobals)
+		{
+			man.PushLString(st.first.c_str());
+			man.PushUnsignedInteger(st.second);
+			man.SetTable(-3, true);
+		}
         
         // set global
         if(collection.Name.length() > 0)

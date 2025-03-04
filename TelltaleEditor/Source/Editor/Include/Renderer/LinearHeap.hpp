@@ -11,7 +11,6 @@ class LinearHeap {
     
     struct Page {
         U32 _Size;
-        U32 _Index;
         Page* _Next;
     };
     
@@ -72,7 +71,6 @@ class LinearHeap {
 		if (!pg)
 			return nullptr;
 		memset(pg, 0, size + sizeof(Page));
-		pg->_Index = _PageCount++;
 		pg->_Size = size;
 		pg->_Next = nullptr;
 		
@@ -109,7 +107,8 @@ class LinearHeap {
 			if(page->_Size >= size)
 			{
 				// fits here, reset and clear page
-				memset(page + sizeof(Page), 0, page->_Size);
+				memset((U8*)page + sizeof(Page), 0, page->_Size);
+				_CurrentPos = 0;
 				return page;
 			}
 			else
@@ -138,7 +137,8 @@ class LinearHeap {
         context._ObjCount = 0;
     }
     
-    inline void _AddObject(ObjWrapperBase* pObj){
+    inline void _AddObject(ObjWrapperBase* pObj)
+	{
         if(_ContextStack->_LastObject)
             _ContextStack->_LastObject->_Next = pObj;
         if (!_ContextStack->_FirstObject)
@@ -146,16 +146,27 @@ class LinearHeap {
         _ContextStack->_LastObject = pObj;
         ++_ContextStack->_ObjCount;
     }
+	
+	inline void _ResetBaseContext()
+	{
+		if(_ContextStack == nullptr)
+			_ContextStack = &_BaseContext;
+		_BaseContext._FirstObject = _BaseContext._LastObject = nullptr;
+		_BaseContext._Next = nullptr;
+		_BaseContext._ObjCount = 0;
+		_BaseContext._Page = nullptr;
+		_BaseContext._PagePos = 0;
+	}
     
-    inline void _PopContextInt(){
+    inline void _PopContextInt()
+	{
         _CallDestructors(*_ContextStack);
         _ContextStack->_FirstObject = _ContextStack->_LastObject = 0;
         _ContextStack->_ObjCount = 0;
         _CurrentPage = _ContextStack->_Page;
         _CurrentPos = _ContextStack->_PagePos;
         _ContextStack = _ContextStack->_Next;
-        if(_ContextStack == nullptr)
-            _ContextStack = &_BaseContext;
+		_ResetBaseContext();
     }
     
 public:
@@ -180,11 +191,12 @@ public:
             if (alignedOffset + size <= currentPage->_Size){
                 // fits in current page
                 pRet = (U8*)currentPage + sizeof(Page) + alignedOffset;
-                _CurrentPos += size + alignedOffset;
+                _CurrentPos = size + alignedOffset;
             }else{
 				_FragmentedBytes += (currentPage->_Size - (alignedOffset + size));
                 Page* pNext = _RequestNextPage(size);
                 _CurrentPos = size;
+				_CurrentPage = pNext;
                 pRet = (U8*)pNext + sizeof(Page);
             }
         }else{
@@ -285,31 +297,14 @@ public:
 	}
     
     /**
-     * Gets the page index for a given pointer, checking the pointer is in the range of one the pages. Else returns -1.
+     * Returns if the given allocation was allocated in this heap
      */
-    inline I32 GetPageIndexForAlloc(void* pAlloc){
+    inline I32 Contains(void* pAlloc){
         for(Page* i = _BasePage; i; i = i->_Next){
             if (pAlloc >= ((U8*)i + sizeof(Page)) && pAlloc <= ((U8*)i + sizeof(Page) + i->_Size))
-                return i->_Index;
+				return true;
         }
-        return -1;
-    }
-    
-    /**
-     * Frees only the first page in this linear heap.
-     */
-    inline void FreeFirstPage() {
-        if(_BasePage){
-            Page* b = _BasePage->_Next;
-			_TotalMemUsed -= b->_Size;
-            TTE_FREE(_BasePage);
-            _BasePage = b;
-            _PageCount--;
-        }
-        if(!_PageCount){
-            _TotalMemUsed = 0;
-            _CurrentPage = 0;
-        }
+		return false;
     }
     
     /**
@@ -319,13 +314,14 @@ public:
 	{
         while (_ContextStack != &_BaseContext)
             PopContext();
+		_ResetBaseContext();
 		_CurrentPage = _BasePage;
 		_CurrentPos = 0;
 		_FragmentedBytes = 0;
 		if(_BasePage)
 		{
 			// clear page
-			memset(_BasePage + sizeof(Page), 0, _BasePage->_Size);
+			memset((U8*)_BasePage + sizeof(Page), 0, _BasePage->_Size);
 		}
     }
     

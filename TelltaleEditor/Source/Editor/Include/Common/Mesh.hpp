@@ -2,9 +2,9 @@
 
 #include <Core/Config.hpp>
 #include <Core/Math.hpp>
+#include <Meta/Meta.hpp>
 
 #include <Renderer/RenderAPI.hpp>
-
 #include <Scripting/ScriptManager.hpp>
 
 /**
@@ -28,15 +28,15 @@ struct Mesh
 		BoundingBox BBox;
 		Sphere BSphere;
 		U32 BatchUsage = 0; // not in use right now but in future. 1:deformable, 2:single deformable, 4:double sided, 8:triangle strip
-		U32 MinVertIndex = 0;
-		U32 MaxVertIndex = 0;
-		U32 BaseIndex = 0;
+		U32 MinVertIndex = 0; // in vertex array
+		U32 MaxVertIndex = 0; // in vertex array
+		U32 BaseIndex = 0; // TODO WHAT IS THIS
 		U32 StartIndex = 0; // start index buffer indicie (index) index
 		U32 NumPrimitives = 0;
 		U32 NumIndices = 0;
-		I32 TextureIndices[RenderViewType::NUM]{-1, -1}; // index into textures array for the bound texture.
-		I32 MaterialIndex = -1; // material index
-		U32 AdjacencyStartIndex = 0;
+		//I32 TextureIndices[RenderViewType::NUM]{-1, -1}; // index into textures array for the bound texture.
+		//I32 MaterialIndex = -1; // material index
+		//U32 AdjacencyStartIndex = 0;
 		
 	};
 	
@@ -44,6 +44,17 @@ struct Mesh
 	struct VertexState
 	{
 		RenderVertexState Default; // default. in future we can have more for skinning (compute etc). DO NOT CREATE. only set info members.
+		Meta::BinaryBuffer VertexBuffers[32];
+		Meta::BinaryBuffer IndexBuffer;
+		
+		struct
+		{
+			
+			std::shared_ptr<RenderBuffer> GPUVertexBuffers[32];
+			std::shared_ptr<RenderBuffer> GPUIndexBuffer;
+			
+		} RuntimeData; // runtime data. internal use for renderer.
+		
 	};
 	
 	// LOD in mesh
@@ -59,9 +70,17 @@ struct Mesh
 		
 	};
 	
+	enum MeshFlags
+	{
+		FLAG_DEFORMABLE = 1,
+	};
+	
 	// Renderable objects are a list of meshes (in props it has the 'D3D Mesh List' key or 'D3D Mesh'. base mesh + list
 	struct MeshInstance
 	{
+		
+		String Name;
+		Flags Flags;
 		
 		Sphere BSphere; // bounding sphere for total mesh
 		BoundingBox BBox; // bounding box for total mesh
@@ -69,11 +88,16 @@ struct Mesh
 		std::vector<LODInstance> LODs; // mesh LODs
 		std::vector<VertexState> VertexStates; // vertex states (draw call bind sets), containing verts/inds/etc.
 		
+		void FinaliseNormalisationAsync();
+		
 	};
 	
 	std::vector<MeshInstance> MeshList; // list of meshes
 	
 	// Registers mesh normalisers and specialisers
 	static void RegisterScriptAPI(LuaFunctionCollection& Col);
+	
+	// creates bounding box for sphere
+	static Sphere CreateSphereForBox(BoundingBox bb);
 	
 };

@@ -10,15 +10,16 @@
 
 #define INTERNAL_START_PRIORITY 0x0F0C70FF
 
-// ============================ SURFACE FORMAT ENUM MAPPINGS
+// ============================ ENUM MAPPINGS
 
 static struct TextureFormatInfo {
 	RenderSurfaceFormat Format;
 	SDL_GPUTextureFormat SDLFormat;
+	CString ConstantName;
 }
 SDL_FormatMappings[2]
 {
-	{RenderSurfaceFormat::RGBA8, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UINT},
+	{RenderSurfaceFormat::RGBA8, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UINT, "kCommonTextureFormatRGBA8"},
 	{RenderSurfaceFormat::UNKNOWN, SDL_GPU_TEXTUREFORMAT_INVALID}, // do not add below this, add above
 };
 
@@ -54,21 +55,22 @@ static struct AttributeFormatInfo {
 	U32 NumIntrinsics = 0; // for float4, this is 4
 	U32 IntrinsicSize = 0; // for four ints, three ints, 1 int, etc, this is 4.
 	RenderBufferAttributeFormat IntrinsicType = RenderBufferAttributeFormat::UNKNOWN;
+	CString ConstantName;
 }
 SDL_VertexAttributeMappings[13]
 {
-	{RenderBufferAttributeFormat::F32x1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, 1, 4, RenderBufferAttributeFormat::F32x1},
-	{RenderBufferAttributeFormat::F32x2, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, 2, 4, RenderBufferAttributeFormat::F32x1},
-	{RenderBufferAttributeFormat::F32x3, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 3, 4, RenderBufferAttributeFormat::F32x1},
-	{RenderBufferAttributeFormat::F32x4, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, 4, 4, RenderBufferAttributeFormat::F32x1},
-	{RenderBufferAttributeFormat::I32x1, SDL_GPU_VERTEXELEMENTFORMAT_INT, 1, 4, RenderBufferAttributeFormat::I32x1},
-	{RenderBufferAttributeFormat::I32x2, SDL_GPU_VERTEXELEMENTFORMAT_INT2, 2, 4, RenderBufferAttributeFormat::I32x1},
-	{RenderBufferAttributeFormat::I32x3, SDL_GPU_VERTEXELEMENTFORMAT_INT3, 3, 4, RenderBufferAttributeFormat::I32x1},
-	{RenderBufferAttributeFormat::I32x4, SDL_GPU_VERTEXELEMENTFORMAT_INT4, 4, 4, RenderBufferAttributeFormat::I32x1},
-	{RenderBufferAttributeFormat::U32x1, SDL_GPU_VERTEXELEMENTFORMAT_UINT, 1, 4, RenderBufferAttributeFormat::U32x1},
-	{RenderBufferAttributeFormat::U32x2, SDL_GPU_VERTEXELEMENTFORMAT_UINT2, 2, 4, RenderBufferAttributeFormat::U32x1},
-	{RenderBufferAttributeFormat::U32x3, SDL_GPU_VERTEXELEMENTFORMAT_UINT3, 3, 4, RenderBufferAttributeFormat::U32x1},
-	{RenderBufferAttributeFormat::U32x4, SDL_GPU_VERTEXELEMENTFORMAT_UINT4, 4, 4, RenderBufferAttributeFormat::U32x1},
+	{RenderBufferAttributeFormat::F32x1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, 1, 4, RenderBufferAttributeFormat::F32x1, "kCommonMeshFloat1"},
+	{RenderBufferAttributeFormat::F32x2, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, 2, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat2"},
+	{RenderBufferAttributeFormat::F32x3, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 3, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat3"},
+	{RenderBufferAttributeFormat::F32x4, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, 4, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat4"},
+	{RenderBufferAttributeFormat::I32x1, SDL_GPU_VERTEXELEMENTFORMAT_INT, 1, 4, RenderBufferAttributeFormat::I32x1, "kCommonMeshInt1"},
+	{RenderBufferAttributeFormat::I32x2, SDL_GPU_VERTEXELEMENTFORMAT_INT2, 2, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt2"},
+	{RenderBufferAttributeFormat::I32x3, SDL_GPU_VERTEXELEMENTFORMAT_INT3, 3, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt3"},
+	{RenderBufferAttributeFormat::I32x4, SDL_GPU_VERTEXELEMENTFORMAT_INT4, 4, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt4"},
+	{RenderBufferAttributeFormat::U32x1, SDL_GPU_VERTEXELEMENTFORMAT_UINT, 1, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt1"},
+	{RenderBufferAttributeFormat::U32x2, SDL_GPU_VERTEXELEMENTFORMAT_UINT2, 2, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt2"},
+	{RenderBufferAttributeFormat::U32x3, SDL_GPU_VERTEXELEMENTFORMAT_UINT3, 3, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt3"},
+	{RenderBufferAttributeFormat::U32x4, SDL_GPU_VERTEXELEMENTFORMAT_UINT4, 4, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt4"},
 	{RenderBufferAttributeFormat::UNKNOWN, SDL_GPU_VERTEXELEMENTFORMAT_INVALID, 0, 0}, // add above this!
 };
 
@@ -101,13 +103,42 @@ inline RenderBufferAttributeFormat FromSDLAttribFormat(SDL_GPUVertexElementForma
 static struct PrimitiveTypeInfo {
 	RenderPrimitiveType Type;
 	SDL_GPUPrimitiveType SDLType;
+	CString ConstantName;
 }
 SDL_PrimitiveMappings[3]
 {
-	{RenderPrimitiveType::TRIANGLE_LIST, SDL_GPU_PRIMITIVETYPE_TRIANGLELIST},
-	{RenderPrimitiveType::LINE_LIST, SDL_GPU_PRIMITIVETYPE_LINELIST},
-	{RenderPrimitiveType::UNKNOWN, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP}, // do not add below this, add above
+	{RenderPrimitiveType::TRIANGLE_LIST, SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, "kCommonMeshTriangleList"},
+	{RenderPrimitiveType::LINE_LIST, SDL_GPU_PRIMITIVETYPE_LINELIST, "kCommonMeshLineList"},
+	{RenderPrimitiveType::UNKNOWN, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, "kCommonMeshTriangleStrip"}, // do not add below this, add above
 };
+
+void RegisterRenderConstants(LuaFunctionCollection& Col)
+{
+	U32 i = 0;
+	while(SDL_VertexAttributeMappings[i].Format != RenderBufferAttributeFormat::UNKNOWN)
+	{
+		PUSH_GLOBAL_I(Col, SDL_VertexAttributeMappings[i].ConstantName, (U32)SDL_VertexAttributeMappings[i].Format);
+		i++;
+	}
+	i = 0;
+	while(SDL_PrimitiveMappings[i].Type != RenderPrimitiveType::UNKNOWN)
+	{
+		PUSH_GLOBAL_I(Col, SDL_PrimitiveMappings[i].ConstantName, (U32)SDL_PrimitiveMappings[i].Type);
+		i++;
+	}
+	i = 0;
+	while(SDL_FormatMappings[i].Format != RenderSurfaceFormat::UNKNOWN)
+	{
+		PUSH_GLOBAL_I(Col, SDL_FormatMappings[i].ConstantName, (U32)SDL_FormatMappings[i].Format);
+		i++;
+	}
+	i = 0;
+	while(AttribInfoMap[i].Type != RenderAttributeType::UNKNOWN)
+	{
+		PUSH_GLOBAL_I(Col, AttribInfoMap[i].ConstantName, (U32)AttribInfoMap[i].Type);
+		i++;
+	}
+}
 
 inline SDL_GPUPrimitiveType ToSDLPrimitiveType(RenderPrimitiveType format)
 {
@@ -155,10 +186,34 @@ void RenderContext::Shutdown()
 	}
 }
 
-RenderContext::RenderContext(String wName)
+Bool RenderContext::IsRowMajor()
+{
+	CString device = SDL_GetGPUDeviceDriver(_Device);
+	if(CompareCaseInsensitive(device, "metal"))
+	{
+		return false; // COLUMN MAJOR
+	}
+	else if(CompareCaseInsensitive(device, "vulkan"))
+	{
+		return false; // COLUMN MAJOR
+	}
+	else if(CompareCaseInsensitive(device, "direct3d12"))
+	{
+		return true; // ROW MAJOR
+	}
+	else
+	{
+		TTE_ASSERT(false, "Unknown graphics device driver: %s", device);
+	}
+}
+
+RenderContext::RenderContext(String wName, U32 cap)
 {
 	TTE_ASSERT(JobScheduler::Instance, "Job scheduler has not been initialised. Ensure a ToolContext exists.");
 	TTE_ASSERT(SDL3_Initialised, "SDL3 has not been initialised, or failed to.");
+	
+	CapFrameRate(cap);
+	_HotResourceThresh = DEFAULT_HOT_RESOURCE_THRESHOLD;
 	
 	_MainFrameIndex = 0;
 	_PopulateJob = JobHandle();
@@ -240,11 +295,12 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 	if(_StartTimeMicros != 0)
 	{
 		U64 myTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-		if((myTime - _StartTimeMicros) == 0)
+		U64 dtMicros =myTime - _StartTimeMicros;
+		if(dtMicros <= 1000 * _MinFrameTimeMS)
 		{
-			// hardly doing anything (<1 micro) so wait for 1ms, which makes the fastest frame rate possible 1000 FPS!
-			ThreadSleep(1);
-			myTime = _StartTimeMicros + 1;
+			U32 waitMS = (1000 * _MinFrameTimeMS - (U32)dtMicros) / 1000;
+			ThreadSleep(waitMS);
+			myTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 		}
 		dt = ((Float)(myTime - _StartTimeMicros)) * 1e-6F; // convert to seconds
 		_StartTimeMicros = myTime; // reset timer for next frame
@@ -314,6 +370,9 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 			}
 		}
 		
+		// FREE ANY COLD RESOURCES PAST THE THRESHOLD
+		_PurgeColdResources(pFrame);
+		
 		// RECLAIM TRANSFER BUFFERS
 		for(auto& cmd: pFrame->_CommandBuffers)
 			_ReclaimTransferBuffers(*cmd);
@@ -356,6 +415,19 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 	}
 	
 	return !bUserWantsQuit && !isLastFrame;
+}
+
+void RenderContext::_PurgeColdResources(RenderFrame* pFrame)
+{
+	for(auto it = _AvailTransferBuffers.begin(); it != _AvailTransferBuffers.end();)
+	{
+		if(it->LastUsedFrame + _HotResourceThresh >= pFrame->_FrameNumber)
+		{
+			SDL_ReleaseGPUTransferBuffer(_Device, it->Handle);
+			it = _AvailTransferBuffers.erase(it);
+		}
+		else ++it;
+	}
 }
 
 // ============================ FRAME MANAGEMENT
@@ -719,6 +791,7 @@ U64 RenderContext::_HashPipelineState(RenderPipelineState &state)
 		Hash = CRC64((const U8*)&state.VertexState.Attribs[i].Format, 4, state.VertexState.IsHalf ? ~Hash : Hash);
 		Hash = CRC64((const U8*)&state.VertexState.Attribs[i].VertexBufferIndex, 2, Hash);
 		Hash = CRC64((const U8*)&state.VertexState.Attribs[i].VertexBufferLocation, 2, Hash);
+		Hash = CRC64((const U8*)&state.VertexState.Attribs[i].Attrib, 4, Hash);
 	}
 	
 	return Hash;
@@ -729,7 +802,7 @@ void RenderPipelineState::Create()
 	if(_Internal._Handle == nullptr)
 	{
 		_Internal._Context->AssertMainThread();
-		TTE_ASSERT(VertexState.NumVertexBuffers < 4 && VertexState.NumVertexAttribs < 32, "Vertex state has too many attributes / buffers");
+		TTE_ASSERT(VertexState.NumVertexBuffers < 32 && VertexState.NumVertexAttribs < 32, "Vertex state has too many attributes / buffers");
 		
 		// calculate hash
 		Hash = _Internal._Context->_HashPipelineState(*this);
@@ -748,10 +821,21 @@ void RenderPipelineState::Create()
 		
 		info.primitive_type = ToSDLPrimitiveType(PrimitiveType);
 		
+		info.depth_stencil_state.enable_depth_test = false;
+		info.depth_stencil_state.enable_depth_write = false;
+		info.depth_stencil_state.enable_stencil_test = false;
+		
+		info.rasterizer_state.enable_depth_clip = false;
+		info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
+		info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
+		info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
+		
+		info.multisample_state.enable_mask = false;
+		
 		info.vertex_input_state.num_vertex_buffers = VertexState.NumVertexBuffers;
 		info.vertex_input_state.num_vertex_attributes = VertexState.NumVertexAttribs;
 		
-		SDL_GPUVertexBufferDescription desc[4]{};
+		SDL_GPUVertexBufferDescription desc[32]{};
 		for(U32 i = 0; i < VertexState.NumVertexBuffers; i++)
 		{
 			desc[i].input_rate = SDL_GPU_VERTEXINPUTRATE_VERTEX;
@@ -1005,7 +1089,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 			}
 			else
 			{
-				TTE_ASSERT("Parameter buffer %s was required for one of %s/%s but was not supplied.",
+				TTE_ASSERT(false, "Parameter buffer %s was required for one of %s/%s but was not supplied.",
 						   ShaderParametersInfo[i].Name, _BoundPipeline->VertexSh.c_str(),_BoundPipeline->FragmentSh.c_str());
 			}
 		}
@@ -1226,9 +1310,9 @@ std::shared_ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes)
 void RenderCommandBuffer::BindVertexBuffers(std::shared_ptr<RenderBuffer> *buffers, U32 *offsets, U32 first, U32 num)
 {
 	TTE_ASSERT(_Context && _Handle && _CurrentPass && _CurrentPass->_Handle, "Command buffer is not in a state to have bindings yet");
-	TTE_ASSERT(buffers && first + num <= 4, "Invalid arguments passed into BindVertexBuffers");
+	TTE_ASSERT(buffers && first + num <= 32, "Invalid arguments passed into BindVertexBuffers");
 	
-	SDL_GPUBufferBinding binds[4]{};
+	SDL_GPUBufferBinding binds[32]{};
 	for(U32 i = 0; i < num; i++)
 	{
 		TTE_ASSERT(buffers[i] && buffers[i]->_Handle, "Invalid buffer passed in for binding slot %d: is null", first+i);
@@ -1309,6 +1393,7 @@ _RenderTransferBuffer RenderContext::_AcquireTransferBuffer(U32 size, RenderComm
 		// remove it, use this one
 		_RenderTransferBuffer buffer = std::move(*it);
 		buffer.Size = size;
+		buffer.LastUsedFrame = cmds._Context->GetFrame(false)._FrameNumber;
 		_AvailTransferBuffers.erase(it);
 		cmds._AcquiredTransferBuffers.push_back(buffer);
 		return buffer;
@@ -1324,6 +1409,7 @@ _RenderTransferBuffer RenderContext::_AcquireTransferBuffer(U32 size, RenderComm
 	inf.props = 0;
 	inf.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
 	buffer.Handle = SDL_CreateGPUTransferBuffer(_Device, &inf);
+	buffer.LastUsedFrame = cmds._Context->GetFrame(false)._FrameNumber;
 	cmds._AcquiredTransferBuffers.push_back(buffer);
 	
 	return buffer;
@@ -1614,7 +1700,7 @@ Bool RenderContext::_Populate(const JobThread& jobThread, void* pRenderCtx, void
 void RenderContext::PushRenderInst(RenderFrame& frame, ShaderParametersStack* params, RenderInst &&inst)
 {
 	if(params != nullptr)
-		TTE_ASSERT(frame._Heap.GetPageIndexForAlloc(params) != -1, "Shader parameter stack must be allocated from render context!");
+		TTE_ASSERT(frame._Heap.Contains(params), "Shader parameter stack must be allocated from render context!");
 
 	RenderInst* instance = frame._Heap.New<RenderInst>();
 	*instance = std::move(inst);

@@ -80,7 +80,7 @@ U64 FileNull() {
 String FileNewTemp(){
     char tmplt[] = "/tmp/tteditorMACOS_XXXXXX";
     
-    if (mktemp(tmplt) == NULL) {
+    if (mkstemp(tmplt) == 0) {
         TTE_ASSERT(false,"Call to mktemp failed");
         return "";
     }

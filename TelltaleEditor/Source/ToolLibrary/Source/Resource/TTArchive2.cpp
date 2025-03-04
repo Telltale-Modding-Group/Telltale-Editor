@@ -87,7 +87,6 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
     // all read. now create sub streams
     
     U64 FilenamesOffset = in->GetPosition(); // position for filename table
-    U64 FileDataOffset = FilenamesOffset + filenameBufferSize;
     
     // create temp buffer
     U8* TempFileNames = TTE_ALLOC(filenameBufferSize, MEMORY_TAG_TEMPORARY);

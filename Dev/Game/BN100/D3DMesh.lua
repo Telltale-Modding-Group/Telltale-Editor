@@ -5,7 +5,7 @@ function RegisterBoneD3DMesh(platform, vendor, bb, hTexture, arrayDCInt, MetaCol
 	local indexBuffer = NewClass("class D3DIndexBuffer", 0)
     indexBuffer.Serialiser = "SerialiseBoneD3DIndexBuffer"
 	indexBuffer.Members[1] = NewMember("mbLocked", kMetaBool)
-	indexBuffer.Members[2] = NewMember("mFormat", kMetaInt)
+	indexBuffer.Members[2] = NewMember("mFormat", kMetaInt) -- 101 for U16, else U32
 	indexBuffer.Members[3] = NewMember("mNumIndicies", kMetaInt) -- spelling mate [DONT FIX! needs to be like this for hash]
 	indexBuffer.Members[4] = NewMember("mIndexByteSize", kMetaInt)
     indexBuffer.Members[5] = NewMember("_IndexBufferData", kMetaClassInternalBinaryBuffer)
@@ -52,7 +52,8 @@ function RegisterBoneD3DMesh(platform, vendor, bb, hTexture, arrayDCInt, MetaCol
 	arrayMeshPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<struct D3DMesh::PaletteEntry>", nil, meshEntry)
 	arrayArrayMeshPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<class DCArray<struct D3DMesh::PaletteEntry> >", nil, arrayMeshPalette)
 
-	local vertexBuffer = NewClass("class D3DVertexBuffer", 0) -- custom ser todo
+	local vertexBuffer = NewClass("class D3DVertexBuffer", 0)
+	vertexBuffer.Serialiser = "SerialiseBoneD3DVertexBuffer"
 	vertexBuffer.Members[1] = NewMember("mbLocked", kMetaBool)
 	vertexBuffer.Members[2] = NewMember("mNumVerts", kMetaInt)
 	vertexBuffer.Members[3] = NewMember("mVertSize", kMetaInt)
@@ -62,7 +63,7 @@ function RegisterBoneD3DMesh(platform, vendor, bb, hTexture, arrayDCInt, MetaCol
     vertexBuffer.Members[6].Flags = kMetaMemberVersionDisable
 	MetaRegisterClass(vertexBuffer)
 
-	local mesh = NewClass("class D3DMesh", 0) -- todo custom serialisr
+	local mesh = NewClass("class D3DMesh", 0)
 	mesh.Extension = "d3dmesh"
 	mesh.Serialiser = "SerialiseBoneD3DMesh"
 	mesh.Normaliser = "NormaliseBoneD3DMesh"
@@ -107,8 +108,127 @@ function SerialiseBoneD3DMesh(stream, inst, write)
 	return true
 end
 
+-- Bone D3DMesh => common mesh. any accesses outside this functiom will return nil!
 function NormaliseBoneD3DMesh(inst, state)
-	print("Normalised")
+
+	require("ToolLibrary/Game/Common/LuaContainer.lua")
+
+	CommonMeshSetName(state, MetaGetClassValue(MetaGetMember(inst, "mName")))
+
+	if MetaGetClassValue(MetaGetMember(inst, "mbDeformable")) then
+		CommonMeshSetDeformable(state)
+	end
+
+	-- no concept of LODs. use one lod. each batch translates to a triangle set
+
+	CommonMeshPushLOD(state, 0)
+
+	local triangleSets = MetaGetMember(inst, "mTriangleSets")
+	local numTriangleSets = ContainerGetNumElements(triangleSets)
+
+	for i=1,numTriangleSets do
+
+		local triangleSet = ContainerGetElement(triangleSets, i-1)
+
+		CommonMeshPushBatch(state, false) -- not a shadow batch (False)
+		CommonMeshSetBatchBounds(state, false, MetaGetMember(triangleSet, "mBoundingBox"))
+
+		local minVert = MetaGetClassValue(MetaGetMember(triangleSet, "mMinVertIndex"))
+		local maxVert = MetaGetClassValue(MetaGetMember(triangleSet, "mMaxVertIndex"))
+		local startIndex = MetaGetClassValue(MetaGetMember(triangleSet, "mStartIndex"))
+		local numPrim = MetaGetClassValue(MetaGetMember(triangleSet, "mNumPrimitives"))
+		local numInd = MetaGetClassValue(MetaGetMember(triangleSet, "mNumTotalIndices"))
+
+		CommonMeshSetBatchParameters(state, false, minVert, maxVert, startIndex, numPrim, numInd, 0) -- base index not exist
+
+	end
+
+	local indexBuffer = MetaGetMember(inst, "_IndexBuffer0")
+	CommonMeshSetIndexBuffer(state, MetaGetClassValue(MetaGetMember(indexBuffer, "mNumIndicies")), 
+									MetaGetClassValue(MetaGetMember(indexBuffer, "mFormat")) == 101,
+									MetaGetMember(indexBuffer, "_IndexBufferData"))
+
+	-- In this game, they store the vertex information for each attrib in its own buffer, ie no interleaving.
+
+	local attribIndex = 0
+	
+	-- BUFFER 0: POSITION
+	local vertexBuffer = MetaGetMember(inst, "_VertexBuffer0")
+	local nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
+	if nVerts > 0 then
+		stride = MetaGetClassValue(MetaGetMember(vertexBuffer, "mVertSize"))
+		TTE_Assert(stride == 12, "Vertex buffer position stride is not 12!")
+		CommonMeshPushVertexBuffer(state, nVerts, stride, MetaGetMember(vertexBuffer, "_VertexBufferData"))
+		CommonMeshAddVertexAttribute(state, kCommonMeshAttributePosition, attribIndex, attribIndex, kCommonMeshFloat3)
+		attribIndex = attribIndex + 1
+	end
+	
+	-- BUFFER 1: NORMAL
+	vertexBuffer = MetaGetMember(inst, "_VertexBuffer1")
+	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
+	if nVerts > 0 then
+		stride = MetaGetClassValue(MetaGetMember(vertexBuffer, "mVertSize"))
+		TTE_Assert(stride == 12, "Vertex buffer normals stride is not 12!")
+		CommonMeshPushVertexBuffer(state, nVerts, stride, MetaGetMember(vertexBuffer, "_VertexBufferData"))
+		CommonMeshAddVertexAttribute(state, kCommonMeshAttributeNormal, attribIndex, attribIndex, kCommonMeshFloat3)
+		attribIndex = attribIndex + 1
+	end
+	
+
+	-- BUFFER 2: ??
+	vertexBuffer = MetaGetMember(inst, "_VertexBuffer2")
+	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
+	if nVerts > 0 then
+		TTE_Assert(false, "Unknown vertex buffer has data")
+	end
+
+	-- BUFFER 3: ?? ENDIAN FLIPPED!! (ON MAC AT LEAST)
+	vertexBuffer = MetaGetMember(inst, "_VertexBuffer3")
+	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
+	if nVerts > 0 then
+		TTE_Assert(false, "Unknown vertex buffer has data")
+	end
+
+	-- BUFFER 4: UV
+	vertexBuffer = MetaGetMember(inst, "_VertexBuffer4")
+	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
+	if nVerts > 0 then
+		stride = MetaGetClassValue(MetaGetMember(vertexBuffer, "mVertSize"))
+		TTE_Assert(stride == 8, "Vertex buffer UV stride is not 8!") -- could be other formats. check mType
+		CommonMeshPushVertexBuffer(state, nVerts, stride, MetaGetMember(vertexBuffer, "_VertexBufferData"))
+		CommonMeshAddVertexAttribute(state, kCommonMeshAttributeUV, attribIndex, attribIndex, kCommonMeshFloat2)
+		attribIndex = attribIndex + 1
+	end
+
+	-- BUFFER 5: ??
+	vertexBuffer = MetaGetMember(inst, "_VertexBuffer5")
+	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
+	if nVerts > 0 then
+		TTE_Assert(false, "Unknown vertex buffer has data")
+	end
+
+	-- BUFFER 6: ??
+	vertexBuffer = MetaGetMember(inst, "_VertexBuffer6")
+	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
+	if nVerts > 0 then
+		TTE_Assert(false, "Unknown vertex buffer has data")
+	end
+
+	-- BUFFER 7: ??
+	vertexBuffer = MetaGetMember(inst, "_VertexBuffer7")
+	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
+	if nVerts > 0 then
+		TTE_Assert(false, "Unknown vertex buffer has data")
+	end
+
+	-- BUFFER 8: ??
+	vertexBuffer = MetaGetMember(inst, "_VertexBuffer8")
+	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
+	if nVerts > 0 then
+		TTE_Assert(false, "Unknown vertex buffer has data")
+	end
+	
+
 	return true
 end
 
@@ -151,13 +271,14 @@ function SerialiseBoneD3DVertexBuffer(stream, inst, write)
 		local vertSize = MetaGetClassValue(MetaGetMember(inst, "mVertSize"))
 		local numVerts = MetaGetClassValue(MetaGetMember(inst, "mNumVerts"))
 		local vertType = MetaGetClassValue(MetaGetMember(inst, "mType"))
+		TTE_Assert(vertType == 0, "Vertex buffer type is non zero, check me")
 		local totalVerticesByteSize = 0
-		if isCompressed and (vertType == 2 or vertType == 4) then -- idk what these mean right now
+		if isCompressed and (vertType == 2 or vertType == 4) then
 			totalVerticesByteSize = 2 * numVerts
 		else
 			totalVerticesByteSize = vertSize * numVerts
 		end
-		MetaStreamReadBuffer(stream, MetaGetMember("_VertexBufferData"), totalVerticesByteSize)
+		MetaStreamReadBuffer(stream, MetaGetMember(inst, "_VertexBufferData"), totalVerticesByteSize)
 		-- NOTE THAT WE MAY NEED TO DECOMPRESS. WILL HANDLE IN C++.
     end
     return true

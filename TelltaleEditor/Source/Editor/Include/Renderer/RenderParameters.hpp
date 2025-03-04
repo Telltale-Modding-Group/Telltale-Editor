@@ -20,6 +20,11 @@ enum class DefaultRenderMeshType
 	WIREFRAME_SPHERE, // wireframe sphere https://www.youtube.com/watch?v=2ycBWnH1-HI 0:54 left screen big.
 	WIREFRAME_BOX,
 	WIREFRAME_CAPSULE,
+	FILLED_BOX,
+	FILLED_CONE,
+	WIREFRAME_CONE,
+	FILLED_CYLINDER,
+	WIREFRAME_CYLINDER,
 };
 
 
@@ -27,13 +32,14 @@ enum class DefaultRenderMeshType
 
 struct alignas(16) ShaderParameter_Object
 {
-	Vector4 WorldMatrix[3]; // no need for the bottom row, all transforms are affine.
+	Vector4 WorldMatrix[4];
+	Vector3 Diffuse; // diffuse colour RGBA
+	Float Alpha = 0.f;
 };
 
 struct alignas(16) ShaderParameter_Camera
 {
-	Matrix4 ViewProj; // view projection matrix
-	Vector4 TransposeViewZ; // z axis vector coming out from the camera
+	Vector4 ViewProj[4]; // view projection matrix
 	Float HFOVParam; // H FOV
 	Float VFOVParam; // V FOV
 	Float CameraNear; // near clip
@@ -98,20 +104,14 @@ struct ShaderParameterTypeInfo
 	
 	DefaultRenderTextureType DefaultTex;
 	
-	inline constexpr ShaderParameterTypeInfo(CString name, U64 sz, ShaderParameterTypeClass cl)
+	inline constexpr ShaderParameterTypeInfo(CString name, U64 sz, ShaderParameterTypeClass cl, DefaultRenderTextureType texDef)
+		: Name(name), Size((U32)sz), Class(cl), DefaultTex(texDef)
 	{
-		Name = name;
-		Size = (U32)(sz + TTE_PADDING(sz, 16));
-		Class = cl;
-		DefaultTex = DefaultRenderTextureType::BLACK;
 	}
 	
-	inline constexpr ShaderParameterTypeInfo(CString name, U64 sz, ShaderParameterTypeClass cl, DefaultRenderTextureType texDef)
+	inline constexpr ShaderParameterTypeInfo(CString name, U64 sz, ShaderParameterTypeClass cl)
+	: Name(name), Size((U32)sz), Class(cl), DefaultTex(DefaultRenderTextureType::BLACK)
 	{
-		Name = name;
-		Size = (U32)(sz + TTE_PADDING(sz, 16));
-		Class = cl;
-		DefaultTex = texDef;
 	}
 	
 };
