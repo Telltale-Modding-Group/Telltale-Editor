@@ -85,7 +85,7 @@ namespace Meta {
 					{
 						GetToolContext()->GetLibraryLVM().Pop(1);
 						TTE_ASSERT(false, "The script function '%s' does not exist as a function.", fn.c_str());
-						return 0;
+						return;
 					}
 					
 					// function is on the top of the stack, compile it.
@@ -95,7 +95,7 @@ namespace Meta {
 						GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
 						TTE_ASSERT(false, "Cannot register class script function %s"
 								   ": compile failed or empty", fn.c_str());
-						return 0;
+						return;
 					}
 					GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
 					
@@ -106,7 +106,7 @@ namespace Meta {
 					{
 						TTE_ASSERT(false, "Could not read bytes from compiled serialiser script stream");
 						TTE_FREE(compiledBytes);
-						return 0;
+						return;
 					}
 					
 					CompiledScript compiledScript{};
