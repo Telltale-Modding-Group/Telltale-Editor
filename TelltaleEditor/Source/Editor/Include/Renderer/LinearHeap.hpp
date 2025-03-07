@@ -7,37 +7,45 @@
  * This is not just a memory allocator, but an OOP supported GC.
  * This is from my TelltaleToolLib library and is the same implementation as Telltales.
  */
-class LinearHeap {
+class LinearHeap
+{
     
-    struct Page {
+    struct Page
+	{
         U32 _Size;
         Page* _Next;
     };
     
-    struct ObjWrapperBase {
+    struct ObjWrapperBase
+	{
         
         ObjWrapperBase* _Next;
         
-        inline virtual ~ObjWrapperBase() {}
+		virtual ~ObjWrapperBase() = default;
         
     };
     
     template<typename T>
-    struct ObjWrapper : ObjWrapperBase {
+    struct ObjWrapper : ObjWrapperBase
+	{
         
         T _Obj;
+		
+		template<typename... Args>
+		inline ObjWrapper(Args&&... args) : _Obj(std::forward<Args>(args)...) {}
         
-        inline virtual ~ObjWrapper() {}
+		virtual ~ObjWrapper() = default;
         
     };
     
     template<typename T>
-    struct ObjArrayWrapper : ObjWrapperBase {
+    struct ObjArrayWrapper : ObjWrapperBase
+	{
         
         U32 _Size;
         T* _Array;
         
-        inline virtual ~ObjArrayWrapper()
+        virtual ~ObjArrayWrapper()
 		{
 			for(U32 i = 0; i < _Size; i++)
 				_Array[i].~T();
@@ -128,17 +136,19 @@ class LinearHeap {
     
     inline void _CallDestructors(Context& context){
         ObjWrapperBase* pObject = context._FirstObject;
-        while(pObject){
+        while(pObject && context._ObjCount){
             ObjWrapperBase* next = pObject->_Next;
             pObject->~ObjWrapperBase();
             pObject = next;
+			context._ObjCount--;
         }
         context._LastObject = context._FirstObject = NULL;
-        context._ObjCount = 0;
+		context._ObjCount = 0;
     }
     
     inline void _AddObject(ObjWrapperBase* pObj)
 	{
+		pObj->_Next = nullptr;
         if(_ContextStack->_LastObject)
             _ContextStack->_LastObject->_Next = pObj;
         if (!_ContextStack->_FirstObject)
@@ -149,6 +159,7 @@ class LinearHeap {
 	
 	inline void _ResetBaseContext()
 	{
+		_CallDestructors(_BaseContext);
 		if(_ContextStack == nullptr)
 			_ContextStack = &_BaseContext;
 		_BaseContext._FirstObject = _BaseContext._LastObject = nullptr;
@@ -210,11 +221,11 @@ public:
     /**
      * Allocates and returns T. Calls default ctor. The destructor will be called when you pop the current context.
      */
-    template<typename T>
-    inline T* New() {
+    template<typename T, typename... Args>
+    inline T* New(Args&&... args) {
         ObjWrapper<T>* pAlloc = (ObjWrapper<T>*)Alloc(sizeof(ObjWrapper<T>), alignof(ObjWrapper<T>));
         pAlloc->_Next = 0;
-        new ((char*)(&pAlloc->_Obj)) T();
+        new (pAlloc) ObjWrapper<T>(args...);
         _AddObject(pAlloc);
         return &pAlloc->_Obj;
     }
@@ -225,7 +236,8 @@ public:
     template<typename T, typename... Args>
     inline T* NewArray(U32 numElem, Args&&... argsForEachElem) {
         ObjArrayWrapper<T>* pArrayWrapper = (ObjArrayWrapper<T>*)Alloc(sizeof(ObjArrayWrapper<T>), alignof(ObjArrayWrapper<T>));
-        pArrayWrapper->_Array = NewArrayNoDestruct<T>(numElem);
+		new (pArrayWrapper) ObjArrayWrapper<T>(); // set vfptrs
+		pArrayWrapper->_Array = (T*)Alloc(sizeof(T) * numElem, alignof(T));
         pArrayWrapper->_Next = 0;
 		for(U32 i = 0; i < numElem; i++)
 			new (pArrayWrapper->_Array + i) T(argsForEachElem...);

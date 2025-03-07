@@ -30,7 +30,7 @@ struct Mesh
 		U32 BatchUsage = 0; // not in use right now but in future. 1:deformable, 2:single deformable, 4:double sided, 8:triangle strip
 		U32 MinVertIndex = 0; // in vertex array
 		U32 MaxVertIndex = 0; // in vertex array
-		U32 BaseIndex = 0; // TODO WHAT IS THIS
+		I32 BaseIndex = 0; // value added to each index in the index buffer
 		U32 StartIndex = 0; // start index buffer indicie (index) index
 		U32 NumPrimitives = 0;
 		U32 NumIndices = 0;

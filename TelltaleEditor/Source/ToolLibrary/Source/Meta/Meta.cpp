@@ -194,7 +194,7 @@ namespace Meta {
             return id;
         }
         
-        Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member)
         {
             if(!pMemory || clazz == nullptr)
             {
@@ -240,10 +240,45 @@ namespace Meta {
             
             if(clazz->Serialise) // has serialiser.
             {
+				if(clazz->Flags & CLASS_CONTAINER)
+				{
+					stream.WriteTabs();
+					stream.DebugOutput << clazz->Name << " " << member << ":\n";
+					stream.WriteTabs();
+					stream.DebugOutput << "{\n";
+					stream.TabDepth++;
+				}
                 result = clazz->Serialise(stream, host, clazz, pMemory, IsWrite);
+				if(clazz->ToString)
+				{
+					String val = clazz->ToString(pMemory);
+					stream.WriteTabs();
+					stream.DebugOutput << clazz->Name << " " << member << ": " << val.c_str() << "\n";
+				}
+				else if(clazz->Flags & CLASS_CONTAINER)
+				{
+					stream.TabDepth--;
+					stream.WriteTabs();
+					stream.DebugOutput << "}\n";
+				}
             }
             else if(clazz->SerialiseScriptFn.length() > 0) // RUN LUA SERIALISER FUNCTION
             {
+				
+				LuaManager& man = JobScheduler::IsRunningFromWorker() ? JobScheduler::GetCurrentThread().L : GetToolContext()->GetLibraryLVM();
+				
+				if(stream.DebugOutputFile)
+				{
+					stream.WriteTabs();
+					if(member)
+					{
+						stream.DebugOutput << ":Lua Serialiser for " << member << ": " << clazz->SerialiseScriptFn << "\n";
+					}
+					else
+					{
+						stream.DebugOutput << ":Lua Serialiser: " << clazz->SerialiseScriptFn << "\n";
+					}
+				}
                 
                 auto it = State.Serialisers.find(clazz->SerialiseScriptFn);
                 if(it == State.Serialisers.end())
@@ -252,15 +287,15 @@ namespace Meta {
                     return false; // FAIL
                 }
                 
-                if(!GetToolContext()->GetLibraryLVM().LoadChunk(clazz->SerialiseScriptFn, it->second.Binary, it->second.Size, true))
+                if(!man.LoadChunk(clazz->SerialiseScriptFn, it->second.Binary, it->second.Size, true))
                 {
                     TTE_ASSERT(false, "Cannot serialise type %s: compiled serialiser function failed to load", clazz->Name.c_str());
                     return false; // FAIL
                 }
                 
                 // arguments: meta stream, instance, is write
-                
-                GetToolContext()->GetLibraryLVM().PushOpaque(&stream); // push stream
+				
+                man.PushOpaque(&stream); // push stream
                 
                 // if we are serialising the host class, pass that. else put a tmp class with host as parent and pMemory
                 ClassInstance tmp;
@@ -275,11 +310,11 @@ namespace Meta {
                     tmp = ClassInstance{clazz->ClassID, (U8*)pMemory, host.ObtainParentRef()};
                 }
                 
-				tmp.PushWeakScriptRef(GetToolContext()->GetLibraryLVM(), {}); // push instance
+				tmp.PushWeakScriptRef(man, {}); // push instance
                 
-                GetToolContext()->GetLibraryLVM().PushBool(IsWrite); // push is write
+				man.PushBool(IsWrite); // push is write
                 
-                GetToolContext()->GetLibraryLVM().CallFunction(3, 1, true); // call, locked.
+				man.CallFunction(3, 1, true); // call, locked.
                 
                 result = ScriptManager::PopBool(GetToolContext()->GetLibraryLVM()); // check result
                 
@@ -292,7 +327,7 @@ namespace Meta {
             }
             else
             {
-                result = _DefaultSerialise(stream, host, clazz, pMemory, IsWrite);
+                result = _DefaultSerialise(stream, host, clazz, pMemory, IsWrite, member);
             }
             
             stream.CurrentSection = initialSection;
@@ -301,7 +336,7 @@ namespace Meta {
         }
         
         // Meta serialise all the members (default)
-        Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite)
+        Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString mem)
         {
             if(!pMemory || clazz == nullptr)
             {
@@ -310,6 +345,19 @@ namespace Meta {
             }
             
             StreamSection initialSection = stream.CurrentSection; // ensure after the section is the same
+			
+			if(stream.DebugOutputFile)
+			{
+				mem = mem ? mem : "";
+				if(clazz->Members.size() > 0)
+				{
+					stream.WriteTabs();
+					stream.DebugOutput << clazz->Name << " " << mem << ":\n";
+					stream.WriteTabs();
+					stream.DebugOutput << "{\n";
+					stream.TabDepth++;
+				}
+			}
             
             // serialise each member
             for(auto& member: clazz->Members)
@@ -338,7 +386,7 @@ namespace Meta {
                 }
                 
                 // BLOCK DATA
-                if(!_Serialise(stream, host, &State.Classes[member.ClassID], (U8*)pMemory + member.RTOffset, IsWrite))
+                if(!_Serialise(stream, host, &State.Classes[member.ClassID], (U8*)pMemory + member.RTOffset, IsWrite, member.Name.c_str()))
                     return false; // serialise it
                 
                 // END OF BLOCK
@@ -374,6 +422,13 @@ namespace Meta {
                 }
                 
             }
+			
+			if(stream.DebugOutputFile && clazz->Members.size() > 0)
+			{
+				stream.TabDepth--;
+				stream.WriteTabs();
+				stream.DebugOutput << "}\n";
+			}
             
             stream.CurrentSection = initialSection; // reset section
             
@@ -855,16 +910,20 @@ namespace Meta {
                     
                     if(bKeyed)
                     {
+						String kname = "[Key ";
+						kname = kname + std::to_string(i) + "]";
                         // write key
                         instance = pCollection->GetKey(i);
-                        if(!_Serialise(stream, host, &State.Classes[keyClass], instance._GetInternal(), true))
+                        if(!_Serialise(stream, host, &State.Classes[keyClass], instance._GetInternal(), true, kname.c_str()))
                             return false;
                         
                     }
                     
                     // write value
+					String kname = "[Value ";
+					kname = kname + std::to_string(i) + "]";
                     instance = pCollection->GetValue(i);
-                    if(!_Serialise(stream, host, &State.Classes[valClass], instance._GetInternal(), true))
+                    if(!_Serialise(stream, host, &State.Classes[valClass], instance._GetInternal(), true, kname.c_str()))
                         return false;
                     
                 }
@@ -890,13 +949,17 @@ namespace Meta {
                     
                     if(bKeyed)
                     {
+						String kname = "[Key ";
+						kname = kname + std::to_string(i) + "]";
 						kinstance = pCollection->GetKey(pCollection->GetSize() - 1);
-                        if(!_Impl::_Serialise(stream, host, &State.Classes[keyClass], kinstance._GetInternal(), false))
+                        if(!_Impl::_Serialise(stream, host, &State.Classes[keyClass], kinstance._GetInternal(), false, kname.c_str()))
                             return false;
                     }
                     
+					String kname = "[Value ";
+					kname = kname + std::to_string(i) + "]";
 					vinstance = pCollection->GetValue(pCollection->GetSize() - 1);
-                    if(!_Impl::_Serialise(stream, host, &State.Classes[valClass], vinstance._GetInternal(), false))
+                    if(!_Impl::_Serialise(stream, host, &State.Classes[valClass], vinstance._GetInternal(), false, kname.c_str()))
                         return false;
                     
                 }
@@ -1339,7 +1402,7 @@ namespace Meta {
         
         // 2. SERIALISE INSTANCE TO THE STREAM
         
-        if(!_Impl::_Serialise(metaStream, instance, &State.Classes[instance.GetClassID()], instance._GetInternal(), true))
+        if(!_Impl::_Serialise(metaStream, instance, &State.Classes[instance.GetClassID()], instance._GetInternal(), true, nullptr))
         {
             TTE_LOG("Cannot write meta stream: serialisation failed");
             return false;
@@ -1479,9 +1542,11 @@ namespace Meta {
 	}
     
     // Reads meta stream file format
-    ClassInstance ReadMetaStream(DataStreamRef& stream)
+    ClassInstance ReadMetaStream(DataStreamRef& stream, DataStreamRef dbg, U32 _max)
     {
         Stream metaStream{};
+		metaStream.DebugOutputFile = std::move(dbg);
+		metaStream.MaxInlinableBuffer = _max;
         U8 Buffer[256]{};
         U32 mainSectionSize{}, asyncSectionSize{}, debugSectionSize{};
         
@@ -1688,9 +1753,23 @@ namespace Meta {
                 return {};
             }
         }
+		
+		// write debug header
+		if(metaStream.DebugOutputFile)
+		{
+			metaStream.DebugOutput << "Meta Stream [" << magic << "] debug output from the Telltale Editor v" TTE_VERSION "\n";
+			metaStream.DebugOutput << "\n_metaVersionInfo:\n{\n";
+			for(auto& version: metaStream.VersionInf)
+			{
+				Class& clazz = State.Classes[version];
+				metaStream.DebugOutput << "-\t" << clazz.Name.c_str() << ": Version 0x" <<
+					std::hex << std::uppercase << clazz.VersionCRC << "[" << clazz.VersionNumber << "]\n";
+			}
+			metaStream.DebugOutput << "}\n\n";
+		}
     
         // perform actual serialisation of the primary class stored.
-        if(!_Impl::_Serialise(metaStream, instance, &State.Classes[ClassID], instance._GetInternal(), false))
+        if(!_Impl::_Serialise(metaStream, instance, &State.Classes[ClassID], instance._GetInternal(), false, nullptr))
         {
             TTE_ASSERT(false, "Could not seralise meta stream primary class");
             return {};
@@ -1703,7 +1782,17 @@ namespace Meta {
 			{
 				TTE_ASSERT(false, "At section %s: not all bytes were read from stream! Remaining: 0x%X bytes",
 						   StreamSectionName[i], (U32)diff);
+				return {};
 			}
+		}
+		
+		if(metaStream.DebugOutputFile)
+		{
+			// Move output string file
+			String val = metaStream.DebugOutput.str();
+			metaStream.DebugOutputFile->Write((const U8*)val.c_str(), val.length());
+			metaStream.DebugOutput.clear();
+			metaStream.DebugOutputFile.reset(); // flush
 		}
         
         return instance; // OK

@@ -5,7 +5,7 @@
 
 JobScheduler *JobScheduler::Instance = 0;
 
-thread_local Bool ImAWorker = false;
+thread_local JobThread* MyLocalThread = nullptr;
 
 void JobScheduler::Initialise(LuaFunctionCollection Col)
 {
@@ -22,18 +22,24 @@ void JobScheduler::Shutdown()
 
 Bool JobScheduler::IsRunningFromWorker()
 {
-	return ImAWorker;
+	return MyLocalThread != nullptr;
+}
+
+JobThread& JobScheduler::GetCurrentThread()
+{
+	TTE_ASSERT(IsRunningFromWorker(), "Not running from a worker thread!");
+	return *MyLocalThread;
 }
 
 // This is the function run per job thread, which runs the jobs.
 void JobScheduler::_JobThreadFn(JobScheduler &scheduler, U32 threadIndex)
 {
-	ImAWorker = true;
     // Initialise.
     JobThread myself{};
     myself.ThreadNumber = threadIndex;
     myself.ThreadName = std::string("Worker Thread ") + std::to_string(threadIndex);
 	myself.L.Initialise(LuaVersion::LUA_5_2_3); // latest
+	MyLocalThread = &myself;
 	
 	ScriptManager::RegisterCollection(myself.L, luaLibraryAPI(false)); // Register editor library
 	ScriptManager::RegisterCollection(myself.L, luaGameEngine(false)); // Register telltale engine
@@ -58,6 +64,7 @@ void JobScheduler::_JobThreadFn(JobScheduler &scheduler, U32 threadIndex)
             return; // Exit. If result was just a normal exit, wait job thread will keep returning jobs until no are left.
     }
 
+	MyLocalThread = nullptr;
     // Join with main thread.
 }
 

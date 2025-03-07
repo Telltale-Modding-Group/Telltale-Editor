@@ -1,0 +1,17 @@
+// Samplers:1 SamplerDiffuse:0
+// line above is important and needed. tells us how many samplers we expect.
+#include <metal_stdlib>
+using namespace metal;
+
+struct VertexOut {
+    float4 position [[position]];
+    float2 uv [[user(locn1)]];
+    float3 colour [[user(locn2)]];
+};
+
+fragment float4 main0(VertexOut in [[stage_in]], 
+                              texture2d<uint> texture [[texture(0)]], 
+                              sampler samplr [[sampler(0)]]) {
+    uint4 texColor = texture.sample(samplr, in.uv);
+    return (float4(texColor) / 255.0) * float4(in.colour, 1.0f);
+}

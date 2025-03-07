@@ -1,4 +1,4 @@
-// UniformBuffers:2 BufferCamera:0 BufferObject:1
+// UniformBuffers:2 BufferCamera:0 BufferObject:1 Attribs:0
 // line above needed.
 #include <metal_stdlib>
 using namespace metal;
@@ -33,5 +33,6 @@ vertex VertexOut main0(VertexIn in [[stage_in]], constant UniformCamera& cam [[b
 
     out.position = cam.viewProj * obj.worldMatrix * float4(in.position, 1.0f);
     out.colour = obj.diffuse;
+
     return out;
 }

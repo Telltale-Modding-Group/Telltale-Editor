@@ -30,7 +30,7 @@ function SerialisePropertySet_V0(metaStream, propInstance, isWrite)
 			for j=1, numOfThatType do
 				key = SymbolTableFind(MetaStreamReadSymbol(metaStream))
 				inst_of_type = MetaCreateInstance(propType, propTypeVersionIndex, key, propInstance)
-				if not MetaSerialise(metaStream, inst_of_type, isWrite) then
+				if not MetaSerialise(metaStream, inst_of_type, isWrite, key) then
 					return false
 				end
 			end

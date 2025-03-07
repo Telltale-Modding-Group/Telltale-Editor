@@ -48,13 +48,13 @@ public:
     // Current frame index.
     inline U64 GetCurrentFrameNumber()
     {
-        return _Frame[_MainFrameIndex]._FrameNumber;
+        return _Frame[_MainFrameIndex].FrameNumber;
     }
     
     // Current frame index of what is being rendered.
     inline U64 GetRenderFrameNumber()
     {
-        return _Frame[_MainFrameIndex ^ 1]._FrameNumber;
+        return _Frame[_MainFrameIndex ^ 1].FrameNumber;
     }
     
     // Call these before and after any instance is created. Initialises SDL for multiple contexts
@@ -101,7 +101,7 @@ public:
 	void PushRenderInst(RenderFrame& frame, ShaderParametersStack* paramStack, RenderInst&& inst);
 	
 	/**
-	 Pushes another parameter stack to the given parameter stack
+	 Pushes another parameter stack to the given parameter stack, leaving 'stack' (being pushed) unaffected.
 	 */
 	void PushParameterStack(RenderFrame& frame, ShaderParametersStack* self, ShaderParametersStack* stack);
 	
@@ -128,9 +128,9 @@ public:
 		return AllocateParameters(frame, types);
 	}
 	
-	// Sets a texture parameter
+	// Sets a texture parameter. pSamplerDesc must be on the frame heap and not created. It will be resolved in render. Can be null for default.
 	void SetParameterTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-							 std::shared_ptr<RenderTexture> tex, std::shared_ptr<RenderSampler> sampler);
+							 std::shared_ptr<RenderTexture> tex, RenderSampler* pSamplerDesc);
 	
 	// Sets a uniform parameter
 	void SetParameterUniform(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
@@ -147,6 +147,10 @@ public:
 	// Set an index buffer parameter input.
 	void SetParameterIndexBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
 								  std::shared_ptr<RenderBuffer> buffer, U32 startIndex);
+	
+	// Sets a default texture binding. pSamplerDesc must be on the frame heap and not created. It will be resolved in render. Can be null for default.
+	void SetParameterDefaultTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
+									DefaultRenderTextureType textype, RenderSampler* pSamplerDesc);
     
 	// Unsafe call, ensure calling from the correct place!
 	inline RenderFrame& GetFrame(Bool bGetPopulatingFrame)
@@ -175,6 +179,18 @@ private:
 		TTE_ASSERT(IsCallingFromMain(), "This function cannot be called from anywhere but the main thread!");
 	}
 	
+	inline std::shared_ptr<RenderTexture> _GetDefaultTexture(DefaultRenderTextureType type)
+	{
+		TTE_ASSERT(type != DefaultRenderTextureType::NONE, "Invalid default texture type");
+		return _DefaultTextures[(U32)type - 1].Texture;
+	}
+	
+	inline DefaultRenderMesh& _GetDefaultMesh(DefaultRenderMeshType type)
+	{
+		TTE_ASSERT(type != DefaultRenderMeshType::NONE, "Invalid default mesh type");
+		return _DefaultMeshes[(U32)type - 1];
+	}
+	
 	// =========== INTERNAL RENDERING FUNCTIONALITY
 	
 	ShaderParametersGroup* _CreateParameterGroup(RenderFrame&, ShaderParameterTypes);
@@ -189,7 +205,10 @@ private:
 	// swap chain slot is put into slot 0!
 	RenderCommandBuffer* _NewCommandBuffer();
 	
-	std::shared_ptr<RenderShader> _FindShader(String name, RenderShaderType); // find a shader, load if needed and not previously loaded.]
+	// find a shader, load if needed and not previously loaded.]
+	std::shared_ptr<RenderShader> _FindShader(String name, RenderShaderType);
+	
+	Bool _FindProgram(String name, std::shared_ptr<RenderShader>& vert, std::shared_ptr<RenderShader>& frag);
 
 	// note the transfer buffers below are UPLOAD ONES. DOWNLOAD BUFFERS COULD BE DONE IN THE FUTURE, BUT NO NEED ANY TIME SOON.
 	
@@ -234,6 +253,7 @@ private:
 	std::vector<PendingDeletion> _PendingSDLResourceDeletions{};
 	U32 _Flags = 0;
 	
+	// ACCESS ONLY THROUGH _GETDEFAULTTEXTURE AND _GETDEFAULTMESH
 	std::vector<DefaultRenderMesh> _DefaultMeshes;
 	std::vector<DefaultRenderTexture> _DefaultTextures;
 	
@@ -249,6 +269,7 @@ private:
 	friend struct RenderSampler;
 	friend struct RenderVertexState;
 	friend struct RenderBuffer;
+	friend class RenderFrameUpdateList;
 	friend class Scene;
 	
 	// Both defined in render defaults source.

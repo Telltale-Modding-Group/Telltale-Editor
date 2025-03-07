@@ -294,6 +294,7 @@ Bool DataStreamFile::Read(U8 *OutputBuffer, U64 Nbytes)
 Bool DataStreamFile::Write(const U8 *InputBuffer, U64 Nbytes)
 {
     TTE_ASSERT(_Handle != FileNull(), "File handle is null. Cannot write");
+	_MaxOffset = MAX(_MaxOffset, (GetPosition() + Nbytes));
     return FileWrite(_Handle, InputBuffer, Nbytes);
 }
 
@@ -305,12 +306,12 @@ DataStreamFile::~DataStreamFile()
 {
     if (_Handle != FileNull())
     {
-        FileClose(_Handle);
+        FileClose(_Handle, _MaxOffset);
         _Handle = FileNull();
     }
 }
 
-DataStreamFile::DataStreamFile(const ResourceURL &url) : DataStream(url), _Handle(FileNull())
+DataStreamFile::DataStreamFile(const ResourceURL &url) : DataStream(url), _Handle(FileNull()), _MaxOffset(0)
 {
     // Attempt to open the file
     String fpath = url.GetRawPath(); // Get the raw path without the scheme, and pass it to the file system to try and find the file.

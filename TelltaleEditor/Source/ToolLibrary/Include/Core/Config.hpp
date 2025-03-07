@@ -147,7 +147,7 @@ Bool FileRead(U64 Handle, U8* Buffer, U64 Nbytes);
 
 U64 FileSize(U64 Handle); // Returns total size
 
-void FileClose(U64 Handle);
+void FileClose(U64 Handle, U64 maxWrittenOffset);
 
 U64 FileNull(); // Return the invalid file handle.
 
@@ -289,7 +289,14 @@ template<typename T> inline void _TTEDeleter(T* _Instance)
 	TTE_DEL(_Instance);
 }
 
+inline void _TTEFree(U8* _Instance)
+{
+	TTE_FREE(_Instance);
+}
+
 // create managed shared ptr
 #define TTE_NEW_PTR(_Type, _MemoryTag, ...) std::shared_ptr<_Type>(TTE_NEW(_Type, _MemoryTag, __VA_ARGS__), &_TTEDeleter<_Type>)
+
+#define TTE_ALLOC_PTR(_NBytes, _MemoryTag) std::shared_ptr<U8>(TTE_ALLOC(_NBytes, _MemoryTag), &_TTEFree)
 
 void DumpTrackedMemory(); // if in debug mode, prints all tracked memory allocations.

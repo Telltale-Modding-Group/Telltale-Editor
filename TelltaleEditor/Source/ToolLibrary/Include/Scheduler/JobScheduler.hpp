@@ -343,6 +343,9 @@ class JobScheduler
 	
 	/// Returns true if the callee is running from a worker thread
 	static Bool IsRunningFromWorker();
+	
+	/// Only call if IsRunningFromWorker() returned true. Returns the job thread information.
+	static JobThread& GetCurrentThread();
 
     // Singleton Init/Shutdown.
 

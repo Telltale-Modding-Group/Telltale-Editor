@@ -3,6 +3,13 @@
 namespace RenderUtility
 {
 	
+	void SetObjectParameters(RenderContext& context, ShaderParameter_Object* obj, Matrix4 objectWorldMatrix, Colour c)
+	{
+		FinalisePlatformMatrix(context, obj->WorldMatrix, objectWorldMatrix);
+		obj->Diffuse = c;
+		obj->Alpha = c.a;
+	}
+	
 	void SetCameraParameters(RenderContext& context, ShaderParameter_Camera* cam, Camera* ac)
 	{
 		FinalisePlatformMatrix(context, cam->ViewProj, (ac->GetProjectionMatrix() * ac->GetViewMatrix()));
@@ -22,14 +29,12 @@ namespace RenderUtility
 		ShaderParameter_Camera* cam = nullptr;
 		if(ac)
 		{
-			cam = frame._Heap.NewNoDestruct<ShaderParameter_Camera>();
+			cam = frame.Heap.NewNoDestruct<ShaderParameter_Camera>();
 			SetCameraParameters(context, cam, ac);
 		}
 		
 		// SETUP MODEL UNIFORM
-		ShaderParameter_Object& obj = *frame._Heap.NewNoDestruct<ShaderParameter_Object>();
-
-		Vector4 worldMatLocal[4]{};
+		ShaderParameter_Object& obj = *frame.Heap.NewNoDestruct<ShaderParameter_Object>();
 		FinalisePlatformMatrix(context, obj.WorldMatrix, model);
 		
 		obj.Alpha = col.a;

@@ -128,6 +128,7 @@ class DataStreamFile : public DataStream
     DataStreamFile(const ResourceURL &url);
 
     U64 _Handle;
+	U64 _MaxOffset; // if writing, the maximum offset written to. Ensures when flushing any bytes after this are cleared
 
     friend class DataStreamManager;
 };

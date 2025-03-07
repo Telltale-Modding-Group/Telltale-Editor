@@ -39,8 +39,9 @@ static void RunApp()
 			// Loading and previewing a mesh example
 			
 			// 1. load a mesh
-			DataStreamRef stream = editor.LoadLibraryResource("TestResources/obj_star.d3dmesh");
-			Meta::ClassInstance inst = Meta::ReadMetaStream(stream);
+			DataStreamRef stream = editor.LoadLibraryResource("TestResources/adv_forestWaterfall.d3dmesh");
+			DataStreamRef debugStream = editor.LoadLibraryResource("TestResources/debug.txt");
+			Meta::ClassInstance inst = Meta::ReadMetaStream(stream, std::move(debugStream));
 			
 			// 2. create a dummy scene, add an agent, attach a renderable module to it.
 			Scene scene{};

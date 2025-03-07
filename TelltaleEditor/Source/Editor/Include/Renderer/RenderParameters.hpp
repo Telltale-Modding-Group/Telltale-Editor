@@ -59,42 +59,6 @@ enum class ShaderParameterTypeClass : U32
 	
 };
 
-enum ShaderParameterType : U32
-{
-	
-	// UNIFORMS
-	
-	PARAMETER_FIRST_UNIFORM = 0,
-	PARAMETER_OBJECT = 0, // see ShaderParameter_Object
-	PARAMETER_CAMERA = 1,
-	PARAMETER_LAST_UNIFORM = 1,
-	
-	// SAMPLERS
-	
-	PARAMETER_FIRST_SAMPLER = 2,
-	PARAMETER_SAMPLER_DIFFUSE = 2,
-	PARAMETER_LAST_SAMPELR = 2,
-	
-	// VERTEX AND INDEX BUFFERS
-	
-	PARAMETER_FIRST_VERTEX_BUFFER = 3,
-	PARAMETER_VERTEX0IN = 3, // vertex buffer inputs
-	PARAMETER_VERTEX1IN = 4,
-	PARAMETER_VERTEX2IN = 5,
-	PARAMETER_VERTEX3IN = 6,
-	PARAMETER_LAST_VERTEX_BUFFER = 6,
-	
-	PARAMETER_INDEX0IN = 7, // index buffer input (only one)
-	
-	// GENERIC BUFFERS
-	
-	PARAMETER_FIRST_GENERIC = 8,
-	PARAMETER_GENERIC0 = 8,
-	PARAMETER_LAST_GENERIC = 8,
-	
-	PARAMETER_COUNT = 9, // increase by one each time another added
-};
-
 struct ShaderParameterTypeInfo
 {
 	
@@ -116,6 +80,65 @@ struct ShaderParameterTypeInfo
 	
 };
 
+enum ShaderParameterType : U32
+{
+	
+	// UNIFORMS
+	
+	PARAMETER_FIRST_UNIFORM = 0,
+	
+	///
+	PARAMETER_OBJECT = 0, // see ShaderParameter_Object
+	PARAMETER_CAMERA = 1,
+	///
+	
+	PARAMETER_LAST_UNIFORM = 1,
+	
+	// SAMPLERS
+	
+	PARAMETER_FIRST_SAMPLER = 2,
+	
+	///
+	PARAMETER_SAMPLER_DIFFUSE = 2,
+	///
+	
+	PARAMETER_LAST_SAMPELR = 2,
+	
+	// VERTEX AND INDEX BUFFERS
+	
+	PARAMETER_FIRST_VERTEX_BUFFER = 3,
+	
+	///
+	PARAMETER_VERTEX0IN = 3, // vertex buffer inputs
+	PARAMETER_VERTEX1IN = 4,
+	PARAMETER_VERTEX2IN = 5,
+	PARAMETER_VERTEX3IN = 6,
+	PARAMETER_VERTEX4IN = 7,
+	PARAMETER_VERTEX5IN = 8,
+	PARAMETER_VERTEX6IN = 9,
+	PARAMETER_VERTEX7IN = 10,
+	PARAMETER_VERTEX8IN = 11,
+	///
+	
+	PARAMETER_LAST_VERTEX_BUFFER = 11,
+	
+	///
+	PARAMETER_INDEX0IN = 12, // index buffer input (only one)
+	///
+	
+	// GENERIC BUFFERS
+	
+	PARAMETER_FIRST_GENERIC = 13,
+	
+	///
+	PARAMETER_GENERIC0 = 13,
+	///
+	
+	PARAMETER_LAST_GENERIC = 13,
+	
+	PARAMETER_COUNT = 14, // increase by one each time another added. AND UPDATE NAMES BELOW!
+};
+
 // Info mappings by type enum index
 constexpr ShaderParameterTypeInfo ShaderParametersInfo[] =
 {
@@ -126,7 +149,13 @@ constexpr ShaderParameterTypeInfo ShaderParametersInfo[] =
 	ShaderParameterTypeInfo("Vertex1Input", 0, ShaderParameterTypeClass::VERTEX_BUFFER),
 	ShaderParameterTypeInfo("Vertex2Input", 0, ShaderParameterTypeClass::VERTEX_BUFFER),
 	ShaderParameterTypeInfo("Vertex3Input", 0, ShaderParameterTypeClass::VERTEX_BUFFER),
+	ShaderParameterTypeInfo("Vertex4Input", 0, ShaderParameterTypeClass::VERTEX_BUFFER),
+	ShaderParameterTypeInfo("Vertex5Input", 0, ShaderParameterTypeClass::VERTEX_BUFFER),
+	ShaderParameterTypeInfo("Vertex6Input", 0, ShaderParameterTypeClass::VERTEX_BUFFER),
+	ShaderParameterTypeInfo("Vertex7Input", 0, ShaderParameterTypeClass::VERTEX_BUFFER),
+	ShaderParameterTypeInfo("Vertex8Input", 0, ShaderParameterTypeClass::VERTEX_BUFFER),
 	ShaderParameterTypeInfo("Indices0Input", 0, ShaderParameterTypeClass::INDEX_BUFFER),
+	ShaderParameterTypeInfo("Generic0", 0, ShaderParameterTypeClass::GENERIC_BUFFER),
 };
 
 using ShaderParameterTypes = BitSet<ShaderParameterType, PARAMETER_COUNT, PARAMETER_OBJECT>;
@@ -152,7 +181,7 @@ struct GenericBufferParameterBinding // these cover all generics and also vertex
 struct SamplerParameterBinding
 {
 	RenderTexture* Texture;
-	RenderSampler* Sampler;
+	RenderSampler* SamplerDesc; // not created, just a descriptor.
 };
 
 /**

@@ -45,7 +45,7 @@ enum class RenderSurfaceFormat
 	RGBA8,
 };
 
-enum class RenderBufferAttributeFormat
+enum class RenderBufferAttributeFormat : U32
 {
 	UNKNOWN,
 	
@@ -66,23 +66,28 @@ enum class RenderBufferAttributeFormat
 	
 };
 
-enum class RenderAttributeType
+enum class RenderAttributeType : U32
 {
+	POSITION = 0,
+	NORMAL = 1,
+	BINORMAL = 2,
+	TANGENT = 3,
+	BLEND_WEIGHT = 4,
+	BLEND_INDEX = 5,
+	COLOUR = 6,
+	UV_DIFFUSE = 7,
+	UV_LIGHTMAP = 8,
 	UNKNOWN,
-	POSITION,
-	NORMAL,
-	BINORMAL,
-	TANGENT,
-	BLEND_WEIGHT,
-	BLEND_INDEX,
-	COLOUR,
-	UV,
+	COUNT = UNKNOWN,
 };
+
+using VertexAttributesBitset = BitSet<RenderAttributeType, (U32)RenderAttributeType::COUNT, RenderAttributeType::POSITION>;
 
 static struct AttribInfo {
 	RenderAttributeType Type;
 	CString ConstantName;
 }
+
 constexpr AttribInfoMap[]
 {
 	{RenderAttributeType::POSITION, "kCommonMeshAttributePosition"},
@@ -92,16 +97,29 @@ constexpr AttribInfoMap[]
 	{RenderAttributeType::BLEND_WEIGHT, "kCommonMeshAttributeBlendWeight"},
 	{RenderAttributeType::BLEND_INDEX, "kCommonMeshAttributeBlendIndex"},
 	{RenderAttributeType::COLOUR, "kCommonMeshAttributeColour"},
-	{RenderAttributeType::UV, "kCommonMeshAttributeUV"},
-	{RenderAttributeType::UNKNOWN},
+	{RenderAttributeType::UV_DIFFUSE, "kCommonMeshAttributeUVDiffuse"},
+	{RenderAttributeType::UV_LIGHTMAP, "kCommonMeshAttributeUVLightMap"},
+	{RenderAttributeType::UNKNOWN, "kCommonMeshAttributeUnknown"},
 };
 
 /// A texture.
 struct RenderTexture
 {
 	
+	enum TextureFlag
+	{
+		TEXTURE_FLAG_DELEGATED = 1, // dont release texture.
+	};
+	
+	// Last frame number which buffer was used to a binding slot in.
+	U64 LastUsedFrame = 0;
+	// Last frame number which this buffer was uploaded from the CPU (updated), that the data is on GPU for.
+	U64 LastUpdatedFrame = 0;
+	
 	RenderContext* _Context = nullptr;
 	SDL_GPUTexture* _Handle = nullptr;
+	
+	Flags TextureFlags;
 	
 	U32 Width = 0, Height = 0;
 	
@@ -148,6 +166,11 @@ inline U32 GetNumVertsForPrimitiveType(RenderPrimitiveType type, U32 numPrims)
 struct RenderBuffer
 {
 	
+	// Last frame number which buffer was used to a binding slot in.
+	U64 LastUsedFrame = 0;
+	// Last frame number which this buffer was uploaded from the CPU (updated), that the data is on GPU for.
+	U64 LastUpdatedFrame = 0;
+	
 	RenderContext* _Context = nullptr;
 	SDL_GPUBuffer* _Handle = nullptr;
 	
@@ -178,6 +201,8 @@ struct _RenderTransferBuffer
 struct RenderSampler
 {
 	
+	U64 LastUsedFrame = 0;
+	
 	RenderContext* _Context = nullptr;
 	SDL_GPUSampler* _Handle = nullptr;
 	
@@ -204,10 +229,9 @@ struct RenderVertexState
 	
 	struct VertexAttrib
 	{
-		RenderAttributeType Attrib = RenderAttributeType::UNKNOWN;
+		RenderAttributeType Attrib = RenderAttributeType::UNKNOWN; //  ie binding slot.
 		RenderBufferAttributeFormat Format = RenderBufferAttributeFormat::UNKNOWN;
-		U16 VertexBufferIndex = 0; // 0 to 31 (which vertex buffer to use)
-		U16 VertexBufferLocation = 0; // index of the attribute in the current vertex buffer (index). 0 to 31
+		U32 VertexBufferIndex = 0; // 0 to 31 (which vertex buffer to use)
 	};
 	
 	// === INFO FORMAT
@@ -215,8 +239,8 @@ struct RenderVertexState
 	VertexAttrib Attribs[32];
 	U32 BufferPitches[32] = {0,0,0,0}; // byte pitch between consecutive elements in each vertex buffer
 	
-	U8 NumVertexBuffers = 0; // between 0 and 32
-	U8 NumVertexAttribs = 0; // between 0 and 32
+	U32 NumVertexBuffers = 0; // between 0 and 32
+	U32 NumVertexAttribs = 0; // between 0 and 32
 	
 	Bool IsHalf = true; // true means U16 indices, false meaning U32
 	
@@ -240,8 +264,7 @@ struct RenderPipelineState
 	
 	// SET BY INTERNAL USER
 	
-	String FragmentSh = ""; // fragment shader name
-	String VertexSh = ""; // vertex shader name
+	String ShaderProgram = "";
 	
 	RenderPrimitiveType PrimitiveType = RenderPrimitiveType::TRIANGLE_LIST; // primitive type
 	
@@ -294,6 +317,7 @@ struct RenderShader
 	SDL_GPUShader* Handle = nullptr;
 	
 	U8 ParameterSlots[PARAMETER_COUNT]; // parameter type => slot index
+	VertexAttributesBitset Attribs; // for vertex shaders
 	
 	inline RenderShader()
 	{
@@ -346,11 +370,11 @@ struct RenderCommandBuffer
 	// Bind uniform data. Does not need to be within any pass.
 	void BindUniformData(U32 slot, RenderShaderType shaderStage, const void* data, U32 size);
 	
-	// Perform a buffer upload.
-	void UploadBufferData(std::shared_ptr<RenderBuffer>& buffer, DataStreamRef srcStream, U64 srcOffset, U32 destOffset, U32 numBytes);
+	// Perform a buffer upload. Prefer to use render frame update list! This is OK for use in defaults.
+	void UploadBufferDataSlow(std::shared_ptr<RenderBuffer>& buffer, DataStreamRef srcStream, U64 srcOffset, U32 destOffset, U32 numBytes);
 	
-	// Perform a texture sub-image upload
-	void UploadTextureData(std::shared_ptr<RenderTexture>& texture, DataStreamRef srcStream,
+	// Perform a texture sub-image upload. Prefer to use render frame update list! This is OK for use in defaults.
+	void UploadTextureDataSlow(std::shared_ptr<RenderTexture>& texture, DataStreamRef srcStream,
 						   U64 srcOffset, U32 mip, U32 slice, U32 dataSize);
 	
 	// Draws indexed.
@@ -427,14 +451,15 @@ class RenderInst
 	//U32 _MinIndex = 0;
 	//U32 _MaxIndex = 0; // vertex range
 	
-	U32 _StartIndex = 0;
-	U32 _IndexCount = 0;
-	U32 _InstanceCount = 0;
+	U32 _StartIndex = 0; // start index in index buffer
+	U32 _IndexCount = 0; // number of indices to draw
+	U32 _InstanceCount = 0; // number of instances to draw
+	I32 _BaseIndex = 0; // offset added to each index buffer value
 	U32 _IndexBufferIndex = 0; // into vertex state
 	
 	DefaultRenderMeshType _DrawDefault = DefaultRenderMeshType::NONE;
 	
-	String Vert, Frag; // shaders
+	String Program;
 
 public:
 	
@@ -471,33 +496,42 @@ public:
 	} */
 	
 	/**
-	 Draws a primitive.
+	 Draws a primitive array.
 	 */
-	inline void DrawPrimitive(RenderPrimitiveType type, U32 start_index, U32 prim_count, U32 instance_count)
+	inline void DrawPrimitives(RenderPrimitiveType type, U32 start_index, U32 prim_count, U32 instance_count, I32 baseIndex)
 	{
 		_StartIndex = start_index;
 		_PrimitiveType = type;
 		_InstanceCount = instance_count;
 		_IndexCount = GetNumVertsForPrimitiveType(type, prim_count);
+		_BaseIndex = baseIndex;
 	}
 	
 	/**
 	 Draws vertices for a given primitive.
 	 */
-	inline void DrawVertices(RenderPrimitiveType type, U32 start_index, U32 vertex_count, U32 instance_count){
+	inline void DrawVertices(RenderPrimitiveType type, U32 start_index, U32 vertex_count, U32 instance_count, I32 baseIndex){
 		_InstanceCount = instance_count;
 		_PrimitiveType = type;
 		_StartIndex = start_index;
 		_IndexCount = vertex_count;
+		_BaseIndex = baseIndex;
 	}
 	
 	/**
 	 Sets the vertex and fragment shaders. In the future this will be made obsolete by having a system where shaders are referenced by enums and variants.
 	 */
-	inline void SetShaders(String vertex, String frag)
+	inline void SetShaderProgram(String name)
 	{
-		Vert = vertex;
-		Frag = frag;
+		Program = std::move(name);
+	}
+	
+	/**
+	 Required if drawing a non-default mesh. Sets the vertex information layout.
+	 */
+	inline void SetVertexState(RenderVertexState& info)
+	{
+		_VertexStateInfo = info;
 	}
 	
 	/**
@@ -529,27 +563,28 @@ struct RenderInstSorter {
 	
 };
 
-
 // ============================================= RENDER FRAME =============================================
+
+class RenderFrameUpdateList;
 
 /// A render frame. Two are active at one time, one is filled up my the main thread and then executed and run on the GPU in the render job which is done async.
 struct RenderFrame
 {
 	
-	U64 _FrameNumber = 0; // this frame number
-	RenderTexture* _BackBuffer = nullptr; // set at begin render frame internally
+	U64 FrameNumber = 0; // this frame number
+	RenderTexture* BackBuffer = nullptr; // set at begin render frame internally
 	
-	std::vector<RenderCommandBuffer*> _CommandBuffers; // command buffers which will be destroyed at frame end (render execution)
+	std::vector<RenderCommandBuffer*> CommandBuffers; // command buffers which will be destroyed at frame end (render execution)
 	
-	RenderInst* _DrawCalls = nullptr; // draw call list (high level)
+	RenderInst* DrawCalls = nullptr; // draw call list (high level)
 	U32 NumDrawCalls = 0; // number of elements in linked list above
 	
-	std::unordered_map<U64, std::shared_ptr<void>> _Autorelease; // released at end of frame.
+	RenderFrameUpdateList* UpdateList; // list of updates for frame.
 	
-	LinearHeap _Heap; // frame heap memory
+	LinearHeap Heap; // frame heap memory
 	
 	// Reset and clear the frame to new frame number
-	void Reset(U64 newFrameNumber);
+	void Reset(RenderContext& context, U64 newFrameNumber);
 	
 	// Shared pointer will be released at end of frame after render. Use to keep pointers alive for duration of frame
 	template<typename T>
@@ -560,7 +595,75 @@ struct RenderFrame
 			_Autorelease[(U64)val.get()] = std::move(val);
 	}
 	
+	std::unordered_map<U64, std::shared_ptr<void>> _Autorelease; // released at end of frame.
+	
 };
+
+/**
+ This class is a per-frame managed state which takes care of handling copy pass information.
+ This gets executed before any draw calls such that all updates complete before the renderfer needs them.
+ */
+class RenderFrameUpdateList
+{
+	
+	// No staging buffer. Static data.
+	struct MetaBufferUpload
+	{
+		
+		MetaBufferUpload* Next = nullptr;
+		
+		Meta::BinaryBuffer Data;
+		
+		std::shared_ptr<RenderBuffer> Buffer;
+		
+		U64 DestPosition = 0; // dest position in Buffer
+		
+	};
+	
+	struct DataStreamBufferUpload
+	{
+		
+		DataStreamBufferUpload* Next = nullptr;
+		
+		DataStreamRef Src;
+		std::shared_ptr<RenderBuffer> Buffer;
+		
+		U64 Position = 0; // start pos
+		U64 UploadSize = 0;
+		
+		U64 DestPosition = 0; // dest position Buffer
+		
+	};
+	
+	friend class RenderContext;
+	
+	RenderContext& _Context;
+	RenderFrame& _Frame;
+	
+	U64 _TotalBufferUploadSize = 0; // total bytes this frame so far being uploaded to GPU
+	U32 _TotalNumUploads = 0; // number of uploads to process this frame
+	
+	MetaBufferUpload* _MetaUploads = nullptr;
+	DataStreamBufferUpload* _StreamUploads = nullptr;
+	
+	// Begins the render frame internally. This does all uploading updates to GPU.
+	void BeginRenderFrame(RenderCommandBuffer* pCopyCommands);
+	
+	void EndRenderFrame();
+	
+	// Remove the buffer from any previous uploads, as a new upload is present which would override it.
+	void _DismissBuffer(const std::shared_ptr<RenderBuffer>& buf);
+	
+public:
+	
+	inline RenderFrameUpdateList(RenderContext& context, RenderFrame& frame) : _Frame(frame), _Context(context) {}
+	
+	void UpdateBufferMeta(const Meta::BinaryBuffer& metaBuffer, const std::shared_ptr<RenderBuffer>& destBuffer, U64 destOffset);
+	
+	void UpdateBufferDataStream(const DataStreamRef& srcStream, const std::shared_ptr<RenderBuffer>& destBuffer, U64 srcPos, U64 nBytes, U64 destOffset);
+	
+};
+
 
 // registers common mesh constants
 void RegisterRenderConstants(LuaFunctionCollection& Col);
@@ -568,6 +671,11 @@ void RegisterRenderConstants(LuaFunctionCollection& Col);
 // Utilities for rendering. Only to be used in scene::asyncrender and its calls
 namespace RenderUtility
 {
+	
+	/**
+	 Sets the object uniform buffer parameters, setting the world matrix and diffuse colour (includes alpha value).
+	 */
+	void SetObjectParameters(RenderContext& context, ShaderParameter_Object* obj, Matrix4 objectWorldMatrix, Colour colour);
 	
 	/**
 	 Sets the camera uniform buffer parameters from a given camera.

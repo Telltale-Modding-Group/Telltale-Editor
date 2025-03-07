@@ -3,6 +3,7 @@
 #include <Core/Context.hpp>
 #include <Resource/TTArchive.hpp>
 #include <Resource/TTArchive2.hpp>
+#include <Core/Base64.hpp>
 
 #include <sstream>
 #include <utility>
@@ -1158,18 +1159,19 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             }
              
             man.PushBool(_Impl::_DefaultSerialise(*stream,
-                            inst, &State.Classes[inst.GetClassID()], inst._GetInternal(), isWrite)); // perform it
+                            inst, &State.Classes[inst.GetClassID()], inst._GetInternal(), isWrite, nullptr)); // perform it
             
             return 1;
         }
         
-        // bool serialse(stream, instance, is write)
+        // bool serialse(stream, instance, is write, debug name)
         static U32 luaMetaSerialise(LuaManager& man)
         {
-            TTE_ASSERT(man.GetTop() == 3, "Incorrect usage of MetaSerialise");
-            ClassInstance inst = AcquireScriptInstance(man, -2);
-            Bool isWrite = man.ToBool(-1);
-            Stream* stream = ((Stream*)man.ToPointer(-3));
+            TTE_ASSERT(man.GetTop() == 4, "Incorrect usage of MetaSerialise");
+            ClassInstance inst = AcquireScriptInstance(man, -3);
+            Bool isWrite = man.ToBool(-2);
+            Stream* stream = ((Stream*)man.ToPointer(-4));
+			String name = man.ToString(-1);
             
             if(stream == nullptr || !inst)
             {
@@ -1179,7 +1181,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             }
             
             man.PushBool(_Impl::_Serialise(*stream,
-                            inst, &State.Classes[inst.GetClassID()], inst._GetInternal(), isWrite)); // perform it
+                            inst, &State.Classes[inst.GetClassID()], inst._GetInternal(), isWrite, name.c_str())); // perform it
             
             return 1;
         }
@@ -1420,6 +1422,18 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
 
 namespace MS
 {
+
+	// async stuff isnt implemented BUT BEWARE WAITING FROM A JOB MAYBE DEADLOCK
+	static U32 luaMetaStreamAsyncSerialiseEnabled(LuaManager& man)
+	{
+		TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaStreamAsyncSerialiseEnabled");
+		
+		Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
+		
+		man.PushBool(stream.DebugOutputFile.get() == nullptr); // if no debug file, we can async do stuff
+		
+		return 1;
+	}
     
     // read signed integer from stream.
     static U32 luaMetaStreamReadInt(LuaManager& man)
@@ -1600,6 +1614,18 @@ namespace MS
         TTE_ASSERT(stream.Read(Buffer, (U64)size), "Binary buffer read fail - size is likely too large.");
 		
 		buf.BufferData = std::shared_ptr<U8>(Buffer, [](U8* p){TTE_FREE(p);});
+		
+		if(stream.DebugOutputFile)
+		{
+			stream.WriteTabs();
+			U32 base64Encoded = MIN(stream.MaxInlinableBuffer, buf.BufferSize);
+			String base64 = Base64::Encode(Buffer, base64Encoded);
+			stream.DebugOutput << "[BufferData Base64] >> \"" << base64;
+			if(base64Encoded != buf.BufferSize)
+				stream.DebugOutput << "...\"\n";
+			else
+				stream.DebugOutput << "\"\n";
+		}
         
         return 0;
     }
@@ -2287,6 +2313,7 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     
     // META STREAM API
     
+	ADD_FN(MS, "MetaStreamAsyncSerialiseEnabled", luaMetaStreamAsyncSerialiseEnabled);
     ADD_FN(MS, "MetaStreamReadInt", luaMetaStreamReadInt);
     ADD_FN(MS, "MetaStreamReadByte", luaMetaStreamReadByte);
 	ADD_FN(MS, "MetaStreamReadBool", luaMetaStreamReadBool);

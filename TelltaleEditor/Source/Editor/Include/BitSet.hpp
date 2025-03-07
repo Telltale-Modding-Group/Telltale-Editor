@@ -73,6 +73,12 @@ public:
 		return cnt;
 	}
 	
+	// Get words
+	inline U32* Words()
+	{
+		return _Words;
+	}
+	
 	inline EnumClass FindFirstBit(EnumClass startIndex_ = FirstValue) const
 	{
 		U32 startIndex = (U32)(startIndex_) - MinValue;
@@ -186,6 +192,12 @@ public:
 	inline void Remove(IntOrEnum fl)
 	{
 		_Value &= ~((U32)fl);
+	}
+	
+	template<typename IntOrEnum>
+	inline Bool Test(IntOrEnum fl)
+	{
+		return (_Value & fl) != 0;
 	}
 	
 	inline void operator+=(U32 fl)

@@ -72,7 +72,8 @@ SDL_VertexAttributeMappings[13]
 	{RenderBufferAttributeFormat::U32x2, SDL_GPU_VERTEXELEMENTFORMAT_UINT2, 2, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt2"},
 	{RenderBufferAttributeFormat::U32x3, SDL_GPU_VERTEXELEMENTFORMAT_UINT3, 3, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt3"},
 	{RenderBufferAttributeFormat::U32x4, SDL_GPU_VERTEXELEMENTFORMAT_UINT4, 4, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt4"},
-	{RenderBufferAttributeFormat::UNKNOWN, SDL_GPU_VERTEXELEMENTFORMAT_INVALID, 0, 0}, // add above this!
+	{RenderBufferAttributeFormat::UNKNOWN, SDL_GPU_VERTEXELEMENTFORMAT_INVALID, 0, 0, RenderBufferAttributeFormat::F32x1, "kCommonMeshFormatUnknown"},
+	// add above this!
 };
 
 inline AttributeFormatInfo GetSDLAttribFormatInfo(RenderBufferAttributeFormat format)
@@ -219,8 +220,8 @@ RenderContext::RenderContext(String wName, U32 cap)
 	
 	_MainFrameIndex = 0;
 	_PopulateJob = JobHandle();
-	_Frame[0].Reset(0);
-	_Frame[1].Reset(1);
+	_Frame[0].Reset(*this, 1); // start on frame 1, not 0, 0 was imaginary
+	_Frame[1].Reset(*this, 2);
 	
 	// Create window and renderer
 	_Window = SDL_CreateWindow(wName.c_str(), 780, 326, 0);
@@ -254,9 +255,6 @@ RenderContext::~RenderContext()
 	for(auto& transfer: _AvailTransferBuffers)
 		SDL_ReleaseGPUTransferBuffer(_Device, transfer.Handle);
 	
-	for(auto& sampler: _Samplers)
-		SDL_ReleaseGPUSampler(_Device, sampler->_Handle);
-	
 	_DefaultMeshes.clear();
 	_DefaultTextures.clear();
 	_Samplers.clear();
@@ -264,8 +262,10 @@ RenderContext::~RenderContext()
 	_LoadedShaders.clear();
 	_AvailTransferBuffers.clear();
 	
-	_Frame[0]._Heap.ReleaseAll();
-	_Frame[1]._Heap.ReleaseAll();
+	_Frame[0].Reset(*this, UINT64_MAX);
+	_Frame[1].Reset(*this, UINT64_MAX);
+	_Frame[0].Heap.ReleaseAll();
+	_Frame[1].Heap.ReleaseAll();
 	
 	SDL_ReleaseWindowFromGPUDevice(_Device, _Window);
 	SDL_DestroyWindow(_Window);
@@ -324,15 +324,16 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 			RenderCommandBuffer* pMainCommandBuffer = _NewCommandBuffer();
 			
 			// setup swapchain tex
-			pFrame->_BackBuffer = pFrame->_Heap.New<RenderTexture>();
-			pFrame->_BackBuffer->_Context = this;
-			pFrame->_BackBuffer->Format = FromSDLFormat(SDL_GetGPUSwapchainTextureFormat(_Device, _Window));
+			pFrame->BackBuffer = pFrame->Heap.New<RenderTexture>();
+			pFrame->BackBuffer->TextureFlags += RenderTexture::TEXTURE_FLAG_DELEGATED;
+			pFrame->BackBuffer->_Context = this;
+			pFrame->BackBuffer->Format = FromSDLFormat(SDL_GetGPUSwapchainTextureFormat(_Device, _Window));
 			TTE_ASSERT(SDL_WaitAndAcquireGPUSwapchainTexture(pMainCommandBuffer->_Handle,
-												  _Window, &pFrame->_BackBuffer->_Handle,
-															 &pFrame->_BackBuffer->Width,  &pFrame->_BackBuffer->Height),
-					   "Failed to acquire backend swapchain texture at frame %lld: %s", pFrame->_FrameNumber, SDL_GetError());
+												  _Window, &pFrame->BackBuffer->_Handle,
+															 &pFrame->BackBuffer->Width,  &pFrame->BackBuffer->Height),
+					   "Failed to acquire backend swapchain texture at frame %lld: %s", pFrame->FrameNumber, SDL_GetError());
 			
-			if(pFrame->_FrameNumber == 0)
+			if(pFrame->FrameNumber == 1)
 			{
 				// Create defaults
 				RegisterDefaultMeshes(*this, pMainCommandBuffer, _DefaultMeshes);
@@ -349,8 +350,8 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 		// SUBMIT ALL UNSUBMITTED COMMAND buffers
 		
 		U32 activeCommandBuffers = 0;
-		SDL_GPUFence** awaitingFences = pFrame->_Heap.NewArray<SDL_GPUFence*>((U32)pFrame->_CommandBuffers.size());
-		for(auto& commandBuffer: pFrame->_CommandBuffers)
+		SDL_GPUFence** awaitingFences = pFrame->Heap.NewArray<SDL_GPUFence*>((U32)pFrame->CommandBuffers.size());
+		for(auto& commandBuffer: pFrame->CommandBuffers)
 		{
 			if(!commandBuffer->_Submitted)
 				commandBuffer->Submit(); // submit if needed
@@ -363,7 +364,7 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 		
 		if(activeCommandBuffers > 0)
 			SDL_WaitForGPUFences(_Device, true, awaitingFences, activeCommandBuffers);
-		for(auto& commandBuffer: pFrame->_CommandBuffers) // free the fences
+		for(auto& commandBuffer: pFrame->CommandBuffers) // free the fences
 		{
 			if(commandBuffer->_SubmittedFence != nullptr)
 			{
@@ -376,11 +377,11 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 		_PurgeColdResources(pFrame);
 		
 		// RECLAIM TRANSFER BUFFERS
-		for(auto& cmd: pFrame->_CommandBuffers)
+		for(auto& cmd: pFrame->CommandBuffers)
 			_ReclaimTransferBuffers(*cmd);
 		
 		// CLEAR COMMAND BUFFERS.
-		pFrame->_CommandBuffers.clear();
+		pFrame->CommandBuffers.clear();
 	}
 	
 	// 5. Wait for previous populater to complete if needed
@@ -393,7 +394,7 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 	// 6. NO POPULATE THREAD JOB ACTIVE, SO NO LOCKING NEEDED UNTIL SUBMIT. Give our new processed frame, and swap.
 
 	_MainFrameIndex ^= 1; // swap
-	GetFrame(true).Reset(GetFrame(true)._FrameNumber + 2); // increase populater frame index (+2 from swap, dont worry)
+	GetFrame(true).Reset(*this, GetFrame(true).FrameNumber + 2); // increase populater frame index (+2 from swap, dont worry)
 	
 	// free resources which are not needed
 	if(_Flags & RENDER_CONTEXT_NEEDS_PURGE)
@@ -401,7 +402,7 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 		_Flags &= ~RENDER_CONTEXT_NEEDS_PURGE;
 		PurgeResources();
 	}
-	_FreePendingDeletions(GetFrame(false)._FrameNumber);
+	_FreePendingDeletions(GetFrame(false).FrameNumber);
 	
 	// 7. Kick off populater job to render the last thread data (if needed)
 	if(!isLastFrame && !bUserWantsQuit)
@@ -423,7 +424,7 @@ void RenderContext::_PurgeColdResources(RenderFrame* pFrame)
 {
 	for(auto it = _AvailTransferBuffers.begin(); it != _AvailTransferBuffers.end();)
 	{
-		if(it->LastUsedFrame + _HotResourceThresh >= pFrame->_FrameNumber)
+		if(it->LastUsedFrame + _HotResourceThresh >= pFrame->FrameNumber)
 		{
 			SDL_ReleaseGPUTransferBuffer(_Device, it->Handle);
 			it = _AvailTransferBuffers.erase(it);
@@ -434,14 +435,15 @@ void RenderContext::_PurgeColdResources(RenderFrame* pFrame)
 
 // ============================ FRAME MANAGEMENT
 
-void RenderFrame::Reset(U64 newFrameNumber)
+void RenderFrame::Reset(RenderContext& context, U64 newFrameNumber)
 {
-	_CommandBuffers.clear();
+	CommandBuffers.clear();
 	_Autorelease.clear(); // will free ptrs if needed
-	_FrameNumber = newFrameNumber;
+	FrameNumber = newFrameNumber;
 	NumDrawCalls = 0;
-	_DrawCalls = nullptr;
-	_Heap.Rollback(); // free all objects, but keep memory
+	DrawCalls = nullptr;
+	Heap.Rollback(); // free all objects, but keep memory
+	UpdateList = Heap.New<RenderFrameUpdateList>(context, *this);
 }
 
 // ============================ TEXTURES & RENDER TARGET
@@ -490,15 +492,18 @@ std::shared_ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
 	info.min_lod = 0.f;
 	info.max_lod = 1000.f;
 	desc._Handle = SDL_CreateGPUSampler(_Device, &info);
+	desc._Context = this;
 	std::shared_ptr<RenderSampler> pSampler = TTE_NEW_PTR(RenderSampler, MEMORY_TAG_RENDERER);
-	*pSampler = desc;
+	*pSampler = std::move(desc);
+	desc._Context = nullptr;
+	desc._Handle = nullptr; // sometimes compiler doesnt do move:(
 	_Samplers.push_back(pSampler);
 	return pSampler;
 }
 
 RenderTexture::~RenderTexture()
 {
-	if(_Handle && _Context)
+	if(_Handle && _Context && !TextureFlags.Test(TEXTURE_FLAG_DELEGATED))
 		SDL_ReleaseGPUTexture(_Context->_Device, _Handle);
 	_Handle = nullptr;
 }
@@ -521,11 +526,13 @@ void RenderContext::_FreePendingDeletions(U64 frame)
 	}
 }
 
-void RenderCommandBuffer::UploadTextureData(std::shared_ptr<RenderTexture> &texture,
+void RenderCommandBuffer::UploadTextureDataSlow(std::shared_ptr<RenderTexture> &texture,
 											DataStreamRef src, U64 srcOffset, U32 mip, U32 slice, U32 dataZ)
 {
 	if(_CurrentPass)
 		TTE_ASSERT(_CurrentPass->_CopyHandle != nullptr, "A render pass cannot be active unless its a copy pass if uploading textures.");
+	
+	texture->LastUsedFrame = _Context->GetFrame(false).FrameNumber;
 	
 	_RenderTransferBuffer tBuffer = _Context->_AcquireTransferBuffer(dataZ, *this);
 	
@@ -560,6 +567,13 @@ void RenderCommandBuffer::UploadTextureData(std::shared_ptr<RenderTexture> &text
 }
 
 // ================ PIPELINE STATES, SHADER MGR
+
+Bool RenderContext::_FindProgram(String name, std::shared_ptr<RenderShader> &vert, std::shared_ptr<RenderShader> &frag)
+{
+	vert = _FindShader(name + "/Vertex", RenderShaderType::VERTEX);
+	frag = _FindShader(name + "/Frag", RenderShaderType::FRAGMENT);
+	return vert != nullptr && frag != nullptr;
+}
 
 // find a loaded shader, if not found its loaded.
 std::shared_ptr<RenderShader> RenderContext::_FindShader(String name, RenderShaderType type)
@@ -633,6 +647,7 @@ std::shared_ptr<RenderShader> RenderContext::_FindShader(String name, RenderShad
 	std::shared_ptr<RenderShader> sh = TTE_NEW_PTR(RenderShader, MEMORY_TAG_RENDERER);
 	
 	U32 BindsOf[3]{};
+	VertexAttributesBitset set{};
 	
 	// read binding information. we need to store this.
 	// in text, first line of format 'Samplers:10 StorageTextures:1 StorageBuffers:2 GenericBuffers:1
@@ -650,9 +665,10 @@ std::shared_ptr<RenderShader> RenderContext::_FindShader(String name, RenderShad
 		info.num_uniform_buffers = (U32)inf[7];
 		U32 running = 0;
 		U32 binds = info.num_samplers+info.num_storage_buffers+info.num_uniform_buffers+info.num_storage_textures;
-		const U8* map = inf + 8 + (2*binds);
-		info.code += 2*binds;
-		info.code_size -= 2*binds;
+		memcpy(set.Words(), inf + 8, 4);
+		const U8* map = inf + 12 + (2*binds);
+		info.code += 2*binds + 4;
+		info.code_size -= (2*binds + 12);
 		for(U32 i = 0; i < binds; i++)
 		{
 			TTE_ASSERT(sh->ParameterSlots[map[0]] == 0xFF, "Corrupt shader binary"); // must have no binding
@@ -673,34 +689,48 @@ std::shared_ptr<RenderShader> RenderContext::_FindShader(String name, RenderShad
 		std::string shaderfull = (CString)info.code;
 		std::istringstream stream(shaderfull);
 		std::string firstLine{};
-		if (std::getline(stream, firstLine)) {
+		
+		if (std::getline(stream, firstLine))
+		{
 			std::istringstream lineStream(firstLine);
 			std::string token;
-			if (!firstLine.empty() && firstLine[0] == '/' &&  firstLine[1] == '/') {
-				while (lineStream >> token) {
+			
+			if (!firstLine.empty() && firstLine[0] == '/' && firstLine[1] == '/')
+			{
+				while (lineStream >> token)
+				{
 					size_t colonPos = token.find(':');
-					if (colonPos != std::string::npos) {
+					if (colonPos != std::string::npos)
+					{
 						std::string key = token.substr(0, colonPos);
-						U32 value = std::stoi(token.substr(colonPos + 1));
+						std::string valueStr = token.substr(colonPos + 1);
 						
-						if (key == "Samplers") info.num_samplers = value;
-						else if (key == "StorageTextures") info.num_storage_textures = value;
-						else if (key == "StorageBuffers") info.num_storage_buffers = value;
-						else if (key == "UniformBuffers") info.num_uniform_buffers = value;
-						else
+						if (key == "Samplers") info.num_samplers = std::stoi(valueStr);
+						else if (key == "StorageTextures") info.num_storage_textures = std::stoi(valueStr);
+						else if (key == "StorageBuffers") info.num_storage_buffers = std::stoi(valueStr);
+						else if (key == "UniformBuffers") info.num_uniform_buffers = std::stoi(valueStr);
+						else if (key == "Attribs")
 						{
-							Bool Set = false;
-							for(U32 i = 0; i < PARAMETER_COUNT; i++)
+							std::istringstream attribStream(valueStr);
+							std::string attribToken;
+							while (std::getline(attribStream, attribToken, ','))
 							{
-								if(key == ShaderParametersInfo[i].Name)
+								U32 val = std::stoi(attribToken);
+								set.Set((RenderAttributeType)val, true);
+							}
+						}
+						else {
+							Bool Set = false;
+							for (U32 i = 0; i < PARAMETER_COUNT; i++)
+							{
+								if (key == ShaderParametersInfo[i].Name)
 								{
 									TTE_ASSERT(sh->ParameterSlots[i] == 0xFF, "Invalid shader binding slot: already set");
-									sh->ParameterSlots[i] = (U8)value;
+									sh->ParameterSlots[i] = (U8)std::stoi(valueStr);
 									
 									ShaderParameterTypeClass cls = ShaderParametersInfo[i].Class;
-									if((cls != ShaderParameterTypeClass::UNIFORM_BUFFER && cls != ShaderParameterTypeClass::GENERIC_BUFFER &&
-									   cls != ShaderParameterTypeClass::SAMPLER) || cls >= (ShaderParameterTypeClass)3)
-									{
+									if ((cls != ShaderParameterTypeClass::UNIFORM_BUFFER && cls != ShaderParameterTypeClass::GENERIC_BUFFER &&
+										 cls != ShaderParameterTypeClass::SAMPLER) || cls >= (ShaderParameterTypeClass)3) {
 										TTE_ASSERT(false, "The shader parameter '%s' cannot have its binding slot specified",
 												   ShaderParametersInfo[i].Name);
 									}
@@ -721,10 +751,13 @@ std::shared_ptr<RenderShader> RenderContext::_FindShader(String name, RenderShad
 	TTE_ASSERT(BindsOf[(U32)ShaderParameterTypeClass::UNIFORM_BUFFER] == info.num_uniform_buffers &&
 			   BindsOf[(U32)ShaderParameterTypeClass::GENERIC_BUFFER] == info.num_storage_buffers &&
 			   BindsOf[(U32)ShaderParameterTypeClass::SAMPLER] == info.num_samplers, "Too many or too little binding slots specified");
+	if(type == RenderShaderType::VERTEX)
+		TTE_ASSERT(set.CountBits() > 0, "No vertex attributes specified for vertex shader %s", name.c_str());
 	
 	sh->Name = name;
 	sh->Handle = SDL_CreateGPUShader(_Device, &info);
 	sh->Context = this;
+	sh->Attribs = set;
 	
 	if(temp)
 	{
@@ -772,6 +805,7 @@ std::shared_ptr<RenderPipelineState> RenderContext::_FindPipelineState(RenderPip
 				return state;
 	}
 	std::shared_ptr<RenderPipelineState> state = _AllocatePipelineState();
+	desc._Internal._Context = this;
 	*state = std::move(desc);
 	state->Create();
 	return state;
@@ -781,18 +815,15 @@ U64 RenderContext::_HashPipelineState(RenderPipelineState &state)
 {
 	U64 Hash = 0;
 	
-	Hash = CRC64LowerCase((const U8*)state.VertexSh.c_str(), (U32)state.VertexSh.length(), 0);
-	Hash = CRC64LowerCase((const U8*)state.FragmentSh.c_str(), (U32)state.FragmentSh.length(), Hash);
+	Hash = CRC64LowerCase((const U8*)state.ShaderProgram.c_str(), (U32)state.ShaderProgram.length(), 0);
 	Hash = CRC64((const U8*)&state.VertexState.NumVertexBuffers, 4, Hash);
 	Hash = CRC64((const U8*)&state.PrimitiveType, 4, Hash);
 	
 	for(U32 i = 0; i < state.VertexState.NumVertexAttribs; i++)
 	{
-		TTE_ASSERT(state.VertexState.Attribs[i].VertexBufferLocation < state.VertexState.NumVertexAttribs &&
-				   state.VertexState.Attribs[i].VertexBufferIndex < state.VertexState.NumVertexBuffers, "Invalid slot/index");
+		TTE_ASSERT(state.VertexState.Attribs[i].VertexBufferIndex < state.VertexState.NumVertexBuffers, "Invalid buffer index");
 		Hash = CRC64((const U8*)&state.VertexState.Attribs[i].Format, 4, state.VertexState.IsHalf ? ~Hash : Hash);
-		Hash = CRC64((const U8*)&state.VertexState.Attribs[i].VertexBufferIndex, 2, Hash);
-		Hash = CRC64((const U8*)&state.VertexState.Attribs[i].VertexBufferLocation, 2, Hash);
+		Hash = CRC64((const U8*)&state.VertexState.Attribs[i].VertexBufferIndex, 4, Hash);
 		Hash = CRC64((const U8*)&state.VertexState.Attribs[i].Attrib, 4, Hash);
 	}
 	
@@ -818,8 +849,11 @@ void RenderPipelineState::Create()
 		sc.format = SDL_GetGPUSwapchainTextureFormat(_Internal._Context->_Device, _Internal._Context->_Window);
 		info.target_info.color_target_descriptions = &sc;
 		
-		info.vertex_shader = _Internal._Context->_FindShader(VertexSh, RenderShaderType::VERTEX)->Handle;
-		info.fragment_shader = _Internal._Context->_FindShader(FragmentSh, RenderShaderType::FRAGMENT)->Handle;
+		std::shared_ptr<RenderShader> vert, frag{};
+		TTE_ASSERT(_Internal._Context->_FindProgram(ShaderProgram, vert, frag), "Could not fetch shader program: %s", ShaderProgram.c_str());
+		
+		info.vertex_shader = vert->Handle;
+		info.fragment_shader = frag->Handle;
 		
 		info.primitive_type = ToSDLPrimitiveType(PrimitiveType);
 		
@@ -845,22 +879,36 @@ void RenderPipelineState::Create()
 			desc[i].slot = i;
 			desc[i].pitch = VertexState.BufferPitches[i];
 		}
+		
 		SDL_GPUVertexAttribute attrib[32]{};
-		U32 off[4] = {0,0,0,0};
+		U32 off[32] = {0};
+		Bool attribsHave[(U32)RenderAttributeType::COUNT] = {0};
 		for(U32 i = 0; i < VertexState.NumVertexAttribs; i++)
 		{
 			attrib[i].buffer_slot = VertexState.Attribs[i].VertexBufferIndex;
-			attrib[i].location = VertexState.Attribs[i].VertexBufferLocation;
+			attrib[i].location = (U32)VertexState.Attribs[i].Attrib;
 			attrib[i].offset = off[VertexState.Attribs[i].VertexBufferIndex];
 			AttributeFormatInfo inf = GetSDLAttribFormatInfo(VertexState.Attribs[i].Format);
 			attrib[i].format = inf.SDLFormat;
 			off[VertexState.Attribs[i].VertexBufferIndex] += inf.NumIntrinsics * inf.IntrinsicSize;
+			attribsHave[(U32)VertexState.Attribs[i].Attrib] = true;
+		}
+		
+		// check attribs match vertex
+		for(U32 attrib = 0; attrib < (U32)RenderAttributeType::COUNT; attrib++)
+		{
+			Bool bVertRequires = vert->Attribs[(RenderAttributeType)attrib];
+			if(bVertRequires && !attribsHave[attrib])
+				TTE_ASSERT(false, "Vertex attribute %s is required for program %s, but was not supplied!",
+						   AttribInfoMap[attrib].ConstantName, ShaderProgram.c_str());
+			// if it does not require but we have bound it, its ok we aren't using it anyway
 		}
 		
 		info.vertex_input_state.vertex_attributes = attrib;
 		info.vertex_input_state.vertex_buffer_descriptions = desc;
 		
 		_Internal._Handle = SDL_CreateGPUGraphicsPipeline(_Internal._Context->_Device, &info);
+		TTE_ASSERT(_Internal._Handle != nullptr, "Could not create pipeline state: %s", SDL_GetError());
 		
 	}
 }
@@ -902,12 +950,12 @@ RenderCommandBuffer* RenderContext::_NewCommandBuffer()
 {
 	AssertMainThread();
 	RenderFrame& frame = GetFrame(false);
-	RenderCommandBuffer* pBuffer = frame._Heap.New<RenderCommandBuffer>();
+	RenderCommandBuffer* pBuffer = frame.Heap.New<RenderCommandBuffer>();
 	
 	pBuffer->_Handle = SDL_AcquireGPUCommandBuffer(_Device);
 	pBuffer->_Context = this;
 	
-	frame._CommandBuffers.push_back(pBuffer);
+	frame.CommandBuffers.push_back(pBuffer);
 	
 	return pBuffer;
 }
@@ -918,7 +966,7 @@ void RenderCommandBuffer::StartCopyPass()
 	TTE_ASSERT(_Handle != nullptr, "Render command buffer was not initialised properly");
 	TTE_ASSERT(_CurrentPass == nullptr, "Already within a pass. End the current pass before starting a new one.");
 	
-	RenderPass* pPass = _Context->GetFrame(false)._Heap.New<RenderPass>();
+	RenderPass* pPass = _Context->GetFrame(false).Heap.New<RenderPass>();
 	pPass->_CopyHandle = SDL_BeginGPUCopyPass(_Handle);
 	
 	_BoundPipeline.reset();
@@ -934,7 +982,7 @@ void RenderCommandBuffer::StartPass(RenderPass&& pass)
 	
 	// todo improve this. allow different target descs.
 	SDL_GPUColorTargetInfo swChain{};
-	swChain.texture = _Context->GetFrame(false)._BackBuffer->_Handle;
+	swChain.texture = _Context->GetFrame(false).BackBuffer->_Handle;
 	swChain.load_op = SDL_GPU_LOADOP_CLEAR;
 	swChain.store_op = SDL_GPU_STOREOP_STORE;
 	swChain.clear_color.r = pass.ClearCol.r;
@@ -942,7 +990,7 @@ void RenderCommandBuffer::StartPass(RenderPass&& pass)
 	swChain.clear_color.b = pass.ClearCol.b;
 	swChain.clear_color.a = pass.ClearCol.a;
 
-	RenderPass* pPass = _Context->GetFrame(false)._Heap.New<RenderPass>();
+	RenderPass* pPass = _Context->GetFrame(false).Heap.New<RenderPass>();
 	*pPass = std::move(pass);
 	pPass->_Handle = SDL_BeginGPURenderPass(_Handle, &swChain, 1, nullptr);
 	
@@ -975,8 +1023,8 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 	
 	ShaderParameterTypes parametersToSet{};
 	
-	std::shared_ptr<RenderShader> vsh = _Context->_FindShader(_BoundPipeline->VertexSh, RenderShaderType::VERTEX);
-	std::shared_ptr<RenderShader> fsh = _Context->_FindShader(_BoundPipeline->FragmentSh, RenderShaderType::FRAGMENT);
+	std::shared_ptr<RenderShader> vsh, fsh{};
+	TTE_ASSERT(_Context->_FindProgram(_BoundPipeline->ShaderProgram, vsh, fsh), "Shader program not found");
 	
 	for(U8 i = 0; i < (U8)ShaderParameterType::PARAMETER_COUNT; i++)
 	{
@@ -1034,18 +1082,22 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 					if(vsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
 					{
 						std::shared_ptr<RenderTexture> tex{group->GetParameter(i).SamplerValue.Texture, &NullDeleter};
-						std::shared_ptr<RenderSampler> sam{group->GetParameter(i).SamplerValue.Sampler, &NullDeleter};
 						TTE_ASSERT(tex.get(), "Required texture was not bound or was null");
-						TTE_ASSERT(sam.get(), "Required sampler was not bound or was null");
-						BindTextures(vsh->ParameterSlots[paramInfo.Type], 1, RenderShaderType::VERTEX, &tex, &sam);
+						
+						RenderSampler* samDesc = group->GetParameter(i).SamplerValue.SamplerDesc;
+						std::shared_ptr<RenderSampler> resolvedSampler = _Context->_FindSampler(samDesc ? *samDesc : RenderSampler{});
+						
+						BindTextures(vsh->ParameterSlots[paramInfo.Type], 1, RenderShaderType::VERTEX, &tex, &resolvedSampler);
 					}
 					if(fsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
 					{
 						std::shared_ptr<RenderTexture> tex{group->GetParameter(i).SamplerValue.Texture, &NullDeleter};
-						std::shared_ptr<RenderSampler> sam{group->GetParameter(i).SamplerValue.Sampler, &NullDeleter};
 						TTE_ASSERT(tex.get(), "Required texture was not bound or was null");
-						TTE_ASSERT(sam.get(), "Required sampler was not bound or was null");
-						BindTextures(fsh->ParameterSlots[paramInfo.Type], 1, RenderShaderType::FRAGMENT, &tex, &sam);
+						
+						RenderSampler* samDesc = group->GetParameter(i).SamplerValue.SamplerDesc;
+						std::shared_ptr<RenderSampler> resolvedSampler = _Context->_FindSampler(samDesc ? *samDesc : RenderSampler{});
+						
+						BindTextures(fsh->ParameterSlots[paramInfo.Type], 1, RenderShaderType::FRAGMENT, &tex, &resolvedSampler);
 					}
 				}
 				else if(paramInfo.Class == (U8)ShaderParameterTypeClass::GENERIC_BUFFER)
@@ -1091,8 +1143,8 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 			}
 			else
 			{
-				TTE_ASSERT(false, "Parameter buffer %s was required for one of %s/%s but was not supplied.",
-						   ShaderParametersInfo[i].Name, _BoundPipeline->VertexSh.c_str(),_BoundPipeline->FragmentSh.c_str());
+				TTE_ASSERT(false, "Parameter buffer %s was required for %s but was not supplied.",
+						   ShaderParametersInfo[i].Name, _BoundPipeline->ShaderProgram.c_str());
 			}
 		}
 	}
@@ -1108,11 +1160,15 @@ void RenderCommandBuffer::BindTextures(U32 slot, U32 num, RenderShaderType shade
 	TTE_ASSERT(pTextures && pSamplers, "Invalid arguments passed into bind textures");
 	TTE_ASSERT(num < 32, "Cannot bind more than 32 texture samplers at one time");
 	
+	U64 frame = _Context->GetFrame(false).FrameNumber;
+	
 	SDL_GPUTextureSamplerBinding binds[32]{};
 	for(U32 i = 0; i < num; i++)
 	{
 		binds[i].sampler = pSamplers[i]->_Handle;
 		binds[i].texture = pTextures[i]->_Handle;
+		pTextures[i]->LastUsedFrame = frame;
+		pSamplers[i]->LastUsedFrame = frame;
 	}
 	
 	if(shader == RenderShaderType::FRAGMENT)
@@ -1175,9 +1231,14 @@ void RenderCommandBuffer::BindGenericBuffers(U32 slot, U32 num, std::shared_ptr<
 	TTE_ASSERT(pBuffers, "Invalid arguments passed into bind generic buffers");
 	TTE_ASSERT(num < 4, "Cannot bind more than 4 generic buffers at one time");
 	
+	U64 frame = _Context->GetFrame(false).FrameNumber;
+	
 	SDL_GPUBuffer* buffers[4];
 	for(U32 i = 0; i < num; i++)
+	{
 		buffers[i] = pBuffers[i]->_Handle;
+		pBuffers[i]->LastUsedFrame = frame;
+	}
 	
 	if(shaderSlot == RenderShaderType::VERTEX)
 		SDL_BindGPUVertexStorageBuffers(_CurrentPass->_Handle, slot, buffers, num);
@@ -1314,12 +1375,15 @@ void RenderCommandBuffer::BindVertexBuffers(std::shared_ptr<RenderBuffer> *buffe
 	TTE_ASSERT(_Context && _Handle && _CurrentPass && _CurrentPass->_Handle, "Command buffer is not in a state to have bindings yet");
 	TTE_ASSERT(buffers && first + num <= 32, "Invalid arguments passed into BindVertexBuffers");
 	
+	U64 frame = _Context->GetFrame(false).FrameNumber;
+	
 	SDL_GPUBufferBinding binds[32]{};
 	for(U32 i = 0; i < num; i++)
 	{
 		TTE_ASSERT(buffers[i] && buffers[i]->_Handle, "Invalid buffer passed in for binding slot %d: is null", first+i);
 		binds[i].offset = offsets ? offsets[i] : 0;
 		binds[i].buffer = buffers[i]->_Handle;
+		buffers[i]->LastUsedFrame = frame;
 	}
 	
 	SDL_BindGPUVertexBuffers(_CurrentPass->_Handle, first, binds, num);
@@ -1334,12 +1398,13 @@ void RenderCommandBuffer::BindIndexBuffer(std::shared_ptr<RenderBuffer> indexBuf
 	SDL_GPUBufferBinding bind{};
 	bind.offset = firstIndex * (isHalf ? 2 : 4);
 	bind.buffer = indexBuffer->_Handle;
+	indexBuffer->LastUsedFrame = _Context->GetFrame(false).FrameNumber;
 	
 	SDL_BindGPUIndexBuffer(_CurrentPass->_Handle, &bind, isHalf ? SDL_GPU_INDEXELEMENTSIZE_16BIT : SDL_GPU_INDEXELEMENTSIZE_32BIT);
 	
 }
 
-void RenderCommandBuffer::UploadBufferData(std::shared_ptr<RenderBuffer>& buffer, DataStreamRef srcStream, U64 src, U32 destOffset, U32 numBytes)
+void RenderCommandBuffer::UploadBufferDataSlow(std::shared_ptr<RenderBuffer>& buffer, DataStreamRef srcStream, U64 src, U32 destOffset, U32 numBytes)
 {
 	
 	if(_CurrentPass)
@@ -1395,7 +1460,7 @@ _RenderTransferBuffer RenderContext::_AcquireTransferBuffer(U32 size, RenderComm
 		// remove it, use this one
 		_RenderTransferBuffer buffer = std::move(*it);
 		buffer.Size = size;
-		buffer.LastUsedFrame = cmds._Context->GetFrame(false)._FrameNumber;
+		buffer.LastUsedFrame = cmds._Context->GetFrame(false).FrameNumber;
 		_AvailTransferBuffers.erase(it);
 		cmds._AcquiredTransferBuffers.push_back(buffer);
 		return buffer;
@@ -1411,7 +1476,7 @@ _RenderTransferBuffer RenderContext::_AcquireTransferBuffer(U32 size, RenderComm
 	inf.props = 0;
 	inf.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
 	buffer.Handle = SDL_CreateGPUTransferBuffer(_Device, &inf);
-	buffer.LastUsedFrame = cmds._Context->GetFrame(false)._FrameNumber;
+	buffer.LastUsedFrame = cmds._Context->GetFrame(false).FrameNumber;
 	cmds._AcquiredTransferBuffers.push_back(buffer);
 	
 	return buffer;
@@ -1443,7 +1508,7 @@ void RenderContext::PushParameterGroup(RenderFrame& frame, ShaderParametersStack
 {
 	if(self->Group)
 	{
-		ShaderParametersStack* stack = frame._Heap.NewNoDestruct<ShaderParametersStack>();
+		ShaderParametersStack* stack = frame.Heap.NewNoDestruct<ShaderParametersStack>();
 		stack->Group = self->Group;
 		stack->Parent = self->Parent;
 		stack->ParameterTypes = self->ParameterTypes;
@@ -1461,7 +1526,7 @@ ShaderParametersGroup* RenderContext::_CreateParameterGroup(RenderFrame& frame, 
 	U32 N = types.CountBits();
 	U32 allocSize = sizeof(ShaderParametersGroup) + ((sizeof(ShaderParametersGroup::ParameterHeader) +
 													  sizeof(ShaderParametersGroup::Parameter)) * N);
-	ShaderParametersGroup* pGroup = (ShaderParametersGroup*)frame._Heap.Alloc(allocSize);
+	ShaderParametersGroup* pGroup = (ShaderParametersGroup*)frame.Heap.Alloc(allocSize);
 	pGroup->NumParameters = N;
 	ShaderParameterType param = (ShaderParameterType)0;
 	for(U32 i = 0; i < N; i++)
@@ -1474,8 +1539,28 @@ ShaderParametersGroup* RenderContext::_CreateParameterGroup(RenderFrame& frame, 
 	return pGroup;
 }
 
+void RenderContext::SetParameterDefaultTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
+										DefaultRenderTextureType tex, RenderSampler* sampler)
+{
+	U32 ind = (U32)-1;
+	for(U32 i = 0; i < group->NumParameters; i++)
+	{
+		if(group->GetHeader(i).Type == (U8)type)
+		{
+			TTE_ASSERT(group->GetHeader(i).Class == (U8)ShaderParameterTypeClass::SAMPLER,
+					   "Parameter %s is not a sampler!", ShaderParametersInfo[type].Name);
+			ind = i;
+			break;
+		}
+	}
+	TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[type].Name);
+	ShaderParametersGroup::Parameter& param = group->GetParameter(ind);
+	param.SamplerValue.Texture = _GetDefaultTexture(tex).get(); // no autorelease needed, its constant
+	param.SamplerValue.SamplerDesc = sampler;
+}
+
 void RenderContext::SetParameterTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-						 std::shared_ptr<RenderTexture> tex, std::shared_ptr<RenderSampler> sampler)
+						 std::shared_ptr<RenderTexture> tex, RenderSampler* sampler)
 {
 	U32 ind = (U32)-1;
 	for(U32 i = 0; i < group->NumParameters; i++)
@@ -1490,9 +1575,8 @@ void RenderContext::SetParameterTexture(RenderFrame& frame, ShaderParametersGrou
 	}
 	TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[type].Name);
 	frame.PushAutorelease(tex);
-	frame.PushAutorelease(sampler);
 	group->GetParameter(ind).SamplerValue.Texture = tex.get();
-	group->GetParameter(ind).SamplerValue.Sampler = sampler.get();
+	group->GetParameter(ind).SamplerValue.SamplerDesc = sampler;
 }
 
 void RenderContext::SetParameterUniform(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
@@ -1573,7 +1657,7 @@ void RenderContext::SetParameterIndexBuffer(RenderFrame& frame, ShaderParameters
 	TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[type].Name);
 	frame.PushAutorelease(buffer);
 	group->GetParameter(ind).GenericValue.Buffer = buffer.get();
-	group->GetParameter(ind).GenericValue.Offset = startIndex;
+	group->GetParameter(ind).GenericValue.Offset = (U32)startIndex;
 }
 
 // ================================== SCENE MANAGEMENT & RENDERING BULK
@@ -1612,7 +1696,7 @@ void RenderContext::PurgeResources()
 		for(auto& sampler: _Samplers)
 		{
 			std::shared_ptr<RenderSampler> s = std::move(sampler);
-			_PendingSDLResourceDeletions.push_back(PendingDeletion{std::move(s), GetFrame(false)._FrameNumber});
+			_PendingSDLResourceDeletions.push_back(PendingDeletion{std::move(s), GetFrame(false).FrameNumber});
 		}
 		_Samplers.clear();
 	}
@@ -1622,7 +1706,7 @@ void RenderContext::PurgeResources()
 
 ShaderParametersStack* RenderContext::AllocateParametersStack(RenderFrame& frame)
 {
-	return frame._Heap.NewNoDestruct<ShaderParametersStack>(); // on heap no destruct needed its very lightweight
+	return frame.Heap.NewNoDestruct<ShaderParametersStack>(); // on heap no destruct needed its very lightweight
 }
 
 // NON-MAIN THREAD CALL: perform all higher level render calls and do any skinning / animation updates, etc.
@@ -1702,15 +1786,17 @@ Bool RenderContext::_Populate(const JobThread& jobThread, void* pRenderCtx, void
 void RenderContext::PushRenderInst(RenderFrame& frame, ShaderParametersStack* params, RenderInst &&inst)
 {
 	if(params != nullptr)
-		TTE_ASSERT(frame._Heap.Contains(params), "Shader parameter stack must be allocated from render context!");
+		TTE_ASSERT(frame.Heap.Contains(params), "Shader parameter stack must be allocated from render context!");
+	if(inst._DrawDefault == DefaultRenderMeshType::NONE && (inst._VertexStateInfo.NumVertexBuffers == 0 || inst._VertexStateInfo.NumVertexAttribs == 0))
+		TTE_ASSERT(false, "Cannot push a render instance draw if the vertex state has not been specified");
 
-	RenderInst* instance = frame._Heap.New<RenderInst>();
+	RenderInst* instance = frame.Heap.New<RenderInst>();
 	*instance = std::move(inst);
 	instance->_Parameters = params;
 	
 	frame.NumDrawCalls++;
-	instance->_Next = frame._DrawCalls;
-	frame._DrawCalls = instance;
+	instance->_Next = frame.DrawCalls;
+	frame.DrawCalls = instance;
 }
 
 
@@ -1722,8 +1808,8 @@ void RenderContext::_Render(Float dt, RenderCommandBuffer* pMainCommandBuffer)
 	
 	// 1. temp alloc and resort draw calls to sorted order.
 	
-	RenderInst** sortedRenderInsts = (RenderInst**)frame._Heap.Alloc(sizeof(RenderInst*) * frame.NumDrawCalls);
-	RenderInst* inst = frame._DrawCalls;
+	RenderInst** sortedRenderInsts = (RenderInst**)frame.Heap.Alloc(sizeof(RenderInst*) * frame.NumDrawCalls);
+	RenderInst* inst = frame.DrawCalls;
 	for(U32 i = 0; i < frame.NumDrawCalls; i++)
 	{
 		sortedRenderInsts[i] = inst;
@@ -1731,8 +1817,13 @@ void RenderContext::_Render(Float dt, RenderCommandBuffer* pMainCommandBuffer)
 	}
 	std::sort(sortedRenderInsts, sortedRenderInsts + frame.NumDrawCalls, RenderInstSorter{}); // sort by sort key
 	
-	// 2. execute draws
+	// 2. perform any uploads. Right now execute before any draws. In future we could optimise and use fences interleaved. Dont think even telltale do that.
+	//RenderCommandBuffer* pCopyCommands = _NewCommandBuffer();
+	frame.UpdateList->BeginRenderFrame(pMainCommandBuffer);
 	
+	// 3. execute draws
+	
+	// TEMP PASS. NEED MORE COMPLEX PASS DESCRIPTORS IN FUTURE.
 	RenderPass passdesc{};
 	passdesc.ClearCol = Colour::Black;  // obviously if we want more complex passes we have to code them specifically higher level
 	
@@ -1742,6 +1833,8 @@ void RenderContext::_Render(Float dt, RenderCommandBuffer* pMainCommandBuffer)
 		_Draw(frame, *sortedRenderInsts[i], *pMainCommandBuffer);
 	
 	pMainCommandBuffer->EndPass();
+	
+	frame.UpdateList->EndRenderFrame();
 	
 }
 
@@ -1754,14 +1847,13 @@ void RenderContext::_Draw(RenderFrame& frame, RenderInst inst, RenderCommandBuff
 	std::shared_ptr<RenderPipelineState> state{};
 	if(inst._DrawDefault == DefaultRenderMeshType::NONE)
 	{
-		TTE_ASSERT(inst.Vert.length() && inst.Frag.length(), "Vertex and fragment shaders not set");
+		TTE_ASSERT(inst.Program.c_str(), "Render instance shader program not set");
 		
 		// Find pipeline state for draw
 		RenderPipelineState pipelineDesc{};
 		pipelineDesc.PrimitiveType = inst._PrimitiveType;
 		pipelineDesc.VertexState = inst._VertexStateInfo;
-		pipelineDesc.VertexSh = inst.Vert;
-		pipelineDesc.FragmentSh = inst.Frag;
+		pipelineDesc.ShaderProgram = std::move(inst.Program);
 		// more stuff in the future.
 		
 		state = _FindPipelineState(std::move(pipelineDesc));
@@ -1811,6 +1903,228 @@ void RenderContext::_Draw(RenderFrame& frame, RenderInst inst, RenderCommandBuff
 	cmds.BindParameters(frame, inst._Parameters);
 	
 	// draw!
-	cmds.DrawIndexed(inst._IndexCount, inst._InstanceCount, inst._StartIndex, 0, 0);
+	cmds.DrawIndexed(inst._IndexCount, inst._InstanceCount, inst._StartIndex, inst._BaseIndex, 0);
+}
+
+// ===================================== RENDER FRAME UPDATE LIST =====================================
+
+void RenderFrameUpdateList::BeginRenderFrame(RenderCommandBuffer *pCopyCommands)
+{
+	pCopyCommands->StartCopyPass();
 	
+	// UPLOADS. Strategy: if we need to upload a large number of bytes OR we have lots of little ones, use one big transfer buffer, else acquire.
+	{
+		_RenderTransferBuffer groupStaging{};
+		U64 groupStagingOffset = 0;
+		U8* stagingGroupBuffer = nullptr;
+		
+		struct GroupTransferBuffer
+		{
+			GroupTransferBuffer* Next = nullptr;
+			SDL_GPUBufferRegion Dst;
+			SDL_GPUTransferBufferLocation Src;
+		};
+		
+		if(_TotalNumUploads > 32)
+		{
+			U64 average = _TotalBufferUploadSize / _TotalNumUploads;
+			U64 stagingSize = _TotalBufferUploadSize > (1024 * 1024 * 256) ? 1024 * 1024 * 256 : (MAX(average, 1024 * 1024 * 32));
+			groupStaging = _Context._AcquireTransferBuffer((U32)stagingSize, *pCopyCommands);
+			stagingGroupBuffer = (U8*)SDL_MapGPUTransferBuffer(_Context._Device, groupStaging.Handle, false);
+		}
+		
+		GroupTransferBuffer* deferred = nullptr; // these are done after as we cant map memory and push copy commands at the same time
+		
+		// META BUFFERS
+		for(MetaBufferUpload* upload = _MetaUploads; upload; upload = upload->Next)
+		{
+			_RenderTransferBuffer local{};
+			_RenderTransferBuffer* myBuffer = nullptr;
+			U8* staging = stagingGroupBuffer;
+			U64 offset = 0;
+			
+			if(groupStagingOffset + upload->Data.BufferSize > groupStaging.Size || upload->Data.BufferSize > 1024 * 1024 * 64)
+			{
+				local = _Context._AcquireTransferBuffer(upload->Data.BufferSize, *pCopyCommands);
+				myBuffer = &local;
+				staging = (U8*)SDL_MapGPUTransferBuffer(_Context._Device, local.Handle, false);
+			}
+			else
+			{
+				myBuffer = &groupStaging;
+				offset = groupStagingOffset;
+				groupStagingOffset += upload->Data.BufferSize;
+			}
+			
+			memcpy(staging + offset, upload->Data.BufferData.get(), upload->Data.BufferSize);
+			
+			if(local.Handle)
+				SDL_UnmapGPUTransferBuffer(_Context._Device, local.Handle);
+			
+			SDL_GPUTransferBufferLocation src{};
+			src.offset = (U32)offset;
+			src.transfer_buffer = local.Handle;
+			SDL_GPUBufferRegion dst{};
+			dst.size = upload->Data.BufferSize;
+			dst.offset = (U32)upload->DestPosition;
+			dst.buffer = upload->Buffer.get()->_Handle;
+			
+			if(local.Handle)
+			{
+				SDL_UploadToGPUBuffer(pCopyCommands->_CurrentPass->_CopyHandle, &src, &dst, false);
+			}
+			else
+			{
+				GroupTransferBuffer* tr = _Frame.Heap.NewNoDestruct<GroupTransferBuffer>();
+				tr->Dst = dst;
+				tr->Src = src;
+				tr->Next = deferred;
+				deferred = tr;
+			}
+		}
+		
+		// DATA STREAM BUFFERS
+		for(DataStreamBufferUpload* upload = _StreamUploads; upload; upload = upload->Next)
+		{
+			_RenderTransferBuffer local{};
+			_RenderTransferBuffer* myBuffer = nullptr;
+			U8* staging = stagingGroupBuffer;
+			U64 offset = 0;
+			
+			if(groupStagingOffset + upload->UploadSize > groupStaging.Size || upload->UploadSize > 1024 * 1024 * 64)
+			{
+				local = _Context._AcquireTransferBuffer((U32)upload->UploadSize, *pCopyCommands);
+				myBuffer = &local;
+				staging = (U8*)SDL_MapGPUTransferBuffer(_Context._Device, local.Handle, false);
+			}
+			else
+			{
+				myBuffer = &groupStaging;
+				offset = groupStagingOffset;
+				groupStagingOffset += upload->UploadSize;
+			}
+			
+			upload->Src->SetPosition(upload->Position);
+			upload->Src->Read(staging + offset, upload->UploadSize);
+			
+			if(local.Handle)
+				SDL_UnmapGPUTransferBuffer(_Context._Device, local.Handle);
+			
+			SDL_GPUTransferBufferLocation src{};
+			src.offset = (U32)offset;
+			src.transfer_buffer = local.Handle;
+			SDL_GPUBufferRegion dst{};
+			dst.size = (U32)upload->UploadSize;
+			dst.offset = (U32)upload->DestPosition;
+			dst.buffer = upload->Buffer.get()->_Handle;
+			
+			if(local.Handle)
+			{
+				SDL_UploadToGPUBuffer(pCopyCommands->_CurrentPass->_CopyHandle, &src, &dst, false);
+			}
+			else
+			{
+				GroupTransferBuffer* tr = _Frame.Heap.NewNoDestruct<GroupTransferBuffer>();
+				tr->Dst = dst;
+				tr->Src = src;
+				tr->Next = deferred;
+				deferred = tr;
+			}
+		}
+		
+		if(groupStaging.Handle)
+		{
+			SDL_UnmapGPUTransferBuffer(_Context._Device, groupStaging.Handle);
+			
+			for(GroupTransferBuffer* tr = deferred; tr; tr = tr->Next)
+			{
+				SDL_UploadToGPUBuffer(pCopyCommands->_CurrentPass->_CopyHandle, &tr->Src, &tr->Dst, false);
+			}
+		}
+	}
+	
+	pCopyCommands->EndPass();
+}
+
+void RenderFrameUpdateList::EndRenderFrame()
+{
+	
+}
+
+void RenderFrameUpdateList::_DismissBuffer(const std::shared_ptr<RenderBuffer> &buf)
+{
+	{
+		MetaBufferUpload* uploadPrev = nullptr;
+		for(MetaBufferUpload* upload = _MetaUploads; upload; upload = upload->Next)
+		{
+			if(upload->Buffer == buf)
+			{
+				_TotalBufferUploadSize -= upload->Data.BufferSize;
+				_TotalNumUploads--;
+				if(uploadPrev)
+					uploadPrev->Next = upload->Next;
+				else
+					_MetaUploads = upload->Next;
+				*upload = MetaBufferUpload{}; // reset it (hopefully delete pointers if needed)
+				break;
+			}
+			uploadPrev = upload;
+		}
+	}
+	{
+		DataStreamBufferUpload* uploadPrev = nullptr;
+		for(DataStreamBufferUpload* upload = _StreamUploads; upload; upload = upload->Next)
+		{
+			if(upload->Buffer == buf)
+			{
+				_TotalBufferUploadSize -= upload->UploadSize;
+				_TotalNumUploads--;
+				if(uploadPrev)
+					uploadPrev->Next = upload->Next;
+				else
+					_StreamUploads = upload->Next;
+				*upload = DataStreamBufferUpload{}; // reset it (hopefully delete pointers if needed)
+				break;
+			}
+			uploadPrev = upload;
+		}
+	}
+}
+
+void RenderFrameUpdateList::UpdateBufferMeta(const Meta::BinaryBuffer &metaBuffer, const std::shared_ptr<RenderBuffer> &destBuffer, U64 dst)
+{
+	if(destBuffer->LastUpdatedFrame == _Frame.FrameNumber)
+	{
+		_DismissBuffer(destBuffer);
+	}
+	else
+		destBuffer->LastUpdatedFrame = _Frame.FrameNumber;
+	MetaBufferUpload* upload = _Frame.Heap.New<MetaBufferUpload>();
+	upload->Data = metaBuffer;
+	upload->Buffer = destBuffer;
+	upload->DestPosition = dst;
+	upload->Next = _MetaUploads;
+	_MetaUploads = upload;
+	_TotalBufferUploadSize += metaBuffer.BufferSize;
+	_TotalNumUploads++;
+}
+
+void RenderFrameUpdateList::UpdateBufferDataStream(const DataStreamRef &srcStream, const std::shared_ptr<RenderBuffer> &destBuffer, U64 srcPos, U64 nBytes, U64 dst)
+{
+	if(destBuffer->LastUpdatedFrame == _Frame.FrameNumber)
+	{
+		_DismissBuffer(destBuffer);
+	}
+	else
+		destBuffer->LastUpdatedFrame = _Frame.FrameNumber;
+	DataStreamBufferUpload* upload = _Frame.Heap.New<DataStreamBufferUpload>();
+	upload->Buffer = destBuffer;
+	upload->DestPosition = dst;
+	upload->Src = srcStream;
+	upload->Position = srcPos;
+	upload->UploadSize = nBytes;
+	upload->Next = _StreamUploads;
+	_StreamUploads = upload;
+	_TotalBufferUploadSize += nBytes;
+	_TotalNumUploads++;
 }

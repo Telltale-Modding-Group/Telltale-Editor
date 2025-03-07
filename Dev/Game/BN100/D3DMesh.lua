@@ -4,43 +4,43 @@ function RegisterBoneD3DMesh(platform, vendor, bb, hTexture, arrayDCInt, MetaCol
 
 	local indexBuffer = NewClass("class D3DIndexBuffer", 0)
     indexBuffer.Serialiser = "SerialiseBoneD3DIndexBuffer"
-	indexBuffer.Members[1] = NewMember("mbLocked", kMetaBool)
-	indexBuffer.Members[2] = NewMember("mFormat", kMetaInt) -- 101 for U16, else U32
-	indexBuffer.Members[3] = NewMember("mNumIndicies", kMetaInt) -- spelling mate [DONT FIX! needs to be like this for hash]
-	indexBuffer.Members[4] = NewMember("mIndexByteSize", kMetaInt)
+    indexBuffer.Members[1] = NewMember("mbLocked", kMetaBool)
+    indexBuffer.Members[2] = NewMember("mFormat", kMetaInt) -- 101 for U16, else U32
+    indexBuffer.Members[3] = NewMember("mNumIndicies", kMetaInt) -- spelling mate [DONT FIX! needs to be like this for hash]
+    indexBuffer.Members[4] = NewMember("mIndexByteSize", kMetaInt)
     indexBuffer.Members[5] = NewMember("_IndexBufferData", kMetaClassInternalBinaryBuffer)
     indexBuffer.Members[5].Flags = kMetaMemberVersionDisable
-	MetaRegisterClass(indexBuffer)
+    MetaRegisterClass(indexBuffer)
 
-	local triangleSet = NewClass("class D3DMesh::TriangleSet", 0)
-	triangleSet.Serialiser = "SerialiseBoneTriangleSet"
-	triangleSet.Members[1] = NewMember("mVertexShaderName", kMetaClassString)
-	triangleSet.Members[2] = NewMember("mPixelShaderName", kMetaClassString)
-	triangleSet.Members[3] = NewMember("mBonePaletteIndex", kMetaInt)
-	triangleSet.Members[4] = NewMember("mGeometryFormat", kMetaInt)
-	triangleSet.Members[5] = NewMember("mMinVertIndex", kMetaInt)
-	triangleSet.Members[6] = NewMember("mMaxVertIndex", kMetaInt)
-	triangleSet.Members[7] = NewMember("mStartIndex", kMetaInt)
-	triangleSet.Members[8] = NewMember("mNumPrimitives", kMetaInt)
-	triangleSet.Members[9] = NewMember("mLightingGroup", kMetaClassString)
-	triangleSet.Members[10] = NewMember("mBoundingBox", bb)
-	triangleSet.Members[11] = NewMember("mhDiffuseMap", hTexture)
-	triangleSet.Members[12] = NewMember("mhDetailMap", hTexture)
-	triangleSet.Members[13] = NewMember("mhLightMap", hTexture)
-	triangleSet.Members[14] = NewMember("mhBumpMap", hTexture)
-	triangleSet.Members[15] = NewMember("mbHasPixelShader_RemoveMe", kMetaBool)
-	triangleSet.Members[16] = NewMember("mTriStrips", arrayDCInt)
-	triangleSet.Members[17] = NewMember("mNumTotalIndices", kMetaInt)
-	triangleSet.Members[18] = NewMember("mbDoubleSided", kMetaBool)
-	triangleSet.Members[19] = NewMember("mfBumpHeight", kMetaFloat)
-	triangleSet.Members[20] = NewMember("mhEnvMap", hTexture)
-	triangleSet.Members[21] = NewMember("mfEccentricity", kMetaFloat)
-	triangleSet.Members[22] = NewMember("mSpecularColor", MetaCol)
-	triangleSet.Members[23] = NewMember("mAmbientColor", MetaCol)
-	triangleSet.Members[24] = NewMember("mbSelfIlluminated", kMetaBool)
-	triangleSet.Members[25] = NewMember("mAlphaMode", kMetaInt)
-	triangleSet.Members[26] = NewMember("mfReflectivity", kMetaFloat)
-	MetaRegisterClass(triangleSet)
+    local triangleSet = NewClass("class D3DMesh::TriangleSet", 0)
+    triangleSet.Serialiser = "SerialiseBoneTriangleSet"
+    triangleSet.Members[1] = NewMember("mVertexShaderName", kMetaClassString)
+    triangleSet.Members[2] = NewMember("mPixelShaderName", kMetaClassString)
+    triangleSet.Members[3] = NewMember("mBonePaletteIndex", kMetaInt)
+    triangleSet.Members[4] = NewMember("mGeometryFormat", kMetaInt)
+    triangleSet.Members[5] = NewMember("mMinVertIndex", kMetaInt)
+    triangleSet.Members[6] = NewMember("mMaxVertIndex", kMetaInt)
+    triangleSet.Members[7] = NewMember("mStartIndex", kMetaInt)
+    triangleSet.Members[8] = NewMember("mNumPrimitives", kMetaInt)
+    triangleSet.Members[9] = NewMember("mLightingGroup", kMetaClassString)
+    triangleSet.Members[10] = NewMember("mBoundingBox", bb)
+    triangleSet.Members[11] = NewMember("mhDiffuseMap", hTexture)
+    triangleSet.Members[12] = NewMember("mhDetailMap", hTexture)
+    triangleSet.Members[13] = NewMember("mhLightMap", hTexture)
+    triangleSet.Members[14] = NewMember("mhBumpMap", hTexture)
+    triangleSet.Members[15] = NewMember("mbHasPixelShader_RemoveMe", kMetaBool)
+    triangleSet.Members[16] = NewMember("mTriStrips", arrayDCInt)
+    triangleSet.Members[17] = NewMember("mNumTotalIndices", kMetaInt)
+    triangleSet.Members[18] = NewMember("mbDoubleSided", kMetaBool)
+    triangleSet.Members[19] = NewMember("mfBumpHeight", kMetaFloat)
+    triangleSet.Members[20] = NewMember("mhEnvMap", hTexture)
+    triangleSet.Members[21] = NewMember("mfEccentricity", kMetaFloat)
+    triangleSet.Members[22] = NewMember("mSpecularColor", MetaCol)
+    triangleSet.Members[23] = NewMember("mAmbientColor", MetaCol)
+    triangleSet.Members[24] = NewMember("mbSelfIlluminated", kMetaBool)
+    triangleSet.Members[25] = NewMember("mAlphaMode", kMetaInt)
+    triangleSet.Members[26] = NewMember("mfReflectivity", kMetaFloat)
+    MetaRegisterClass(triangleSet)
 
 	arrayTriangleSet, _ = RegisterBoneCollection(MetaCI, "class DCArray<class D3DMesh::TriangleSet>", nil, triangleSet)
 
@@ -57,8 +57,10 @@ function RegisterBoneD3DMesh(platform, vendor, bb, hTexture, arrayDCInt, MetaCol
 	vertexBuffer.Members[1] = NewMember("mbLocked", kMetaBool)
 	vertexBuffer.Members[2] = NewMember("mNumVerts", kMetaInt)
 	vertexBuffer.Members[3] = NewMember("mVertSize", kMetaInt)
-	vertexBuffer.Members[4] = NewMember("mType", kMetaInt) -- types: 
-	vertexBuffer.Members[5] = NewMember("mbStoreCompressed", kMetaBool)
+    -- mType values: 0(??) 1(Vec3, 3x floats), 2(compressed vec3s (from u16s), -1.0 to 1.0 in each, third is not stored, Xproduct), 3(Vec2, 2x floats),
+    -- 4(compressed vec2s, from u16s, 0.0 to 1., each from each byte. unsigned)
+	vertexBuffer.Members[4] = NewMember("mType", kMetaInt)
+	vertexBuffer.Members[5] = NewMember("mbStoreCompressed", kMetaBool) -- if it should be compressed when writing. can still not be compressed if true. see mType
     vertexBuffer.Members[6] = NewMember("_VertexBufferData", kMetaClassInternalBinaryBuffer)
     vertexBuffer.Members[6].Flags = kMetaMemberVersionDisable
 	MetaRegisterClass(vertexBuffer)
@@ -94,13 +96,13 @@ function SerialiseBoneD3DMesh(stream, inst, write)
     end
 	if not write then
 		local hasIndexBuffer = MetaStreamReadBool(stream)
-		if hasIndexBuffer and not MetaSerialise(stream, MetaGetMember(inst, "_IndexBuffer0"), write) then
+		if hasIndexBuffer and not MetaSerialise(stream, MetaGetMember(inst, "_IndexBuffer0"), write, "Index Buffer") then
 			return false
 		end
 		for i=0,8 do -- Nine vertex buffers
 			local hasVertexBuffer = MetaStreamReadBool(stream)
 			if hasVertexBuffer and not MetaSerialise(stream,
-				 MetaGetMember(inst, "_VertexBuffer" .. tostring(i)), write) then
+				 MetaGetMember(inst, "_VertexBuffer" .. tostring(i)), write, "VertexBuffer" .. tostring(i)) then
 				return false
 			end
 		end
@@ -150,84 +152,65 @@ function NormaliseBoneD3DMesh(inst, state)
 
 	-- In this game, they store the vertex information for each attrib in its own buffer, ie no interleaving.
 
-	local attribIndex = 0
-	
-	-- BUFFER 0: POSITION
-	local vertexBuffer = MetaGetMember(inst, "_VertexBuffer0")
-	local nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
-	if nVerts > 0 then
-		stride = MetaGetClassValue(MetaGetMember(vertexBuffer, "mVertSize"))
-		TTE_Assert(stride == 12, "Vertex buffer position stride is not 12!")
-		CommonMeshPushVertexBuffer(state, nVerts, stride, MetaGetMember(vertexBuffer, "_VertexBufferData"))
-		CommonMeshAddVertexAttribute(state, kCommonMeshAttributePosition, attribIndex, attribIndex, kCommonMeshFloat3)
-		attribIndex = attribIndex + 1
-	end
-	
-	-- BUFFER 1: NORMAL
-	vertexBuffer = MetaGetMember(inst, "_VertexBuffer1")
-	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
-	if nVerts > 0 then
-		stride = MetaGetClassValue(MetaGetMember(vertexBuffer, "mVertSize"))
-		TTE_Assert(stride == 12, "Vertex buffer normals stride is not 12!")
-		CommonMeshPushVertexBuffer(state, nVerts, stride, MetaGetMember(vertexBuffer, "_VertexBufferData"))
-		CommonMeshAddVertexAttribute(state, kCommonMeshAttributeNormal, attribIndex, attribIndex, kCommonMeshFloat3)
-		attribIndex = attribIndex + 1
-	end
-	
+    function processBoneBuffer(state, bufferNum, index, expectedStride, attrib, format, endianFlip)
+        local vertexBuffer = MetaGetMember(inst, "_VertexBuffer" .. tostring(bufferNum))
+        local nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
+        if nVerts > 0 then
+            stride = MetaGetClassValue(MetaGetMember(vertexBuffer, "mVertSize"))
 
-	-- BUFFER 2: ??
-	vertexBuffer = MetaGetMember(inst, "_VertexBuffer2")
-	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
-	if nVerts > 0 then
-		TTE_Assert(false, "Unknown vertex buffer has data")
-	end
+            TTE_Assert(stride == expectedStride, "Vertex buffer " .. tostring(bufferNum) .. " stride is not "
+             .. tostring(expectedStride) .. ": its " .. tostring(stride) .. "!")
 
-	-- BUFFER 3: ?? ENDIAN FLIPPED!! (ON MAC AT LEAST)
-	vertexBuffer = MetaGetMember(inst, "_VertexBuffer3")
-	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
-	if nVerts > 0 then
-		TTE_Assert(false, "Unknown vertex buffer has data")
-	end
+            bufferCache = MetaGetMember(vertexBuffer, "_VertexBufferData")
 
-	-- BUFFER 4: UV
-	vertexBuffer = MetaGetMember(inst, "_VertexBuffer4")
-	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
-	if nVerts > 0 then
-		stride = MetaGetClassValue(MetaGetMember(vertexBuffer, "mVertSize"))
-		TTE_Assert(stride == 8, "Vertex buffer UV stride is not 8!") -- could be other formats. check mType
-		CommonMeshPushVertexBuffer(state, nVerts, stride, MetaGetMember(vertexBuffer, "_VertexBufferData"))
-		CommonMeshAddVertexAttribute(state, kCommonMeshAttributeUV, attribIndex, attribIndex, kCommonMeshFloat2)
-		attribIndex = attribIndex + 1
-	end
+            -- decompress if needed
+            type = MetaGetClassValue(MetaGetMember(vertexBuffer, "mType"))
+            if MetaGetClassValue(MetaGetMember(vertexBuffer, "mbStoreCompressed")) and (type == 2 or type == 4) then
+                compressedFmt = kCommonMeshCompressedFormatSNormNormal
+                if type == 4 then
+                    compressedFmt = stride == 12 and kCommonMeshCompressedFormatSNormNormal or kCommonMeshCompressedFormatUNormUV
+                    MetaSetClassValue(MetaGetMember(vertexBuffer, "mType"), stride == 12 and 1 or 3) -- decompressed, set to normal vec3s/vec2s
+                else -- type 2, ie compressed normal
+                    MetaSetClassValue(MetaGetMember(vertexBuffer, "mType"), 1) -- decompressed, set to normal vec3s
+                end
+                CommonMeshDecompressVertices(state, bufferCache, nVerts, compressedFmt)
+            end
 
-	-- BUFFER 5: ??
-	vertexBuffer = MetaGetMember(inst, "_VertexBuffer5")
-	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
-	if nVerts > 0 then
-		TTE_Assert(false, "Unknown vertex buffer has data")
-	end
+            CommonMeshPushVertexBuffer(state, nVerts, stride, bufferCache)
+            CommonMeshAddVertexAttribute(state, attrib, index, format)
+            return index + 1
+        end
+        return index
+    end
 
-	-- BUFFER 6: ??
-	vertexBuffer = MetaGetMember(inst, "_VertexBuffer6")
-	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
-	if nVerts > 0 then
-		TTE_Assert(false, "Unknown vertex buffer has data")
-	end
+    local pushedVertexBufferIndex = 0
 
-	-- BUFFER 7: ??
-	vertexBuffer = MetaGetMember(inst, "_VertexBuffer7")
-	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
-	if nVerts > 0 then
-		TTE_Assert(false, "Unknown vertex buffer has data")
-	end
+    -- BUFFER 0: POSITION
+    pushedVertexBufferIndex = processBoneBuffer(state, 0, pushedVertexBufferIndex, 12, kCommonMeshAttributePosition, kCommonMeshFloat3, false)
 
-	-- BUFFER 8: ??
-	vertexBuffer = MetaGetMember(inst, "_VertexBuffer8")
-	nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
-	if nVerts > 0 then
-		TTE_Assert(false, "Unknown vertex buffer has data")
-	end
-	
+    -- BUFFER 1: NORMAL
+    pushedVertexBufferIndex = processBoneBuffer(state, 1, pushedVertexBufferIndex, 12, kCommonMeshAttributeNormal, kCommonMeshFloat3, false)
+
+    -- BUFFER 2: ??
+    pushedVertexBufferIndex = processBoneBuffer(state, 2, pushedVertexBufferIndex, 0, kCommonMeshAttributeUnknown, kCommonMeshFormatUnknown, false)
+
+	-- BUFFER 3: ?? ENDIAN FLIPPED ON MACOS. CHECK. (4 bytes)
+    pushedVertexBufferIndex = processBoneBuffer(state, 3, pushedVertexBufferIndex, 0, kCommonMeshAttributeUnknown, kCommonMeshFormatUnknown, true)
+
+    -- BUFFER 4: DIFFUSE UV (UV0).
+    pushedVertexBufferIndex = processBoneBuffer(state, 4, pushedVertexBufferIndex, 8, kCommonMeshAttributeUVDiffuse, kCommonMeshFloat2, false)
+
+    -- BUFFER 5: LIGHTMAP UV (UV1)
+    pushedVertexBufferIndex = processBoneBuffer(state, 5, pushedVertexBufferIndex, 8, kCommonMeshAttributeUVLightMap, kCommonMeshFloat2, false)
+
+    -- BUFFER 6: ??
+    pushedVertexBufferIndex = processBoneBuffer(state, 6, pushedVertexBufferIndex, 0, kCommonMeshAttributeUnknown, kCommonMeshFormatUnknown, false)
+
+    -- BUFFER 7: ??
+    pushedVertexBufferIndex = processBoneBuffer(state, 7, pushedVertexBufferIndex, 0, kCommonMeshAttributeUnknown, kCommonMeshFormatUnknown, false)
+
+	-- BUFFER 8: ?? BINORMALS????
+	pushedVertexBufferIndex = processBoneBuffer(state, 8, pushedVertexBufferIndex, 12, kCommonMeshAttributeTangent, kCommonMeshFloat3, false)
 
 	return true
 end
@@ -271,7 +254,6 @@ function SerialiseBoneD3DVertexBuffer(stream, inst, write)
 		local vertSize = MetaGetClassValue(MetaGetMember(inst, "mVertSize"))
 		local numVerts = MetaGetClassValue(MetaGetMember(inst, "mNumVerts"))
 		local vertType = MetaGetClassValue(MetaGetMember(inst, "mType"))
-		TTE_Assert(vertType == 0, "Vertex buffer type is non zero, check me")
 		local totalVerticesByteSize = 0
 		if isCompressed and (vertType == 2 or vertType == 4) then
 			totalVerticesByteSize = 2 * numVerts
@@ -279,7 +261,6 @@ function SerialiseBoneD3DVertexBuffer(stream, inst, write)
 			totalVerticesByteSize = vertSize * numVerts
 		end
 		MetaStreamReadBuffer(stream, MetaGetMember(inst, "_VertexBufferData"), totalVerticesByteSize)
-		-- NOTE THAT WE MAY NEED TO DECOMPRESS. WILL HANDLE IN C++.
     end
     return true
 end

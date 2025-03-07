@@ -101,15 +101,80 @@ namespace MeshAPI
 		return 0;
 	}
 	
+	// Decode compressed float
+	static Float DecodeCompressedFloat(U32 encodedValue, U32 bitwidth, Float min, Float max)
+	{
+		Float range = max - min;
+		U32 mask = (1 << bitwidth) - 1;
+		Float divisor = (Float)mask;
+		Float normalised = (Float)(encodedValue & mask) / (Float)divisor;
+		return min + (range * normalised);
+	}
+	
 	// perform decompress of oldest vertices in current vertex buffer
 	// NOTE THAT THIS WILL UPDATE THE META CLASS BUFFER VALUE. SET COMPRESSED TO FALSE IN THE SOURCE CLASS TO ENSURE CONSISTENCY
-	static U32 luaDecompressLegacyVertices(LuaManager& man)
+	// decompress(state, buffer, numVerts, compressionType)
+	static U32 luaDecompressVertices(LuaManager& man)
 	{
-		TTE_ASSERT(man.GetTop() == 1, "Requires 1 argument");
+		TTE_ASSERT(man.GetTop() == 4, "Requires 4 arguments");
 		MeshNormalisationTask* t = Task(man);
 		TTE_ASSERT(t->Renderable.VertexStates.size() && t->Renderable.VertexStates.back().Default.NumVertexBuffers, "No vertex buffers set yet");
 		
-		TTE_ASSERT(false, "Implement me!"); // todo
+		Meta::ClassInstance bb = Meta::AcquireScriptInstance(man, 2);
+		Meta::BinaryBuffer* buf = (Meta::BinaryBuffer*)bb._GetInternal();
+		I32 numVerts = man.ToInteger(3);
+		I32 type = man.ToInteger(4);
+		
+		if(type == 0)
+		{
+			// 2x float compressed Unorm pair
+			auto decompressed = TTE_ALLOC_PTR(8 * numVerts, MEMORY_TAG_RUNTIME_BUFFER);
+			for(U32 i = 0; i < numVerts; i++)
+			{
+				const U16& compressedValue = *((U16*)(buf->BufferData.get() + (i<<1)));
+				Float* decompressedUV = (Float*)(decompressed.get() + (i<<3));
+				decompressedUV[0] = DecodeCompressedFloat(compressedValue & 0xFF, 8, 0.0f, 1.0f);
+				decompressedUV[1] = DecodeCompressedFloat((compressedValue >> 8) & 0xFF, 8, 0.0f, 1.0f);
+			}
+			buf->BufferSize = (U32)numVerts << 3;
+			buf->BufferData = std::move(decompressed); // swap out (will remove ref)
+		}
+		else if(type == 1)
+		{
+			// 3x float Snorm normal
+			auto decompressed = TTE_ALLOC_PTR(12 * numVerts, MEMORY_TAG_RUNTIME_BUFFER);
+			for(U32 i = 0; i < numVerts; i++)
+			{
+				const U16& compressedValue = *((U16*)(buf->BufferData.get() + (i<<1)));
+				Float* decompressedNormal = (Float*)(decompressed.get() + (i*12));
+				decompressedNormal[0] = DecodeCompressedFloat(compressedValue & 0x7F, 7, -1.0f, 1.0f);
+				decompressedNormal[1] = DecodeCompressedFloat((compressedValue >> 7) & 0x7F, 7, -1.0f, 1.0f);
+				decompressedNormal[2] = sqrtf(fmaxf(0.0f, 1.0f - (decompressedNormal[0]*decompressedNormal[0]) - (decompressedNormal[1]*decompressedNormal[1])));
+				if(compressedValue & 0x4000)
+					decompressedNormal[2] *= -1.0f;
+			}
+			buf->BufferSize = (U32)numVerts * 12;
+			buf->BufferData = std::move(decompressed); // swap out (will remove ref)
+		}
+		else if(type == 2)
+		{
+			// 3x float compressed Unorm nomal, approximated z
+			auto decompressed = TTE_ALLOC_PTR(12 * numVerts, MEMORY_TAG_RUNTIME_BUFFER);
+			for(U32 i = 0; i < numVerts; i++)
+			{
+				const U16& compressedValue = *((U16*)(buf->BufferData.get() + (i<<1)));
+				Float* decompressedNormal = (Float*)(decompressed.get() + (i*12));
+				decompressedNormal[0] = DecodeCompressedFloat(compressedValue & 0xFF, 8, 0.0f, 1.0f);
+				decompressedNormal[1] = DecodeCompressedFloat((compressedValue >> 8) & 0xFF, 8, 0.0f, 1.0f);
+				decompressedNormal[2] = 1 - decompressedNormal[0] - decompressedNormal[1];
+			}
+			buf->BufferSize = (U32)numVerts * 12;
+			buf->BufferData = std::move(decompressed); // swap out (will remove ref)
+		}
+		else
+		{
+			TTE_ASSERT(false, "Unknown vertex compression");
+		}
 		
 		return 0;
 	}
@@ -250,18 +315,17 @@ namespace MeshAPI
 		return 0;
 	}
 	
-	// add attrib(state, type, bufferIndex, attribCounter, format)
+	// add attrib(state, type, bufferIndex, format)
 	static U32 luaAddVertexAttrib(LuaManager& man)
 	{
-		TTE_ASSERT(man.GetTop() == 5, "Requires 5 arguments");
+		TTE_ASSERT(man.GetTop() == 4, "Requires 4 arguments");
 		MeshNormalisationTask* t = Task(man);
 		TTE_ASSERT(t->Renderable.VertexStates.size() && t->Renderable.VertexStates.back().Default.NumVertexAttribs != 32,"Too many attributes!");
 		
 		auto& state = t->Renderable.VertexStates.back().Default;
 		state.Attribs[state.NumVertexAttribs].Attrib = (RenderAttributeType)man.ToInteger(2);
 		state.Attribs[state.NumVertexAttribs].VertexBufferIndex = man.ToInteger(3);
-		state.Attribs[state.NumVertexAttribs].VertexBufferLocation = man.ToInteger(4);
-		state.Attribs[state.NumVertexAttribs].Format = (RenderBufferAttributeFormat)man.ToInteger(5);
+		state.Attribs[state.NumVertexAttribs].Format = (RenderBufferAttributeFormat)man.ToInteger(4);
 		state.NumVertexAttribs++;
 		
 		return 0;
@@ -284,14 +348,20 @@ void Mesh::RegisterScriptAPI(LuaFunctionCollection &Col)
 	PUSH_FUNC(Col, "CommonMeshPushVertexBuffer", &MeshAPI::luaSetNextVertexBuffer);
 	PUSH_FUNC(Col, "CommonMeshSetIndexBuffer", &MeshAPI::luaSetIndexBuffer);
 	PUSH_FUNC(Col, "CommonMeshAdvanceVertexState", &MeshAPI::luaAdvanceVertexState);
-	PUSH_FUNC(Col, "CommonMeshDecompressLegacyVertices", &MeshAPI::luaDecompressLegacyVertices);
+	PUSH_FUNC(Col, "CommonMeshDecompressVertices", &MeshAPI::luaDecompressVertices);
 	PUSH_FUNC(Col, "CommonMeshPushLOD", &MeshAPI::luaPushLevelOfDetail);
 	PUSH_FUNC(Col, "CommonMeshSetLODBounds", &MeshAPI::luaSetLODBounds);
 	PUSH_FUNC(Col, "CommonMeshPushBatch", &MeshAPI::luaPushBatch);
 	PUSH_FUNC(Col, "CommonMeshSetBatchBounds", &MeshAPI::luaBatchSetBounds);
 	PUSH_FUNC(Col, "CommonMeshSetBatchParameters", &MeshAPI::luaSetBatchParameters);
-	
 	PUSH_FUNC(Col, "CommonMeshAddVertexAttribute", &MeshAPI::luaAddVertexAttrib);
+	
+	// U16 => two Unorm floats. x and y 8 bits each normalised to 0.0 to 1.0
+	PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatUNormUV", 0);
+	// U16 => three Snorm floats, third determined by sqrt. x and y have 7 bits each, normed to -1 to 1. MSB unused. bit 15 of 16 is sign of z.
+	PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatSNormNormal", 1);
+	// U16 => three Unorm floats, third determined by 1 - x - y (no square, approx). x and y 8 bits each. normalised to 0.0 to 1.0
+	PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatUNormNormalAprox", 2);
 	
 }
 

@@ -20,7 +20,7 @@ void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* upload
 	tex.Texture->Create2D(&context, 1, 1, RenderSurfaceFormat::RGBA8, 1);
 	DataStreamRef texStream = Stream(4);
 	texStream->Write((const U8*)"\x00\x00\x00\xFF", 4);
-	upload->UploadTextureData(tex.Texture, std::move(texStream), 0, 0, 0, 4);
+	upload->UploadTextureDataSlow(tex.Texture, std::move(texStream), 0, 0, 0, 4);
 	textures.push_back(std::move(tex));
 	
 	// WHITE TEXTURE
@@ -29,7 +29,7 @@ void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* upload
 	tex.Texture->Create2D(&context, 1, 1, RenderSurfaceFormat::RGBA8, 1);
 	texStream = Stream(4);
 	texStream->Write((const U8*)"\xFF\xFF\xFF\xFF", 4);
-	upload->UploadTextureData(tex.Texture, std::move(texStream), 0, 0, 0, 4);
+	upload->UploadTextureDataSlow(tex.Texture, std::move(texStream), 0, 0, 0, 4);
 	textures.push_back(std::move(tex));
 	
 	upload->EndPass();
@@ -50,12 +50,11 @@ static void _ColouredMesh(RenderContext& context, DefaultRenderMesh& mesh, Defau
 	mesh.Type = type;
 	mesh.PipelineState = context._AllocatePipelineState();
 	mesh.PipelineState->PrimitiveType = bLines ? RenderPrimitiveType::LINE_LIST : RenderPrimitiveType::TRIANGLE_LIST;
-	mesh.PipelineState->VertexSh = "SimpleColouredVertex";
-	mesh.PipelineState->FragmentSh = "SimpleColouredVertexFrag";
+	mesh.PipelineState->ShaderProgram = "Flat";
 	mesh.PipelineState->VertexState.BufferPitches[0] = sizeof(ColouredVertex);
 	mesh.PipelineState->VertexState.NumVertexBuffers = 1;
 	mesh.PipelineState->VertexState.NumVertexAttribs = 1;
-	mesh.PipelineState->VertexState.Attribs[0] = {RenderAttributeType::POSITION, RenderBufferAttributeFormat::F32x3, 0, 0};
+	mesh.PipelineState->VertexState.Attribs[0] = {RenderAttributeType::POSITION, RenderBufferAttributeFormat::F32x3, 0};
 	mesh.PipelineState->Create();
 }
 
@@ -95,13 +94,12 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 	{
 		mesh.Type = DefaultRenderMeshType::QUAD;
 		mesh.PipelineState = context._AllocatePipelineState();
-		mesh.PipelineState->VertexSh = "SimpleSampledVertex"; // sampled vertex shader (ie xyz and uv with camera simple)
-		mesh.PipelineState->FragmentSh = "SimpleSampledVertexFrag";
+		mesh.PipelineState->ShaderProgram = "Simple"; // sampled vertex shader (ie xyz and uv with camera simple)
 		mesh.PipelineState->VertexState.BufferPitches[0] = sizeof(SampledVertex);
 		mesh.PipelineState->VertexState.NumVertexBuffers = 1;
 		mesh.PipelineState->VertexState.NumVertexAttribs = 2;
-		mesh.PipelineState->VertexState.Attribs[0] = {RenderAttributeType::POSITION, RenderBufferAttributeFormat::F32x3, 0, 0};
-		mesh.PipelineState->VertexState.Attribs[1] = {RenderAttributeType::UV, RenderBufferAttributeFormat::F32x2, 0, 1};
+		mesh.PipelineState->VertexState.Attribs[0] = {RenderAttributeType::POSITION, RenderBufferAttributeFormat::F32x3, 0};
+		mesh.PipelineState->VertexState.Attribs[1] = {RenderAttributeType::UV_DIFFUSE, RenderBufferAttributeFormat::F32x2, 0};
 		mesh.PipelineState->Create();
 		mesh.NumIndices = 6;
 		mesh.VertexBuffer = context.CreateVertexBuffer(sizeof(SampledVertex) * 4);
@@ -110,8 +108,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 		inds = Stream((sizeof(U16) * 6));
 		verts->Write((const U8*)vertices, sizeof(SampledVertex) * 4);
 		inds->Write((const U8*)indices, sizeof(U16) * 6);
-		upload->UploadBufferData(mesh.VertexBuffer, std::move(verts), 0, 0, (sizeof(SampledVertex) * 4));
-		upload->UploadBufferData(mesh.IndexBuffer, std::move(inds), 0, 0, (sizeof(U16) * 6));
+		upload->UploadBufferDataSlow(mesh.VertexBuffer, std::move(verts), 0, 0, (sizeof(SampledVertex) * 4));
+		upload->UploadBufferDataSlow(mesh.IndexBuffer, std::move(inds), 0, 0, (sizeof(U16) * 6));
 		meshes.push_back(std::move(mesh));
 	}
 	
@@ -168,8 +166,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 		mesh.VertexBuffer = context.CreateVertexBuffer(verts->GetSize());
 		U32 vertsSize = (U32)verts->GetSize();
 		U32 indsSize = (U32)inds->GetSize();
-		upload->UploadBufferData(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
-		upload->UploadBufferData(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
+		upload->UploadBufferDataSlow(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
+		upload->UploadBufferDataSlow(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
 		meshes.push_back(std::move(mesh));
 	}
 	
@@ -264,8 +262,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 		mesh.VertexBuffer = context.CreateVertexBuffer(verts->GetSize());
 		U32 vertsSize = (U32)verts->GetSize();
 		U32 indsSize = (U32)inds->GetSize();
-		upload->UploadBufferData(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
-		upload->UploadBufferData(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
+		upload->UploadBufferDataSlow(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
+		upload->UploadBufferDataSlow(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
 		meshes.push_back(std::move(mesh));
 	}
 	
@@ -310,8 +308,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 		U32 vertsSize = (U32)verts->GetSize();
 		U32 indsSize = (U32)inds->GetSize();
 		
-		upload->UploadBufferData(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
-		upload->UploadBufferData(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
+		upload->UploadBufferDataSlow(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
+		upload->UploadBufferDataSlow(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
 		
 		meshes.push_back(std::move(mesh));
 	}
@@ -400,8 +398,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 		U32 vertsSize = (U32)verts->GetSize();
 		U32 indsSize = (U32)inds->GetSize();
 		
-		upload->UploadBufferData(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
-		upload->UploadBufferData(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
+		upload->UploadBufferDataSlow(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
+		upload->UploadBufferDataSlow(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
 		
 		meshes.push_back(std::move(mesh));
 		
@@ -456,8 +454,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 		U32 vertsSize = (U32)verts->GetSize();
 		U32 indsSize = (U32)inds->GetSize();
 		
-		upload->UploadBufferData(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
-		upload->UploadBufferData(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
+		upload->UploadBufferDataSlow(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
+		upload->UploadBufferDataSlow(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
 		
 		meshes.push_back(std::move(mesh));
 	}
@@ -540,8 +538,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 		U32 vertsSize = (U32)verts->GetSize();
 		U32 indsSize = (U32)inds->GetSize();
 		
-		upload->UploadBufferData(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
-		upload->UploadBufferData(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
+		upload->UploadBufferDataSlow(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
+		upload->UploadBufferDataSlow(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
 		
 		meshes.push_back(std::move(mesh));
 
@@ -621,8 +619,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 		U32 vertsSize = (U32)verts->GetSize();
 		U32 indsSize = (U32)inds->GetSize();
 		
-		upload->UploadBufferData(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
-		upload->UploadBufferData(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
+		upload->UploadBufferDataSlow(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
+		upload->UploadBufferDataSlow(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
 		
 		meshes.push_back(std::move(mesh));
 		
@@ -722,8 +720,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 		U32 vertsSize = (U32)verts->GetSize();
 		U32 indsSize = (U32)inds->GetSize();
 		
-		upload->UploadBufferData(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
-		upload->UploadBufferData(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
+		upload->UploadBufferDataSlow(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
+		upload->UploadBufferDataSlow(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
 		
 		meshes.push_back(std::move(mesh));
 
@@ -807,8 +805,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
 		U32 vertsSize = (U32)verts->GetSize();
 		U32 indsSize = (U32)inds->GetSize();
 		
-		upload->UploadBufferData(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
-		upload->UploadBufferData(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
+		upload->UploadBufferDataSlow(mesh.IndexBuffer, std::move(inds), 0, 0, indsSize);
+		upload->UploadBufferDataSlow(mesh.VertexBuffer, std::move(verts), 0, 0, vertsSize);
 		
 		meshes.push_back(std::move(mesh));
 

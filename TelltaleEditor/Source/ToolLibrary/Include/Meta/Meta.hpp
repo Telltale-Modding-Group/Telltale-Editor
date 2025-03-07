@@ -4,8 +4,11 @@
 #include <Scheduler/JobScheduler.hpp>
 #include <Resource/DataStream.hpp>
 #include <Scripting/LuaManager.hpp>
+
+#include <climits>
 #include <vector>
 #include <set>
+#include <sstream>
 #include <functional>
 
 // maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
@@ -54,6 +57,13 @@ namespace Meta {
         StreamVersion Version;
         Section Sect[STREAM_SECTION_COUNT];
         std::vector<U32> VersionInf; // vector of class IDs
+		
+		// optional debug of reads. when reading if set outputs JSON-like
+		// IF THESE ARE PRESENT, NO ASYNC STUFF!
+		DataStreamRef DebugOutputFile;
+		std::stringstream DebugOutput;
+		U32 TabDepth = 0; // debug tab depth
+		U32 MaxInlinableBuffer = UINT32_MAX;
         
         StreamSection CurrentSection = STREAM_SECTION_MAIN;
         
@@ -66,6 +76,12 @@ namespace Meta {
         {
             return Sect[CurrentSection].Data->Read(Buffer, BufferLength);
         }
+		
+		inline void WriteTabs()
+		{
+			for(U32 i = 0; i < TabDepth; i++)
+				DebugOutput << "    ";
+		}
         
     };
     
@@ -202,10 +218,10 @@ namespace Meta {
         ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host, Symbol name); // allocates but does not construct anything in the memory
         
         // some serialisers have 'host' argument: top level class object
-        Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
+        Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString memberName);
         // serialises a given type to the stream
         
-        Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
+        Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString memberName);
         // default serialise (member by member)
         
         // internal serialisers
@@ -299,7 +315,7 @@ namespace Meta {
         
         friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&, Symbol);
         
-        friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
+        friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member);
 		
 		friend ClassInstance CreateInstance(U32 ClassID, ClassInstance host, Symbol n);
 		
@@ -681,8 +697,13 @@ namespace Meta {
     // Pass in the name of the file you are writing, the instance to write to it, the output stream and the version of the meta stream.
     Bool WriteMetaStream(const String& name, ClassInstance instance, DataStreamRef& stream, MetaStreamParams params);
     
-    // Reads a meta stream file from the input stream, into return value. This can kick off async jobs, so could block while waiting to finish.
-    ClassInstance ReadMetaStream(DataStreamRef& stream);
+    /**
+	 Reads a meta stream file from the input stream, into return value instance.
+	 An optional debug stream can be used when debugging, such that all reads are written output as a string file.
+	 Any debug stream present causes any async stuff to not complete.
+	 Set last argument to optional maximum number of bytes to inline into the debug output stream when reading binary buffers. Any longer ones are truncated.
+	 */
+	ClassInstance ReadMetaStream(DataStreamRef& stream, DataStreamRef debugOutputStream = {}, U32 debugInlinableBufferSizeCap = 128);
 	
 	// Some older game files are encrypted with MBES headers and similar. This function takes any of those and returns a decrypting stream which
 	// will come out as a normal MBIN file
