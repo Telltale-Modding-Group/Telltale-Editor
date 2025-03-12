@@ -11,12 +11,12 @@
  */
 inline LuaFunctionCollection CreateScriptAPI()
 {
-	LuaFunctionCollection Col{};
-	
-	RegisterRenderConstants(Col);
-	
-	Mesh::RegisterScriptAPI(Col);
-	Scene::RegisterScriptAPI(Col);
-	
-	return Col;
+    LuaFunctionCollection Col{};
+    
+    RegisterRenderConstants(Col);
+    
+    Mesh::RegisterScriptAPI(Col);
+    Scene::RegisterScriptAPI(Col);
+    
+    return Col;
 }

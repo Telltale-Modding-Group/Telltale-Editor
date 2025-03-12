@@ -100,7 +100,7 @@ void SymbolTable::SerialiseOut(DataStreamRef& stream)
 
 String SymbolTable::Find(Symbol sym)
 {
-	std::lock_guard<std::mutex> _L{_Lock};
+    std::lock_guard<std::mutex> _L{_Lock};
     auto it = _SortedHashed.find(sym); // BINARY SEARCH
     if(it == _SortedHashed.end())
     {
@@ -114,7 +114,7 @@ String SymbolTable::Find(Symbol sym)
 
 void SymbolTable::Clear()
 {
-	std::lock_guard<std::mutex> _L{_Lock};
+    std::lock_guard<std::mutex> _L{_Lock};
     _Table.clear();
     _SortedHashed.clear();
 }
@@ -123,7 +123,7 @@ void SymbolTable::Register(const String& str)
 {
     if(str.length() == 0)
         return;
-	std::lock_guard<std::mutex> _L{_Lock};
+    std::lock_guard<std::mutex> _L{_Lock};
     
     Symbol sym = Symbol(str);
     auto it = _SortedHashed.find(sym); // BINARY SEARCH

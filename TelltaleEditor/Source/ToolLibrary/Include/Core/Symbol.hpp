@@ -92,7 +92,7 @@ public:
     
 private:
     
-	std::mutex _Lock{};
+    std::mutex _Lock{};
     std::vector<String> _Table{};
     std::map<U64, U32> _SortedHashed{}; // hash => index into _Table
     

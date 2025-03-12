@@ -20,15 +20,15 @@ public:
     // Returns the binary stream of the given file name symbol in this data archive.
     inline DataStreamRef Find(const Symbol& fn, String* outName) const
     {
-		FileInfo proxy{"", fn, DataStreamRef{}};
-		auto it = std::lower_bound(_Files.begin(), _Files.end(), proxy);
-		if(it != _Files.end())
-		{
-			if(outName)
-				*outName = it->Name;
-			return it->Stream;
-		}
-		return {};
+	    FileInfo proxy{"", fn, DataStreamRef{}};
+	    auto it = std::lower_bound(_Files.begin(), _Files.end(), proxy);
+	    if(it != _Files.end())
+	    {
+    	    if(outName)
+	    	    *outName = it->Name;
+    	    return it->Stream;
+	    }
+	    return {};
     }
     
     // Adds a file to this archive, replacing the old one.
@@ -47,51 +47,51 @@ public:
         }
         
         // Doesn't exist, add new entry
-		FileInfo inf{name, Symbol(name), std::move(stream)};
-		VectorInsertSorted(_Files, std::move(inf));
+	    FileInfo inf{name, Symbol(name), std::move(stream)};
+	    VectorInsertSorted(_Files, std::move(inf));
     }
     
     // Puts all file names inside this archive into the output result array
     inline void GetFiles(std::set<String>& result)
     {
         for(auto& file : _Files)
-			result.insert(file.Name);
+    	    result.insert(file.Name);
     }
-	
-	// Clears everything and releases.
-	inline void Reset()
-	{
-		_Files.clear();
-		_Folders.clear();
-	}
+    
+    // Clears everything and releases.
+    inline void Reset()
+    {
+	    _Files.clear();
+	    _Folders.clear();
+    }
     
 private:
-	
-	friend class RegistryDirectory_TTArchive;
+    
+    friend class RegistryDirectory_TTArchive;
     
     struct FileInfo // file
     {
-		
+	    
         String Name;
-		Symbol NameSymbol;
+	    Symbol NameSymbol;
         DataStreamRef Stream;
-		
-		inline Bool operator<(const FileInfo& rhs) const
-		{
-			return NameSymbol < rhs.NameSymbol;
-		}
-		
+	    
+	    inline Bool operator<(const FileInfo& rhs) const
+	    {
+    	    return NameSymbol < rhs.NameSymbol;
+	    }
+	    
     };
-	
-	struct FileInfoSorter
-	{
-		
-		inline Bool operator() (const FileInfo& lhs, const FileInfo& rhs) const
-		{
-			return lhs.NameSymbol < rhs.NameSymbol;
-		}
-		
-	};
+    
+    struct FileInfoSorter
+    {
+	    
+	    inline Bool operator() (const FileInfo& lhs, const FileInfo& rhs) const
+	    {
+    	    return lhs.NameSymbol < rhs.NameSymbol;
+	    }
+	    
+    };
     
     U32 _Version = 0; // version. game sets this version in the lua scripts. each version differs in format by a lot!
     std::vector<FileInfo> _Files;

@@ -26,9 +26,9 @@ enum class LuaOp {
 
 enum class LoadChunkMode
 {
-	BINARY,
-	SOURCE,
-	ANY
+    BINARY,
+    SOURCE,
+    ANY
 };
 
 enum class LuaType {
@@ -209,11 +209,11 @@ class LuaManager
 
     // Default constructor.
     LuaManager() = default;
-	
-	LuaManager(LuaManager&&) = default;
-	LuaManager& operator=(LuaManager&&) = default;
-	LuaManager(const LuaManager&) = delete;
-	LuaManager& operator=(const LuaManager&) = delete;
+    
+    LuaManager(LuaManager&&) = default;
+    LuaManager& operator=(LuaManager&&) = default;
+    LuaManager(const LuaManager&) = delete;
+    LuaManager& operator=(const LuaManager&) = delete;
 
     // Releases lua.
     ~LuaManager();

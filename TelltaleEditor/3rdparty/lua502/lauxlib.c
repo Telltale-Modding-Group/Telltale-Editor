@@ -24,16 +24,16 @@
 
 
 /* number of prereserved references (for internal use) */
-#define RESERVED_REFS	2
+#define RESERVED_REFS    2
 
 /* reserved references */
-#define FREELIST_REF	1	/* free list of references */
-#define ARRAYSIZE_REF	2	/* array sizes */
+#define FREELIST_REF    1    /* free list of references */
+#define ARRAYSIZE_REF    2    /* array sizes */
 
 
 /* convert a stack index to positive */
-#define abs_index(L, i)		((i) > 0 || (i) <= LUA_REGISTRYINDEX ? (i) : \
-					lua_gettop(L) + (i) + 1)
+#define abs_index(L, i)	    ((i) > 0 || (i) <= LUA_REGISTRYINDEX ? (i) : \
+    	    	    lua_gettop(L) + (i) + 1)
 
 
 /*
@@ -328,10 +328,10 @@ int luaL_getn (lua_State *L, int t) {
 */
 
 
-#define bufflen(B)	((B)->p - (B)->buffer)
-#define bufffree(B)	((size_t)(LUAL_BUFFERSIZE - bufflen(B)))
+#define bufflen(B)    ((B)->p - (B)->buffer)
+#define bufffree(B)    ((size_t)(LUAL_BUFFERSIZE - bufflen(B)))
 
-#define LIMIT	(LUA_MINSTACK/2)
+#define LIMIT    (LUA_MINSTACK/2)
 
 
 static int emptybuffer (luaL_Buffer *B) {

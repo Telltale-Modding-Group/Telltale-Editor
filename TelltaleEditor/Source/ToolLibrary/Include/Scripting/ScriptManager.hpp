@@ -30,10 +30,10 @@ struct LuaFunctionCollection
 {
     String Name;
     std::vector<LuaFunctionRegObject> Functions;
-	
-	std::unordered_map<String, String> StringGlobals; // global name to value to reg
-	std::unordered_map<String, U32> IntegerGlobals; // global name to value to reg
-	
+    
+    std::unordered_map<String, String> StringGlobals; // global name to value to reg
+    std::unordered_map<String, U32> IntegerGlobals; // global name to value to reg
+    
 };
 
 #define PUSH_FUNC(Col, Name, Fn) Col.Functions.push_back({Name, Fn})
@@ -50,12 +50,12 @@ void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker); // actual game
 // Provides high level scripting access. Most of the functions are the same as Telltales actual ScriptManager API.
 namespace ScriptManager
 {
-	
-	// Decrypts scripts into a new readable stream.
-	DataStreamRef DecryptScript(DataStreamRef& src);
-	
-	// Encrypts scripts into a new telltale stream. Specify if the given file is a .lenc file, as opposed to .lua.
-	DataStreamRef EncryptScript(DataStreamRef& src, Bool bLenc);
+    
+    // Decrypts scripts into a new readable stream.
+    DataStreamRef DecryptScript(DataStreamRef& src);
+    
+    // Encrypts scripts into a new telltale stream. Specify if the given file is a .lenc file, as opposed to .lua.
+    DataStreamRef EncryptScript(DataStreamRef& src, Bool bLenc);
     
     // Execute the function on the stack followed by its arguments pushed after. Function & args all popped. Nresults is number of arguments
     // pushed onto the stack, ensured to be padded with NILs if needed - or truncated. Pass LUA_MULTRET for whatever the function returns.
@@ -101,20 +101,20 @@ namespace ScriptManager
             man.SetTable(-3, true);
             
         }
-		
-		for(auto& st: collection.StringGlobals)
-		{
-			man.PushLString(st.first.c_str());
-			man.PushLString(st.second.c_str());
-			man.SetTable(-3, true);
-		}
-		
-		for(auto& st: collection.IntegerGlobals)
-		{
-			man.PushLString(st.first.c_str());
-			man.PushUnsignedInteger(st.second);
-			man.SetTable(-3, true);
-		}
+	    
+	    for(auto& st: collection.StringGlobals)
+	    {
+    	    man.PushLString(st.first.c_str());
+    	    man.PushLString(st.second.c_str());
+    	    man.SetTable(-3, true);
+	    }
+	    
+	    for(auto& st: collection.IntegerGlobals)
+	    {
+    	    man.PushLString(st.first.c_str());
+    	    man.PushUnsignedInteger(st.second);
+    	    man.SetTable(-3, true);
+	    }
         
         // set global
         if(collection.Name.length() > 0)

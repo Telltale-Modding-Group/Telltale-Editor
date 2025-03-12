@@ -22,7 +22,7 @@
 #include "ltable.h"
 
 
-#define hasjumps(e)	((e)->t != (e)->f)
+#define hasjumps(e)    ((e)->t != (e)->f)
 
 
 void luaK_nil (FuncState *fs, int from, int n) {

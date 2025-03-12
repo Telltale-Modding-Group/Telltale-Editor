@@ -27,11 +27,11 @@
 ** define USE_DEGREES
 */
 #ifdef USE_DEGREES
-#define FROMRAD(a)	((a)/RADIANS_PER_DEGREE)
-#define TORAD(a)	((a)*RADIANS_PER_DEGREE)
+#define FROMRAD(a)    ((a)/RADIANS_PER_DEGREE)
+#define TORAD(a)    ((a)*RADIANS_PER_DEGREE)
 #else
-#define FROMRAD(a)	(a)
-#define TORAD(a)	(a)
+#define FROMRAD(a)    (a)
+#define TORAD(a)    (a)
 #endif
 
 

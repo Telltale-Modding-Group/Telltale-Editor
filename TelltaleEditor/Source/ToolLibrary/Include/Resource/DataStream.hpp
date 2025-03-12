@@ -128,7 +128,7 @@ class DataStreamFile : public DataStream
     DataStreamFile(const ResourceURL &url);
 
     U64 _Handle;
-	U64 _MaxOffset; // if writing, the maximum offset written to. Ensures when flushing any bytes after this are cleared
+    U64 _MaxOffset; // if writing, the maximum offset written to. Ensures when flushing any bytes after this are cleared
 
     friend class DataStreamManager;
 };
@@ -534,9 +534,9 @@ class DataStreamManager
     
     // Write N bytes to the given stream
     void WriteZeros(DataStreamRef& stream, U64 N);
-	
-	// Deep copy of the source data stream into a new memory stream.
-	DataStreamRef Copy(DataStreamRef src, U64 srcOff, U64 n);
+    
+    // Deep copy of the source data stream into a new memory stream.
+    DataStreamRef Copy(DataStreamRef src, U64 srcOff, U64 n);
 
     static void Initialise();
 
@@ -547,7 +547,7 @@ class DataStreamManager
   private:
     // Map of cache URL paths to cached streams. Not thread safe, operations on each memory stream must not be done simulateously.
     std::map<String, Ptr<DataStreamMemory>> _Cache;
-	std::mutex _CacheLock;
+    std::mutex _CacheLock;
 
     static DataStreamManager *Instance;
 };

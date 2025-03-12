@@ -26,9 +26,9 @@
 */
 #ifndef USE_TMPNAME
 #ifdef __GNUC__
-#define USE_TMPNAME	0
+#define USE_TMPNAME    0
 #else
-#define USE_TMPNAME	1
+#define USE_TMPNAME    1
 #endif
 #endif
 
@@ -39,13 +39,13 @@
 #ifndef USE_POPEN
 #ifdef _POSIX_C_SOURCE
 #if _POSIX_C_SOURCE >= 2
-#define USE_POPEN	1
+#define USE_POPEN    1
 #endif
 #endif
 #endif
 
 #ifndef USE_POPEN
-#define USE_POPEN	0
+#define USE_POPEN    0
 #endif
 
 
@@ -63,10 +63,10 @@
 #endif
 
 
-#define FILEHANDLE		"FILE*"
+#define FILEHANDLE	    "FILE*"
 
-#define IO_INPUT		"_input"
-#define IO_OUTPUT		"_output"
+#define IO_INPUT	    "_input"
+#define IO_OUTPUT	    "_output"
 
 
 static int pushresult (lua_State *L, int i, const char *filename) {

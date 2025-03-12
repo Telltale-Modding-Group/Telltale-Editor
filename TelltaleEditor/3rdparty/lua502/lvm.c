@@ -37,7 +37,7 @@
 
 
 /* limit for table tag-method chains (to avoid loops) */
-#define MAXTAGLOOP	100
+#define MAXTAGLOOP    100
 
 
 const TObject *luaV_tonumber (const TObject *obj, TObject *n) {
@@ -379,19 +379,19 @@ static void Arith (lua_State *L, StkId ra,
 ** some macros for common tasks in `luaV_execute'
 */
 
-#define runtime_check(L, c)	{ if (!(c)) return 0; }
+#define runtime_check(L, c)    { if (!(c)) return 0; }
 
-#define RA(i)	(base+GETARG_A(i))
+#define RA(i)    (base+GETARG_A(i))
 /* to be used after possible stack reallocation */
-#define XRA(i)	(L->base+GETARG_A(i))
-#define RB(i)	(base+GETARG_B(i))
-#define RKB(i)	((GETARG_B(i) < MAXSTACK) ? RB(i) : k+GETARG_B(i)-MAXSTACK)
-#define RC(i)	(base+GETARG_C(i))
-#define RKC(i)	((GETARG_C(i) < MAXSTACK) ? RC(i) : k+GETARG_C(i)-MAXSTACK)
-#define KBx(i)	(k+GETARG_Bx(i))
+#define XRA(i)    (L->base+GETARG_A(i))
+#define RB(i)    (base+GETARG_B(i))
+#define RKB(i)    ((GETARG_B(i) < MAXSTACK) ? RB(i) : k+GETARG_B(i)-MAXSTACK)
+#define RC(i)    (base+GETARG_C(i))
+#define RKC(i)    ((GETARG_C(i) < MAXSTACK) ? RC(i) : k+GETARG_C(i)-MAXSTACK)
+#define KBx(i)    (k+GETARG_Bx(i))
 
 
-#define dojump(pc, i)	((pc) += (i))
+#define dojump(pc, i)    ((pc) += (i))
 
 
 StkId luaV_execute (lua_State *L) {

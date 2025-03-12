@@ -224,18 +224,18 @@ struct alignas(4) Vector3 {
         y = _y;
         z = _z;
     }
-	
-	inline Float DistanceSquared(const Vector3& other) const {
-		float dx = x - other.x;
-		float dy = y - other.y;
-		float dz = z - other.z;
-		return (dx * dx + dy * dy + dz * dz);
-	}
-	
-	inline Float Distance(const Vector3& other) const
-	{
-		return sqrtf(DistanceSquared(other));
-	}
+    
+    inline Float DistanceSquared(const Vector3& other) const {
+	    float dx = x - other.x;
+	    float dy = y - other.y;
+	    float dz = z - other.z;
+	    return (dx * dx + dy * dy + dz * dz);
+    }
+    
+    inline Float Distance(const Vector3& other) const
+    {
+	    return sqrtf(DistanceSquared(other));
+    }
     
     // Returns component by index
     inline float operator[](int index) const
@@ -726,15 +726,15 @@ struct BoundingBox {
     
     // Returns the merged bounding box of this and rhs.
     BoundingBox Merge(const BoundingBox &rhs);
-	
-	inline Float Volume() const
-	{
-		Float width  = _Max.x - _Min.x;
-		Float height = _Max.y - _Min.y;
-		Float depth  = _Max.z - _Min.z;
-		
-		return MAX(width * height * depth, 0);
-	}
+    
+    inline Float Volume() const
+    {
+	    Float width  = _Max.x - _Min.x;
+	    Float height = _Max.y - _Min.y;
+	    Float depth  = _Max.z - _Min.z;
+	    
+	    return MAX(width * height * depth, 0);
+    }
 
 };
 
@@ -755,18 +755,18 @@ struct Sphere
     
     // Perform collision with a cone
     Bool CollideWithCone(Vector3 &conePos, Vector3 &coneNorm, float coneRadius, float dotProduct);
-	
-	inline Float Volume() const
-	{
-		return 4.1887902f * _Radius * _Radius * _Radius; // 4/3 pi r cubed
-	}
+    
+    inline Float Volume() const
+    {
+	    return 4.1887902f * _Radius * _Radius * _Radius; // 4/3 pi r cubed
+    }
     
 };
 
 // Quaternion
 struct Quaternion {
-	
-	static Quaternion Zero;
+    
+    static Quaternion Zero;
     
     inline Quaternion() { x = y = z = 0.f; w = 1.0f; }
     
@@ -795,19 +795,19 @@ struct Quaternion {
         return Quaternion(-x, -y, -z, w);
     }
     
-	inline Quaternion(const Vector3& normalizedAxis, float radians)
-	{
-		// Calculate half angle
-		float halfAngle = radians * 0.5f;
-		float sine = sinf(halfAngle);
-		float cosine = cosf(halfAngle);
-		
-		// Set the quaternion components
-		x = normalizedAxis.x * sine;
-		y = normalizedAxis.y * sine;
-		z = normalizedAxis.z * sine;
-		w = cosine;
-	}
+    inline Quaternion(const Vector3& normalizedAxis, float radians)
+    {
+	    // Calculate half angle
+	    float halfAngle = radians * 0.5f;
+	    float sine = sinf(halfAngle);
+	    float cosine = cosf(halfAngle);
+	    
+	    // Set the quaternion components
+	    x = normalizedAxis.x * sine;
+	    y = normalizedAxis.y * sine;
+	    z = normalizedAxis.z * sine;
+	    w = cosine;
+    }
 
     
     inline void SetEuler(float xrot, float yrot, float zrot)
@@ -990,8 +990,8 @@ Vector3 operator*(const Vector3& vec, const Quaternion& quat);
 
 // A rotation and translation, a transformation.
 struct Transform {
-	
-	static Transform Zero;
+    
+    static Transform Zero;
     
     Quaternion _Rot;
     Vector3 _Trans;
@@ -1055,13 +1055,13 @@ public:
     Matrix4();
     Matrix4(const Matrix4& M);
     Matrix4(const Vector3& V0, const Vector3& V1, const Vector3& V2);
-	Matrix4(Vector4 Row[4]);
-	
-	// input in row major order, 64 bytes, of matrix
-	inline Matrix4(float* entries)
-	{
-		memcpy(_Entries, entries, 64);
-	}
+    Matrix4(Vector4 Row[4]);
+    
+    // input in row major order, 64 bytes, of matrix
+    inline Matrix4(float* entries)
+    {
+	    memcpy(_Entries, entries, 64);
+    }
     
     //
     // Assignment
@@ -1196,7 +1196,7 @@ Matrix4 MatrixScaling(float ScaleX, float ScaleY, float ScaleZ);
 
 inline Matrix4 MatrixScaling(const Vector3 scale)
 {
-	return MatrixScaling(scale.x, scale.y, scale.z);
+    return MatrixScaling(scale.x, scale.y, scale.z);
 }
 
 // Matrix which rotates by yaw pitch and roll

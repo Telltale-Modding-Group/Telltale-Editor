@@ -34,21 +34,21 @@ public:
     {
         if(_Setup)
         {
-			
-			U32 errors{};
-			for(auto& dependent: _SwitchDependents)
-			{
-				Ptr<GameDependentObject> alive = dependent.lock();
-				if(alive)
-				{
-					errors++;
-					TTE_LOG("FATAL: Game dependent object is still alive at a game switch: %s", alive->ObjName);
-				}
-			}
-			if(errors)
-				TTE_ASSERT(false, "Found %d alive game dependent objects before a game switch.", errors);
-			_SwitchDependents.clear();
-			
+    	    
+    	    U32 errors{};
+    	    for(auto& dependent: _SwitchDependents)
+    	    {
+	    	    Ptr<GameDependentObject> alive = dependent.lock();
+	    	    if(alive)
+	    	    {
+    	    	    errors++;
+    	    	    TTE_LOG("FATAL: Game dependent object is still alive at a game switch: %s", alive->ObjName);
+	    	    }
+    	    }
+    	    if(errors)
+	    	    TTE_ASSERT(false, "Found %d alive game dependent objects before a game switch.", errors);
+    	    _SwitchDependents.clear();
+    	    
             JobScheduler::Shutdown();
             Meta::RelGame();
             Blowfish::Shutdown();
@@ -76,7 +76,7 @@ public:
 private:
     
     // Call Switch with the game to setup the context to the given game. This constructor initialised low level APIs, constant for each game.
-	inline ToolContext(LuaFunctionCollection PerState = {})
+    inline ToolContext(LuaFunctionCollection PerState = {})
     {
         DataStreamManager::Initialise();
         Compression::Initialise();
@@ -84,11 +84,11 @@ private:
         _L[1].Initialise(LuaVersion::LUA_5_1_4);
         _L[2].Initialise(LuaVersion::LUA_5_0_2);
         Meta::Initialise();
-		
-		// higher level lua api for each thread, including this context
-		_PerStateCollection = std::move(PerState);
-		ScriptManager::RegisterCollection(GetLibraryLVM(), _PerStateCollection);
-		
+	    
+	    // higher level lua api for each thread, including this context
+	    _PerStateCollection = std::move(PerState);
+	    ScriptManager::RegisterCollection(GetLibraryLVM(), _PerStateCollection);
+	    
     }
     
 public:
@@ -109,9 +109,9 @@ public:
     {
         return _L[0]; // Use latest lua version for modding scripts
     }
-	
-	// Returns the lua manager which is tied to the currently active game.
-	LuaManager& GetGameLVM();
+    
+    // Returns the lua manager which is tied to the currently active game.
+    LuaManager& GetGameLVM();
     
     // Get the current game snapshot
     inline GameSnapshot GetSnapshot()
@@ -121,7 +121,7 @@ public:
     
     // Loads a library resource, ie a resource which is required by the library. Eventually will all be stored in a ZIP next to executable,
     // for now it only needs to load from dev directory. This can be called even if switched has not be called yet.
-	// THIS CAN BE CALLED ASYNC
+    // THIS CAN BE CALLED ASYNC
     inline DataStreamRef LoadLibraryResource(String name)
     {
         // Fow now just load from the Dev/ directory, relative to cmake build dir.
@@ -161,9 +161,9 @@ public:
     inline U32 GetLockDepth() {
         return _LockedCallDepth;
     }
-	
-	// Creates a resource registry for the given game. Only use in the current game! Must be destroyed before a switch.
-	Ptr<ResourceRegistry> CreateResourceRegistry();
+    
+    // Creates a resource registry for the given game. Only use in the current game! Must be destroyed before a switch.
+    Ptr<ResourceRegistry> CreateResourceRegistry();
     
 private:
     
@@ -171,10 +171,10 @@ private:
     U32 _LockedCallDepth = 0; // tracks number of library calls to lua scripts, ensuring we cant change context stuff from the scripts during.
     GameSnapshot _Snapshot = {};
     LuaManager _L[3];
-	LuaFunctionCollection _PerStateCollection; // functions to register for each worker thread lua state.
-	
-	std::mutex _DependentsLock;
-	std::vector<std::weak_ptr<GameDependentObject>> _SwitchDependents{}; // see game dependent object
+    LuaFunctionCollection _PerStateCollection; // functions to register for each worker thread lua state.
+    
+    std::mutex _DependentsLock;
+    std::vector<std::weak_ptr<GameDependentObject>> _SwitchDependents{}; // see game dependent object
     
     friend ToolContext* CreateToolContext(LuaFunctionCollection);
     

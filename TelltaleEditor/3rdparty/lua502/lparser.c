@@ -25,12 +25,12 @@
 
 
 
-#define getlocvar(fs, i)	((fs)->f->locvars[(fs)->actvar[i]])
+#define getlocvar(fs, i)    ((fs)->f->locvars[(fs)->actvar[i]])
 
 
-#define enterlevel(ls)	if (++(ls)->nestlevel > LUA_MAXPARSERLEVEL) \
-		luaX_syntaxerror(ls, "too many syntax levels");
-#define leavelevel(ls)	((ls)->nestlevel--)
+#define enterlevel(ls)    if (++(ls)->nestlevel > LUA_MAXPARSERLEVEL) \
+	    luaX_syntaxerror(ls, "too many syntax levels");
+#define leavelevel(ls)    ((ls)->nestlevel--)
 
 
 /*
@@ -92,7 +92,7 @@ static void check (LexState *ls, int c) {
 }
 
 
-#define check_condition(ls,c,msg)	{ if (!(c)) luaX_syntaxerror(ls, msg); }
+#define check_condition(ls,c,msg)    { if (!(c)) luaX_syntaxerror(ls, msg); }
 
 
 
@@ -789,7 +789,7 @@ static const struct {
    {2, 2}, {1, 1}                   /* logical (and/or) */
 };
 
-#define UNARY_PRIORITY	8  /* priority for unary operators */
+#define UNARY_PRIORITY    8  /* priority for unary operators */
 
 
 /*
@@ -949,14 +949,14 @@ static void cond (LexState *ls, expdesc *v) {
 ** maximum size of expressions for optimizing `while' code
 */
 #ifndef MAXEXPWHILE
-#define MAXEXPWHILE	100
+#define MAXEXPWHILE    100
 #endif
 
 /*
 ** the call `luaK_goiffalse' may grow the size of an expression by
 ** at most this:
 */
-#define EXTRAEXP	5
+#define EXTRAEXP    5
 
 static void whilestat (LexState *ls, int line) {
   /* whilestat -> WHILE cond DO block END */

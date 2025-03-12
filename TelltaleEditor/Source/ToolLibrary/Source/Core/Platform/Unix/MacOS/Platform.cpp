@@ -29,8 +29,8 @@ U64 FileOpen(CString path){
 }
 
 void FileClose(U64 Handle, U64 truncateOffset){
-	if(truncateOffset > 0)
-		ftruncate((int)Handle, truncateOffset);
+    if(truncateOffset > 0)
+	    ftruncate((int)Handle, truncateOffset);
     close((int)Handle);
 }
 

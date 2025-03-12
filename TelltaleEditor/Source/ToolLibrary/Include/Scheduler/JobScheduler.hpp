@@ -182,10 +182,10 @@ struct JobThread
     U32 ThreadNumber;
     // Current job being executed.
     Job CurrentJob;
-	
-	// Lua state for this thread.
-	mutable LuaManager L;
-	
+    
+    // Lua state for this thread.
+    mutable LuaManager L;
+    
 };
 
 /// <summary>
@@ -274,17 +274,17 @@ struct JobList
 class JobScheduler
 {
   public:
-	
+    
     /// <summary>
     /// Constructor to initialise the system and spawn threads.
-	/// This version takes in a set of registration functions for each worker thread lua state.
+    /// This version takes in a set of registration functions for each worker thread lua state.
     /// </summary>
     JobScheduler(LuaFunctionCollection&& jobThreadFunctions);
-	
-	/// <summary>
-	/// Constructor to initialise the system and spawn threads.
-	/// </summary>
-	JobScheduler();
+    
+    /// <summary>
+    /// Constructor to initialise the system and spawn threads.
+    /// </summary>
+    JobScheduler();
 
     /// <summary>
     /// Posts a job to the job scheduler. The job will be run eventually and the return value can be used with other functions in this
@@ -340,23 +340,23 @@ class JobScheduler
     /// Shutdown all jobs and cancel any future jobs.
     /// </summary>
     inline ~JobScheduler() { _Shutdown(true); }
-	
-	/// Returns true if the callee is running from a worker thread
-	static Bool IsRunningFromWorker();
-	
-	/// Only call if IsRunningFromWorker() returned true. Returns the job thread information.
-	static JobThread& GetCurrentThread();
+    
+    /// Returns true if the callee is running from a worker thread
+    static Bool IsRunningFromWorker();
+    
+    /// Only call if IsRunningFromWorker() returned true. Returns the job thread information.
+    static JobThread& GetCurrentThread();
 
     // Singleton Init/Shutdown.
 
-	/**
-	 Initialises the job scheduler with the given function collection to register to each thread local lua manage (state)
-	 */
-	static void Initialise(LuaFunctionCollection Col = {});
-	
-	/**
-	 Shutsdown the job scheduler
-	 */
+    /**
+     Initialises the job scheduler with the given function collection to register to each thread local lua manage (state)
+     */
+    static void Initialise(LuaFunctionCollection Col = {});
+    
+    /**
+     Shutsdown the job scheduler
+     */
     static void Shutdown();
 
     // We use the heap instead of locally in a TU such that we can control initialisation.
@@ -475,9 +475,9 @@ class JobScheduler
     std::mutex _aliveJobsLock; // Protects counters and enqueued jobs.
 
     std::thread _workers[NUM_SCHEDULER_THREADS];
-	
-	LuaFunctionCollection _workerScriptCollection; // Worker threads use this at initialisation
-	
+    
+    LuaFunctionCollection _workerScriptCollection; // Worker threads use this at initialisation
+    
 };
 
 // Implementations for JobHandle structs, they depend on the scheduler class and these should defintely be inlined!

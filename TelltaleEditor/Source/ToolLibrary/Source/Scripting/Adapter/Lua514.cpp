@@ -60,7 +60,7 @@ Bool LuaAdapter_514::RunChunk(U8 *Chunk, U32 Len, Bool, CString Name)
 
 Bool LuaAdapter_514::LoadChunk(const String& nm, const U8* buf, U32 sz, LoadChunkMode m)
 {
-	TTE_ASSERT(m != LoadChunkMode::BINARY, "This lua version does not accept binary scripts, they do not exist in this version!");
+    TTE_ASSERT(m != LoadChunkMode::BINARY, "This lua version does not accept binary scripts, they do not exist in this version!");
     int error = luaL_loadbuffer(_State, (const char*)buf, (size_t)sz, nm.c_str());
     if (error == LUA_ERRSYNTAX)
     {

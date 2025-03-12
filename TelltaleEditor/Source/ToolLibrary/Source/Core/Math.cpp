@@ -367,39 +367,39 @@ Vector3 BoundingBox::GetFaceCenter(eFace face)
 
 BoundingBox::eFace BoundingBox::HitFace(Vector3 hitPos)
 {
-	// Retrieve the x, y, and z components from mMin and mMax
-	float minX = _Min.x;
-	float minY = _Min.y;
-	float minZ = _Min.z;
-	float maxX = _Max.x;
-	float maxY = _Max.y;
-	float maxZ = _Max.z;
-	
-	// Tolerance value for comparison
-	const float tolerance = 0.000001f;
-	
-	// Check if the hit position is on the front or back faces (z-axis)
-	if (hitPos.z >= (maxZ - tolerance) && hitPos.z <= (maxZ + tolerance))
-		return kFace_Back;  // Back face
-	
-	if (hitPos.z >= (minZ - tolerance) && hitPos.z <= (minZ + tolerance))
-		return kFace_Front;  // Front face
-	
-	// Check if the hit position is on the left or right faces (x-axis)
-	if (hitPos.x >= (maxX - tolerance) && hitPos.x <= (maxX + tolerance))
-		return kFace_Right;  // Right face
-	
-	if (hitPos.x >= (minX - tolerance) && hitPos.x <= (minX + tolerance))
-		return kFace_Left;  // Left face
-	
-	// Check if the hit position is on the top or bottom faces (y-axis)
-	if (hitPos.y >= (maxY - tolerance) && hitPos.y <= (maxY + tolerance))
-		return kFace_Top;  // Top face
-	
-	if (hitPos.y >= (minY - tolerance) && hitPos.y <= (minY + tolerance))
-		return kFace_Bottom;  // Bottom face
-	
-	return kFace_None;  // Default case if the point is not on any face
+    // Retrieve the x, y, and z components from mMin and mMax
+    float minX = _Min.x;
+    float minY = _Min.y;
+    float minZ = _Min.z;
+    float maxX = _Max.x;
+    float maxY = _Max.y;
+    float maxZ = _Max.z;
+    
+    // Tolerance value for comparison
+    const float tolerance = 0.000001f;
+    
+    // Check if the hit position is on the front or back faces (z-axis)
+    if (hitPos.z >= (maxZ - tolerance) && hitPos.z <= (maxZ + tolerance))
+	    return kFace_Back;  // Back face
+    
+    if (hitPos.z >= (minZ - tolerance) && hitPos.z <= (minZ + tolerance))
+	    return kFace_Front;  // Front face
+    
+    // Check if the hit position is on the left or right faces (x-axis)
+    if (hitPos.x >= (maxX - tolerance) && hitPos.x <= (maxX + tolerance))
+	    return kFace_Right;  // Right face
+    
+    if (hitPos.x >= (minX - tolerance) && hitPos.x <= (minX + tolerance))
+	    return kFace_Left;  // Left face
+    
+    // Check if the hit position is on the top or bottom faces (y-axis)
+    if (hitPos.y >= (maxY - tolerance) && hitPos.y <= (maxY + tolerance))
+	    return kFace_Top;  // Top face
+    
+    if (hitPos.y >= (minY - tolerance) && hitPos.y <= (minY + tolerance))
+	    return kFace_Bottom;  // Bottom face
+    
+    return kFace_None;  // Default case if the point is not on any face
 }
 
 
@@ -747,41 +747,41 @@ Matrix4 MatrixRotation(const Quaternion& q) {
 
 Matrix4 MatrixTranslation(const Vector3& Translation)
 {
-	Matrix4 ret = Matrix4::Identity();  // Identity matrix
-	ret._Entries[0][3] = Translation.x;  // Translation along X
-	ret._Entries[1][3] = Translation.y;  // Translation along Y
-	ret._Entries[2][3] = Translation.z;  // Translation along Z
-	ret._Entries[3][3] = 1.0f;  // Homogeneous coordinate
-	return ret;
+    Matrix4 ret = Matrix4::Identity();  // Identity matrix
+    ret._Entries[0][3] = Translation.x;  // Translation along X
+    ret._Entries[1][3] = Translation.y;  // Translation along Y
+    ret._Entries[2][3] = Translation.z;  // Translation along Z
+    ret._Entries[3][3] = 1.0f;  // Homogeneous coordinate
+    return ret;
 }
 
 Matrix4 MatrixTransformation(const Quaternion& rot, const Vector3& Translation)
 {
-	Matrix4 ret = MatrixRotation(rot);  // Get the rotation matrix
-	ret._Entries[0][3] = Translation.x;  // Translation along X
-	ret._Entries[1][3] = Translation.y;  // Translation along Y
-	ret._Entries[2][3] = Translation.z;  // Translation along Z
-	ret._Entries[3][3] = 1.0f;  // Homogeneous coordinate
-	return ret;
+    Matrix4 ret = MatrixRotation(rot);  // Get the rotation matrix
+    ret._Entries[0][3] = Translation.x;  // Translation along X
+    ret._Entries[1][3] = Translation.y;  // Translation along Y
+    ret._Entries[2][3] = Translation.z;  // Translation along Z
+    ret._Entries[3][3] = 1.0f;  // Homogeneous coordinate
+    return ret;
 }
 
 Matrix4 MatrixTransformation(const Vector3 scale, const Quaternion& rot, const Vector3& Translation)
 {
-	// Apply scaling, then rotation, then translation
-	Matrix4 scaleMatrix = MatrixScaling(scale);
-	Matrix4 rotMat = MatrixRotation(rot);
-	Matrix4 trans = MatrixTranslation(Translation);
-	return trans * rotMat * scaleMatrix;
+    // Apply scaling, then rotation, then translation
+    Matrix4 scaleMatrix = MatrixScaling(scale);
+    Matrix4 rotMat = MatrixRotation(rot);
+    Matrix4 trans = MatrixTranslation(Translation);
+    return trans * rotMat * scaleMatrix;
 }
 
 Matrix4 MatrixScaling(float ScaleX, float ScaleY, float ScaleZ)
 {
-	Matrix4 ret = Matrix4::Identity();  // Identity matrix
-	ret._Entries[0][0] = ScaleX;  // Scale along X
-	ret._Entries[1][1] = ScaleY;  // Scale along Y
-	ret._Entries[2][2] = ScaleZ;  // Scale along Z
-	ret._Entries[3][3] = 1.0f;  // Homogeneous coordinate
-	return ret;
+    Matrix4 ret = Matrix4::Identity();  // Identity matrix
+    ret._Entries[0][0] = ScaleX;  // Scale along X
+    ret._Entries[1][1] = ScaleY;  // Scale along Y
+    ret._Entries[2][2] = ScaleZ;  // Scale along Z
+    ret._Entries[3][3] = 1.0f;  // Homogeneous coordinate
+    return ret;
 }
 
 
@@ -832,11 +832,11 @@ Bool Frustum::Visible(const BoundingBox& box, bool* pbStraddlesNearPlane) {
 
 Matrix4::Matrix4()
 {
-	memset(_Entries, 0, sizeof(Float) * 16);
-	_Entries[0][0] = 1.0f;
-	_Entries[1][1] = 1.0f;
-	_Entries[2][2] = 1.0f;
-	_Entries[3][3] = 1.0f;
+    memset(_Entries, 0, sizeof(Float) * 16);
+    _Entries[0][0] = 1.0f;
+    _Entries[1][1] = 1.0f;
+    _Entries[2][2] = 1.0f;
+    _Entries[3][3] = 1.0f;
 }
 
 Matrix4::Matrix4(const Matrix4& M)
@@ -852,25 +852,25 @@ Matrix4::Matrix4(const Matrix4& M)
 
 Matrix4::Matrix4(Vector4 Row[4])
 {
-	_Entries[0][0] = Row[0].x;
-	_Entries[0][1] = Row[0].y;
-	_Entries[0][2] = Row[0].z;
-	_Entries[0][3] = Row[0].w;  // First row
-	
-	_Entries[1][0] = Row[1].x;
-	_Entries[1][1] = Row[1].y;
-	_Entries[1][2] = Row[1].z;
-	_Entries[1][3] = Row[1].w;  // Second row
-	
-	_Entries[2][0] = Row[2].x;
-	_Entries[2][1] = Row[2].y;
-	_Entries[2][2] = Row[2].z;
-	_Entries[2][3] = Row[2].w;  // Third row
-	
-	_Entries[3][0] = Row[3].x;
-	_Entries[3][1] = Row[3].y;
-	_Entries[3][2] = Row[3].z;
-	_Entries[3][3] = Row[3].w;  // Fourth row
+    _Entries[0][0] = Row[0].x;
+    _Entries[0][1] = Row[0].y;
+    _Entries[0][2] = Row[0].z;
+    _Entries[0][3] = Row[0].w;  // First row
+    
+    _Entries[1][0] = Row[1].x;
+    _Entries[1][1] = Row[1].y;
+    _Entries[1][2] = Row[1].z;
+    _Entries[1][3] = Row[1].w;  // Second row
+    
+    _Entries[2][0] = Row[2].x;
+    _Entries[2][1] = Row[2].y;
+    _Entries[2][2] = Row[2].z;
+    _Entries[2][3] = Row[2].w;  // Third row
+    
+    _Entries[3][0] = Row[3].x;
+    _Entries[3][1] = Row[3].y;
+    _Entries[3][2] = Row[3].z;
+    _Entries[3][3] = Row[3].w;  // Fourth row
 }
 
 Matrix4::Matrix4(const Vector3& V0, const Vector3& V1, const Vector3& V2)
@@ -1104,37 +1104,37 @@ Matrix4 Matrix4::Camera(const Vector3& Eye, const Vector3& _Look, const Vector3&
 
 Matrix4 Matrix4::LookAt(const Vector3& Eye, const Vector3& At, const Vector3& Up)
 {
-	Vector3 ZAxis = Vector3::Normalize(Eye - At);  // Forward (points toward camera)
-	Vector3 XAxis = Vector3::Normalize(Vector3::Cross(Up, ZAxis));  // Right
-	Vector3 YAxis = Vector3::Normalize(Vector3::Cross(ZAxis, XAxis));  // Up
-	
-	Matrix4 Result;
-	
-	// Row 0 (Right Vector)
-	Result[0][0] = XAxis.x;
-	Result[0][1] = XAxis.y;
-	Result[0][2] = XAxis.z;
-	Result[0][3] = -Vector3::Dot(XAxis, Eye);
-	
-	// Row 1 (Up Vector)
-	Result[1][0] = YAxis.x;
-	Result[1][1] = YAxis.y;
-	Result[1][2] = YAxis.z;
-	Result[1][3] = -Vector3::Dot(YAxis, Eye);
-	
-	// Row 2 (Forward Vector)
-	Result[2][0] = ZAxis.x;
-	Result[2][1] = ZAxis.y;
-	Result[2][2] = ZAxis.z;
-	Result[2][3] = -Vector3::Dot(ZAxis, Eye);
-	
-	// Row 3 (Homogeneous Row)
-	Result[3][0] = 0.0f;
-	Result[3][1] = 0.0f;
-	Result[3][2] = 0.0f;
-	Result[3][3] = 1.0f;
-	
-	return Result;
+    Vector3 ZAxis = Vector3::Normalize(Eye - At);  // Forward (points toward camera)
+    Vector3 XAxis = Vector3::Normalize(Vector3::Cross(Up, ZAxis));  // Right
+    Vector3 YAxis = Vector3::Normalize(Vector3::Cross(ZAxis, XAxis));  // Up
+    
+    Matrix4 Result;
+    
+    // Row 0 (Right Vector)
+    Result[0][0] = XAxis.x;
+    Result[0][1] = XAxis.y;
+    Result[0][2] = XAxis.z;
+    Result[0][3] = -Vector3::Dot(XAxis, Eye);
+    
+    // Row 1 (Up Vector)
+    Result[1][0] = YAxis.x;
+    Result[1][1] = YAxis.y;
+    Result[1][2] = YAxis.z;
+    Result[1][3] = -Vector3::Dot(YAxis, Eye);
+    
+    // Row 2 (Forward Vector)
+    Result[2][0] = ZAxis.x;
+    Result[2][1] = ZAxis.y;
+    Result[2][2] = ZAxis.z;
+    Result[2][3] = -Vector3::Dot(ZAxis, Eye);
+    
+    // Row 3 (Homogeneous Row)
+    Result[3][0] = 0.0f;
+    Result[3][1] = 0.0f;
+    Result[3][2] = 0.0f;
+    Result[3][3] = 1.0f;
+    
+    return Result;
 }
 
 
@@ -1218,38 +1218,38 @@ Matrix4 Matrix4::Perspective(float Width, float Height, float ZNear, float ZFar)
 
 Matrix4 Matrix4::PerspectiveFov(float FOV, float Aspect, float ZNear, float ZFar)
 {
-	float Width = 1.0f / tanf(FOV / 2.0f);
-	float Height = Aspect / tanf(FOV / 2.0f);
-	float A = (ZFar + ZNear) / (ZNear - ZFar);
-	float B = (2.0f * ZFar * ZNear) / (ZNear - ZFar);
-	
-	Matrix4 Result;
-	
-	// Row 0
-	Result[0][0] = Width;
-	Result[0][1] = 0.0f;
-	Result[0][2] = 0.0f;
-	Result[0][3] = 0.0f;
-	
-	// Row 1
-	Result[1][0] = 0.0f;
-	Result[1][1] = Height;
-	Result[1][2] = 0.0f;
-	Result[1][3] = 0.0f;
-	
-	// Row 2
-	Result[2][0] = 0.0f;
-	Result[2][1] = 0.0f;
-	Result[2][2] = A;
-	Result[2][3] = B;
-	
-	// Row 3
-	Result[3][0] = 0.0f;
-	Result[3][1] = 0.0f;
-	Result[3][2] = -1.0f;
-	Result[3][3] = 0.0f;
-	
-	return Result;
+    float Width = 1.0f / tanf(FOV / 2.0f);
+    float Height = Aspect / tanf(FOV / 2.0f);
+    float A = (ZFar + ZNear) / (ZNear - ZFar);
+    float B = (2.0f * ZFar * ZNear) / (ZNear - ZFar);
+    
+    Matrix4 Result;
+    
+    // Row 0
+    Result[0][0] = Width;
+    Result[0][1] = 0.0f;
+    Result[0][2] = 0.0f;
+    Result[0][3] = 0.0f;
+    
+    // Row 1
+    Result[1][0] = 0.0f;
+    Result[1][1] = Height;
+    Result[1][2] = 0.0f;
+    Result[1][3] = 0.0f;
+    
+    // Row 2
+    Result[2][0] = 0.0f;
+    Result[2][1] = 0.0f;
+    Result[2][2] = A;
+    Result[2][3] = B;
+    
+    // Row 3
+    Result[3][0] = 0.0f;
+    Result[3][1] = 0.0f;
+    Result[3][2] = -1.0f;
+    Result[3][3] = 0.0f;
+    
+    return Result;
 }
 
 

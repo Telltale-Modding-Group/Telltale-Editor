@@ -104,7 +104,7 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
         // read file names
         FileInfo& inf = _Files.emplace_back();
         inf.Name = (CString)(TempFileNames + _inf[i].NameOffset); // these are null terminated, create string memory w/ std string
-		inf.NameSymbol = _inf[i].CRC;
+	    inf.NameSymbol = _inf[i].CRC;
         
         // create sub stream
         inf.Stream = DataStreamManager::GetInstance()->CreateSubStream(in, _inf[i].Offset, (U64)_inf[i].Size);

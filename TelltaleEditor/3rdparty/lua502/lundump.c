@@ -16,7 +16,7 @@
 #include "lundump.h"
 #include "lzio.h"
 
-#define	LoadByte	(lu_byte) ezgetc
+#define    LoadByte    (lu_byte) ezgetc
 
 typedef struct {
  lua_State* L;
@@ -104,7 +104,7 @@ static TString* LoadString (LoadState* S)
  {
   char* s=luaZ_openspace(S->L,S->b,size);
   ezread(S,s,(int)size);
-  return luaS_newlstr(S->L,s,size-1);		/* remove trailing '\0' */
+  return luaS_newlstr(S->L,s,size-1);	    /* remove trailing '\0' */
  }
 }
 
@@ -144,7 +144,7 @@ static void LoadUpvalues (LoadState* S, Proto* f)
  n=LoadInt(S);
  if (n!=0 && n!=f->nups) 
   luaG_runerror(S->L,"bad nupvalues in %s: read %d; expected %d",
-		S->name,n,f->nups);
+	    S->name,n,f->nups);
  f->upvalues=luaM_newvector(S->L,n,TString*);
  f->sizeupvalues=n;
  for (i=0; i<n; i++) f->upvalues[i]=LoadString(S);
@@ -165,17 +165,17 @@ static void LoadConstants (LoadState* S, Proto* f)
   switch (t)
   {
    case LUA_TNUMBER:
-	setnvalue(o,LoadNumber(S));
-	break;
+    setnvalue(o,LoadNumber(S));
+    break;
    case LUA_TSTRING:
-	setsvalue2n(o,LoadString(S));
-	break;
+    setsvalue2n(o,LoadString(S));
+    break;
    case LUA_TNIL:
-   	setnilvalue(o);
-	break;
+       setnilvalue(o);
+    break;
    default:
-	luaG_runerror(S->L,"bad constant type (%d) in %s",t,S->name);
-	break;
+    luaG_runerror(S->L,"bad constant type (%d) in %s",t,S->name);
+    break;
   }
  }
  n=LoadInt(S);
@@ -217,11 +217,11 @@ static void TestSize (LoadState* S, int s, const char* what)
  int r=LoadByte(S);
  if (r!=s)
   luaG_runerror(S->L,"virtual machine mismatch in %s: "
-	"size of %s is %d but read %d",S->name,what,s,r);
+    "size of %s is %d but read %d",S->name,what,s,r);
 }
 
-#define TESTSIZE(s,w)	TestSize(S,s,w)
-#define V(v)		v/16,v%16
+#define TESTSIZE(s,w)    TestSize(S,s,w)
+#define V(v)	    v/16,v%16
 
 static void LoadHeader (LoadState* S)
 {
@@ -231,13 +231,13 @@ static void LoadHeader (LoadState* S)
  version=LoadByte(S);
  if (version>VERSION)
   luaG_runerror(S->L,"%s too new: "
-	"read version %d.%d; expected at most %d.%d",
-	S->name,V(version),V(VERSION));
- if (version<VERSION0)				/* check last major change */
+    "read version %d.%d; expected at most %d.%d",
+    S->name,V(version),V(VERSION));
+ if (version<VERSION0)	    	    /* check last major change */
   luaG_runerror(S->L,"%s too old: "
-	"read version %d.%d; expected at least %d.%d",
-	S->name,V(version),V(VERSION0));
- S->swap=(luaU_endianness()!=LoadByte(S));	/* need to swap bytes? */
+    "read version %d.%d; expected at least %d.%d",
+    S->name,V(version),V(VERSION0));
+ S->swap=(luaU_endianness()!=LoadByte(S));    /* need to swap bytes? */
  TESTSIZE(sizeof(int),"int");
  TESTSIZE(sizeof(size_t), "size_t");
  TESTSIZE(sizeof(Instruction), "Instruction");
@@ -247,7 +247,7 @@ static void LoadHeader (LoadState* S)
  TESTSIZE(SIZE_C, "C");
  TESTSIZE(sizeof(lua_Number), "number");
  x=LoadNumber(S);
- if ((long)x!=(long)tx)		/* disregard errors in last bits of fraction */
+ if ((long)x!=(long)tx)	    /* disregard errors in last bits of fraction */
   luaG_runerror(S->L,"unknown number format in %s",S->name);
 }
 

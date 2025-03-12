@@ -395,21 +395,21 @@ static int luaB_newproxy (lua_State *L) {
 
 
 /* name of global that holds table with loaded packages */
-#define REQTAB		"_LOADED"
+#define REQTAB	    "_LOADED"
 
 /* name of global that holds the search path for packages */
-#define LUA_PATH	"LUA_PATH"
+#define LUA_PATH    "LUA_PATH"
 
 #ifndef LUA_PATH_SEP
-#define LUA_PATH_SEP	';'
+#define LUA_PATH_SEP    ';'
 #endif
 
 #ifndef LUA_PATH_MARK
-#define LUA_PATH_MARK	'?'
+#define LUA_PATH_MARK    '?'
 #endif
 
 #ifndef LUA_PATH_DEFAULT
-#define LUA_PATH_DEFAULT	"?;?.lua"
+#define LUA_PATH_DEFAULT    "?;?.lua"
 #endif
 
 

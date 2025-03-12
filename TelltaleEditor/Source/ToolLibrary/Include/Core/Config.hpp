@@ -10,6 +10,7 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
 
 // =================================================================== LIBRARY CONFIGURATION
 // ===================================================================
@@ -203,10 +204,10 @@ inline Bool StringStartsWith(const String& str, const String& prefix) {
 // Checks if a string ends with the other string suffix
 inline Bool StringEndsWith(const String& str, const String& suffix)
 {
-	if (str.length() < suffix.length()) {
-		return false;
-	}
-	return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+    if (str.length() < suffix.length()) {
+	    return false;
+    }
+    return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
 template <typename T> // checks if the weak ptr has no reference at all, even to an Ptr that has been reset.
@@ -218,7 +219,7 @@ inline bool IsWeakPtrUnbound(const std::weak_ptr<T>& weak) {
 template< typename T >
 typename std::vector<T>::iterator VectorInsertSorted(std::vector<T> & vec, T&& item )
 {
-	return vec.insert(std::upper_bound(vec.begin(), vec.end(), item), std::move(item));
+    return vec.insert(std::upper_bound(vec.begin(), vec.end(), item), std::move(item));
 }
 
 // helper to call object destructor
@@ -231,29 +232,29 @@ inline void DestroyObject(T& val)
 // Gets a current timestamp.
 inline U64 GetTimeStamp()
 {
-	return std::chrono::duration_cast<std::chrono::microseconds>(
-						std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+	    	    	    std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
 // Gets the time difference in *seconds* between start and end.
 inline Float GetTimeStampDifference(U64 start, U64 end)
 {
-	return static_cast<Float>(end - start) / 1'000'000.0f;
+    return static_cast<Float>(end - start) / 1'000'000.0f;
 }
 
 inline String GetFormatedTime(Float secs) {
-	std::ostringstream stream;
-	
-	if (secs >= 1.0f)
-		stream << std::fixed << std::setprecision(3) << secs << " s";
-	else if (secs >= 0.001f)
-		stream << std::fixed << std::setprecision(3) << secs * 1000.0f << " ms";
-	else if (secs >= 0.000001f)
-		stream << std::fixed << std::setprecision(3) << secs * 1000000.0f << " µs";
-	else
-		stream << std::fixed << std::setprecision(3) << secs * 1000000000.0f << " ns";
-	
-	return stream.str();
+    std::ostringstream stream;
+    
+    if (secs >= 1.0f)
+	    stream << std::fixed << std::setprecision(3) << secs << " s";
+    else if (secs >= 0.001f)
+	    stream << std::fixed << std::setprecision(3) << secs * 1000.0f << " ms";
+    else if (secs >= 0.000001f)
+	    stream << std::fixed << std::setprecision(3) << secs * 1000000.0f << " µs";
+    else
+	    stream << std::fixed << std::setprecision(3) << secs * 1000000000.0f << " ns";
+    
+    return stream.str();
 }
 
 class ToolContext; // forward declaration. used a lot. see context.hpp
@@ -269,11 +270,11 @@ using DataStreamRef = Ptr<DataStream>;
 // Lots of classes which can only exist between game switches use this. Such that if they exist outside, we catch the error.
 struct GameDependentObject
 {
-	
-	const CString ObjName;
-	
-	inline GameDependentObject(CString obj) : ObjName(obj) {}
-	
+    
+    const CString ObjName;
+    
+    inline GameDependentObject(CString obj) : ObjName(obj) {}
+    
 };
 
 // ===================================================================         MEMORY
@@ -294,9 +295,9 @@ enum MemoryTag
     MEMORY_TAG_SCRIPT_OBJECT, // similar to SCRIPTING, however it is a object managed by the lua GC
     MEMORY_TAG_TEMPORARY_ASYNC, // temporary async stuff
     MEMORY_TAG_RENDERER, // renderer linear heap etc
-	MEMORY_TAG_LINEAR_HEAP, // linear heap pages
-	MEMORY_TAG_TRANSIENT_FENCE, // small U32 allocation. could be optimised in the future
-	MEMORY_TAG_RESOURCE_REGISTRY, // resource registry
+    MEMORY_TAG_LINEAR_HEAP, // linear heap pages
+    MEMORY_TAG_TRANSIENT_FENCE, // small U32 allocation. could be optimised in the future
+    MEMORY_TAG_RESOURCE_REGISTRY, // resource registry
 };
 
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.
@@ -337,12 +338,12 @@ void _DebugDeallocateTracked(U8* Ptr);
 
 template<typename T> inline void _TTEDeleter(T* _Instance)
 {
-	TTE_DEL(_Instance);
+    TTE_DEL(_Instance);
 }
 
 inline void _TTEFree(U8* _Instance)
 {
-	TTE_FREE(_Instance);
+    TTE_FREE(_Instance);
 }
 
 // create managed shared ptr

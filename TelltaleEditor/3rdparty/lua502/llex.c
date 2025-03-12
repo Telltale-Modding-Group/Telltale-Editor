@@ -144,17 +144,17 @@ void luaX_setinput (lua_State *L, LexState *LS, ZIO *z, TString *source) {
 /* use buffer to store names, literal strings and numbers */
 
 /* extra space to allocate when growing buffer */
-#define EXTRABUFF	32
+#define EXTRABUFF    32
 
 /* maximum number of chars that can be read without checking buffer size */
-#define MAXNOCHECK	5
+#define MAXNOCHECK    5
 
-#define checkbuffer(LS, len)	\
+#define checkbuffer(LS, len)    \
     if (((len)+MAXNOCHECK)*sizeof(char) > luaZ_sizebuffer((LS)->buff)) \
       luaZ_openspace((LS)->L, (LS)->buff, (len)+EXTRABUFF)
 
 #define save(LS, c, l) \
-	(luaZ_buffer((LS)->buff)[l++] = cast(char, c))
+    (luaZ_buffer((LS)->buff)[l++] = cast(char, c))
 #define save_and_next(LS, l)  (save(LS, LS->current, l), next(LS))
 
 

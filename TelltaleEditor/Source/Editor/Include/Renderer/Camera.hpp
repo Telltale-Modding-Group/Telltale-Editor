@@ -18,7 +18,7 @@
 class Camera
 {
 public:
-	
+    
     Transform _AgentTransform;
     //YOU MUST UPDATE THIS YOURSELF! THEN CALL OnScreenModified!
     U32 _ScreenWidth;
@@ -26,7 +26,7 @@ public:
     
 private:
     
-	float _AspectRatio;
+    float _AspectRatio;
     Bool _BCullObjects;
     Bool _BPushed;
     Bool _BIsViewCamera;
@@ -113,14 +113,14 @@ public:
      SoundEventName<1> mtReverbSnapshotOverride;
      bool _BInLensCallback;*/
     
-	// Gets the world matrix. INTERNAL
-	inline Matrix4& GetWorldMatrix()
-	{
-		if (_BWorldTransformDirty)
-			_UpdateCachedTransform();
-		return _CachedWorldMatrix;
-	}
-	
+    // Gets the world matrix. INTERNAL
+    inline Matrix4& GetWorldMatrix()
+    {
+	    if (_BWorldTransformDirty)
+    	    _UpdateCachedTransform();
+	    return _CachedWorldMatrix;
+    }
+    
 public:
     
     // Constructor to defaults
@@ -364,21 +364,21 @@ public:
     }
     
     // Get the view matrix
-	inline Matrix4 GetViewMatrix()
-	{
-		if(_BViewMatrixDirty){
-			if (_BWorldTransformDirty)
-				_UpdateCachedTransform();
-			
-			Vector3 Eye = Vector3(_CachedWorldMatrix.GetRow(3));  // Extract camera position
-			Vector3 ForwardDir = Vector3(_CachedWorldMatrix.GetRow(2));  // Third row is forward in row-major
-			Vector3 At = Eye + ForwardDir;
-			
-			_CachedViewMatrix = Matrix4::LookAt(Eye, At, Up());
-			_BViewMatrixDirty = false;
-		}
-		return _CachedViewMatrix;
-	}
+    inline Matrix4 GetViewMatrix()
+    {
+	    if(_BViewMatrixDirty){
+    	    if (_BWorldTransformDirty)
+	    	    _UpdateCachedTransform();
+    	    
+    	    Vector3 Eye = Vector3(_CachedWorldMatrix.GetRow(3));  // Extract camera position
+    	    Vector3 ForwardDir = Vector3(_CachedWorldMatrix.GetRow(2));  // Third row is forward in row-major
+    	    Vector3 At = Eye + ForwardDir;
+    	    
+    	    _CachedViewMatrix = Matrix4::LookAt(Eye, At, Up());
+    	    _BViewMatrixDirty = false;
+	    }
+	    return _CachedViewMatrix;
+    }
 
     
     // Return true if depth is inverted
@@ -409,13 +409,13 @@ public:
         }
         return _CachedFrustum;
     }
-	
-	// Calculate and set aspect ratio as ration of screen width and height
-	inline void SetAspectRatio()
-	{
-		_AspectRatio = (float)_ScreenWidth / (float)_ScreenHeight;
-		_BProjectionMatrixDirty = true;
-	}
+    
+    // Calculate and set aspect ratio as ration of screen width and height
+    inline void SetAspectRatio()
+    {
+	    _AspectRatio = (float)_ScreenWidth / (float)_ScreenHeight;
+	    _BProjectionMatrixDirty = true;
+    }
     
     // Call when the camera agent transform has been modified
     inline void OnAgentTransformModified()
@@ -436,27 +436,27 @@ public:
     }
     
     // Make the camera look at the given position (make it the center of the screen)
-	inline void LookAt(const Vector3& worldAt)
-	{
-		if (_BWorldTransformDirty)
-			_UpdateCachedTransform();
-		
-		// Extract translation from row-major matrix (position is stored in row 3)
-		Vector3 Translation = Vector3(_CachedWorldMatrix.GetRow(3));
-		
-		// Compute new forward direction
-		Vector3 normalDir = worldAt - Translation;
-		normalDir.Normalize();
-		
-		// Convert forward direction to quaternion
-		Quaternion Rotation = Quaternion(normalDir);
-		
-		_CachedWorldMatrix = MatrixTransformation(Rotation, Translation);
-		
-		_BFrustumDirty = true;
-		_BViewMatrixDirty = true;
-		_BWorldTransformDirty = false;
-	}
+    inline void LookAt(const Vector3& worldAt)
+    {
+	    if (_BWorldTransformDirty)
+    	    _UpdateCachedTransform();
+	    
+	    // Extract translation from row-major matrix (position is stored in row 3)
+	    Vector3 Translation = Vector3(_CachedWorldMatrix.GetRow(3));
+	    
+	    // Compute new forward direction
+	    Vector3 normalDir = worldAt - Translation;
+	    normalDir.Normalize();
+	    
+	    // Convert forward direction to quaternion
+	    Quaternion Rotation = Quaternion(normalDir);
+	    
+	    _CachedWorldMatrix = MatrixTransformation(Rotation, Translation);
+	    
+	    _BFrustumDirty = true;
+	    _BViewMatrixDirty = true;
+	    _BWorldTransformDirty = false;
+    }
 
     
     // Make the camera look at the given position, worldAt, given the worldEye position where you want the camera.
@@ -487,27 +487,27 @@ public:
         _BWorldTransformDirty = false;
     }
     
-	// Set the position of the camera in row-major order
-	inline void SetWorldPosition(const Vector3& position){
-		_CachedWorldMatrix.SetRow(3, Vector4(position, 1.0f)); // Store translation in the last row
-		_BFrustumDirty = _BViewMatrixDirty = true;
-		_BWorldTransformDirty = false;
-	}
-	
-	// Set the camera's rotation in row-major order
-	inline void SetWorldQuaternion(const Quaternion& quat){
-		if (_BWorldTransformDirty)
-			_UpdateCachedTransform();
-		
-		// Extract current translation from row-major matrix (last row)
-		Vector3 position = Vector3(_CachedWorldMatrix.GetRow(3));
-		
-		// Apply new rotation while keeping the translation
-		_CachedWorldMatrix = MatrixTransformation(quat, position);
-		
-		_BFrustumDirty = _BViewMatrixDirty = true;
-		_BWorldTransformDirty = false;
-	}
+    // Set the position of the camera in row-major order
+    inline void SetWorldPosition(const Vector3& position){
+	    _CachedWorldMatrix.SetRow(3, Vector4(position, 1.0f)); // Store translation in the last row
+	    _BFrustumDirty = _BViewMatrixDirty = true;
+	    _BWorldTransformDirty = false;
+    }
+    
+    // Set the camera's rotation in row-major order
+    inline void SetWorldQuaternion(const Quaternion& quat){
+	    if (_BWorldTransformDirty)
+    	    _UpdateCachedTransform();
+	    
+	    // Extract current translation from row-major matrix (last row)
+	    Vector3 position = Vector3(_CachedWorldMatrix.GetRow(3));
+	    
+	    // Apply new rotation while keeping the translation
+	    _CachedWorldMatrix = MatrixTransformation(quat, position);
+	    
+	    _BFrustumDirty = _BViewMatrixDirty = true;
+	    _BWorldTransformDirty = false;
+    }
     
     // Set the transform of the camera, its rotation and translation
     inline void SetWorldTransform(const Transform& transform)

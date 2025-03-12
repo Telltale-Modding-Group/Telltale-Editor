@@ -35,10 +35,10 @@ const char lua_ident[] =
 
 
 #ifndef api_check
-#define api_check(L, o)		/*{ assert(o); }*/
+#define api_check(L, o)	    /*{ assert(o); }*/
 #endif
 
-#define api_checknelems(L, n)	api_check(L, (n) <= (L->top - L->base))
+#define api_checknelems(L, n)    api_check(L, (n) <= (L->top - L->base))
 
 #define api_incr_top(L)   {api_check(L, L->top < L->ci->top); L->top++;}
 
@@ -759,9 +759,9 @@ LUA_API int lua_dump (lua_State *L, lua_Chunkwriter writer, void *data) {
 */
 
 /* GC values are expressed in Kbytes: #bytes/2^10 */
-#define GCscalel(x)		((x)>>10)
-#define GCscale(x)		(cast(int, GCscalel(x)))
-#define GCunscale(x)		(cast(lu_mem, x)<<10)
+#define GCscalel(x)	    ((x)>>10)
+#define GCscale(x)	    (cast(int, GCscalel(x)))
+#define GCunscale(x)	    (cast(lu_mem, x)<<10)
 
 LUA_API int lua_getgcthreshold (lua_State *L) {
   int threshold;
