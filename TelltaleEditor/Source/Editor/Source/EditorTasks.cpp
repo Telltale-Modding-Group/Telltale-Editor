@@ -69,7 +69,7 @@ Bool ArchiveExtractionTask::PerformAsync(const JobThread &thread, ToolContext *p
 		
 		for(auto& fileName: Files)
 		{
-			DataStreamRef file = Archive1->Find(fileName);
+			DataStreamRef file = Archive1->Find(fileName, nullptr);
 			file = Meta::MapDecryptingStream(file); // ensure its not encrypted.
 			DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, Folder + fileName));
 			if(out && file)
@@ -91,7 +91,7 @@ Bool ArchiveExtractionTask::PerformAsync(const JobThread &thread, ToolContext *p
 		
 		for(auto& fileName: Files)
 		{
-			DataStreamRef file = Archive2->Find(fileName);
+			DataStreamRef file = Archive2->Find(fileName, nullptr);
 			DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, Folder + fileName));
 			if(out && file)
 			{

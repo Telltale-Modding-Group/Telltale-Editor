@@ -18,14 +18,17 @@ public:
     Bool SerialiseOut(DataStreamRef& in); // not intrinsically async. however, a job wrapping this can be used as it stays in this function
     
     // Returns the binary stream of the given file name symbol in this data archive.
-    inline DataStreamRef Find(const Symbol& fn) const
+    inline DataStreamRef Find(const Symbol& fn, String* outName) const
     {
-        for(auto& file : _Files)
-        {
-            if(Symbol(file.Name) == fn)
-                return file.Stream;
-        }
-        return {};
+		FileInfo proxy{"", fn, DataStreamRef{}};
+		auto it = std::lower_bound(_Files.begin(), _Files.end(), proxy);
+		if(it != _Files.end())
+		{
+			if(outName)
+				*outName = it->Name;
+			return it->Stream;
+		}
+		return {};
     }
     
     // Adds a file to this archive, replacing the old one.
@@ -44,7 +47,8 @@ public:
         }
         
         // Doesn't exist, add new entry
-        _Files.push_back({name, stream});
+		FileInfo inf{name, Symbol(name), std::move(stream)};
+		VectorInsertSorted(_Files, std::move(inf));
     }
     
     // Puts all file names inside this archive into the output result array
@@ -67,9 +71,27 @@ private:
     
     struct FileInfo // file
     {
+		
         String Name;
+		Symbol NameSymbol;
         DataStreamRef Stream;
+		
+		inline Bool operator<(const FileInfo& rhs) const
+		{
+			return NameSymbol < rhs.NameSymbol;
+		}
+		
     };
+	
+	struct FileInfoSorter
+	{
+		
+		inline Bool operator() (const FileInfo& lhs, const FileInfo& rhs) const
+		{
+			return lhs.NameSymbol < rhs.NameSymbol;
+		}
+		
+	};
     
     U32 _Version = 0; // version. game sets this version in the lua scripts. each version differs in format by a lot!
     std::vector<FileInfo> _Files;

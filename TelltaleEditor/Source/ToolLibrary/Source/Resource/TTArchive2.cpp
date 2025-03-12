@@ -60,7 +60,7 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
     {
         
         InternalFileInfo& info = _inf.emplace_back();
-        SerialiseDataU64(in, 0, &info.Offset, false); // name crc. skip this, we will get these from the filename table.
+        SerialiseDataU64(in, 0, &info.CRC, false); // name crc.
         SerialiseDataU64(in, 0, &info.Offset, false); // file offset
         
         if(_Version == 2) // TTA2
@@ -104,6 +104,7 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
         // read file names
         FileInfo& inf = _Files.emplace_back();
         inf.Name = (CString)(TempFileNames + _inf[i].NameOffset); // these are null terminated, create string memory w/ std string
+		inf.NameSymbol = _inf[i].CRC;
         
         // create sub stream
         inf.Stream = DataStreamManager::GetInstance()->CreateSubStream(in, _inf[i].Offset, (U64)_inf[i].Size);
@@ -144,7 +145,7 @@ Bool TTArchive2::SerialiseOut(DataStreamRef& o, ContainerParams params, JobHandl
     SerialiseDataU32(headerStream, nullptr, &files, true);
     
     // Write file information for each file
-    std::sort(_Files.begin(), _Files.end(), FileInfoSort{}); // archive hashes need to be sorted for internal binary sorts
+   // std::sort(_Files.begin(), _Files.end(), FileInfoSort{}); // archive hashes need to be sorted for internal binary sorts. already sorted.
     U32 nameTableOffs = 0;
     U64 runningOffset = 0;
     for(auto& file : _Files)

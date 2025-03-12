@@ -277,7 +277,7 @@ Bool RegistryDirectory_System::CopyResource(const Symbol& resource, const String
 	}
 }
 
-DataStreamRef RegistryDirectory_System::OpenResource(const Symbol& resourceName)
+DataStreamRef RegistryDirectory_System::OpenResource(const Symbol& resourceName, String* on)
 {
 	if(!HasResource(resourceName, nullptr))
 		return {};
@@ -286,6 +286,8 @@ DataStreamRef RegistryDirectory_System::OpenResource(const Symbol& resourceName)
 	
 	if (fs::exists(resourcePath))
 	{
+		if(on)
+			*on = _LastLocatedResource;
 		ResourceURL url{ResourceScheme::FILE, resourcePath.string()};
 		return DataStreamManager::GetInstance()->CreateFileStream(url);
 	}
@@ -429,7 +431,7 @@ Bool RegistryDirectory_TTArchive::CopyResource(const Symbol& srcResourceName, co
 		TTE_LOG("Cannot copy resource to %s: resource already exists or source does not.",dstResourceNameStr.c_str());
 		return {};
 	}
-	DataStreamRef srcStream = _Archive.Find(srcResourceName);
+	DataStreamRef srcStream = _Archive.Find(srcResourceName, nullptr);
 	if (!srcStream) return false;
 	srcStream = DataStreamManager::GetInstance()->Copy(srcStream, 0, srcStream->GetSize());
 	
@@ -440,9 +442,9 @@ Bool RegistryDirectory_TTArchive::CopyResource(const Symbol& srcResourceName, co
 	return true;
 }
 
-DataStreamRef RegistryDirectory_TTArchive::OpenResource(const Symbol& resourceName)
+DataStreamRef RegistryDirectory_TTArchive::OpenResource(const Symbol& resourceName, String* outName)
 {
-	return _Archive.Find(resourceName);
+	return _Archive.Find(resourceName, outName);
 }
 
 void RegistryDirectory_TTArchive::RefreshResources()
@@ -587,7 +589,7 @@ Bool RegistryDirectory_TTArchive2::CopyResource(const Symbol& srcResourceName, c
 		TTE_LOG("Cannot copy resource to %s: resource already exists or source does not.",dstResourceNameStr.c_str());
 		return {};
 	}
-	DataStreamRef srcStream = _Archive.Find(srcResourceName);
+	DataStreamRef srcStream = _Archive.Find(srcResourceName, nullptr);
 	if (!srcStream) return false;
 	srcStream = DataStreamManager::GetInstance()->Copy(srcStream, 0, srcStream->GetSize());
 	
@@ -598,9 +600,9 @@ Bool RegistryDirectory_TTArchive2::CopyResource(const Symbol& srcResourceName, c
 	return true;
 }
 
-DataStreamRef RegistryDirectory_TTArchive2::OpenResource(const Symbol& resourceName)
+DataStreamRef RegistryDirectory_TTArchive2::OpenResource(const Symbol& resourceName, String* on)
 {
-	return _Archive.Find(resourceName);
+	return _Archive.Find(resourceName, on);
 }
 
 void RegistryDirectory_TTArchive2::RefreshResources()
@@ -650,13 +652,13 @@ Bool ResourceLogicalLocation::GetResources(std::vector<std::pair<Symbol, Ptr<Res
 	return false;
 }
 
-DataStreamRef ResourceLogicalLocation::LocateResource(const Symbol& name)
+DataStreamRef ResourceLogicalLocation::LocateResource(const Symbol& name, String* outName)
 {
-	for(auto& set : SetStack)
+	for(auto& set : SetStack) // most important part: this priority checks highest first.
 	{
 		if(set.Resolved)
 		{
-			DataStreamRef resolved = set.Resolved->LocateResource(name);
+			DataStreamRef resolved = set.Resolved->LocateResource(name, outName);
 			if(resolved)
 				return resolved;
 		}
@@ -915,10 +917,24 @@ U32 luaResourceSetRegister(LuaManager& man) // through this exists in lua, we wi
 	return 0;
 }
 
+static U32 luaResourcePrintLocations(LuaManager& man)
+{
+	TTE_ASSERT(man.GetTop() == 1, "ResourcePrintLocations does not accept arguments!");
+	ScriptManager::GetGlobal(man, "_resourceRegistryInternal", true);
+	
+	TTE_ASSERT(man.Type(-1) == LuaType::LIGHT_OPAQUE, "No resource registry is bound the current Lua VM!"); // resource registry needed!
+	ResourceRegistry* reg = (ResourceRegistry*)man.ToPointer(-1);
+	
+	reg->PrintLocations();
+	
+	return 0;
+}
+
 void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker)
 {
 	
 	PUSH_FUNC(Col, "RegisterSetDescription", &luaResourceSetRegister);
+	PUSH_FUNC(Col, "ResourcePrintLocations", &luaResourcePrintLocations);
 	
 }
 
@@ -954,7 +970,7 @@ void ResourceRegistry::_ApplyMountDirectory(RegistryDirectory* pMountPoint, std:
 			// open all resource set lua scripts, decrypt and run.
 			for(auto& set: resDescs)
 			{
-				DataStreamRef setStream = pMountPoint->OpenResource(set);
+				DataStreamRef setStream = pMountPoint->OpenResource(set, nullptr);
 				if(!setStream)
 				{
 					TTE_LOG("Ignoring resource set %s: could not open stream", set.c_str());
@@ -1040,6 +1056,27 @@ String ResourceRegistry::ResourceAddressResolveToConcreteLocationID(const String
 	return "";
 }
 
+void ResourceRegistry::PrintSets()
+{
+	SCOPE_LOCK();
+	TTE_LOG("=============== Registry Sets ===============");
+	for(auto& loc: _ResourceSets)
+	{
+		TTE_LOG("Resource Set: %s [Active: %s] [Priority %d]", loc.Name.c_str(), loc.SetFlags.Test(ResourceSetFlags::APPLIED) ? "yes":"no", loc.Priority);
+	}
+	TTE_LOG("=============== ============= ===============");
+}
+
+void ResourceRegistry::PrintLocations()
+{
+	SCOPE_LOCK();
+	TTE_LOG("=============== Registry Locations ===============");
+	for(auto& loc: _Locations)
+	{
+		TTE_LOG("Resource Location: %s", loc->Name.c_str());
+	}
+	TTE_LOG("=============== ================== ===============");
+}
 
 String ResourceRegistry::ResourceAddressGetResourceName(const String& address)
 {
@@ -1129,7 +1166,7 @@ void ResourceRegistry::CreateConcreteArchiveLocation(const String& name, const S
 		{
 			TTE_ASSERT(StringEndsWith(resourceName, ".ttarch"), "Resource is not a valid TTARCH filename: %s", resourceName.c_str());
 			asArchive1->Directory._Archive.Reset();
-			DataStreamRef newStream = parent->LocateResource(resourceName);
+			DataStreamRef newStream = parent->LocateResource(resourceName, nullptr);
 			TTE_ASSERT(false, "Failed retrieve stream for archive %s!", resourceName.c_str());
 			lck.unlock();
 			asArchive1->Directory._Archive.SerialiseIn(newStream);
@@ -1139,7 +1176,7 @@ void ResourceRegistry::CreateConcreteArchiveLocation(const String& name, const S
 		{
 			TTE_ASSERT(StringEndsWith(resourceName, ".ttarch2"), "Resource is not a valid TTARCH2 filename: %s", resourceName.c_str());
 			asArchive2->Directory._Archive.Reset();
-			DataStreamRef newStream = parent->LocateResource(resourceName);
+			DataStreamRef newStream = parent->LocateResource(resourceName, nullptr);
 			TTE_ASSERT(false, "Failed retrieve stream for archive %s!", resourceName.c_str());
 			lck.unlock();
 			asArchive2->Directory._Archive.SerialiseIn(newStream);
@@ -1156,7 +1193,7 @@ void ResourceRegistry::CreateConcreteArchiveLocation(const String& name, const S
 		if(StringEndsWith(resourceName, ".ttarch"))
 		{
 			TTArchive arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
-			DataStreamRef archiveStream = parent->LocateResource(resourceName);
+			DataStreamRef archiveStream = parent->LocateResource(resourceName, nullptr);
 			lck.unlock(); // may take time, dont keep everyone waiting!
 			TTE_ASSERT(archiveStream && arc.SerialiseIn(archiveStream), "TTArchive serialise/read fail!");
 			lck.lock();
@@ -1166,7 +1203,7 @@ void ResourceRegistry::CreateConcreteArchiveLocation(const String& name, const S
 		else if(StringEndsWith(resourceName, ".ttarch2"))
 		{
 			TTArchive2 arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
-			DataStreamRef archiveStream = parent->LocateResource(resourceName);
+			DataStreamRef archiveStream = parent->LocateResource(resourceName, nullptr);
 			lck.unlock(); // may take time, dont keep everyone waiting!
 			TTE_ASSERT(archiveStream && arc.SerialiseIn(archiveStream), "TTArchive2 serialise/read fail!");
 			lck.lock();
@@ -1506,4 +1543,30 @@ void ResourceRegistry::Update(Float budget)
 	
 	// DEFERRED LOADS?
 	
+}
+
+void ResourceRegistry::_LocateResourceInternal(Symbol name, String* outName, DataStreamRef* outStream)
+{
+	Ptr<ResourceLocation> masterLocation = _Locate("<>");
+	TTE_ASSERT(masterLocation, "No master location found!!");
+	DataStreamRef resStream = {};
+	resStream = masterLocation->LocateResource(name, outName);
+	if(outStream)
+		*outStream = std::move(resStream);
+}
+
+DataStreamRef ResourceRegistry::FindResource(const Symbol& name)
+{
+	SCOPE_LOCK();
+	DataStreamRef ref{};
+	_LocateResourceInternal(name, nullptr, &ref);
+	return ref;
+}
+
+String ResourceRegistry::FindResourceName(const Symbol& name)
+{
+	SCOPE_LOCK();
+	String n{};
+	_LocateResourceInternal(name, &n, nullptr);
+	return n;
 }

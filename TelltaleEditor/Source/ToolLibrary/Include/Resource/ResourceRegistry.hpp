@@ -17,6 +17,7 @@
 #include <mutex>
 #include <type_traits>
 #include <filesystem>
+#include <algorithm>
 #include <map>
 
 // HIGH LEVEL TELLTALE RESOURCE SYSTEM
@@ -142,7 +143,7 @@ public:
 	virtual Bool RenameResource(const Symbol& resource, const String& newName) = 0;
 	virtual DataStreamRef CreateResource(const String& name) = 0;
 	virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr) = 0;
-	virtual DataStreamRef OpenResource(const Symbol& resourceName) = 0;
+	virtual DataStreamRef OpenResource(const Symbol& resourceName, String* outName) = 0; // optional outName to get resource name from symbol (we want to support that)
 	virtual void RefreshResources() = 0;
 	
 	// Opens a sub-directory inside this directory
@@ -182,7 +183,7 @@ public:
 	virtual Bool RenameResource(const Symbol& resource, const String& newName); // rename it
 	virtual DataStreamRef CreateResource(const String& name); // create resource and open writing stream
 	virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr); // copy resource to dest
-	virtual DataStreamRef OpenResource(const Symbol& resourceName); // open resource
+	virtual DataStreamRef OpenResource(const Symbol& resourceName, String* outName); // open resource
 	virtual void RefreshResources();
 
 	virtual Ptr<RegistryDirectory> OpenDirectory(const String& name);
@@ -219,7 +220,7 @@ public:
 	virtual Bool RenameResource(const Symbol& resource, const String& newName); // rename it
 	virtual DataStreamRef CreateResource(const String& name); // create resource and open writing stream
 	virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr); // copy resource to dest
-	virtual DataStreamRef OpenResource(const Symbol& resourceName); // open resource
+	virtual DataStreamRef OpenResource(const Symbol& resourceName, String* outName); // open resource
 	virtual void RefreshResources(); // refresh
 	
 	virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // nothing in archive
@@ -256,7 +257,7 @@ public:
 	virtual Bool RenameResource(const Symbol& resource, const String& newName); // rename it
 	virtual DataStreamRef CreateResource(const String& name); // create resource and open writing stream
 	virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr); // copy resource to dest
-	virtual DataStreamRef OpenResource(const Symbol& resourceName); // open resource
+	virtual DataStreamRef OpenResource(const Symbol& resourceName,String* outName); // open resource
 	virtual void RefreshResources(); // refresh
 	
 	virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // nothing in archive
@@ -282,7 +283,7 @@ struct ResourceLocation
 	// gets resources, in a map form, of resource symbol to its directory. eg: mesh.d3dmesh : MCSM_pc_txmesh.ttarch2 (RegistryDirectory_TTArchive2 instance) - ie concrete
 	virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,Ptr<ResourceLocation>&, const StringMask* opmask) = 0;
 	
-	virtual DataStreamRef LocateResource(const Symbol& name) = 0;
+	virtual DataStreamRef LocateResource(const Symbol& name, String* outName) = 0;
 	
 	virtual Bool HasResource(const Symbol& name) = 0;
 	
@@ -318,7 +319,7 @@ struct ResourceLogicalLocation : ResourceLocation
 	
 	virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,Ptr<ResourceLocation>&, const StringMask* opmask);
 	
-	virtual DataStreamRef LocateResource(const Symbol& name);
+	virtual DataStreamRef LocateResource(const Symbol& name, String* outName);
 	
 	virtual Bool HasResource(const Symbol& name);
 	
@@ -351,9 +352,9 @@ struct ResourceConcreteLocation : ResourceLocation
 		return Directory.GetResources(resources, self, opmask);
 	}
 	
-	inline DataStreamRef LocateResource(const Symbol& name) override
+	inline DataStreamRef LocateResource(const Symbol& name, String* outName) override
 	{
-		return Directory.OpenResource(name);
+		return Directory.OpenResource(name, outName);
 	}
 	
 	inline bool HasResource(const Symbol& name) override
@@ -424,6 +425,8 @@ class ResourceRegistry : public GameDependentObject
 	void _DestroyResourceSet(ResourceSet* pSet);
 	
 	void _DoApplyResourceSet(ResourceSet* pSet, const std::map<Ptr<ResourceLocation>,Ptr<ResourceLocation>>& patches); // apply resource set
+	
+	void _LocateResourceInternal(Symbol name, String* outName, DataStreamRef* outStream); // find resource
 	
 	friend U32 luaResourceSetRegister(LuaManager& man); // access allowed
 	
@@ -557,5 +560,17 @@ public:
 	
 	// Returns the bottom level locator
 	String ResourceAddressGetResourceName(const String& address);
+	
+	// Dumps all locations to console
+	void PrintLocations();
+	
+	// Dumps all resource sets to console
+	void PrintSets();
+	
+	// Most important in this class. Finds a resource in the currently enabled patch sets, highest loaded priority one will be returned.
+	DataStreamRef FindResource(const Symbol& name);
+	
+	// Like FindResource but gets the name
+	String FindResourceName(const Symbol& name);
 	
 };

@@ -215,6 +215,12 @@ inline bool IsWeakPtrUnbound(const std::weak_ptr<T>& weak) {
     return !(weak.owner_before(std::weak_ptr<T>()) || std::weak_ptr<T>().owner_before(weak));
 }
 
+template< typename T >
+typename std::vector<T>::iterator VectorInsertSorted(std::vector<T> & vec, T&& item )
+{
+	return vec.insert(std::upper_bound(vec.begin(), vec.end(), item), std::move(item));
+}
+
 // helper to call object destructor
 template<typename T>
 inline void DestroyObject(T& val)

@@ -77,6 +77,7 @@ static void TestResources()
 		Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
 		
 		registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/MC100.app/Contents/Resources");
+		registry->PrintSets();
 		
 	}
 	DumpTrackedMemory();
