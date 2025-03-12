@@ -79,6 +79,15 @@ static void TestResources()
         registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/MC100.app/Contents/Resources");
         registry->PrintSets();
         
+        StringMask mask{"*.soundeventbankmap"};
+        std::set<String> allScripts{};
+        
+        registry->GetResourceNames(allScripts, &mask);
+        
+        for(auto& s: allScripts)
+            TTE_LOG(s.c_str());
+        
+        
     }
     DumpTrackedMemory();
 }

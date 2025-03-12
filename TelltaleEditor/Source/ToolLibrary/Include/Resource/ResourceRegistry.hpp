@@ -60,6 +60,10 @@ public:
         MASKMODE_ANY_ENDING_NO_DIRECTORY = 3 // Similar to MASKMODE_ANY_ENDING but ignores directory separators
     };
     
+    inline StringMask(const String& mask) : String(mask) {}
+    
+    inline StringMask(CString mask) : String(mask) {}
+    
     /**
      * @brief Checks if a given string matches a search mask with wildcard patterns.
      *
@@ -301,12 +305,12 @@ struct ResourceLogicalLocation : ResourceLocation
     {
         
         String Set; // set name
-        U32 Priority; // priority
+        I32 Priority; // priority
         Ptr<ResourceLocation> Resolved; // actual location
         
         inline Bool operator<(const SetInfo& rhs) const
         {
-            return Priority < rhs.Priority;
+            return Priority > rhs.Priority;
         }
         
     };
@@ -391,6 +395,8 @@ class ResourceRegistry : public GameDependentObject
     std::mutex _Guard; // this is a thread safe class, all calls are safe with this guard.
     
     std::vector<std::pair<Symbol, Ptr<ResourceLocation>>> _DeferredUnloads; // deferred resource unloads
+    
+    std::vector<String> _DeferredApplications; // to be applied resource sets. will be done in mount when available, not in update.
     
     Ptr<ResourceLocation> _Locate(const String& logicalName); // locate internal no lock
     
@@ -572,5 +578,8 @@ public:
     
     // Like FindResource but gets the name
     String FindResourceName(const Symbol& name);
+    
+    // Gets all resource names which match the optional mask, else all, in all currently resource sets.
+    void GetResourceNames(std::set<String>& outNames, const StringMask* optionalMask);
     
 };

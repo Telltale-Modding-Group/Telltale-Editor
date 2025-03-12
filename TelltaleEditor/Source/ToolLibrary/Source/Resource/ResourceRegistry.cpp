@@ -340,7 +340,7 @@ Bool RegistryDirectory_TTArchive::GetResourceNames(std::set<String>& resources, 
         }
     }
     
-    return !resources.empty();
+    return true;
 }
 
 Bool RegistryDirectory_TTArchive::GetSubDirectories(std::set<String>& directories, const StringMask* optionalMask)
@@ -375,7 +375,7 @@ Bool RegistryDirectory_TTArchive::DeleteResource(const Symbol& resource)
         if(resource == it->Name)
         {
             _Archive._Files.erase(it);
-            break;
+            return true;
         }
         else ++it;
     }
@@ -491,7 +491,7 @@ Bool RegistryDirectory_TTArchive2::GetResourceNames(std::set<String>& resources,
         }
     }
     
-    return !resources.empty();
+    return true;
 }
 
 Bool RegistryDirectory_TTArchive2::GetSubDirectories(std::set<String>& directories, const StringMask* optionalMask)
@@ -526,7 +526,7 @@ Bool RegistryDirectory_TTArchive2::DeleteResource(const Symbol& resource)
         if(resource == it->Name)
         {
             _Archive._Files.erase(it);
-            break;
+            return true;
         }
         else ++it;
     }
@@ -623,7 +623,7 @@ Bool ResourceLogicalLocation::GetResourceNames(std::set<String>& names, const St
         if(set.Resolved && !set.Resolved->GetResourceNames(names, optionalMask))
             return false;
     }
-    return false;
+    return true;
 }
 
 Bool ResourceLogicalLocation::GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
@@ -635,7 +635,7 @@ Bool ResourceLogicalLocation::GetResources(std::vector<std::pair<Symbol, Ptr<Res
         if(set.Resolved && !set.Resolved->GetResources(resources, self, optionalMask))
             return false;
     }
-    return false;
+    return true;
 }
 
 DataStreamRef ResourceLogicalLocation::LocateResource(const Symbol& name, String* outName)
@@ -657,7 +657,7 @@ Bool ResourceLogicalLocation::HasResource(const Symbol &name)
     for(auto& set : SetStack)
     {
         if(set.Resolved && set.Resolved->HasResource(name))
-            return false;
+            return true;
     }
     return false;
 }
@@ -817,14 +817,14 @@ U32 luaResourceSetRegister(LuaManager& man) // through this exists in lua, we wi
     man.PushLString("gameDataEnableMode");
     man.GetTable(1);
     TTE_ASSERT(man.Type(-1) == LuaType::STRING, "Resource set %s game data enable mode not exist (set.gameDataEnableMode)", set.Name.c_str());
-    enableMode = ScriptManager::PopString(man);
+    String gameDataEnableMode = ScriptManager::PopString(man);
     
-    if(CompareCaseInsensitive(enableMode, "bootable"))
+    if(CompareCaseInsensitive(gameDataEnableMode, "bootable"))
     {
         set.SetFlags.Add(ResourceSetFlags::DYNAMIC);
         set.SetFlags.Add(ResourceSetFlags::BOOTABLE);
     }
-    else if(CompareCaseInsensitive(enableMode, "localization"))
+    else if(CompareCaseInsensitive(gameDataEnableMode, "localization"))
     {
         set.SetFlags.Add(ResourceSetFlags::DYNAMIC);
         set.SetFlags.Add(ResourceSetFlags::STICKY);
@@ -899,6 +899,18 @@ U32 luaResourceSetRegister(LuaManager& man) // through this exists in lua, we wi
         man.Pop(1);
     }
     man.Pop(1);
+    
+    if(version.length() == 0 || CompareCaseInsensitive(version, "trunk"))
+    {
+        // autoapply resource set
+        reg->_DeferredApplications.push_back(setName);
+        
+        if(bHasMainSet && CompareCaseInsensitive(enableMode, "constant"))
+        {
+            reg->_DeferredApplications.push_back(set.Name); // game data set
+        }
+        
+    }
     
     return 0;
 }
@@ -1000,6 +1012,26 @@ void ResourceRegistry::_ApplyMountDirectory(RegistryDirectory* pMountPoint, std:
                 
                 _UnbindVM();
             }
+            
+            // autoapply any needed
+            std::map<Ptr<ResourceLocation>,Ptr<ResourceLocation>> patches{};
+            
+            for(auto& deferred: _DeferredApplications)
+            {
+                ResourceSet* pSet = _FindSet(deferred);
+                if(pSet)
+                {
+                    _PrepareResourceSet(pSet, patches);
+                    _DoApplyResourceSet(pSet, patches);
+                    patches.clear();
+                }
+                else
+                {
+                    TTE_LOG("WARN: Deferred resource set auto apply could not locate %s", deferred.c_str());
+                }
+            }
+            _DeferredApplications.clear();
+            
             Float secs = GetTimeStampDifference(start, GetTimeStamp());
             String fmt = GetFormatedTime(secs);
             TTE_LOG("Mounted %s successfully in %s", pMountPoint->GetPath().c_str(), fmt.c_str());
@@ -1140,6 +1172,8 @@ void ResourceRegistry::CreateConcreteArchiveLocation(const String& name, const S
         return;
     }
     
+    String archivePhysicalPath = parent->GetPhysicalPath() + resourceName;
+    
     // EDGE CASE: archive is already existing. override it with a new updated archive.
     Ptr<ResourceLocation> alreadyLoaded = _Locate(archiveID);
     if(alreadyLoaded)
@@ -1183,7 +1217,7 @@ void ResourceRegistry::CreateConcreteArchiveLocation(const String& name, const S
             lck.unlock(); // may take time, dont keep everyone waiting!
             TTE_ASSERT(archiveStream && arc.SerialiseIn(archiveStream), "TTArchive serialise/read fail!");
             lck.lock();
-            auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive>, MEMORY_TAG_RESOURCE_REGISTRY, resourceName, archiveID, std::move(arc));
+            auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
             _Locations.push_back(std::move(pLoc));
         }
         else if(StringEndsWith(resourceName, ".ttarch2"))
@@ -1193,7 +1227,7 @@ void ResourceRegistry::CreateConcreteArchiveLocation(const String& name, const S
             lck.unlock(); // may take time, dont keep everyone waiting!
             TTE_ASSERT(archiveStream && arc.SerialiseIn(archiveStream), "TTArchive2 serialise/read fail!");
             lck.lock();
-            auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive2>, MEMORY_TAG_RESOURCE_REGISTRY, resourceName, archiveID, std::move(arc));
+            auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive2>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
             _Locations.push_back(std::move(pLoc));
         }
         else
@@ -1555,4 +1589,11 @@ String ResourceRegistry::FindResourceName(const Symbol& name)
     String n{};
     _LocateResourceInternal(name, &n, nullptr);
     return n;
+}
+
+void ResourceRegistry::GetResourceNames(std::set<String>& outNames, const StringMask* optionalMask)
+{
+    Ptr<ResourceLocation> masterLocation = _Locate("<>");
+    TTE_ASSERT(masterLocation, "No master location found!!");
+    masterLocation->GetResourceNames(outNames, optionalMask);
 }
