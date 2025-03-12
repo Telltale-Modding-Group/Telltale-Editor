@@ -10,6 +10,12 @@
 
 // This has no state at all, lua manager and lua_State captures it all in the stack.
 
+/**
+ Gets this current thread LVM. If this is the main thread, gets the current tool context LVM. If a worker thread, then returns the worker thread. Any other thread will fail an assert.
+ This will ALWAYS return a VM which uses the latest Lua script version telltale uses, Lua 5.2.3!
+ */
+LuaManager& GetThreadLVM();
+
 #define LUA_MULTRET (-1)
 
 // Registerable C function
@@ -39,8 +45,17 @@ struct LuaFunctionCollection
 LuaFunctionCollection luaGameEngine(Bool bWorker); // actual engine game api in EngineLUAApi.cpp
 LuaFunctionCollection luaLibraryAPI(Bool bWorker); // actual api in LibraryLUAApi.cpp
 
+void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker); // actual game engine resource API into luaGameEngine function collection (Internal)
+
 // Provides high level scripting access. Most of the functions are the same as Telltales actual ScriptManager API.
-namespace ScriptManager {
+namespace ScriptManager
+{
+	
+	// Decrypts scripts into a new readable stream.
+	DataStreamRef DecryptScript(DataStreamRef& src);
+	
+	// Encrypts scripts into a new telltale stream. Specify if the given file is a .lenc file, as opposed to .lua.
+	DataStreamRef EncryptScript(DataStreamRef& src, Bool bLenc);
     
     // Execute the function on the stack followed by its arguments pushed after. Function & args all popped. Nresults is number of arguments
     // pushed onto the stack, ensured to be padded with NILs if needed - or truncated. Pass LUA_MULTRET for whatever the function returns.
@@ -113,7 +128,7 @@ namespace ScriptManager {
     // Pass in the name for debugging purposes, eg the file name.
     // If this returns false, nothing is pushed and error messages are logged to console.
     inline Bool LoadChunk(LuaManager& man, const String& name, const String& text){
-        return man.LoadChunk(name, (const U8*)text.c_str(), (U32)text.length(), false);
+        return man.LoadChunk(name, (const U8*)text.c_str(), (U32)text.length(), LoadChunkMode::SOURCE);
     }
     
     // Call the given function name, with no arguments. For information avout Lockcontext argument, see LuaManager::CallFunction

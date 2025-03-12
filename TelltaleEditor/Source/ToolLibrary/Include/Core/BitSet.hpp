@@ -197,7 +197,7 @@ public:
 	template<typename IntOrEnum>
 	inline Bool Test(IntOrEnum fl)
 	{
-		return (_Value & fl) != 0;
+		return (_Value & (U32)fl) != 0;
 	}
 	
 	inline void operator+=(U32 fl)

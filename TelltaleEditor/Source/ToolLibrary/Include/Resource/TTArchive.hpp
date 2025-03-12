@@ -2,6 +2,7 @@
 
 #include <Resource/DataStream.hpp>
 #include <vector>
+#include <set>
 
 //.TTARCH FILES
 class TTArchive {
@@ -14,7 +15,7 @@ public:
     
     Bool SerialiseIn(DataStreamRef& in);
     
-    Bool SerialiseOut(DataStreamRef& in);
+    Bool SerialiseOut(DataStreamRef& in); // not intrinsically async. however, a job wrapping this can be used as it stays in this function
     
     // Returns the binary stream of the given file name symbol in this data archive.
     inline DataStreamRef Find(const Symbol& fn) const
@@ -47,14 +48,22 @@ public:
     }
     
     // Puts all file names inside this archive into the output result array
-    inline void GetFiles(std::vector<String>& result)
+    inline void GetFiles(std::set<String>& result)
     {
-        result.reserve(_Files.size());
         for(auto& file : _Files)
-            result.push_back(file.Name);
+			result.insert(file.Name);
     }
+	
+	// Clears everything and releases.
+	inline void Reset()
+	{
+		_Files.clear();
+		_Folders.clear();
+	}
     
 private:
+	
+	friend class RegistryDirectory_TTArchive;
     
     struct FileInfo // file
     {

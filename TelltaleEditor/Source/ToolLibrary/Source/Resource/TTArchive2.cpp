@@ -193,7 +193,7 @@ Bool TTArchive2::SerialiseOut(DataStreamRef& o, ContainerParams params, JobHandl
     
     // ========================== 2: Combine all file streams into sequential stream and write container
     
-    std::shared_ptr<DataStreamSequentialStream> Container = DataStreamManager::GetInstance()->CreateSequentialStream("TTArchive2::Container");
+    Ptr<DataStreamSequentialStream> Container = DataStreamManager::GetInstance()->CreateSequentialStream("TTArchive2::Container");
     
     Container->PushStream(headerStream); // header stream
     Container->PushStream(nameStream); // name table stream

@@ -79,7 +79,7 @@ struct ArchiveExtractionTask : EditorTask
 	
 	virtual void Finalise(TelltaleEditor&) override;
 	
-	std::vector<String> Files; // file names to extract
+	std::set<String> Files; // file names to extract
 	String Folder; // output folder
 	
 	TTArchive* Archive1 = nullptr; // archives, either 1 or 2 is set for .ttarch or .ttarch2

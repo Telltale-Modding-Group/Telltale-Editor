@@ -20,7 +20,7 @@
 
 struct PendingDeletion
 {
-	std::shared_ptr<void> _Resource;
+	Ptr<void> _Resource;
 	U64 _LastUsedFrame;
 };
 
@@ -62,19 +62,19 @@ public:
     static void Shutdown();
 	
 	// Allocate, Create() must be called after. New render pipeline state. Note this should only be used in renderer internally.
-	std::shared_ptr<RenderPipelineState> _AllocatePipelineState();
+	Ptr<RenderPipelineState> _AllocatePipelineState();
 	
 	// Create a vertex buffer which can be filled up later
-	std::shared_ptr<RenderBuffer> CreateVertexBuffer(U64 sizeBytes);
+	Ptr<RenderBuffer> CreateVertexBuffer(U64 sizeBytes);
 	
 	// Create an index buffer which can be filled up later
-	std::shared_ptr<RenderBuffer> CreateIndexBuffer(U64 sizeBytes);
+	Ptr<RenderBuffer> CreateIndexBuffer(U64 sizeBytes);
 	
 	// Create a generic buffer
-	std::shared_ptr<RenderBuffer> CreateGenericBuffer(U64 szBytes);
+	Ptr<RenderBuffer> CreateGenericBuffer(U64 szBytes);
 	
 	// Create a texture. Call its create member function to create.
-	inline std::shared_ptr<RenderTexture> AllocateTexture()
+	inline Ptr<RenderTexture> AllocateTexture()
 	{
 		return TTE_NEW_PTR(RenderTexture, MEMORY_TAG_RENDERER);
 	}
@@ -130,7 +130,7 @@ public:
 	
 	// Sets a texture parameter. pSamplerDesc must be on the frame heap and not created. It will be resolved in render. Can be null for default.
 	void SetParameterTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-							 std::shared_ptr<RenderTexture> tex, RenderSampler* pSamplerDesc);
+							 Ptr<RenderTexture> tex, RenderSampler* pSamplerDesc);
 	
 	// Sets a uniform parameter
 	void SetParameterUniform(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
@@ -138,15 +138,15 @@ public:
 	
 	// Sets a generic buffer parameter
 	void SetParameterGenericBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-							 std::shared_ptr<RenderBuffer> buffer, U32 bufferOffset);
+							 Ptr<RenderBuffer> buffer, U32 bufferOffset);
 	
 	// Set a vertex buffer parameter
 	void SetParameterVertexBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-								  std::shared_ptr<RenderBuffer> buffer, U32 startOffset);
+								  Ptr<RenderBuffer> buffer, U32 startOffset);
 	
 	// Set an index buffer parameter input.
 	void SetParameterIndexBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-								  std::shared_ptr<RenderBuffer> buffer, U32 startIndex);
+								  Ptr<RenderBuffer> buffer, U32 startIndex);
 	
 	// Sets a default texture binding. pSamplerDesc must be on the frame heap and not created. It will be resolved in render. Can be null for default.
 	void SetParameterDefaultTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
@@ -179,7 +179,7 @@ private:
 		TTE_ASSERT(IsCallingFromMain(), "This function cannot be called from anywhere but the main thread!");
 	}
 	
-	inline std::shared_ptr<RenderTexture> _GetDefaultTexture(DefaultRenderTextureType type)
+	inline Ptr<RenderTexture> _GetDefaultTexture(DefaultRenderTextureType type)
 	{
 		TTE_ASSERT(type != DefaultRenderTextureType::NONE, "Invalid default texture type");
 		return _DefaultTextures[(U32)type - 1].Texture;
@@ -199,16 +199,16 @@ private:
 	void _Render(Float dt, RenderCommandBuffer* pMainCommandBuffer);
 	
 	// Find a sampler or allocate new if doesn't exist.
-	std::shared_ptr<RenderSampler> _FindSampler(RenderSampler desc);
+	Ptr<RenderSampler> _FindSampler(RenderSampler desc);
 	
 	// Create and initialise new command buffer to render commands to. submit if wanted, if not it is automatically at frame end.
 	// swap chain slot is put into slot 0!
 	RenderCommandBuffer* _NewCommandBuffer();
 	
 	// find a shader, load if needed and not previously loaded.]
-	std::shared_ptr<RenderShader> _FindShader(String name, RenderShaderType);
+	Ptr<RenderShader> _FindShader(String name, RenderShaderType);
 	
-	Bool _FindProgram(String name, std::shared_ptr<RenderShader>& vert, std::shared_ptr<RenderShader>& frag);
+	Bool _FindProgram(String name, Ptr<RenderShader>& vert, Ptr<RenderShader>& frag);
 
 	// note the transfer buffers below are UPLOAD ONES. DOWNLOAD BUFFERS COULD BE DONE IN THE FUTURE, BUT NO NEED ANY TIME SOON.
 	
@@ -222,7 +222,7 @@ private:
 	void _Draw(RenderFrame& frame, RenderInst inst, RenderCommandBuffer& cmds);
 	
 	// dont create desc but fill in its params. finds by hash. will create one if not found - lazy
-	std::shared_ptr<RenderPipelineState> _FindPipelineState(RenderPipelineState desc);
+	Ptr<RenderPipelineState> _FindPipelineState(RenderPipelineState desc);
 	
 	// calculates pipeline state
 	U64 _HashPipelineState(RenderPipelineState& state);
@@ -246,10 +246,10 @@ private:
     SDL_Surface* _BackBuffer; // SDL3 window surface
 	
 	std::mutex _Lock; // for below
-	std::vector<std::shared_ptr<RenderPipelineState>> _Pipelines; // pipeline states
-	std::vector<std::shared_ptr<RenderShader>> _LoadedShaders; // in future can replace certain ones and update pipelines for hot reloads.
+	std::vector<Ptr<RenderPipelineState>> _Pipelines; // pipeline states
+	std::vector<Ptr<RenderShader>> _LoadedShaders; // in future can replace certain ones and update pipelines for hot reloads.
 	std::set<_RenderTransferBuffer> _AvailTransferBuffers;
-	std::vector<std::shared_ptr<RenderSampler>> _Samplers;
+	std::vector<Ptr<RenderSampler>> _Samplers;
 	std::vector<PendingDeletion> _PendingSDLResourceDeletions{};
 	U32 _Flags = 0;
 	

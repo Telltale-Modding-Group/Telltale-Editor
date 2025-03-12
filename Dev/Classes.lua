@@ -49,12 +49,12 @@ end
 
 function RegisterAll(game_id, platform, vendor)
     
-    if game_id == "BN100" then
+    --if game_id == "BN100" then
         require("ToolLibrary/Game/BN100/BN100.lua")
         return RegisterBone100(vendor, platform)
-    else
-        print("ERROR: during testing only boneville is supported")
-    end
+    --else
+        --print("ERROR: during testing only boneville is supported")
+    --end
 
-    return false
+    --return false
 end

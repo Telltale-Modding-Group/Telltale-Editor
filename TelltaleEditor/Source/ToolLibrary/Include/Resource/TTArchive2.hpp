@@ -3,6 +3,7 @@
 #include <Resource/DataStream.hpp>
 #include <Scheduler/JobScheduler.hpp>
 #include <vector>
+#include <set>
 
 //.TTARCH2 FILES. CACHES, UNTIL DESTROYED, ANY STREAM(S) PASSED INTO SERIALISE IN.
 class TTArchive2 {
@@ -46,13 +47,17 @@ public:
     }
     
     // Puts all file names inside this archive into the output result array
-    inline void GetFiles(std::vector<String>& result)
+    inline void GetFiles(std::set<String>& result)
     {
-        result.reserve(_Files.size());
         for(auto& file : _Files)
-            result.push_back(file.Name);
+            result.insert(file.Name);
     }
     
+	inline void Reset()
+	{
+		_Files.clear();
+	}
+	
 private:
     
     struct FileInfo // file
@@ -84,4 +89,6 @@ private:
     U32 _Version; // 2 = TTA2, 3 = TTA3, 4 = TTA4.
     std::vector<FileInfo> _Files;
     
+	friend class RegistryDirectory_TTArchive2;
+	
 };

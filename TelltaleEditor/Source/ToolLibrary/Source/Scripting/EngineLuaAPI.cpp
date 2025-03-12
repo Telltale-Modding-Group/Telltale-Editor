@@ -124,6 +124,8 @@ LuaFunctionCollection luaGameEngine(Bool bWorker) { // always define all
 	col.Functions.push_back({"_ContainerEmplaceElement", &luaContainerEmplaceElement});
     col.Functions.push_back({"_ContainerGetElement", &luaContainerGetElement});
     col.Functions.push_back({"_ContainerClear", &luaContainerClear});
+	
+	InjectResourceAPI(col, bWorker);
     
     return col;
 }

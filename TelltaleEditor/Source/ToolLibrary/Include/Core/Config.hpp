@@ -7,6 +7,9 @@
 #include <cstring>
 #include <cstdarg>
 #include <memory>
+#include <chrono>
+#include <sstream>
+#include <iomanip>
 
 // =================================================================== LIBRARY CONFIGURATION
 // ===================================================================
@@ -206,7 +209,7 @@ inline Bool StringEndsWith(const String& str, const String& suffix)
 	return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
-template <typename T> // checks if the weak ptr has no reference at all, even to an std::shared_ptr that has been reset.
+template <typename T> // checks if the weak ptr has no reference at all, even to an Ptr that has been reset.
 inline bool IsWeakPtrUnbound(const std::weak_ptr<T>& weak) {
     // Compare the weak pointer to a default-constructed weak pointer
     return !(weak.owner_before(std::weak_ptr<T>()) || std::weak_ptr<T>().owner_before(weak));
@@ -219,12 +222,53 @@ inline void DestroyObject(T& val)
     val.~T();
 }
 
+// Gets a current timestamp.
+inline U64 GetTimeStamp()
+{
+	return std::chrono::duration_cast<std::chrono::microseconds>(
+						std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+}
+
+// Gets the time difference in *seconds* between start and end.
+inline Float GetTimeStampDifference(U64 start, U64 end)
+{
+	return static_cast<Float>(end - start) / 1'000'000.0f;
+}
+
+inline String GetFormatedTime(Float secs) {
+	std::ostringstream stream;
+	
+	if (secs >= 1.0f)
+		stream << std::fixed << std::setprecision(3) << secs << " s";
+	else if (secs >= 0.001f)
+		stream << std::fixed << std::setprecision(3) << secs * 1000.0f << " ms";
+	else if (secs >= 0.000001f)
+		stream << std::fixed << std::setprecision(3) << secs * 1000000.0f << " µs";
+	else
+		stream << std::fixed << std::setprecision(3) << secs * 1000000000.0f << " ns";
+	
+	return stream.str();
+}
+
 class ToolContext; // forward declaration. used a lot. see context.hpp
 
 class DataStream; // See DataStream.hpp
 
+template<typename T>
+using Ptr = std::shared_ptr<T>; // Easier to write than std::shared_ptr.
+
 // Useful alias for data stream pointer, which deallocates automagically when finished with.
-using DataStreamRef = std::shared_ptr<DataStream>;
+using DataStreamRef = Ptr<DataStream>;
+
+// Lots of classes which can only exist between game switches use this. Such that if they exist outside, we catch the error.
+struct GameDependentObject
+{
+	
+	const CString ObjName;
+	
+	inline GameDependentObject(CString obj) : ObjName(obj) {}
+	
+};
 
 // ===================================================================         MEMORY
 // ===================================================================
@@ -246,6 +290,7 @@ enum MemoryTag
     MEMORY_TAG_RENDERER, // renderer linear heap etc
 	MEMORY_TAG_LINEAR_HEAP, // linear heap pages
 	MEMORY_TAG_TRANSIENT_FENCE, // small U32 allocation. could be optimised in the future
+	MEMORY_TAG_RESOURCE_REGISTRY, // resource registry
 };
 
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.
@@ -295,8 +340,8 @@ inline void _TTEFree(U8* _Instance)
 }
 
 // create managed shared ptr
-#define TTE_NEW_PTR(_Type, _MemoryTag, ...) std::shared_ptr<_Type>(TTE_NEW(_Type, _MemoryTag, __VA_ARGS__), &_TTEDeleter<_Type>)
+#define TTE_NEW_PTR(_Type, _MemoryTag, ...) Ptr<_Type>(TTE_NEW(_Type, _MemoryTag, __VA_ARGS__), &_TTEDeleter<_Type>)
 
-#define TTE_ALLOC_PTR(_NBytes, _MemoryTag) std::shared_ptr<U8>(TTE_ALLOC(_NBytes, _MemoryTag), &_TTEFree)
+#define TTE_ALLOC_PTR(_NBytes, _MemoryTag) Ptr<U8>(TTE_ALLOC(_NBytes, _MemoryTag), &_TTEFree)
 
 void DumpTrackedMemory(); // if in debug mode, prints all tracked memory allocations.

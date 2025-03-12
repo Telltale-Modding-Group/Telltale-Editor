@@ -5,48 +5,6 @@
 #include <sstream>
 #include <map>
 
-thread_local Bool _IsMain = false; // Used in meta.
-
-Bool IsCallingFromMain()
-{
-	return _IsMain;
-}
-
-// ===================================================================         TOOL CONTEXT
-// ===================================================================
-
-static ToolContext* GlobalContext = nullptr;
-
-ToolContext* CreateToolContext(LuaFunctionCollection API)
-{
-
-	if(GlobalContext == nullptr){
-		_IsMain = true; // CreateToolContext sets this current thread as the main thread
-		GlobalContext = (ToolContext*)TTE_ALLOC(sizeof(ToolContext), MEMORY_TAG_TOOL_CONTEXT); // alloc raw and construct, as its private.
-		new (GlobalContext) ToolContext(std::move(API)); // construct after as some asserts require
-	}else{
-		TTE_ASSERT(false, "Trying to create more than one ToolContext. Only one instance is allowed per process.");
-	}
-	
-	return GlobalContext;
-}
-
-ToolContext* GetToolContext()
-{
-	return GlobalContext;
-}
-
-void DestroyToolContext()
-{
-	TTE_ASSERT(_IsMain, "Must only be called from main thread");
-	
-	if(GlobalContext)
-		TTE_DEL(GlobalContext);
-	
-	GlobalContext = nullptr;
-	
-}
-
 // ===================================================================         META
 // ===================================================================
 
@@ -121,7 +79,7 @@ namespace Meta {
 		// register class argument to meta system
 		U32 _Register(LuaManager& man, Class&& cls, I32 stackIndex)
 		{
-			TTE_ASSERT(_IsMain, "Must only be called from main thread"); // modifications to State.Classes should only happen at beginning on main.
+			TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread"); // modifications to State.Classes should only happen at beginning on main.
 			
 			cls.TypeHash = CRC64LowerCase((const U8*)cls.Name.c_str(), (U32)cls.Name.length());
 			RuntimeSymbols.Register(cls.Name);
@@ -287,7 +245,7 @@ namespace Meta {
 					return false; // FAIL
 				}
 				
-				if(!man.LoadChunk(clazz->SerialiseScriptFn, it->second.Binary, it->second.Size, true))
+				if(!man.LoadChunk(clazz->SerialiseScriptFn, it->second.Binary, it->second.Size, LoadChunkMode::BINARY))
 				{
 					TTE_ASSERT(false, "Cannot serialise type %s: compiled serialiser function failed to load", clazz->Name.c_str());
 					return false; // FAIL
@@ -772,7 +730,7 @@ namespace Meta {
 			{
 				U8* Buffer = TTE_ALLOC(pDstBuffer->BufferSize, MEMORY_TAG_RUNTIME_BUFFER);
 				memcpy(Buffer, pSrcBuffer->BufferData.get(), pSrcBuffer->BufferSize);
-				pDstBuffer->BufferData = std::shared_ptr<U8>(Buffer, [](U8* p){TTE_FREE(p);});
+				pDstBuffer->BufferData = Ptr<U8>(Buffer, [](U8* p){TTE_FREE(p);});
 			}
 		}
 		
@@ -1133,7 +1091,7 @@ namespace Meta {
 		{
 			if(CompareCaseInsensitive(name, mem.Name))
 			{
-				return ClassInstance(mem.ClassID, std::shared_ptr<U8>(inst._InstanceMemory, // same control block, different pointer.
+				return ClassInstance(mem.ClassID, Ptr<U8>(inst._InstanceMemory, // same control block, different pointer.
 									inst._GetInternal() + mem.RTOffset), inst.ObtainParentRef());
 			}
 		}
@@ -1204,7 +1162,7 @@ namespace Meta {
 	// initialise the snapshot State.Classes
 	void InitGame()
 	{
-		TTE_ASSERT(_IsMain, "Must only be called from main thread");
+		TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
 		TTE_ASSERT(GetToolContext(), "Tool context not created");
 		GameSnapshot snap = GetToolContext()->GetSnapshot();
 		
@@ -1278,7 +1236,7 @@ namespace Meta {
 	
 	void RelGame()
 	{
-		TTE_ASSERT(_IsMain, "Must only be called from main thread");
+		TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
 		
 		// clear compiled memory
 		for(auto& script: State.Serialisers)
@@ -1298,7 +1256,7 @@ namespace Meta {
 	
 	void Initialise()
 	{
-		TTE_ASSERT(_IsMain, "Must only be called from main thread");
+		TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
 		TTE_ASSERT(GetToolContext(), "Tool context not created");
 		
 		ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaLibraryAPI(false)); // Register editor library
@@ -1348,7 +1306,7 @@ namespace Meta {
 	
 	void Shutdown()
 	{
-		TTE_ASSERT(_IsMain, "Must only be called from main thread");
+		TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
 		
 		State.Games.clear();
 		

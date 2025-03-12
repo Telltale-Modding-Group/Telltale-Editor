@@ -267,7 +267,7 @@ namespace Meta {
     // Special type internally used to store binary buffers. No serialiser in this type, but just holds a reference to the memory (frees it)
     struct BinaryBuffer
     {
-		std::shared_ptr<U8> BufferData;
+		Ptr<U8> BufferData;
         U32 BufferSize = 0;
     };
     
@@ -287,7 +287,7 @@ namespace Meta {
     // Registered game
     struct RegGame {
         
-        String Name, ID;
+		String Name, ID, ResourceSetDescMask;
         StreamVersion MetaVersion = MBIN;
         LuaVersion LVersion = LuaVersion::LUA_5_2_3;
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
@@ -417,11 +417,11 @@ namespace Meta {
             _InstanceMemory(memoryNoDelete, &NullDeleter), _ParentAttachMemory(std::move(attachTo)) {}
         
         // Use by the script ref to create an acquired reference from a script object
-        inline ClassInstance(U32 storedID, std::shared_ptr<U8> acquired, ParentWeakReference prnt) : _InstanceClassID(storedID),
+        inline ClassInstance(U32 storedID, Ptr<U8> acquired, ParentWeakReference prnt) : _InstanceClassID(storedID),
             _InstanceMemory(std::move(acquired)), _ParentAttachMemory(std::move(prnt)) {}
         
         U32 _InstanceClassID; // class id
-        std::shared_ptr<U8> _InstanceMemory; // memory pointer to instance in memory
+        Ptr<U8> _InstanceMemory; // memory pointer to instance in memory
         ParentWeakReference _ParentAttachMemory; // weak reference to top level parent this instance is controlled by. NO ACCESS is
         // ever given to the parent. this is such that, for example, in async jobs the parent is kept constant and untouched by each child.
         
@@ -434,7 +434,7 @@ namespace Meta {
 	struct TransientJuncture
 	{
 		U32 JunctureValue; // value when created
-		std::shared_ptr<std::atomic<U32>> CurrentValue; // current changing value
+		Ptr<std::atomic<U32>> CurrentValue; // current changing value
 		U8* Value = nullptr; // value we cached
 	};
     
@@ -451,7 +451,7 @@ namespace Meta {
         U32 ClassID;
 		U8* ConcreteInstanceRef; // actual instance pointer. only accessibe when the parent weak ref is alive
         ParentWeakReference ParentWeakRef; // weak reference to parent
-        std::shared_ptr<U8> StrongRef; // for strong lua managed references
+        Ptr<U8> StrongRef; // for strong lua managed references
 		TransientJuncture Juncture; // if transient
         
         // internal version returns ref counted pointer, so acquire increases strong ref #
@@ -648,7 +648,7 @@ namespace Meta {
         
         ParentWeakReference _PrntRef; // parent ref for this collection
 		
-		std::shared_ptr<std::atomic<U32>> _TransienceFence;
+		Ptr<std::atomic<U32>> _TransienceFence;
         
     };
     
@@ -817,6 +817,13 @@ namespace Meta {
 		std::map<Symbol, CompiledScript> Specialisers{};
 		I32 GameIndex = -1;
 		String VersionCalcFun{}; // lua function which calculates version crc for a type.
+		
+		inline const RegGame& GetActiveGame() const
+		{
+			TTE_ASSERT(GameIndex != -1, "No game set!");
+			return Games[GameIndex];
+		}
+		
 	};
 	
 	// Gets the internal state. Its important that this is constant as it should NOT change between game switches.

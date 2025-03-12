@@ -6,7 +6,7 @@
 #include <Core/Context.hpp>
 #include <EditorTasks.hpp>
 #include <Meta/Meta.hpp>
-
+#include <Resource/ResourceRegistry.hpp>
 #include <Common/Common.hpp>
 
 // C++ API
@@ -61,12 +61,18 @@ public:
 	/**
 	 Enqueues a task which will asynchronously extract all of the files in the given archive. If the files array is empty, all files will be extracted.
 	 */
-	U32 EnqueueArchiveExtractTask(TTArchive* pArchive, std::vector<String>&& files, String outputFolder);
+	U32 EnqueueArchiveExtractTask(TTArchive* pArchive, std::set<String>&& files, String outputFolder);
 	
 	/**
 	 Enqueues a task which will asynchronously extract all of the files in the given archive. If the files array is empty, all files will be extracted.
 	 */
-	U32 EnqueueArchive2ExtractTask(TTArchive2* pArchive, std::vector<String>&& files, String outputFolder);
+	U32 EnqueueArchive2ExtractTask(TTArchive2* pArchive, std::set<String>&& files, String outputFolder);
+	
+	/**
+	 Creates a resource registry which can be used to manage telltale games resources. These cannot be used between game switches. Must be destroyed before this object or a switch!
+	 See ToolContext:CreateResourceRegistry().
+	 */
+	Ptr<ResourceRegistry> CreateResourceRegistry();
 	
 	// See ToolContext version. Delegates and thread safe.
 	inline DataStreamRef LoadLibraryResource(String name)

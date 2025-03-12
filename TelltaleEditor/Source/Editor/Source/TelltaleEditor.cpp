@@ -100,7 +100,13 @@ Bool TelltaleEditor::QueryTask(U32 task)
 	return _ProbeTasks(false, task);
 }
 
-U32 TelltaleEditor::EnqueueArchive2ExtractTask(TTArchive2* pArchive, std::vector<String>&& files, String outputFolder)
+Ptr<ResourceRegistry> TelltaleEditor::CreateResourceRegistry()
+{
+	TTE_ASSERT(IsCallingFromMain(), "Can only be called from the main thread! Resource registies can only be created and mounted with resource sets on the main thread.");
+	return _ModdingContext->CreateResourceRegistry();
+}
+
+U32 TelltaleEditor::EnqueueArchive2ExtractTask(TTArchive2* pArchive, std::set<String>&& files, String outputFolder)
 {
 	TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
 	ArchiveExtractionTask* task = TTE_NEW(ArchiveExtractionTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
@@ -112,7 +118,7 @@ U32 TelltaleEditor::EnqueueArchive2ExtractTask(TTArchive2* pArchive, std::vector
 	return _TaskFence++;
 }
 
-U32 TelltaleEditor::EnqueueArchiveExtractTask(TTArchive* pArchive, std::vector<String>&& files, String outputFolder)
+U32 TelltaleEditor::EnqueueArchiveExtractTask(TTArchive* pArchive, std::set<String>&& files, String outputFolder)
 {
 	TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
 	ArchiveExtractionTask* task = TTE_NEW(ArchiveExtractionTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);

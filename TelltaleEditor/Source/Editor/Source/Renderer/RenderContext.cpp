@@ -470,7 +470,7 @@ void RenderTexture::Create2D(RenderContext* pContext, U32 width, U32 height, Ren
 	}
 }
 
-std::shared_ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
+Ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
 {
 	std::lock_guard<std::mutex> L{_Lock};
 	for(auto& sampler: _Samplers)
@@ -493,7 +493,7 @@ std::shared_ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
 	info.max_lod = 1000.f;
 	desc._Handle = SDL_CreateGPUSampler(_Device, &info);
 	desc._Context = this;
-	std::shared_ptr<RenderSampler> pSampler = TTE_NEW_PTR(RenderSampler, MEMORY_TAG_RENDERER);
+	Ptr<RenderSampler> pSampler = TTE_NEW_PTR(RenderSampler, MEMORY_TAG_RENDERER);
 	*pSampler = std::move(desc);
 	desc._Context = nullptr;
 	desc._Handle = nullptr; // sometimes compiler doesnt do move:(
@@ -526,7 +526,7 @@ void RenderContext::_FreePendingDeletions(U64 frame)
 	}
 }
 
-void RenderCommandBuffer::UploadTextureDataSlow(std::shared_ptr<RenderTexture> &texture,
+void RenderCommandBuffer::UploadTextureDataSlow(Ptr<RenderTexture> &texture,
 											DataStreamRef src, U64 srcOffset, U32 mip, U32 slice, U32 dataZ)
 {
 	if(_CurrentPass)
@@ -568,7 +568,7 @@ void RenderCommandBuffer::UploadTextureDataSlow(std::shared_ptr<RenderTexture> &
 
 // ================ PIPELINE STATES, SHADER MGR
 
-Bool RenderContext::_FindProgram(String name, std::shared_ptr<RenderShader> &vert, std::shared_ptr<RenderShader> &frag)
+Bool RenderContext::_FindProgram(String name, Ptr<RenderShader> &vert, Ptr<RenderShader> &frag)
 {
 	vert = _FindShader(name + "/Vertex", RenderShaderType::VERTEX);
 	frag = _FindShader(name + "/Frag", RenderShaderType::FRAGMENT);
@@ -576,7 +576,7 @@ Bool RenderContext::_FindProgram(String name, std::shared_ptr<RenderShader> &ver
 }
 
 // find a loaded shader, if not found its loaded.
-std::shared_ptr<RenderShader> RenderContext::_FindShader(String name, RenderShaderType type)
+Ptr<RenderShader> RenderContext::_FindShader(String name, RenderShaderType type)
 {
 	_Lock.lock();
 	for(auto& sh: _LoadedShaders)
@@ -644,7 +644,7 @@ std::shared_ptr<RenderShader> RenderContext::_FindShader(String name, RenderShad
 		return nullptr;
 	}
 	
-	std::shared_ptr<RenderShader> sh = TTE_NEW_PTR(RenderShader, MEMORY_TAG_RENDERER);
+	Ptr<RenderShader> sh = TTE_NEW_PTR(RenderShader, MEMORY_TAG_RENDERER);
 	
 	U32 BindsOf[3]{};
 	VertexAttributesBitset set{};
@@ -781,7 +781,7 @@ std::shared_ptr<RenderShader> RenderContext::_FindShader(String name, RenderShad
 
 // ======================= PIPELINE STATES
 
-std::shared_ptr<RenderPipelineState> RenderContext::_AllocatePipelineState()
+Ptr<RenderPipelineState> RenderContext::_AllocatePipelineState()
 {
 	auto val = TTE_NEW_PTR(RenderPipelineState, MEMORY_TAG_RENDERER);
 	val->_Internal._Context = this;
@@ -795,7 +795,7 @@ std::shared_ptr<RenderPipelineState> RenderContext::_AllocatePipelineState()
 	return val;
 }
 
-std::shared_ptr<RenderPipelineState> RenderContext::_FindPipelineState(RenderPipelineState desc)
+Ptr<RenderPipelineState> RenderContext::_FindPipelineState(RenderPipelineState desc)
 {
 	U64 hash = _HashPipelineState(desc);
 	{
@@ -804,7 +804,7 @@ std::shared_ptr<RenderPipelineState> RenderContext::_FindPipelineState(RenderPip
 			if(state->Hash == hash)
 				return state;
 	}
-	std::shared_ptr<RenderPipelineState> state = _AllocatePipelineState();
+	Ptr<RenderPipelineState> state = _AllocatePipelineState();
 	desc._Internal._Context = this;
 	*state = std::move(desc);
 	state->Create();
@@ -849,7 +849,7 @@ void RenderPipelineState::Create()
 		sc.format = SDL_GetGPUSwapchainTextureFormat(_Internal._Context->_Device, _Internal._Context->_Window);
 		info.target_info.color_target_descriptions = &sc;
 		
-		std::shared_ptr<RenderShader> vert, frag{};
+		Ptr<RenderShader> vert, frag{};
 		TTE_ASSERT(_Internal._Context->_FindProgram(ShaderProgram, vert, frag), "Could not fetch shader program: %s", ShaderProgram.c_str());
 		
 		info.vertex_shader = vert->Handle;
@@ -1023,7 +1023,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 	
 	ShaderParameterTypes parametersToSet{};
 	
-	std::shared_ptr<RenderShader> vsh, fsh{};
+	Ptr<RenderShader> vsh, fsh{};
 	TTE_ASSERT(_Context->_FindProgram(_BoundPipeline->ShaderProgram, vsh, fsh), "Shader program not found");
 	
 	for(U8 i = 0; i < (U8)ShaderParameterType::PARAMETER_COUNT; i++)
@@ -1047,7 +1047,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 			if(paramInfo.Type == (U8)PARAMETER_INDEX0IN && !BoundIndex) // bind index buffer
 			{
 				BoundIndex = true;
-				std::shared_ptr<RenderBuffer> proxy{group->GetParameter(i).GenericValue.Buffer, &NullDeleter};
+				Ptr<RenderBuffer> proxy{group->GetParameter(i).GenericValue.Buffer, &NullDeleter};
 				TTE_ASSERT(proxy.get(), "Required index buffer was not bound or was null");
 				BindIndexBuffer(proxy, group->GetParameter(i).GenericValue.Offset, _BoundPipeline->VertexState.IsHalf);
 				continue;
@@ -1058,7 +1058,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 			{
 				// bind this vertex buffer
 				BoundVertex[paramInfo.Type - PARAMETER_FIRST_VERTEX_BUFFER] = true;
-				std::shared_ptr<RenderBuffer> proxy{group->GetParameter(i).GenericValue.Buffer, &NullDeleter};
+				Ptr<RenderBuffer> proxy{group->GetParameter(i).GenericValue.Buffer, &NullDeleter};
 				TTE_ASSERT(proxy.get(), "Required vertex buffer was not bound or was null");
 				U32 offset = group->GetParameter(i).GenericValue.Offset;
 				BindVertexBuffers(&proxy, &offset, (U32)(paramInfo.Type - PARAMETER_FIRST_VERTEX_BUFFER), 1);
@@ -1081,21 +1081,21 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 				{
 					if(vsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
 					{
-						std::shared_ptr<RenderTexture> tex{group->GetParameter(i).SamplerValue.Texture, &NullDeleter};
+						Ptr<RenderTexture> tex{group->GetParameter(i).SamplerValue.Texture, &NullDeleter};
 						TTE_ASSERT(tex.get(), "Required texture was not bound or was null");
 						
 						RenderSampler* samDesc = group->GetParameter(i).SamplerValue.SamplerDesc;
-						std::shared_ptr<RenderSampler> resolvedSampler = _Context->_FindSampler(samDesc ? *samDesc : RenderSampler{});
+						Ptr<RenderSampler> resolvedSampler = _Context->_FindSampler(samDesc ? *samDesc : RenderSampler{});
 						
 						BindTextures(vsh->ParameterSlots[paramInfo.Type], 1, RenderShaderType::VERTEX, &tex, &resolvedSampler);
 					}
 					if(fsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
 					{
-						std::shared_ptr<RenderTexture> tex{group->GetParameter(i).SamplerValue.Texture, &NullDeleter};
+						Ptr<RenderTexture> tex{group->GetParameter(i).SamplerValue.Texture, &NullDeleter};
 						TTE_ASSERT(tex.get(), "Required texture was not bound or was null");
 						
 						RenderSampler* samDesc = group->GetParameter(i).SamplerValue.SamplerDesc;
-						std::shared_ptr<RenderSampler> resolvedSampler = _Context->_FindSampler(samDesc ? *samDesc : RenderSampler{});
+						Ptr<RenderSampler> resolvedSampler = _Context->_FindSampler(samDesc ? *samDesc : RenderSampler{});
 						
 						BindTextures(fsh->ParameterSlots[paramInfo.Type], 1, RenderShaderType::FRAGMENT, &tex, &resolvedSampler);
 					}
@@ -1104,13 +1104,13 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 				{
 					if(vsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
 					{
-						std::shared_ptr<RenderBuffer> buf{group->GetParameter(i).GenericValue.Buffer, &NullDeleter};
+						Ptr<RenderBuffer> buf{group->GetParameter(i).GenericValue.Buffer, &NullDeleter};
 						TTE_ASSERT(buf.get(), "Required generic buffer was not bound or was null");
 						BindGenericBuffers(vsh->ParameterSlots[paramInfo.Type], 1, &buf, RenderShaderType::VERTEX);
 					}
 					if(fsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
 					{
-						std::shared_ptr<RenderBuffer> buf{group->GetParameter(i).GenericValue.Buffer, &NullDeleter};
+						Ptr<RenderBuffer> buf{group->GetParameter(i).GenericValue.Buffer, &NullDeleter};
 						TTE_ASSERT(buf.get(), "Required generic buffer was not bound or was null");
 						BindGenericBuffers(fsh->ParameterSlots[paramInfo.Type], 1, &buf, RenderShaderType::FRAGMENT);
 					}
@@ -1123,7 +1123,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 	
 	// any that are not bound use defaults for textures (Could do buffers? not much for such a small thing)
 	
-	std::shared_ptr<RenderSampler> defSampler = _Context->_FindSampler({});
+	Ptr<RenderSampler> defSampler = _Context->_FindSampler({});
 	
 	for(U32 i = 0; i < ShaderParameterType::PARAMETER_COUNT; i++)
 	{
@@ -1152,7 +1152,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 }
 
 void RenderCommandBuffer::BindTextures(U32 slot, U32 num, RenderShaderType shader,
-									   std::shared_ptr<RenderTexture>* pTextures, std::shared_ptr<RenderSampler>* pSamplers)
+									   Ptr<RenderTexture>* pTextures, Ptr<RenderSampler>* pSamplers)
 {
 	_Context->AssertMainThread();
 	TTE_ASSERT(_Handle != nullptr, "Render command buffer was not initialised properly");
@@ -1193,7 +1193,7 @@ void RenderCommandBuffer::DrawDefaultMesh(DefaultRenderMeshType type)
 }
 
 void RenderCommandBuffer::BindDefaultTexture(U32 slot, RenderShaderType shaderType,
-											 std::shared_ptr<RenderSampler> sampler, DefaultRenderTextureType type)
+											 Ptr<RenderSampler> sampler, DefaultRenderTextureType type)
 {
 	_Context->AssertMainThread();
 	for(auto& def: _Context->_DefaultTextures)
@@ -1223,7 +1223,7 @@ void RenderCommandBuffer::BindDefaultMesh(DefaultRenderMeshType type)
 	TTE_ASSERT(false, "Default mesh could not be found");
 }
 
-void RenderCommandBuffer::BindGenericBuffers(U32 slot, U32 num, std::shared_ptr<RenderBuffer>* pBuffers, RenderShaderType shaderSlot)
+void RenderCommandBuffer::BindGenericBuffers(U32 slot, U32 num, Ptr<RenderBuffer>* pBuffers, RenderShaderType shaderSlot)
 {
 	_Context->AssertMainThread();
 	TTE_ASSERT(_Handle != nullptr, "Render command buffer was not initialised properly");
@@ -1305,7 +1305,7 @@ Bool RenderCommandBuffer::Finished()
 	else return true; // nothing submitted
 }
 
-void RenderCommandBuffer::BindPipeline(std::shared_ptr<RenderPipelineState> &state)
+void RenderCommandBuffer::BindPipeline(Ptr<RenderPipelineState> &state)
 {
 	TTE_ASSERT(state && state->_Internal._Handle, "Invalid pipeline state");
 	if(_Context)
@@ -1319,9 +1319,9 @@ void RenderCommandBuffer::BindPipeline(std::shared_ptr<RenderPipelineState> &sta
 
 // ============================ BUFFERS
 
-std::shared_ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes)
+Ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes)
 {
-	std::shared_ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
+	Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
 	buffer->_Context = this;
 	buffer->SizeBytes = sizeBytes;
 	buffer->Usage = RenderBufferUsage::VERTEX;
@@ -1336,9 +1336,9 @@ std::shared_ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes)
 	return buffer;
 }
 
-std::shared_ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes)
+Ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes)
 {
-	std::shared_ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
+	Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
 	buffer->_Context = this;
 	buffer->SizeBytes = sizeBytes;
 	buffer->Usage = RenderBufferUsage::UNIFORM;
@@ -1353,9 +1353,9 @@ std::shared_ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes)
 	return buffer;
 }
 
-std::shared_ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes)
+Ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes)
 {
-	std::shared_ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
+	Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
 	buffer->_Context = this;
 	buffer->SizeBytes = sizeBytes;
 	buffer->Usage = RenderBufferUsage::INDICES;
@@ -1370,7 +1370,7 @@ std::shared_ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes)
 	return buffer;
 }
 
-void RenderCommandBuffer::BindVertexBuffers(std::shared_ptr<RenderBuffer> *buffers, U32 *offsets, U32 first, U32 num)
+void RenderCommandBuffer::BindVertexBuffers(Ptr<RenderBuffer> *buffers, U32 *offsets, U32 first, U32 num)
 {
 	TTE_ASSERT(_Context && _Handle && _CurrentPass && _CurrentPass->_Handle, "Command buffer is not in a state to have bindings yet");
 	TTE_ASSERT(buffers && first + num <= 32, "Invalid arguments passed into BindVertexBuffers");
@@ -1390,7 +1390,7 @@ void RenderCommandBuffer::BindVertexBuffers(std::shared_ptr<RenderBuffer> *buffe
 	
 }
 
-void RenderCommandBuffer::BindIndexBuffer(std::shared_ptr<RenderBuffer> indexBuffer, U32 firstIndex, Bool isHalf)
+void RenderCommandBuffer::BindIndexBuffer(Ptr<RenderBuffer> indexBuffer, U32 firstIndex, Bool isHalf)
 {
 	TTE_ASSERT(_Context && _Handle && _CurrentPass && _CurrentPass->_Handle, "Command buffer is not in a state to have bindings yet");
 	TTE_ASSERT(indexBuffer && indexBuffer->_Handle, "Invalid arguments passed into BindIndexBuffer");
@@ -1404,7 +1404,7 @@ void RenderCommandBuffer::BindIndexBuffer(std::shared_ptr<RenderBuffer> indexBuf
 	
 }
 
-void RenderCommandBuffer::UploadBufferDataSlow(std::shared_ptr<RenderBuffer>& buffer, DataStreamRef srcStream, U64 src, U32 destOffset, U32 numBytes)
+void RenderCommandBuffer::UploadBufferDataSlow(Ptr<RenderBuffer>& buffer, DataStreamRef srcStream, U64 src, U32 destOffset, U32 numBytes)
 {
 	
 	if(_CurrentPass)
@@ -1560,7 +1560,7 @@ void RenderContext::SetParameterDefaultTexture(RenderFrame& frame, ShaderParamet
 }
 
 void RenderContext::SetParameterTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-						 std::shared_ptr<RenderTexture> tex, RenderSampler* sampler)
+						 Ptr<RenderTexture> tex, RenderSampler* sampler)
 {
 	U32 ind = (U32)-1;
 	for(U32 i = 0; i < group->NumParameters; i++)
@@ -1600,7 +1600,7 @@ void RenderContext::SetParameterUniform(RenderFrame& frame, ShaderParametersGrou
 }
 
 void RenderContext::SetParameterGenericBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-							   std::shared_ptr<RenderBuffer> buffer, U32 bufferOffset)
+							   Ptr<RenderBuffer> buffer, U32 bufferOffset)
 {
 	U32 ind = (U32)-1;
 	for(U32 i = 0; i < group->NumParameters; i++)
@@ -1620,7 +1620,7 @@ void RenderContext::SetParameterGenericBuffer(RenderFrame& frame, ShaderParamete
 }
 
 void RenderContext::SetParameterVertexBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-							  std::shared_ptr<RenderBuffer> buffer, U32 off)
+							  Ptr<RenderBuffer> buffer, U32 off)
 {
 	U32 ind = (U32)-1;
 	for(U32 i = 0; i < group->NumParameters; i++)
@@ -1641,7 +1641,7 @@ void RenderContext::SetParameterVertexBuffer(RenderFrame& frame, ShaderParameter
 
 // Set an index buffer parameter input.
 void RenderContext::SetParameterIndexBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-							 std::shared_ptr<RenderBuffer> buffer, U32 startIndex)
+							 Ptr<RenderBuffer> buffer, U32 startIndex)
 {
 	U32 ind = (U32)-1;
 	for(U32 i = 0; i < group->NumParameters; i++)
@@ -1695,7 +1695,7 @@ void RenderContext::PurgeResources()
 		_AvailTransferBuffers.clear();
 		for(auto& sampler: _Samplers)
 		{
-			std::shared_ptr<RenderSampler> s = std::move(sampler);
+			Ptr<RenderSampler> s = std::move(sampler);
 			_PendingSDLResourceDeletions.push_back(PendingDeletion{std::move(s), GetFrame(false).FrameNumber});
 		}
 		_Samplers.clear();
@@ -1844,7 +1844,7 @@ void RenderContext::_Draw(RenderFrame& frame, RenderInst inst, RenderCommandBuff
 	
 	DefaultRenderMesh* pDefaultMesh = nullptr;
 	
-	std::shared_ptr<RenderPipelineState> state{};
+	Ptr<RenderPipelineState> state{};
 	if(inst._DrawDefault == DefaultRenderMeshType::NONE)
 	{
 		TTE_ASSERT(inst.Program.c_str(), "Render instance shader program not set");
@@ -2051,7 +2051,7 @@ void RenderFrameUpdateList::EndRenderFrame()
 	
 }
 
-void RenderFrameUpdateList::_DismissBuffer(const std::shared_ptr<RenderBuffer> &buf)
+void RenderFrameUpdateList::_DismissBuffer(const Ptr<RenderBuffer> &buf)
 {
 	{
 		MetaBufferUpload* uploadPrev = nullptr;
@@ -2091,7 +2091,7 @@ void RenderFrameUpdateList::_DismissBuffer(const std::shared_ptr<RenderBuffer> &
 	}
 }
 
-void RenderFrameUpdateList::UpdateBufferMeta(const Meta::BinaryBuffer &metaBuffer, const std::shared_ptr<RenderBuffer> &destBuffer, U64 dst)
+void RenderFrameUpdateList::UpdateBufferMeta(const Meta::BinaryBuffer &metaBuffer, const Ptr<RenderBuffer> &destBuffer, U64 dst)
 {
 	if(destBuffer->LastUpdatedFrame == _Frame.FrameNumber)
 	{
@@ -2109,7 +2109,7 @@ void RenderFrameUpdateList::UpdateBufferMeta(const Meta::BinaryBuffer &metaBuffe
 	_TotalNumUploads++;
 }
 
-void RenderFrameUpdateList::UpdateBufferDataStream(const DataStreamRef &srcStream, const std::shared_ptr<RenderBuffer> &destBuffer, U64 srcPos, U64 nBytes, U64 dst)
+void RenderFrameUpdateList::UpdateBufferDataStream(const DataStreamRef &srcStream, const Ptr<RenderBuffer> &destBuffer, U64 srcPos, U64 nBytes, U64 dst)
 {
 	if(destBuffer->LastUpdatedFrame == _Frame.FrameNumber)
 	{

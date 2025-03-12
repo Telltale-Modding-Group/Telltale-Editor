@@ -26,7 +26,7 @@ Bool MeshNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* p
 	auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
 	TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found for mesh instance: '%s'", fn.c_str());
 	
-	TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, true), "Could not load chunk for %s", fn.c_str());
+	TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, LoadChunkMode::BINARY), "Could not load chunk for %s", fn.c_str());
 	
 	Instance.PushWeakScriptRef(thread.L, Instance.ObtainParentRef());
 	thread.L.PushOpaque(this);

@@ -57,6 +57,11 @@ namespace Meta
             reg.Name = ScriptManager::PopString(man);
             ScriptManager::TableGet(man, "ID");
             reg.ID = ScriptManager::PopString(man);
+			ScriptManager::TableGet(man, "ResourceSetMask");
+			if(man.Type(-1) == LuaType::STRING)
+				reg.ResourceSetDescMask = ScriptManager::PopString(man);
+			else
+				man.Pop(1);
             ScriptManager::TableGet(man, "IsArchive2");
             reg.UsesArchive2 = ScriptManager::PopBool(man);
             ScriptManager::TableGet(man, "ArchiveVersion");
@@ -1613,7 +1618,7 @@ namespace MS
         
         TTE_ASSERT(stream.Read(Buffer, (U64)size), "Binary buffer read fail - size is likely too large.");
 		
-		buf.BufferData = std::shared_ptr<U8>(Buffer, [](U8* p){TTE_FREE(p);});
+		buf.BufferData = Ptr<U8>(Buffer, [](U8* p){TTE_FREE(p);});
 		
 		if(stream.DebugOutputFile)
 		{
@@ -2144,7 +2149,7 @@ namespace TTE
         {
             TTArchive* pArchive = ScriptManager::GetScriptObject<TTArchive>(man, -1);
             man.PushTable();
-            std::vector<String> files{};
+            std::set<String> files{};
             pArchive->GetFiles(files);
             U32 i = 1;
             for(auto& it: files)
@@ -2158,7 +2163,7 @@ namespace TTE
         {
             TTArchive2* pArchive = ScriptManager::GetScriptObject<TTArchive2>(man, -1);
             man.PushTable();
-            std::vector<String> files{};
+            std::set<String> files{};
             pArchive->GetFiles(files);
             U32 i = 1;
             for(auto& it: files)

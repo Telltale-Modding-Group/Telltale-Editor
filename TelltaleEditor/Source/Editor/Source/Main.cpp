@@ -67,8 +67,23 @@ static void RunApp()
 	DumpTrackedMemory();
 }
 
+static void TestResources()
+{
+	{
+		
+		TelltaleEditor editor{{"MC100","MacOS",""}, false}; // initialise library and editor with no UI
+		
+		// create a testing resource registry
+		Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
+		
+		registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/MC100.app/Contents/Resources");
+		
+	}
+	DumpTrackedMemory();
+}
+
 int main()
 {
-	RunApp();
+	TestResources();
 	return 0;
 }

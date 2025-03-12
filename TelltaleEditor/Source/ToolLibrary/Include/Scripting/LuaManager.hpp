@@ -12,16 +12,23 @@ class DataStream;
 // Supported LUA versions which telltale use in release games.
 enum class LuaVersion
 {
-    LUA_NONE,  // No version set
-    LUA_5_2_3, // Lua 5.2.3
-    LUA_5_1_4, // Lua 5.1.4
-    LUA_5_0_2  // Lua 5.0.2
+    LUA_NONE = -1,  // No version set
+    LUA_5_2_3 = 0, // Lua 5.2.3
+    LUA_5_1_4 = 1, // Lua 5.1.4
+    LUA_5_0_2 = 2,  // Lua 5.0.2
 };
 
 enum class LuaOp {
     EQ,//==
     LT,//<
     LE,//<=
+};
+
+enum class LoadChunkMode
+{
+	BINARY,
+	SOURCE,
+	ANY
 };
 
 enum class LuaType {
@@ -67,7 +74,7 @@ class LuaManager
     void CallFunction(U32 Nargs, U32 Nresults, Bool LockContext);
     
     // Loads a lua chunk, isCompiled being if its complied else source, into the Lua VM.
-    Bool LoadChunk(const String& nm, const U8* chunk, U32 chunkSizeBytes, Bool isCompiled);
+    Bool LoadChunk(const String& nm, const U8* chunk, U32 chunkSizeBytes, LoadChunkMode);
     
     // Checks if we can add <extra> elements onto the stack without causing a stack overflow.
     Bool CheckStack(U32 extra);
@@ -254,7 +261,7 @@ class LuaAdapterBase
     
     virtual I32 GetTop() = 0;
     
-    virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) = 0;
+    virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) = 0;
     
     virtual void* CreateUserData(U32 size) = 0;
     
@@ -324,7 +331,7 @@ class LuaAdapter_523 : public LuaAdapterBase
 
     virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
-    virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) override;
+    virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) override;
     
     virtual void CallFunction(U32 Nargs, U32 Nresults) override;
     
@@ -403,7 +410,7 @@ class LuaAdapter_514 : public LuaAdapterBase
 
     virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
-    virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) override;
+    virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) override;
     
     virtual void CallFunction(U32 Nargs, U32 Nresults) override;
     
@@ -482,7 +489,7 @@ class LuaAdapter_502 : public LuaAdapterBase
 
     virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
-    virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) override;
+    virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) override;
     
     virtual void CallFunction(U32 Nargs, U32 Nresults) override;
     

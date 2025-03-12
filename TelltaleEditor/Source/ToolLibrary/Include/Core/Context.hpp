@@ -8,6 +8,8 @@
 #include <Resource/Blowfish.hpp>
 #include <Resource/Compression.hpp>
 
+#include <mutex>
+
 // Used to identify a specific game release snapshot of associated game data for grouping formats
 struct GameSnapshot
 {
@@ -15,6 +17,8 @@ struct GameSnapshot
     String Platform;// game platform, see wiki.
     String Vendor; // vendor. some games have mulitple differing releases. leave blank unless instructed.
 };
+
+class ResourceRegistry;
 
 // The tool context is used as a global context for the library when modding. Creating this and then calling initialise runs all the lua
 // code to setup the library for modding the given game snapshot. ONLY ONE INSTANCE can be alive for one executable using this library.
@@ -30,7 +34,21 @@ public:
     {
         if(_Setup)
         {
-            
+			
+			U32 errors{};
+			for(auto& dependent: _SwitchDependents)
+			{
+				Ptr<GameDependentObject> alive = dependent.lock();
+				if(alive)
+				{
+					errors++;
+					TTE_LOG("FATAL: Game dependent object is still alive at a game switch: %s", alive->ObjName);
+				}
+			}
+			if(errors)
+				TTE_ASSERT(false, "Found %d alive game dependent objects before a game switch.", errors);
+			_SwitchDependents.clear();
+			
             JobScheduler::Shutdown();
             Meta::RelGame();
             Blowfish::Shutdown();
@@ -91,6 +109,9 @@ public:
     {
         return _L[0]; // Use latest lua version for modding scripts
     }
+	
+	// Returns the lua manager which is tied to the currently active game.
+	LuaManager& GetGameLVM();
     
     // Get the current game snapshot
     inline GameSnapshot GetSnapshot()
@@ -140,6 +161,9 @@ public:
     inline U32 GetLockDepth() {
         return _LockedCallDepth;
     }
+	
+	// Creates a resource registry for the given game. Only use in the current game! Must be destroyed before a switch.
+	Ptr<ResourceRegistry> CreateResourceRegistry();
     
 private:
     
@@ -148,6 +172,9 @@ private:
     GameSnapshot _Snapshot = {};
     LuaManager _L[3];
 	LuaFunctionCollection _PerStateCollection; // functions to register for each worker thread lua state.
+	
+	std::mutex _DependentsLock;
+	std::vector<std::weak_ptr<GameDependentObject>> _SwitchDependents{}; // see game dependent object
     
     friend ToolContext* CreateToolContext(LuaFunctionCollection);
     

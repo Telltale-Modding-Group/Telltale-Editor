@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Renderer/Camera.hpp>
-#include <BitSet.hpp>
+#include <Core/BitSet.hpp>
 
 // DEFAULT BINDABLE TEXTURES AND BUFFERS
 

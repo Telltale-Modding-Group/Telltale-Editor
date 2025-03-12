@@ -25,8 +25,9 @@ MetaRegisterGame(bone1)
 local mcsm = { }
 mcsm.Name = "Minecraft: Story Mode"
 mcsm.ID = "MC100" -- Minecraft Story Mode S1 (100)
+mcsm.ResourceSetMask = "_resdesc_*.lua"
 mcsm.DefaultMetaVersion = "MSV5"
-mcsm.LuaVersion = "5.1.4"
+mcsm.LuaVersion = "5.2.3"
 mcsm.IsArchive2 = true
 mcsm.ArchiveVersion = 4 -- ttarch version 4
 mcsm.ModifiedEncryption = true -- uses modified blowfish

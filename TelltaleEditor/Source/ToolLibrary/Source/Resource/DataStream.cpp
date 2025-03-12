@@ -118,7 +118,7 @@ ResourceURL DataStreamManager::Resolve(const Symbol &unresolved)
     return ResourceURL(); // Not found
 }
 
-void DataStreamManager::Publicise(std::shared_ptr<DataStreamMemory> &stream)
+void DataStreamManager::Publicise(Ptr<DataStreamMemory> &stream)
 {
 	std::lock_guard<std::mutex> G{_CacheLock};
     for (auto &it : _Cache)
@@ -142,27 +142,27 @@ void DataStreamManager::ReleaseCache(const String &path)
     }
 }
 
-std::shared_ptr<DataStreamMemory> DataStreamManager::CreatePublicCache(const String &path, U32 pageSize)
+Ptr<DataStreamMemory> DataStreamManager::CreatePublicCache(const String &path, U32 pageSize)
 {
 	std::lock_guard<std::mutex> G{_CacheLock};
-    std::shared_ptr<DataStreamMemory> pMemoryStream = _Cache[path] = CreatePrivateCache(path, pageSize);
+    Ptr<DataStreamMemory> pMemoryStream = _Cache[path] = CreatePrivateCache(path, pageSize);
     return pMemoryStream; // Create privately, make public, return it.
 }
 
-std::shared_ptr<DataStreamMemory> DataStreamManager::CreatePrivateCache(const String &path, U32 pageSize)
+Ptr<DataStreamMemory> DataStreamManager::CreatePrivateCache(const String &path, U32 pageSize)
 {
     // Allocate new instance with correct deleter.
     DataStreamMemory *pDSFile = TTE_NEW(DataStreamMemory, MEMORY_TAG_DATASTREAM, path, (U64)pageSize);
-    return std::shared_ptr<DataStreamMemory>(pDSFile, &DataStreamDeleter);
+    return Ptr<DataStreamMemory>(pDSFile, &DataStreamDeleter);
 }
 
-std::shared_ptr<DataStreamSequentialStream> DataStreamManager::CreateSequentialStream(const String& url)
+Ptr<DataStreamSequentialStream> DataStreamManager::CreateSequentialStream(const String& url)
 {
     DataStreamSequentialStream *pDS = TTE_NEW(DataStreamSequentialStream, MEMORY_TAG_DATASTREAM, url);
-    return std::shared_ptr<DataStreamSequentialStream>(pDS, &DataStreamDeleter);
+    return Ptr<DataStreamSequentialStream>(pDS, &DataStreamDeleter);
 }
 
-std::shared_ptr<DataStreamMemory> DataStreamManager::FindCache(const String &path)
+Ptr<DataStreamMemory> DataStreamManager::FindCache(const String &path)
 {
 	std::lock_guard<std::mutex> G{_CacheLock};
     for (auto it = _Cache.begin(); it != _Cache.end(); it++)
@@ -201,6 +201,15 @@ DataStreamRef DataStreamManager::CreateCachedStream(const DataStreamRef& src)
     
     DataStreamBuffer *pDS = TTE_NEW(DataStreamBuffer, MEMORY_TAG_DATASTREAM, src->GetURL(), src->GetSize(), Buffer, true);
     return DataStreamRef(pDS, &DataStreamDeleter);
+}
+
+DataStreamRef DataStreamManager::Copy(DataStreamRef src, U64 srcOff, U64 n)
+{
+	TTE_ASSERT(src, "Source stream");
+	DataStreamRef mem = CreatePrivateCache("");
+	src->SetPosition(srcOff);
+	Transfer(src, mem, n);
+	return mem;
 }
 
 DataStreamRef DataStreamManager::CreateNullStream()
@@ -334,7 +343,7 @@ DataStreamRef ResourceURL::Open()
     {
 
         // First try and search cache for it.
-        std::shared_ptr<DataStreamMemory> pMemoryStream = DataStreamManager::GetInstance()->FindCache(_Path);
+        Ptr<DataStreamMemory> pMemoryStream = DataStreamManager::GetInstance()->FindCache(_Path);
 
         // If it does not exist, create the public cached one and return it.
         if (!pMemoryStream)
@@ -987,14 +996,13 @@ Bool DataStreamContainer::_SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 
         if(_CachedPageIndex != index)
         {
             // cache new page index
+			U32 pageSize = (U32)(_PageOffsets[index+1] - _PageOffsets[index]);
             _Prnt->SetPosition(_DataOffsetStart + _PageOffsets[index]);
-            if(!_Prnt->Read(_IntPage, _PageSize))
+            if(!_Prnt->Read(_IntPage, pageSize))
             {
                 TTE_LOG("Could not read page from container stream: index %lld", index);
                 return false;
             }
-            
-            U32 pageSize = (U32)(_PageOffsets[index+1] - _PageOffsets[index]);
             
             if(_Encrypted)
             {
@@ -1146,7 +1154,7 @@ struct ProcessedPageBulk
     U32 FirstPageIndex;
     U32 FlushSlot; // slot in stashed buffer
     U32 CompressedSizes[CONTAINER_BULK_SIZE];
-    std::shared_ptr<U8> Overflow[CONTAINER_BULK_SIZE];
+    Ptr<U8> Overflow[CONTAINER_BULK_SIZE];
     // if compressed data is larger than window size (ie couldn't compress well) store it externally.
 };
 
@@ -1172,7 +1180,7 @@ static Bool _DoPage(U8* In, U8* Out, _AsyncContainerContext* ctx, ProcessedPageB
             return false;
         }
         Out = OutputBuffer;
-        blk.Overflow[pgIndex] = std::shared_ptr<U8>(Out, &_U8Deleter);
+        blk.Overflow[pgIndex] = Ptr<U8>(Out, &_U8Deleter);
     }
     
     blk.CompressedSizes[pgIndex] = (U32)compressedSize;

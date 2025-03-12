@@ -494,18 +494,18 @@ class DataStreamManager
     ResourceURL Resolve(const Symbol &sym);
 
     // Searches cached (memory) files for the given path, in the cache scheme.
-    std::shared_ptr<DataStreamMemory> FindCache(const String &path);
+    Ptr<DataStreamMemory> FindCache(const String &path);
     
     // Creates a sequential stream used for reading from multiple sources. Pass in the temporary URL.
-    std::shared_ptr<DataStreamSequentialStream> CreateSequentialStream(const String& path);
+    Ptr<DataStreamSequentialStream> CreateSequentialStream(const String& path);
 
     // Creates a new private cache memory stream. Once you destroy the return value, the stream is deleted. Ie, CreateMemoryStream.
-    std::shared_ptr<DataStreamMemory> CreatePrivateCache(const String &path, U32 pageSize = MEMORY_STREAM_DEFAULT_PAGESIZE);
+    Ptr<DataStreamMemory> CreatePrivateCache(const String &path, U32 pageSize = MEMORY_STREAM_DEFAULT_PAGESIZE);
 
     // Creates a new public cache*d* memory stream. FindCache will return this pointer. Call ReleaseCache to stop that, so it gets deleted.
     // It is publicly accessible after this call not just by the returned value. If a cached file at the path exists, it is replaced -
     // any subsequent calls to FindCache returns this new returned stream.
-    std::shared_ptr<DataStreamMemory> CreatePublicCache(const String &path, U32 pageSize = MEMORY_STREAM_DEFAULT_PAGESIZE);
+    Ptr<DataStreamMemory> CreatePublicCache(const String &path, U32 pageSize = MEMORY_STREAM_DEFAULT_PAGESIZE);
     
     // Writes and fully flushes a data stream from the source stream, reading Nbytes, into the output destination stream, with parameters.
     // Passes out the JOB HANDLE. This runs asynchronously this can take a lot of time for large game data. Returns false if invalid inputs.
@@ -519,7 +519,7 @@ class DataStreamManager
     void ReleaseCache(const String &path);
 
     // Makes a private cache memory stream publicly accessible by FindCache, adding it to the internal map if it doesn't exist already.
-    void Publicise(std::shared_ptr<DataStreamMemory> &stream);
+    void Publicise(Ptr<DataStreamMemory> &stream);
 
     // Transfers bytes from the source stream to the destination stream in chunks. Ensure source and destination are correctly
     // positioned before this call such that you copy the data which you want. Set Nbytes to the number of bytes you want to copy.
@@ -534,6 +534,9 @@ class DataStreamManager
     
     // Write N bytes to the given stream
     void WriteZeros(DataStreamRef& stream, U64 N);
+	
+	// Deep copy of the source data stream into a new memory stream.
+	DataStreamRef Copy(DataStreamRef src, U64 srcOff, U64 n);
 
     static void Initialise();
 
@@ -543,7 +546,7 @@ class DataStreamManager
 
   private:
     // Map of cache URL paths to cached streams. Not thread safe, operations on each memory stream must not be done simulateously.
-    std::map<String, std::shared_ptr<DataStreamMemory>> _Cache;
+    std::map<String, Ptr<DataStreamMemory>> _Cache;
 	std::mutex _CacheLock;
 
     static DataStreamManager *Instance;

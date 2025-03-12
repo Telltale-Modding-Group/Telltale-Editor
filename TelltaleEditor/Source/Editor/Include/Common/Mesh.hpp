@@ -50,8 +50,8 @@ struct Mesh
 		struct
 		{
 			
-			std::shared_ptr<RenderBuffer> GPUVertexBuffers[32];
-			std::shared_ptr<RenderBuffer> GPUIndexBuffer;
+			Ptr<RenderBuffer> GPUVertexBuffers[32];
+			Ptr<RenderBuffer> GPUIndexBuffer;
 			
 		} RuntimeData; // runtime data. internal use for renderer.
 		

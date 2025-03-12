@@ -3,8 +3,8 @@
 // Render types
 
 #include <Core/Config.hpp>
+#include <Core/LinearHeap.hpp>
 
-#include <Renderer/LinearHeap.hpp>
 #include <Renderer/Camera.hpp>
 #include <Renderer/RenderParameters.hpp>
 
@@ -282,7 +282,7 @@ struct DefaultRenderTexture
 {
 	
 	DefaultRenderTextureType Type;
-	std::shared_ptr<RenderTexture> Texture;
+	Ptr<RenderTexture> Texture;
 	
 };
 
@@ -290,9 +290,9 @@ struct DefaultRenderMesh
 {
 	
 	DefaultRenderMeshType Type;
-	std::shared_ptr<RenderPipelineState> PipelineState;
-	std::shared_ptr<RenderBuffer> IndexBuffer;
-	std::shared_ptr<RenderBuffer> VertexBuffer; // only one vertex buffer for default ones, they are simple.
+	Ptr<RenderPipelineState> PipelineState;
+	Ptr<RenderBuffer> IndexBuffer;
+	Ptr<RenderBuffer> VertexBuffer; // only one vertex buffer for default ones, they are simple.
 	U32 NumIndices = 0;
 	
 };
@@ -340,23 +340,23 @@ struct RenderCommandBuffer
 	
 	std::vector<_RenderTransferBuffer> _AcquiredTransferBuffers; // cleared given to context once done.
 	
-	std::shared_ptr<RenderPipelineState> _BoundPipeline; // currently bound pipeline
+	Ptr<RenderPipelineState> _BoundPipeline; // currently bound pipeline
 	
 	// bind a pipeline to this command list
-	void BindPipeline(std::shared_ptr<RenderPipelineState>& state);
+	void BindPipeline(Ptr<RenderPipelineState>& state);
 	
 	// bind vertex buffers, (array). First is the first slot to bind to. Offsets can be NULL to mean all from start. Offsets is each offset.
-	void BindVertexBuffers(std::shared_ptr<RenderBuffer>* buffers, U32* offsets, U32 first, U32 num);
+	void BindVertexBuffers(Ptr<RenderBuffer>* buffers, U32* offsets, U32 first, U32 num);
 	
 	// bind an index buffer for a draw call. isHalf = true means U16 indices in the buffer, false = U32 indices. Pass in offset into buffer.
-	void BindIndexBuffer(std::shared_ptr<RenderBuffer> indexBuffer, U32 startIndex, Bool isHalf);
+	void BindIndexBuffer(Ptr<RenderBuffer> indexBuffer, U32 startIndex, Bool isHalf);
 	
 	// Binds num textures along with samplers, starting at the given slot, to the pipeline fragment shader. num is 0 to 32.
 	void BindTextures(U32 slot, U32 num, RenderShaderType shader,
-					  std::shared_ptr<RenderTexture>* pTextures, std::shared_ptr<RenderSampler>* pSamplers);
+					  Ptr<RenderTexture>* pTextures, Ptr<RenderSampler>* pSamplers);
 	
 	// Bind a default texture
-	void BindDefaultTexture(U32 slot, RenderShaderType, std::shared_ptr<RenderSampler> sampler, DefaultRenderTextureType type);
+	void BindDefaultTexture(U32 slot, RenderShaderType, Ptr<RenderSampler> sampler, DefaultRenderTextureType type);
 	
 	// Bind a default mesh
 	void BindDefaultMesh(DefaultRenderMeshType type);
@@ -365,16 +365,16 @@ struct RenderCommandBuffer
 	void DrawDefaultMesh(DefaultRenderMeshType type);
 	
 	// Binds num generic storage buffers (eg camera) to a specific shader in the pipeline.
-	void BindGenericBuffers(U32 slot, U32 num, std::shared_ptr<RenderBuffer>* pBuffers, RenderShaderType shaderSlot);
+	void BindGenericBuffers(U32 slot, U32 num, Ptr<RenderBuffer>* pBuffers, RenderShaderType shaderSlot);
 	
 	// Bind uniform data. Does not need to be within any pass.
 	void BindUniformData(U32 slot, RenderShaderType shaderStage, const void* data, U32 size);
 	
 	// Perform a buffer upload. Prefer to use render frame update list! This is OK for use in defaults.
-	void UploadBufferDataSlow(std::shared_ptr<RenderBuffer>& buffer, DataStreamRef srcStream, U64 srcOffset, U32 destOffset, U32 numBytes);
+	void UploadBufferDataSlow(Ptr<RenderBuffer>& buffer, DataStreamRef srcStream, U64 srcOffset, U32 destOffset, U32 numBytes);
 	
 	// Perform a texture sub-image upload. Prefer to use render frame update list! This is OK for use in defaults.
-	void UploadTextureDataSlow(std::shared_ptr<RenderTexture>& texture, DataStreamRef srcStream,
+	void UploadTextureDataSlow(Ptr<RenderTexture>& texture, DataStreamRef srcStream,
 						   U64 srcOffset, U32 mip, U32 slice, U32 dataSize);
 	
 	// Draws indexed.
@@ -588,14 +588,14 @@ struct RenderFrame
 	
 	// Shared pointer will be released at end of frame after render. Use to keep pointers alive for duration of frame
 	template<typename T>
-	inline void PushAutorelease(std::shared_ptr<T> val)
+	inline void PushAutorelease(Ptr<T> val)
 	{
 		auto it = _Autorelease.find((U64)val.get());
 		if(it == _Autorelease.end())
 			_Autorelease[(U64)val.get()] = std::move(val);
 	}
 	
-	std::unordered_map<U64, std::shared_ptr<void>> _Autorelease; // released at end of frame.
+	std::unordered_map<U64, Ptr<void>> _Autorelease; // released at end of frame.
 	
 };
 
@@ -614,7 +614,7 @@ class RenderFrameUpdateList
 		
 		Meta::BinaryBuffer Data;
 		
-		std::shared_ptr<RenderBuffer> Buffer;
+		Ptr<RenderBuffer> Buffer;
 		
 		U64 DestPosition = 0; // dest position in Buffer
 		
@@ -626,7 +626,7 @@ class RenderFrameUpdateList
 		DataStreamBufferUpload* Next = nullptr;
 		
 		DataStreamRef Src;
-		std::shared_ptr<RenderBuffer> Buffer;
+		Ptr<RenderBuffer> Buffer;
 		
 		U64 Position = 0; // start pos
 		U64 UploadSize = 0;
@@ -652,15 +652,15 @@ class RenderFrameUpdateList
 	void EndRenderFrame();
 	
 	// Remove the buffer from any previous uploads, as a new upload is present which would override it.
-	void _DismissBuffer(const std::shared_ptr<RenderBuffer>& buf);
+	void _DismissBuffer(const Ptr<RenderBuffer>& buf);
 	
 public:
 	
 	inline RenderFrameUpdateList(RenderContext& context, RenderFrame& frame) : _Frame(frame), _Context(context) {}
 	
-	void UpdateBufferMeta(const Meta::BinaryBuffer& metaBuffer, const std::shared_ptr<RenderBuffer>& destBuffer, U64 destOffset);
+	void UpdateBufferMeta(const Meta::BinaryBuffer& metaBuffer, const Ptr<RenderBuffer>& destBuffer, U64 destOffset);
 	
-	void UpdateBufferDataStream(const DataStreamRef& srcStream, const std::shared_ptr<RenderBuffer>& destBuffer, U64 srcPos, U64 nBytes, U64 destOffset);
+	void UpdateBufferDataStream(const DataStreamRef& srcStream, const Ptr<RenderBuffer>& destBuffer, U64 srcPos, U64 nBytes, U64 destOffset);
 	
 };
 

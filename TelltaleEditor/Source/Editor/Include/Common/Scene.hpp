@@ -3,7 +3,7 @@
 #include <Core/Config.hpp>
 #include <Core/Context.hpp>
 
-#include <BitSet.hpp>
+#include <Core/BitSet.hpp>
 #include <Meta/Meta.hpp>
 
 #include <Common/Mesh.hpp>
