@@ -54,10 +54,10 @@ class StringMask : public String {
 public:
     
     enum MaskMode {
-	    MASKMODE_SIMPLE_MATCH = 0,          // Exact match required (except for wildcards)
-	    MASKMODE_ANY_SUBSTRING = 1,         // Pattern can match anywhere within `str`
-	    MASKMODE_ANY_ENDING = 2,            // Pattern can match any suffix of `str`
-	    MASKMODE_ANY_ENDING_NO_DIRECTORY = 3 // Similar to MASKMODE_ANY_ENDING but ignores directory separators
+        MASKMODE_SIMPLE_MATCH = 0,          // Exact match required (except for wildcards)
+        MASKMODE_ANY_SUBSTRING = 1,         // Pattern can match anywhere within `str`
+        MASKMODE_ANY_ENDING = 2,            // Pattern can match any suffix of `str`
+        MASKMODE_ANY_ENDING_NO_DIRECTORY = 3 // Similar to MASKMODE_ANY_ENDING but ignores directory separators
     };
     
     /**
@@ -76,31 +76,31 @@ public:
      * @return `true` if `testString` matches any pattern, `false` if it is excluded.
      */
     static Bool MatchSearchMask(
-	    	    	    	    CString testString,
-	    	    	    	    CString searchMask,
-	    	    	    	    StringMask::MaskMode mode,
-	    	    	    	    Bool* excluded = nullptr);
+                                CString testString,
+                                CString searchMask,
+                                StringMask::MaskMode mode,
+                                Bool* excluded = nullptr);
     
     static Bool MaskCompare(CString pattern, CString str, CString end, MaskMode mode);
     
     inline Bool operator==(const String& rhs) const
     {
-	    return MaskCompare(this->c_str(), rhs.c_str(), rhs.c_str() + rhs.length(), MASKMODE_SIMPLE_MATCH);
+        return MaskCompare(this->c_str(), rhs.c_str(), rhs.c_str() + rhs.length(), MASKMODE_SIMPLE_MATCH);
     }
     
     inline Bool operator!=(const String& rhs) const
     {
-	    return !MaskCompare(this->c_str(), rhs.c_str(), rhs.c_str() + rhs.length(), MASKMODE_SIMPLE_MATCH);
+        return !MaskCompare(this->c_str(), rhs.c_str(), rhs.c_str() + rhs.length(), MASKMODE_SIMPLE_MATCH);
     }
     
     inline Bool operator==(CString rhs) const
     {
-	    return MaskCompare(this->c_str(), rhs, nullptr, MASKMODE_SIMPLE_MATCH);
+        return MaskCompare(this->c_str(), rhs, nullptr, MASKMODE_SIMPLE_MATCH);
     }
     
     inline Bool operator!=(CString rhs) const
     {
-	    return !MaskCompare(this->c_str(), rhs, nullptr, MASKMODE_SIMPLE_MATCH);
+        return !MaskCompare(this->c_str(), rhs, nullptr, MASKMODE_SIMPLE_MATCH);
     }
     
 };
@@ -124,13 +124,13 @@ public:
     
     inline RegistryDirectory(const String& path) : _Path(path)
     {
-	    std::replace(_Path.begin(), _Path.end(), '\\', '/');
-	    if(!StringEndsWith(_Path, "/"))
-    	    _Path += "/";
+        std::replace(_Path.begin(), _Path.end(), '\\', '/');
+        if(!StringEndsWith(_Path, "/"))
+            _Path += "/";
     }
     
     virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-    	    	    	      Ptr<ResourceLocation>& self, const StringMask* optionalMask) = 0;
+                              Ptr<ResourceLocation>& self, const StringMask* optionalMask) = 0;
     virtual Bool GetResourceNames(std::set<String>& resources, const StringMask* optionalMask) = 0;
     virtual Bool GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask) = 0;
     virtual Bool GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask) = 0;
@@ -154,7 +154,7 @@ public:
     // The path for this directory.
     inline const String& GetPath() const
     {
-	    return _Path;
+        return _Path;
     }
     
 };
@@ -173,7 +173,7 @@ public:
     inline RegistryDirectory_System(const String& path) : RegistryDirectory(path), _LastLocatedResource() {}
     
     virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-    	    	    	      Ptr<ResourceLocation>& self, const StringMask* optionalMask); // with self
+                              Ptr<ResourceLocation>& self, const StringMask* optionalMask); // with self
     virtual Bool GetResourceNames(std::set<String>& resources, const StringMask* optionalMask); // get file names
     virtual Bool GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names
     virtual Bool GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names, recursively (set no dups)
@@ -212,7 +212,7 @@ public:
     virtual Bool GetResourceNames(std::set<String>& resources, const StringMask* optionalMask); // get file names
     virtual Bool GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names
     virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-    	    	    	      Ptr<ResourceLocation>& self, const StringMask* optionalMask); // put all resources into map with self
+                              Ptr<ResourceLocation>& self, const StringMask* optionalMask); // put all resources into map with self
     virtual Bool GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names, recursively (set no dups)
     virtual Bool HasResource(const Symbol& resourceName, const String* actualName /*optional*/); // pass in actual name if you know it to speed up.
     virtual String GetResourceName(const Symbol& resource); // to string resource name (quicker than symbol table
@@ -248,7 +248,7 @@ public:
     
     virtual Bool GetResourceNames(std::set<String>& resources, const StringMask* optionalMask); // get file names
     virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-    	    	    	      Ptr<ResourceLocation>& self, const StringMask* optionalMask);
+                              Ptr<ResourceLocation>& self, const StringMask* optionalMask);
     virtual Bool GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names
     virtual Bool GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names, recursively (set no dups)
     virtual Bool HasResource(const Symbol& resourceName, const String* actualName /*optional*/); // pass in actual name if you know it to speed up.
@@ -275,7 +275,7 @@ struct ResourceLocation
 {
     
     inline ResourceLocation(const String& name) : Name(name) {}
-	    
+        
     String Name;
     
     virtual Bool GetResourceNames(std::set<String>& names, const StringMask* optionalMask) = 0;
@@ -299,16 +299,16 @@ struct ResourceLogicalLocation : ResourceLocation
     
     struct SetInfo
     {
-	    
-	    String Set; // set name
-	    U32 Priority; // priority
-	    Ptr<ResourceLocation> Resolved; // actual location
-	    
-	    inline Bool operator<(const SetInfo& rhs) const
-	    {
-    	    return Priority < rhs.Priority;
-	    }
-	    
+        
+        String Set; // set name
+        U32 Priority; // priority
+        Ptr<ResourceLocation> Resolved; // actual location
+        
+        inline Bool operator<(const SetInfo& rhs) const
+        {
+            return Priority < rhs.Priority;
+        }
+        
     };
     
     inline ResourceLogicalLocation(const String& name) : ResourceLocation(name) {}
@@ -343,28 +343,28 @@ struct ResourceConcreteLocation : ResourceLocation
     
     inline Bool GetResourceNames(std::set<String>& names, const StringMask* optionalMask) override
     {
-	    return Directory.GetResourceNames(names, optionalMask);
+        return Directory.GetResourceNames(names, optionalMask);
     }
     
     inline Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-    	    	    	     Ptr<ResourceLocation>& self, const StringMask* opmask) override
+                             Ptr<ResourceLocation>& self, const StringMask* opmask) override
     {
-	    return Directory.GetResources(resources, self, opmask);
+        return Directory.GetResources(resources, self, opmask);
     }
     
     inline DataStreamRef LocateResource(const Symbol& name, String* outName) override
     {
-	    return Directory.OpenResource(name, outName);
+        return Directory.OpenResource(name, outName);
     }
     
     inline bool HasResource(const Symbol& name) override
     {
-	    return Directory.HasResource(name, nullptr);
+        return Directory.HasResource(name, nullptr);
     }
     
     inline String GetPhysicalPath() override
     {
-	    return Directory.GetPath();
+        return Directory.GetPath();
     }
     
 };
@@ -411,7 +411,7 @@ class ResourceRegistry : public GameDependentObject
     void _ReconfigureSets(const std::set<ResourceSet*>& turnOff, const std::set<ResourceSet*>& turnOn, std::unique_lock<std::mutex>& lck, Bool bDefer);
     
     void _UnloadResources(const std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-	    	    	      std::unique_lock<std::mutex>& lck, U32 maxNumUnloads); // perform resource unload
+                          std::unique_lock<std::mutex>& lck, U32 maxNumUnloads); // perform resource unload
     
     // gather resources to unload for this resource set
     void _GetResourcesToUnload(ResourceSet* pSet, std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& outResources);
@@ -440,11 +440,11 @@ class ResourceRegistry : public GameDependentObject
      */
     inline ResourceRegistry(LuaManager& man) : GameDependentObject("ResourceRegistry"), _LVM(man)
     {
-	    TTE_ASSERT(Meta::GetInternalState().GameIndex != -1, "Resource registries can only be when a game is set!");
-	    TTE_ASSERT(man.GetVersion() == Meta::GetInternalState().Games[Meta::GetInternalState().GameIndex].LVersion,
-	    	       "The lua manager used for the current game must match the version being used for this resource registry");
-	    
-	    CreateLogicalLocation("<>");
+        TTE_ASSERT(Meta::GetInternalState().GameIndex != -1, "Resource registries can only be when a game is set!");
+        TTE_ASSERT(man.GetVersion() == Meta::GetInternalState().Games[Meta::GetInternalState().GameIndex].LVersion,
+                   "The lua manager used for the current game must match the version being used for this resource registry");
+        
+        CreateLogicalLocation("<>");
     }
 
 public:

@@ -352,21 +352,14 @@ Bool RegistryDirectory_TTArchive::GetAllSubDirectories(std::set<String>& directo
     return true;
 }
 
-Bool RegistryDirectory_TTArchive::HasResource(const Symbol& resourceName, const String*)
+Bool RegistryDirectory_TTArchive::HasResource(const Symbol& resourceName, const String* o)
 {
     _LastLocatedResource.clear();
     _LastLocatedResourceStatus = false;
-    
-    for(auto& entry: _Archive._Files)
-    {
-        if(resourceName == entry.Name)
-        {
-            _LastLocatedResource = entry.Name;
-            _LastLocatedResourceStatus = true;
-            break;
-        }
-    }
-    
+
+    _Archive.Find(resourceName, &_LastLocatedResource);
+    _LastLocatedResourceStatus = _LastLocatedResource.length() != 0;
+
     return _LastLocatedResourceStatus;
 }
 
@@ -515,15 +508,8 @@ Bool RegistryDirectory_TTArchive2::HasResource(const Symbol& resourceName, const
     _LastLocatedResource.clear();
     _LastLocatedResourceStatus = false;
     
-    for(auto& entry: _Archive._Files)
-    {
-        if(resourceName == entry.Name)
-        {
-            _LastLocatedResource = entry.Name;
-            _LastLocatedResourceStatus = true;
-            break;
-        }
-    }
+    _Archive.Find(resourceName, &_LastLocatedResource);
+    _LastLocatedResourceStatus = _LastLocatedResource.length() != 0;
     
     return _LastLocatedResourceStatus;
 }
