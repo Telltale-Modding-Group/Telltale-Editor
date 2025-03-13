@@ -173,18 +173,23 @@ Bool RegistryDirectory_System::GetSubDirectories(std::set<String>& directories, 
     return true;
 }
 
-Bool RegistryDirectory_System::GetAllSubDirectories(std::set<String>& directories, const StringMask* optionalMask) {
-    for (const auto& entry : fs::recursive_directory_iterator(_Path))
+Bool RegistryDirectory_System::GetAllSubDirectories(std::set<String>& directories, const StringMask* optionalMask)
+{
+    const auto basePath = fs::absolute(_Path); // Get absolute path for reference length
+    
+    for (const auto& entry : fs::recursive_directory_iterator(basePath))
     {
         if (entry.is_directory())
         {
-            String dirName = entry.path().filename().string();
+            std::string relativePath = fs::relative(entry.path(), basePath).string();
+            
+            std::replace(relativePath.begin(), relativePath.end(), '\\', '/');
+            if (!relativePath.empty() && relativePath.back() != '/')
+                relativePath += '/';
             
             // Apply optional mask filtering
-            if (!optionalMask || *optionalMask == dirName)
-            {
-                directories.insert(dirName);
-            }
+            if (!optionalMask || *optionalMask == relativePath)
+                directories.insert(relativePath);
         }
     }
     return true;
@@ -903,11 +908,11 @@ U32 luaResourceSetRegister(LuaManager& man) // through this exists in lua, we wi
     if(version.length() == 0 || CompareCaseInsensitive(version, "trunk"))
     {
         // autoapply resource set
-        reg->_DeferredApplications.push_back(setName);
+        reg->_DeferredApplications.push_back(set.Name);
         
         if(bHasMainSet && CompareCaseInsensitive(enableMode, "constant"))
         {
-            reg->_DeferredApplications.push_back(set.Name); // game data set
+            reg->_DeferredApplications.push_back(setName); // game data set
         }
         
     }
@@ -1102,18 +1107,114 @@ String ResourceRegistry::ResourceAddressGetResourceName(const String& address)
     return p.filename().string();
 }
 
-void ResourceRegistry::MountSystem(const String &id, const String &fspath)
+void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
+                                         const String& folderID, const String& fspath, std::unique_lock<std::mutex>& lck)
+{
+    // Find all .TTARCH archives. Lets put their priority higher to prefer those resources over filesystem, such that telltale do.
+    
+    std::set<String> archives{};
+    StringMask mask("*.ttarch");
+    TTE_ASSERT(dir->GetResourceNames(archives, &mask), "Could not gather resource names from %s", fspath.c_str());
+    
+    for(auto& arc: archives)
+    {
+        String archiveID = folderID + arc + "/";
+        String physicalPath = fspath + arc;
+        if(_Locate(archiveID))
+            continue; // already exists
+        
+        // Open archive
+        TTArchive ttarch{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
+        DataStreamRef ttarchStream = dir->Directory.OpenResource(arc, nullptr);
+        lck.unlock(); // may take time. can do it unlocked.
+        TTE_ASSERT(ttarchStream && ttarch.SerialiseIn(ttarchStream), "Could not open archive stream for %s in %s!", arc.c_str(), fspath.c_str());
+        lck.lock();
+        
+        // Create archive location
+        auto arcLocation = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, physicalPath, std::move(ttarch));
+        _Locations.push_back(arcLocation);
+        
+        // Map archive location to master
+        {
+            ResourceLogicalLocation::SetInfo mapping{};
+            mapping.Set = archiveID;
+            mapping.Priority = 99; // set a higher priority than folders. prefer archives like the engine
+            mapping.Resolved = std::move(arcLocation);
+            pMaster->SetStack.insert(std::move(mapping));
+        }
+        
+    }
+}
+
+void ResourceRegistry::MountSystem(const String &id, const String& _fspath)
 {
     _CheckConcrete(id);
+    Bool bUsesResourceSys = Meta::GetInternalState().GetActiveGame().UsesArchive2;
     SCOPE_LOCK();
     if(_Locate(id) != nullptr)
     {
         TTE_LOG("WARNING: Concrete resource location %s already exists! Ignoring.", id.c_str());
         return;
     }
+    
+    // Ensure form
+    String fspath = _fspath;
+    std::replace(fspath.begin(), fspath.end(), '\\', '/');
+    if(!StringEndsWith(fspath, "/"))
+        fspath += "/";
+    
     auto dir = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_System>, MEMORY_TAG_RESOURCE_REGISTRY, id, fspath);
     _Locations.push_back(dir);
-    _ApplyMountDirectory(&dir->Directory, lck);
+    
+    if(bUsesResourceSys)
+        _ApplyMountDirectory(&dir->Directory, lck); // actual resource source system. find resdescs.
+    else
+    {
+        // Legacy. Look for all ttarch and files and register them.
+        ResourceLogicalLocation* pLogicalMaster = dynamic_cast<ResourceLogicalLocation*>(_Locate("<>").get());
+        TTE_ASSERT(pLogicalMaster, "Master location not found!");
+        
+        // Map newly mounted to master
+        {
+            ResourceLogicalLocation::SetInfo mapping{};
+            mapping.Set = id;
+            mapping.Priority = 0;
+            mapping.Resolved = dir;
+            pLogicalMaster->SetStack.insert(std::move(mapping));
+        }
+        
+        // Apply any ttarch in this mount
+        _LegacyApplyMount(dir, pLogicalMaster, id, fspath, lck);
+        
+        // Gather all subdirectories and add them as well
+        std::set<String> subdirs{};
+        TTE_ASSERT(dir->Directory.GetAllSubDirectories(subdirs, nullptr), "Could not get all subdirectories for %s", fspath.c_str());
+       
+        for(auto& sub: subdirs)
+        {
+            String folderID = id + sub;
+            String physicalPath = fspath + sub;
+            if(_Locate(folderID))
+                continue; // already exists
+            
+            // Create sub directory concrete location and map it from master. Treat like flat filesystem in legacy games.
+            auto subDir = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_System>, MEMORY_TAG_RESOURCE_REGISTRY, folderID, physicalPath);
+            _Locations.push_back(subDir);
+            
+            // Map it to main
+            {
+                ResourceLogicalLocation::SetInfo mapping{};
+                mapping.Set = folderID;
+                mapping.Priority = 0;
+                mapping.Resolved = subDir;
+                pLogicalMaster->SetStack.insert(std::move(mapping));
+            }
+            
+            _LegacyApplyMount(subDir, pLogicalMaster, folderID, physicalPath, lck);
+            
+        }
+        
+    }
 }
 
 Ptr<ResourceLocation> ResourceRegistry::_Locate(const String &logicalName)

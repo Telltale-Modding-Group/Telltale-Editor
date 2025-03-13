@@ -425,7 +425,7 @@ void ResourceURL::_Normalise()
     std::replace(_Path.begin(), _Path.end(), '\\', '/');
 
     // paths cannot contain bad characters
-    std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_";
+    std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_ ";
     _Path.erase(std::remove_if(_Path.begin(), _Path.end(), [&validChars](char c) { return validChars.find(c) == std::string::npos; }), _Path.end());
 
     // remove leading/trailing whitespace 'trim' and slashes

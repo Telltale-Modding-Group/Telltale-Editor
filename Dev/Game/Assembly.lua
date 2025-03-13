@@ -209,7 +209,7 @@ function AssembleResources()
 					if set.localDirExclude then
 						for i,excludes in pairs( set.localDirExclude ) do
 							if MatchDirectory(strPath, excludes) then
-								excludeFromSet = true
+								excludeFromSet = truei
 								matchedExcludeFilter = true
 								break
 							end

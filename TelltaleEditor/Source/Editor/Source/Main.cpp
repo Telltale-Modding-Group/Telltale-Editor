@@ -71,15 +71,15 @@ static void TestResources()
 {
     {
         
-        TelltaleEditor editor{{"MC100","MacOS",""}, false}; // initialise library and editor with no UI
+        TelltaleEditor editor{{"BN100","MacOS",""}, false}; // initialise library and editor with no UI
         
         // create a testing resource registry
         Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
         
-        registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/MC100.app/Contents/Resources");
-        registry->PrintSets();
+        registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone-Out from Boneville.app/Contents/Resources");
+        registry->PrintLocations();
         
-        StringMask mask{"*.soundeventbankmap"};
+        StringMask mask{"*.scene"};
         std::set<String> allScripts{};
         
         registry->GetResourceNames(allScripts, &mask);

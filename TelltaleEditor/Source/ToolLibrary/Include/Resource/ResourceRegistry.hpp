@@ -434,6 +434,9 @@ class ResourceRegistry : public GameDependentObject
     
     void _LocateResourceInternal(Symbol name, String* outName, DataStreamRef* outStream); // find resource
     
+    void _LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
+                           const String& folderID, const String& physicalPath, std::unique_lock<std::mutex>& lck); // open .ttarch, legacy resource system
+    
     friend U32 luaResourceSetRegister(LuaManager& man); // access allowed
     
     friend struct ToolContext;
