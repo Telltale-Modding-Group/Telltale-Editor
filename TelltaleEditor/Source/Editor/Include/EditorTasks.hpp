@@ -2,7 +2,7 @@
 
 #include <Core/Config.hpp>
 #include <Core/Context.hpp>
-#include <Common/Scene.hpp>
+#include <Common/Common.hpp>
 #include <Meta/Meta.hpp>
 #include <Resource/TTArchive.hpp>
 #include <Resource/TTArchive2.hpp>
@@ -66,6 +66,24 @@ struct MeshNormalisationTask : EditorTask
     Mesh::MeshInstance Renderable; // output object.
     
     Meta::ClassInstance Instance; // D3DMesh instance in the meta system
+    
+};
+
+// Normalises a texture.
+struct TextureNormalisationTask : EditorTask
+{
+    
+    inline TextureNormalisationTask(U32 id) : EditorTask(false, id) {}
+    
+    virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override;
+    
+    virtual void Finalise(TelltaleEditor&) override;
+    
+    const Ptr<RenderTexture> Output; // output object. Do not access while normalisation. Use Local object.
+    
+    RenderTexture Local; // local object
+    
+    Meta::ClassInstance Instance; // D3DTexture/T3Texture meta instance
     
 };
 

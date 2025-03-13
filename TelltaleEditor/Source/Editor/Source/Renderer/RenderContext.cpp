@@ -13,18 +13,7 @@
 
 // ============================ ENUM MAPPINGS
 
-static struct TextureFormatInfo {
-    RenderSurfaceFormat Format;
-    SDL_GPUTextureFormat SDLFormat;
-    CString ConstantName;
-}
-SDL_FormatMappings[2]
-{
-    {RenderSurfaceFormat::RGBA8, SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UINT, "kCommonTextureFormatRGBA8"},
-    {RenderSurfaceFormat::UNKNOWN, SDL_GPU_TEXTUREFORMAT_INVALID}, // do not add below this, add above
-};
-
-inline TextureFormatInfo GetSDLFormatInfo(RenderSurfaceFormat format)
+TextureFormatInfo GetSDLFormatInfo(RenderSurfaceFormat format)
 {
     U32 i = 0;
     while(SDL_FormatMappings[i].Format != RenderSurfaceFormat::UNKNOWN)
@@ -36,7 +25,7 @@ inline TextureFormatInfo GetSDLFormatInfo(RenderSurfaceFormat format)
     return {};
 }
 
-inline RenderSurfaceFormat FromSDLFormat(SDL_GPUTextureFormat format)
+RenderSurfaceFormat FromSDLFormat(SDL_GPUTextureFormat format)
 {
     U32 i = 0;
     while(SDL_FormatMappings[i].Format != RenderSurfaceFormat::UNKNOWN)
@@ -278,6 +267,7 @@ RenderContext::~RenderContext()
 // USER CALL: called every frame by user to render the previous frame
 Bool RenderContext::FrameUpdate(Bool isLastFrame)
 {
+    TTE_ASSERT(_AttachedRegistry, "No attached resource registry! Please attach one into the render context before rendering.");
     
     // 1. locals
     Bool bUserWantsQuit = false;

@@ -54,6 +54,7 @@ namespace Meta {
             std::vector<U64> Blocks; // For blocks. In read, stores the sizes, in write stores the block offset initial.
         };
         
+        String Name; // file name
         StreamVersion Version;
         Section Sect[STREAM_SECTION_COUNT];
         std::vector<U32> VersionInf; // vector of class IDs
@@ -703,7 +704,7 @@ namespace Meta {
      Any debug stream present causes any async stuff to not complete.
      Set last argument to optional maximum number of bytes to inline into the debug output stream when reading binary buffers. Any longer ones are truncated.
      */
-    ClassInstance ReadMetaStream(DataStreamRef& stream, DataStreamRef debugOutputStream = {}, U32 debugInlinableBufferSizeCap = 128);
+    ClassInstance ReadMetaStream(const String& fileName, DataStreamRef& stream, DataStreamRef debugOutputStream = {}, U32 debugInlinableBufferSizeCap = 128);
     
     // Some older game files are encrypted with MBES headers and similar. This function takes any of those and returns a decrypting stream which
     // will come out as a normal MBIN file

@@ -1599,6 +1599,14 @@ namespace MS
         return 0;
     }
     
+    static U32 luaMetaStreamGetFileName(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaStreamGetFileName");
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
+        man.PushLString(stream.Name.c_str());
+        return 1;
+    }
+    
     // Bffer(stream, buffer_member, size)
     static U32 luaMetaStreamReadBuffer(LuaManager& man)
     {
@@ -1950,7 +1958,7 @@ namespace TTE
             }
             if(r && r->GetSize() > 0)
             {
-                Meta::ClassInstance inst = Meta::ReadMetaStream(r);
+                Meta::ClassInstance inst = Meta::ReadMetaStream(path, r);
                 if(inst)
                 {
     	    	    inst.PushStrongScriptRef(man);
@@ -2330,6 +2338,7 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(MS, "MetaStreamWriteInt", luaMetaStreamWriteInt);
     ADD_FN(MS, "MetaStreamWriteByte", luaMetaStreamWriteByte);
     ADD_FN(MS, "MetaStreamWriteShort", luaMetaStreamWriteShort);
+    ADD_FN(MS, "MetaStreamGetFileName", luaMetaStreamGetFileName);
     ADD_FN(MS, "MetaStreamWriteString", luaMetaStreamWriteString);
     ADD_FN(MS, "MetaStreamWriteBool", luaMetaStreamWriteBool);
     ADD_FN(MS, "MetaStreamWriteSymbol", luaMetaStreamWriteSymbol);

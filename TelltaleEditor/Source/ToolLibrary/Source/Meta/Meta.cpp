@@ -1344,6 +1344,7 @@ namespace Meta {
 	    
 	    metaStream.Version = params.Version;
 	    metaStream.CurrentSection = STREAM_SECTION_MAIN;
+        metaStream.Name = name;
 	    metaStream.Sect[STREAM_SECTION_MAIN].Data = DataStreamManager::GetInstance()->CreatePrivateCache(name, 0x8000); // 32 KB
 	    if(params.Version == MSV5 || params.Version  == MSV6)
 	    {
@@ -1500,9 +1501,10 @@ namespace Meta {
     }
     
     // Reads meta stream file format
-    ClassInstance ReadMetaStream(DataStreamRef& stream, DataStreamRef dbg, U32 _max)
+    ClassInstance ReadMetaStream(const String& fn, DataStreamRef& stream, DataStreamRef dbg, U32 _max)
     {
 	    Stream metaStream{};
+        metaStream.Name = fn;
 	    metaStream.DebugOutputFile = std::move(dbg);
 	    metaStream.MaxInlinableBuffer = _max;
 	    U8 Buffer[256]{};

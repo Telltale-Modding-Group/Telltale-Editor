@@ -59,6 +59,11 @@ public:
     U32 EnqueueNormaliseMeshTask(Scene* pScene, Symbol agent, Meta::ClassInstance d3dmeshInstance);
     
     /**
+     Enqueues a task which normalises the given texture from the current game snapshot into the common format.
+     */
+    U32 EnqueueNormaliseTextureTask(Meta::ClassInstance instance, Ptr<RenderTexture> outputTexture);
+    
+    /**
      Enqueues a task which will asynchronously extract all of the files in the given archive. If the files array is empty, all files will be extracted.
      */
     U32 EnqueueArchiveExtractTask(TTArchive* pArchive, std::set<String>&& files, String outputFolder);

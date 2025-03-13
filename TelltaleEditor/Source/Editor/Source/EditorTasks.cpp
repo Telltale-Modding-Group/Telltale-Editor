@@ -55,6 +55,47 @@ void MeshNormalisationTask::Finalise(TelltaleEditor& editor)
     Output->GetAgentModule<SceneModuleType::RENDERABLE>(Agent).Renderable.MeshList.push_back(std::move(Renderable));
 }
 
+// TEXTURE NORMALISATION
+
+Bool TextureNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* pLockedContext)
+{
+    String fn = Meta::GetInternalState().Classes.find(Instance.GetClassID())->second.NormaliserStringFn;
+    auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
+    TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found for texture instance: '%s'", fn.c_str());
+    
+    TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, LoadChunkMode::BINARY), "Could not load chunk for %s", fn.c_str());
+    
+    Instance.PushWeakScriptRef(thread.L, Instance.ObtainParentRef());
+    thread.L.PushOpaque(this);
+    
+    thread.L.CallFunction(2, 1, false);
+    
+    Bool result;
+    
+    if(!(result=ScriptManager::PopBool(thread.L)))
+    {
+        TTE_LOG("Normalise failed for texture in %s", fn.c_str());
+    }
+    else
+    {
+        Output->FinishNormalisationAsync();
+    }
+    
+    return result;
+}
+
+void TextureNormalisationTask::Finalise(TelltaleEditor& editor)
+{
+    RenderTexture* pTexture = const_cast<RenderTexture*>(Output.get());
+    RenderContext* pContext = pTexture->_Context;
+    SDL_GPUTexture* pTextureH = pTexture->_Handle;
+    U32 flags = pTexture->TextureFlags;
+    *pTexture = std::move(Local);
+    pTexture->_Context = pContext;
+    pTexture->_Handle = pTextureH;
+    pTexture->TextureFlags += flags; // concat flags
+}
+
 // ARCHIVE EXTRACTION
 
 Bool ArchiveExtractionTask::PerformAsync(const JobThread &thread, ToolContext *pLockedContext)

@@ -933,11 +933,17 @@ static U32 luaResourcePrintLocations(LuaManager& man)
     return 0;
 }
 
+static U32 luaResourceAddObject(LuaManager& man)
+{
+    return 0;
+}
+
 void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker)
 {
     
     PUSH_FUNC(Col, "RegisterSetDescription", &luaResourceSetRegister);
     PUSH_FUNC(Col, "ResourcePrintLocations", &luaResourcePrintLocations);
+    PUSH_FUNC(Col, "GameEngine_AddBuildVersionInfo", &luaResourceAddObject); // dummy func. _resCdesc ('c' sometimes). some resdescs just call this. idk why
     
 }
 

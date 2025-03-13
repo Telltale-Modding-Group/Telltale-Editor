@@ -130,6 +130,16 @@ U32 TelltaleEditor::EnqueueArchiveExtractTask(TTArchive* pArchive, std::set<Stri
     return _TaskFence++;
 }
 
+U32 TelltaleEditor::EnqueueNormaliseTextureTask(Meta::ClassInstance instance, Ptr<RenderTexture> outputTexture)
+{
+    TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
+    TextureNormalisationTask* task = TTE_NEW(TextureNormalisationTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
+    *const_cast<Ptr<RenderTexture>*>(&task->Output) = std::move(outputTexture);
+    task->Instance = std::move(instance);
+    _EnqueueTask(task);
+    return _TaskFence++;
+}
+
 U32 TelltaleEditor::EnqueueNormaliseMeshTask(Scene *pScene, Symbol agent, Meta::ClassInstance instance)
 {
     TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");

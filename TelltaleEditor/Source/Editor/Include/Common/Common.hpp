@@ -2,8 +2,10 @@
 
 #include <Scripting/ScriptManager.hpp>
 #include <Renderer/RenderAPI.hpp>
+
 #include <Common/Mesh.hpp>
 #include <Common/Scene.hpp>
+#include <Common/Texture.hpp>
 
 
 /**
@@ -17,6 +19,7 @@ inline LuaFunctionCollection CreateScriptAPI()
     
     Mesh::RegisterScriptAPI(Col);
     Scene::RegisterScriptAPI(Col);
+    RenderTexture::RegisterScriptAPI(Col);
     
     return Col;
 }

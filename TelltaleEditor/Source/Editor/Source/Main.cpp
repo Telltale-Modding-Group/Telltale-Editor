@@ -36,12 +36,37 @@ static void RunApp()
             // This simple examples loads a scene and runs it
             RenderContext context("Bone: Out from Boneville");
             
+            // Create resource system and attach to render context for runtime
+            Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
+            registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone-Out from Boneville.app/Contents/Resources");
+            registry->PrintLocations();
+            
+            context.AttachResourceRegistry(registry);
+            
             // Loading and previewing a mesh example
             
+            // load all textures.
+            std::set<String> tex{};
+            StringMask m("*.d3dtx");
+            registry->GetResourceNames(tex, &m);
+            std::vector<Ptr<RenderTexture>> loadedTextures{};
+            for(auto& t: tex)
+            {
+                auto s = registry->FindResource(t);
+                Meta::ClassInstance textureInstance{};
+                if( (textureInstance = Meta::ReadMetaStream(t, s)) )
+                {
+                    Ptr<RenderTexture> tex = TTE_NEW_PTR(RenderTexture, MEMORY_TAG_TEMPORARY);
+                    loadedTextures.push_back(tex);
+                    editor.EnqueueNormaliseTextureTask(textureInstance, tex);
+                }
+                else TTE_LOG("Failed %s", t.c_str());
+            }
+            
             // 1. load a mesh
-            DataStreamRef stream = editor.LoadLibraryResource("TestResources/adv_forestWaterfall.d3dmesh");
+            DataStreamRef stream = registry->FindResource("adv_forestWaterfall.d3dmesh");
             DataStreamRef debugStream = editor.LoadLibraryResource("TestResources/debug.txt");
-            Meta::ClassInstance inst = Meta::ReadMetaStream(stream, std::move(debugStream));
+            Meta::ClassInstance inst = Meta::ReadMetaStream("adv_forestWaterfall.d3dmesh", stream, std::move(debugStream));
             
             // 2. create a dummy scene, add an agent, attach a renderable module to it.
             Scene scene{};
@@ -67,33 +92,8 @@ static void RunApp()
     DumpTrackedMemory();
 }
 
-static void TestResources()
-{
-    {
-        
-        TelltaleEditor editor{{"BN100","MacOS",""}, false}; // initialise library and editor with no UI
-        
-        // create a testing resource registry
-        Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
-        
-        registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone-Out from Boneville.app/Contents/Resources");
-        registry->PrintLocations();
-        
-        StringMask mask{"*.scene"};
-        std::set<String> allScripts{};
-        
-        registry->GetResourceNames(allScripts, &mask);
-        
-        for(auto& s: allScripts)
-            TTE_LOG(s.c_str());
-        
-        
-    }
-    DumpTrackedMemory();
-}
-
 int main()
 {
-    TestResources();
+    RunApp();
     return 0;
 }

@@ -4,11 +4,11 @@
 
 #include <Core/Config.hpp>
 #include <Core/LinearHeap.hpp>
-
 #include <Renderer/Camera.hpp>
 #include <Renderer/RenderParameters.hpp>
-
 #include <Scheduler/JobScheduler.hpp>
+#include <Meta/Meta.hpp>
+#include <Common/Texture.hpp>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_gpu.h>
@@ -37,12 +37,6 @@ enum class RenderShaderType
 {
     FRAGMENT,
     VERTEX,
-};
-
-enum class RenderSurfaceFormat
-{
-    UNKNOWN,
-    RGBA8,
 };
 
 enum class RenderBufferAttributeFormat : U32
@@ -86,9 +80,7 @@ using VertexAttributesBitset = BitSet<RenderAttributeType, (U32)RenderAttributeT
 static struct AttribInfo {
     RenderAttributeType Type;
     CString ConstantName;
-}
-
-constexpr AttribInfoMap[]
+} constexpr AttribInfoMap[]
 {
     {RenderAttributeType::POSITION, "kCommonMeshAttributePosition"},
     {RenderAttributeType::NORMAL, "kCommonMeshAttributeNormal"},
@@ -100,36 +92,6 @@ constexpr AttribInfoMap[]
     {RenderAttributeType::UV_DIFFUSE, "kCommonMeshAttributeUVDiffuse"},
     {RenderAttributeType::UV_LIGHTMAP, "kCommonMeshAttributeUVLightMap"},
     {RenderAttributeType::UNKNOWN, "kCommonMeshAttributeUnknown"},
-};
-
-/// A texture.
-struct RenderTexture
-{
-    
-    enum TextureFlag
-    {
-	    TEXTURE_FLAG_DELEGATED = 1, // dont release texture.
-    };
-    
-    // Last frame number which buffer was used to a binding slot in.
-    U64 LastUsedFrame = 0;
-    // Last frame number which this buffer was uploaded from the CPU (updated), that the data is on GPU for.
-    U64 LastUpdatedFrame = 0;
-    
-    RenderContext* _Context = nullptr;
-    SDL_GPUTexture* _Handle = nullptr;
-    
-    Flags TextureFlags;
-    
-    U32 Width = 0, Height = 0;
-    
-    RenderSurfaceFormat Format = RenderSurfaceFormat::RGBA8;
-    
-    // If not created, creates the texture to a 2D texture all black.
-    void Create2D(RenderContext*, U32 width, U32 height, RenderSurfaceFormat format, U32 nMips);
-    
-    ~RenderTexture();
-    
 };
 
 class RenderContext;

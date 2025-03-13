@@ -1,4 +1,4 @@
-Meta Stream [NIBM] debug output from the Telltale Editor v1.0.0
+Meta Stream [SEBM] debug output from the Telltale Editor v1.0.0
 
 _metaVersionInfo:
 {

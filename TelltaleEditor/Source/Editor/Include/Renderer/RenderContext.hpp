@@ -5,7 +5,7 @@
 #include <Core/Context.hpp>
 #include <Renderer/RenderAPI.hpp>
 
-#include <Resource/DataStream.hpp>
+#include <Resource/ResourceRegistry.hpp>
 
 #include <Common/Scene.hpp>
 
@@ -55,6 +55,13 @@ public:
     inline U64 GetRenderFrameNumber()
     {
         return _Frame[_MainFrameIndex ^ 1].FrameNumber;
+    }
+    
+    // Attach the resource registry. Must be assigned before frame updates.
+    inline void AttachResourceRegistry(const Ptr<ResourceRegistry>& pResourceSystem)
+    {
+        std::lock_guard<std::mutex> G{_Lock};
+        _AttachedRegistry = pResourceSystem;
     }
     
     // Call these before and after any instance is created. Initialises SDL for multiple contexts
@@ -261,6 +268,8 @@ private:
     
     std::mutex _MessagesLock; // for below
     std::priority_queue<SceneMessage> _AsyncMessages; // messages stack
+    
+    Ptr<ResourceRegistry> _AttachedRegistry; // attached resource registry
     
     friend struct RenderPipelineState;
     friend struct RenderShader;
