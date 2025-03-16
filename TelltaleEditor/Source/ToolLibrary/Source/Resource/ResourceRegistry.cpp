@@ -77,7 +77,7 @@ Bool StringMask::MatchSearchMask(CString testString,CString searchMask,StringMas
     
     Bool foundMatch = false;
     
-    while (*searchMask)
+    while (searchMask && *searchMask)
     {
         Bool isExclusion = false;
         CString patternStart = searchMask;
@@ -102,7 +102,7 @@ Bool StringMask::MatchSearchMask(CString testString,CString searchMask,StringMas
         // Check if testString matches the current pattern
         if (!foundMatch || isExclusion)
         {
-            bool matches = MaskCompare(patternStart, testString, nextPattern, mode);
+            Bool matches = MaskCompare(patternStart, testString, nextPattern, mode);
             if (matches != isExclusion)
             {
                 // If `isExclusion`, we invert the match result
@@ -327,6 +327,18 @@ void RegistryDirectory_System::RefreshResources()
 
 // TTARCH1 DIRECTORY
 
+Bool RegistryDirectory_TTArchive::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)
+{
+    TTE_ASSERT(StringEndsWith(resourceName, ".ttarch"), "Resource is not a valid TTARCH filename: %s", resourceName.c_str());
+    _Archive.Reset();
+    DataStreamRef newStream = location->LocateResource(resourceName, nullptr);
+    TTE_ASSERT(false, "Failed retrieve stream for archive %s!", resourceName.c_str());
+    lck.unlock();
+    _Archive.SerialiseIn(newStream);
+    lck.lock();
+    return true;
+}
+
 Bool RegistryDirectory_TTArchive::GetResourceNames(std::set<String>& resources, const StringMask* optionalMask)
 {
     _Archive.GetFiles(resources);
@@ -471,7 +483,132 @@ Bool RegistryDirectory_TTArchive::GetResources(std::vector<std::pair<Symbol, Ptr
     return true;
 }
 
+// ISO DIRECTORY
+
+Bool RegistryDirectory_ISO9660::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)
+{
+    TTE_ASSERT(StringEndsWith(resourceName, ".iso"), "Resource is not a valid ISO filename: %s", resourceName.c_str());
+    _ISO.Reset();
+    DataStreamRef newStream = location->LocateResource(resourceName, nullptr);
+    TTE_ASSERT(false, "Failed retrieve stream for ISO %s!", resourceName.c_str());
+    lck.unlock();
+    Bool result = _ISO.SerialiseIn(newStream);
+    lck.lock();
+    return result;
+}
+
+Bool RegistryDirectory_ISO9660::GetResourceNames(std::set<String>& resources, const StringMask* optionalMask)
+{
+    _ISO.GetFiles(resources);
+    if (optionalMask)
+    {
+        for (auto it = resources.begin(); it != resources.end(); )
+        {
+            if (*optionalMask != *it)
+            {
+                it = resources.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+    
+    return true;
+}
+
+Bool RegistryDirectory_ISO9660::GetSubDirectories(std::set<String>& directories, const StringMask* optionalMask)
+{
+    return true;
+}
+
+Bool RegistryDirectory_ISO9660::GetAllSubDirectories(std::set<String>& directories, const StringMask* optionalMask) {
+    return true;
+}
+
+Bool RegistryDirectory_ISO9660::HasResource(const Symbol& resourceName, const String* o)
+{
+    _LastLocatedResource.clear();
+    _LastLocatedResourceStatus = false;
+    
+    _ISO.Find(resourceName, _LastLocatedResource);
+    _LastLocatedResourceStatus = _LastLocatedResource.length() != 0;
+    
+    return _LastLocatedResourceStatus;
+}
+
+String RegistryDirectory_ISO9660::GetResourceName(const Symbol& resource)
+{
+    return HasResource(resource, nullptr) ? _LastLocatedResource : "";
+}
+
+Bool RegistryDirectory_ISO9660::DeleteResource(const Symbol& resource)
+{
+    TTE_LOG("Cannot delete files from ISOs!");
+    return false;
+}
+
+Bool RegistryDirectory_ISO9660::RenameResource(const Symbol& resource, const String& newName)
+{
+    TTE_LOG("Cannot rename files from inside ISOs!");
+    return false;
+}
+
+DataStreamRef RegistryDirectory_ISO9660::CreateResource(const String& name)
+{
+    TTE_LOG("Cannot create %s as ISOs are not editable", name.c_str());
+    return {};
+}
+
+Bool RegistryDirectory_ISO9660::CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr)
+{
+    TTE_LOG("Cannot copy files inside ISOs!");
+    return false;
+}
+
+DataStreamRef RegistryDirectory_ISO9660::OpenResource(const Symbol& resourceName, String* outName)
+{
+    String out{};
+    return _ISO.Find(resourceName, outName ? *outName : out);
+}
+
+void RegistryDirectory_ISO9660::RefreshResources()
+{
+    _LastLocatedResource.clear();
+    _LastLocatedResourceStatus = false;
+}
+
+Ptr<RegistryDirectory> RegistryDirectory_ISO9660::OpenDirectory(const String& name)
+{
+    return {};
+}
+
+Bool RegistryDirectory_ISO9660::GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
+                                               Ptr<ResourceLocation>& self, const StringMask* optionalMask)
+{
+    std::set<String> files{};
+    _ISO.GetFiles(files);
+    
+    for(auto& f: files)
+        resources.push_back(std::make_pair(Symbol(f), self));
+    
+    return true;
+}
+
 // TTARCH2 DIRECTORY
+
+Bool RegistryDirectory_TTArchive2::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)
+{
+    TTE_ASSERT(StringEndsWith(resourceName, ".ttarch2"), "Resource is not a valid TTARCH2 filename: %s", resourceName.c_str());
+    _Archive.Reset();
+    DataStreamRef newStream = location->LocateResource(resourceName, nullptr);
+    TTE_ASSERT(false, "Failed retrieve stream for archive %s!", resourceName.c_str());
+    lck.unlock();
+    _Archive.SerialiseIn(newStream);
+    lck.lock();
+    return true;
+}
 
 Ptr<RegistryDirectory> RegistryDirectory_TTArchive2::OpenDirectory(const String& name)
 {
@@ -1119,8 +1256,9 @@ void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDi
     // Find all .TTARCH archives. Lets put their priority higher to prefer those resources over filesystem, such that telltale do.
     
     std::set<String> archives{};
-    StringMask mask("*.ttarch");
+    StringMask mask = _ArchivesMask(true);
     TTE_ASSERT(dir->GetResourceNames(archives, &mask), "Could not gather resource names from %s", fspath.c_str());
+    Ptr<ResourceLocation> castedPtr = dir;
     
     for(auto& arc: archives)
     {
@@ -1128,32 +1266,60 @@ void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDi
         String physicalPath = fspath + arc;
         if(_Locate(archiveID))
             continue; // already exists
-        
-        // Open archive
-        TTArchive ttarch{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
-        DataStreamRef ttarchStream = dir->Directory.OpenResource(arc, nullptr);
-        lck.unlock(); // may take time. can do it unlocked.
-        TTE_ASSERT(ttarchStream && ttarch.SerialiseIn(ttarchStream), "Could not open archive stream for %s in %s!", arc.c_str(), fspath.c_str());
-        lck.lock();
-        
-        // Create archive location
-        auto arcLocation = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, physicalPath, std::move(ttarch));
-        _Locations.push_back(arcLocation);
+
+        TTE_ASSERT(_ImportAllocateArchivePack(arc, archiveID, physicalPath, castedPtr, lck), "Packed archive import failed");
         
         // Map archive location to master
         {
             ResourceLogicalLocation::SetInfo mapping{};
             mapping.Set = archiveID;
             mapping.Priority = 99; // set a higher priority than folders. prefer archives like the engine
-            mapping.Resolved = std::move(arcLocation);
+            mapping.Resolved = _Locations.back();
             pMaster->SetStack.insert(std::move(mapping));
         }
         
     }
 }
 
+void ResourceRegistry::MountArchive(const String &id, const String &fspath)
+{
+    StringMask mask = _ArchivesMask(UsingLegacyCompat());
+    TTE_ASSERT(mask == fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
+    _CheckConcrete(id);
+    Bool bUsesResourceSys = Meta::GetInternalState().GetActiveGame().UsesArchive2;
+    SCOPE_LOCK();
+    if(_Locate(id) != nullptr)
+    {
+        TTE_LOG("WARNING: Concrete resource location %s already exists! Ignoring.", id.c_str());
+        return;
+    }
+    DataStreamRef is = DataStreamManager::GetInstance()->CreateFileStream(fspath);
+    if(!is)
+    {
+        TTE_LOG("WARNING: Could not open stream %s when mounting archive to resource registry!", fspath.c_str());
+        return;
+    }
+    if(_ImportArchivePack(fs::path(fspath).filename().string(), id, fspath, is, lck))
+    {
+        // Map newly mounted to master
+        {
+            ResourceLogicalLocation* pLogicalMaster = dynamic_cast<ResourceLogicalLocation*>(_Locate("<>").get());
+            TTE_ASSERT(pLogicalMaster, "Master location not found!");
+            ResourceLogicalLocation::SetInfo mapping{};
+            mapping.Set = id;
+            mapping.Priority = 0;
+            mapping.Resolved = _Locations.back(); // last newly processed
+            pLogicalMaster->SetStack.insert(std::move(mapping));
+        }
+        
+    }
+}
+
+
 void ResourceRegistry::MountSystem(const String &id, const String& _fspath)
 {
+    StringMask mask = _ArchivesMask(UsingLegacyCompat());
+    TTE_ASSERT(mask == _fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
     _CheckConcrete(id);
     Bool bUsesResourceSys = Meta::GetInternalState().GetActiveGame().UsesArchive2;
     SCOPE_LOCK();
@@ -1265,9 +1431,63 @@ void ResourceRegistry::CreateConcreteDirectoryLocation(const String &name, const
     }
 }
 
+StringMask ResourceRegistry::_ArchivesMask(Bool bLegacy)
+{
+    return bLegacy ? StringMask("*.ttarch;*.iso") : StringMask("*.ttarch2;*.iso"); // TODO add .pk2
+}
+
+Bool ResourceRegistry::_ImportAllocateArchivePack(const String& resourceName, const String& archiveID,
+                                          const String& archivePhysicalPath, Ptr<ResourceLocation>& parent, std::unique_lock<std::mutex>& lck)
+{
+    DataStreamRef archiveStream = parent->LocateResource(resourceName, nullptr);
+    return archiveStream ? _ImportArchivePack(resourceName, archiveID, archivePhysicalPath, archiveStream, lck) : false;
+}
+
+Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const String& archiveID,
+                                          const String& archivePhysicalPath, DataStreamRef& archiveStream, std::unique_lock<std::mutex>& lck)
+{
+    // create archive location
+    if(StringEndsWith(resourceName, ".ttarch"))
+    {
+        TTArchive arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
+        lck.unlock(); // may take time, dont keep everyone waiting!
+        TTE_ASSERT(arc.SerialiseIn(archiveStream), "TTArchive serialise/read fail!");
+        lck.lock();
+        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
+        _Locations.push_back(std::move(pLoc));
+    }
+    else if(StringEndsWith(resourceName, ".ttarch2"))
+    {
+        TTArchive2 arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
+        lck.unlock(); // may take time, dont keep everyone waiting!
+        TTE_ASSERT(arc.SerialiseIn(archiveStream), "TTArchive2 serialise/read fail!");
+        lck.lock();
+        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive2>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
+        _Locations.push_back(std::move(pLoc));
+    }
+    else if(StringEndsWith(resourceName, ".iso"))
+    {
+        ISO9660 iso{};
+        lck.unlock(); // may take time, dont keep everyone waiting!
+        if(!iso.SerialiseIn(archiveStream))
+        {
+            TTE_LOG("Failed to import archive packed file %s!", resourceName.c_str());
+            return false;
+        }
+        lck.lock();
+        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_ISO9660>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(iso));
+        _Locations.push_back(std::move(pLoc));
+    }
+    else
+        return false;
+    return true;
+}
+
 void ResourceRegistry::CreateConcreteArchiveLocation(const String& name, const String& resourceName)
 {
     _CheckConcrete(name);
+    TTE_ASSERT(_ArchivesMask(UsingLegacyCompat()) == resourceName,
+               "The archive %s cannot be loaded as it is not supported in the currently active snapshot %s", resourceName.c_str(), Meta::GetInternalState().GetActiveGame().Name.c_str());
     String archiveID = name + resourceName + "/";
     SCOPE_LOCK();
     
@@ -1285,59 +1505,14 @@ void ResourceRegistry::CreateConcreteArchiveLocation(const String& name, const S
     Ptr<ResourceLocation> alreadyLoaded = _Locate(archiveID);
     if(alreadyLoaded)
     {
-        // its already created, so reload it.
-        ResourceLocation* pLoc = alreadyLoaded.get();
-        ResourceConcreteLocation<RegistryDirectory_TTArchive>* asArchive1 = dynamic_cast<ResourceConcreteLocation<RegistryDirectory_TTArchive>*>(pLoc);
-        ResourceConcreteLocation<RegistryDirectory_TTArchive2>* asArchive2 = dynamic_cast<ResourceConcreteLocation<RegistryDirectory_TTArchive2>*>(pLoc);
-        if(asArchive1)
+        if(!alreadyLoaded->UpdateArchiveInternal(resourceName, alreadyLoaded, lck))
         {
-            TTE_ASSERT(StringEndsWith(resourceName, ".ttarch"), "Resource is not a valid TTARCH filename: %s", resourceName.c_str());
-            asArchive1->Directory._Archive.Reset();
-            DataStreamRef newStream = parent->LocateResource(resourceName, nullptr);
-            TTE_ASSERT(false, "Failed retrieve stream for archive %s!", resourceName.c_str());
-            lck.unlock();
-            asArchive1->Directory._Archive.SerialiseIn(newStream);
-            lck.lock();
-        }
-        else if(asArchive2)
-        {
-            TTE_ASSERT(StringEndsWith(resourceName, ".ttarch2"), "Resource is not a valid TTARCH2 filename: %s", resourceName.c_str());
-            asArchive2->Directory._Archive.Reset();
-            DataStreamRef newStream = parent->LocateResource(resourceName, nullptr);
-            TTE_ASSERT(false, "Failed retrieve stream for archive %s!", resourceName.c_str());
-            lck.unlock();
-            asArchive2->Directory._Archive.SerialiseIn(newStream);
-            lck.lock();
-        }
-        else
-        {
-            TTE_ASSERT(false, "The resource location %s already exists but is not an archive!", pLoc->Name.c_str());
+            TTE_ASSERT(false, "The resource location %s already exists but is not an archive!", alreadyLoaded->Name.c_str());
         }
     }
     else
     {
-        // create archive location
-        if(StringEndsWith(resourceName, ".ttarch"))
-        {
-            TTArchive arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
-            DataStreamRef archiveStream = parent->LocateResource(resourceName, nullptr);
-            lck.unlock(); // may take time, dont keep everyone waiting!
-            TTE_ASSERT(archiveStream && arc.SerialiseIn(archiveStream), "TTArchive serialise/read fail!");
-            lck.lock();
-            auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
-            _Locations.push_back(std::move(pLoc));
-        }
-        else if(StringEndsWith(resourceName, ".ttarch2"))
-        {
-            TTArchive2 arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
-            DataStreamRef archiveStream = parent->LocateResource(resourceName, nullptr);
-            lck.unlock(); // may take time, dont keep everyone waiting!
-            TTE_ASSERT(archiveStream && arc.SerialiseIn(archiveStream), "TTArchive2 serialise/read fail!");
-            lck.lock();
-            auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive2>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
-            _Locations.push_back(std::move(pLoc));
-        }
-        else
+        if(!_ImportAllocateArchivePack(resourceName, archiveID, archivePhysicalPath, parent, lck))
         {
             TTE_ASSERT(false, "Resource must be a telltale archive to be a concrete archive location %s", resourceName.c_str());
         }

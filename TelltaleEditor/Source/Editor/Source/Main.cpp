@@ -92,8 +92,25 @@ static void RunApp()
     DumpTrackedMemory();
 }
 
+static void TestNew()
+{
+    {
+        TelltaleEditor editor{{"BN100","MacOS",""}, false}; // editor. dont run UI yet (doesn't exist)
+        
+        Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
+        registry->MountArchive("<PS2_Data>/", "/Users/lucassaragosa/Desktop/Game/CSI3/CSI3_PS2.iso");
+        
+        std::set<String> fs{};
+        registry->GetResourceNames(fs, 0);
+        
+        for(auto& f: fs)
+            TTE_LOG(f.c_str());
+        
+    }
+}
+
 int main()
 {
-    RunApp();
+    TestNew();
     return 0;
 }

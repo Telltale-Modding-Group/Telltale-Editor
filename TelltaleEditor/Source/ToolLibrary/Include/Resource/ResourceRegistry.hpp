@@ -7,6 +7,7 @@
 #include <Core/LinearHeap.hpp>
 #include <Core/BitSet.hpp>
 #include <Resource/TTArchive.hpp>
+#include <Resource/ISO9660.hpp>
 #include <Resource/TTArchive2.hpp>
 #include <Scripting/ScriptManager.hpp>
 #include <Meta/Meta.hpp>
@@ -89,22 +90,22 @@ public:
     
     inline Bool operator==(const String& rhs) const
     {
-        return MaskCompare(this->c_str(), rhs.c_str(), rhs.c_str() + rhs.length(), MASKMODE_SIMPLE_MATCH);
+        return MatchSearchMask(rhs.c_str(), this->c_str(), MASKMODE_SIMPLE_MATCH);
     }
     
     inline Bool operator!=(const String& rhs) const
     {
-        return !MaskCompare(this->c_str(), rhs.c_str(), rhs.c_str() + rhs.length(), MASKMODE_SIMPLE_MATCH);
+        return !MatchSearchMask(rhs.c_str(), this->c_str(), MASKMODE_SIMPLE_MATCH);
     }
     
     inline Bool operator==(CString rhs) const
     {
-        return MaskCompare(this->c_str(), rhs, nullptr, MASKMODE_SIMPLE_MATCH);
+        return MatchSearchMask(rhs, this->c_str(), MASKMODE_SIMPLE_MATCH);
     }
     
     inline Bool operator!=(CString rhs) const
     {
-        return !MaskCompare(this->c_str(), rhs, nullptr, MASKMODE_SIMPLE_MATCH);
+        return !MatchSearchMask(rhs, this->c_str(), MASKMODE_SIMPLE_MATCH);
     }
     
 };
@@ -194,6 +195,11 @@ public:
     
     virtual ~RegistryDirectory_System() = default;
     
+    inline Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck) // no update needed
+    {
+        return false;
+    }
+    
 };
 
 /**
@@ -226,6 +232,8 @@ public:
     virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr); // copy resource to dest
     virtual DataStreamRef OpenResource(const Symbol& resourceName, String* outName); // open resource
     virtual void RefreshResources(); // refresh
+   
+    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck); // update from resource syss
     
     virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // nothing in archive
     
@@ -264,13 +272,54 @@ public:
     virtual DataStreamRef OpenResource(const Symbol& resourceName,String* outName); // open resource
     virtual void RefreshResources(); // refresh
     
+    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck); // update from resource sys
+    
     virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // nothing in archive
     
     virtual ~RegistryDirectory_TTArchive2() = default;
     
 };
 
-// TODO other directory types: PS3 encrypted ISOs (AES 128), standard PlayStation ISOs (decrypted, detect), same for xbox and wii and nx
+/**
+ Heirarchial ISO 9660 standard ISO image used for CD-ROMS with console CDs
+ */
+class RegistryDirectory_ISO9660 : public RegistryDirectory
+{
+    
+    friend class ResourceRegistry;
+    
+    String _LastLocatedResource;
+    Bool _LastLocatedResourceStatus = false; // true if it existed
+    
+    ISO9660 _ISO;
+    
+public:
+    
+    inline RegistryDirectory_ISO9660(const String& path, ISO9660&& arc) : RegistryDirectory(path), _LastLocatedResource(), _ISO(std::move(arc)) {}
+    
+    virtual Bool GetResourceNames(std::set<String>& resources, const StringMask* optionalMask); // get file names
+    virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
+                              Ptr<ResourceLocation>& self, const StringMask* optionalMask);
+    virtual Bool GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names
+    virtual Bool GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names, recursively (set no dups)
+    virtual Bool HasResource(const Symbol& resourceName, const String* actualName /*optional*/); // pass in actual name if you know it to speed up.
+    virtual String GetResourceName(const Symbol& resource); // to string resource name (quicker than symbol table
+    virtual Bool DeleteResource(const Symbol& resource); // delete it if we can
+    virtual Bool RenameResource(const Symbol& resource, const String& newName); // rename it
+    virtual DataStreamRef CreateResource(const String& name); // create resource and open writing stream
+    virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr); // copy resource to dest
+    virtual DataStreamRef OpenResource(const Symbol& resourceName,String* outName); // open resource
+    virtual void RefreshResources(); // refresh
+    
+    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck); // update from resource sys
+    
+    virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // although its not flat, treat as it is. do nothing here.
+    
+    virtual ~RegistryDirectory_ISO9660() = default;
+    
+};
+
+// TODO other directory types: PS3 encrypted ISOs (AES 128), STFS (?). store enc keys within meta state.
 
 /**
  Base class for resource locations. These are generated from resource sets.
@@ -292,6 +341,8 @@ struct ResourceLocation
     virtual Bool HasResource(const Symbol& name) = 0;
     
     virtual String GetPhysicalPath() = 0; // get physical path if this is a system directory
+    
+    virtual Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)  { return true; }  // internal update
     
 };
 
@@ -361,7 +412,7 @@ struct ResourceConcreteLocation : ResourceLocation
         return Directory.OpenResource(name, outName);
     }
     
-    inline bool HasResource(const Symbol& name) override
+    inline Bool HasResource(const Symbol& name) override
     {
         return Directory.HasResource(name, nullptr);
     }
@@ -369,6 +420,11 @@ struct ResourceConcreteLocation : ResourceLocation
     inline String GetPhysicalPath() override
     {
         return Directory.GetPath();
+    }
+    
+    inline Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck) override
+    {
+        return Directory.UpdateArchiveInternal(resourceName, location, lck);
     }
     
 };
@@ -437,6 +493,14 @@ class ResourceRegistry : public GameDependentObject
     void _LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
                            const String& folderID, const String& physicalPath, std::unique_lock<std::mutex>& lck); // open .ttarch, legacy resource system
     
+    Bool _ImportArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
+                            DataStreamRef& archiveStream, std::unique_lock<std::mutex>& lck); // import ttarch/ttarch2/pk2 into parent as sub
+    
+    Bool _ImportAllocateArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
+                                    Ptr<ResourceLocation>& parent, std::unique_lock<std::mutex>& lck);
+    
+    static StringMask _ArchivesMask(Bool bLegacy);
+    
     friend U32 luaResourceSetRegister(LuaManager& man); // access allowed
     
     friend struct ToolContext;
@@ -459,6 +523,14 @@ class ResourceRegistry : public GameDependentObject
 public:
     
     /**
+     Returns true if the current game does not use the resource system and uses the old telltale resource system.
+     */
+    inline Bool UsingLegacyCompat()
+    {
+        return !Meta::GetInternalState().GetActiveGame().UsesArchive2;
+    }
+    
+    /**
      Updates the resource registry. If any resource unloads are deferred they will happen here. Doesn't need to be called if you have not explicitly said to defer anything.
      Pass in the time budget you want to maximum spend on this function such that anything not done will get done next call. In seconds.
      */
@@ -475,6 +547,13 @@ public:
      as the resource sets map to the master location anyway "<>".
      */
     void MountSystem(const String& id, const String& fspath);
+    
+    /**
+     See MountSystem. This version however does not expect a file directory path, but a file such as an archive, ISO or any container pack file supported.
+     Archives can be mounted like this if you only want to mount that single archive to the file system. However, prefer to use MountSystem as most games use a combination
+     of archives as well as files in the users actual file system. Best use is for ISOs and other file system container files.
+     */
+    void MountArchive(const String& id, const String& fspath);
     
     /**
      Creates a logical location in the resource system. In URLs, if they start with this name (it must start and end with <>'s), it will look into this location for the rest of the URL.

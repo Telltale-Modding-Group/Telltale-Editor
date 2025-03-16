@@ -11,6 +11,8 @@
 class TTArchive2 {
 public:
     
+    static constexpr CString Extension = ".ttarch2";
+    
     inline TTArchive2(U32 version) : _Version(version) {}
     
     Bool SerialiseIn(DataStreamRef& in);

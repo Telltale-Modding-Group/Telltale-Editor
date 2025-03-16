@@ -195,7 +195,7 @@ public:
     }
     
     template<typename IntOrEnum>
-    inline Bool Test(IntOrEnum fl)
+    inline Bool Test(IntOrEnum fl) const
     {
 	    return (_Value & (U32)fl) != 0;
     }

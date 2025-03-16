@@ -37,6 +37,8 @@ class ResourceURL
 
     // Constructs with the given path. Path can start with 'xxx:path/path' where xxx is the scheme string.
     ResourceURL(String path);
+    
+    inline ResourceURL(CString cpath) : ResourceURL(String(cpath)) {}
 
     // Constructs with the symbol scheme. The resource URL that points to that symbol. If GetScheme() is still symbol, it was not found.
     // You can still call open and another find attempt is made, so Open() may succeed if it now exists.

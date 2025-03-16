@@ -118,6 +118,7 @@ void RenderTexture::RegisterScriptAPI(LuaFunctionCollection &Col)
     PUSH_FUNC(Col, "CommonTextureResolveRGBA", &TextureAPI::luaTextureResolve); // resolve image to RGBA
     
     PUSH_GLOBAL_I(Col, "kCommonTextureResolvableFormatBGRX", 0);
+    PUSH_GLOBAL_I(Col, "kCommonTextureDDSHeaderSize", 0x7C);
     
 }
 

@@ -8,6 +8,8 @@
 class TTArchive {
 public:
     
+    static constexpr CString Extension = ".ttarch";
+    
     inline TTArchive(U32 version)
     {
         _Version = version; // version is determined by current game in tool context. pass it in here.
