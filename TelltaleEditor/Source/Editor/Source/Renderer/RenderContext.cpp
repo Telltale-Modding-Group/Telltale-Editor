@@ -1741,7 +1741,7 @@ Bool RenderContext::_Populate(const JobThread& jobThread, void* pRenderCtx, void
     	    	    }
     	    	    else
     	    	    {
-	    	    	    String sym = RuntimeSymbols.Find(msg.Agent);
+	    	    	    String sym = SymbolTable::Find(msg.Agent);
 	    	    	    TTE_LOG("WARN: cannot execute render scene message as agent %s was not found", sym.c_str());
     	    	    }
 	    	    }

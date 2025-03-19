@@ -30,66 +30,15 @@ class ToolContext
 public:
     
     // Releases the library. Switch can be re-called after this.
-    inline void Release()
-    {
-        if(_Setup)
-        {
-    	    
-    	    U32 errors{};
-    	    for(auto& dependent: _SwitchDependents)
-    	    {
-	    	    Ptr<GameDependentObject> alive = dependent.lock();
-	    	    if(alive)
-	    	    {
-    	    	    errors++;
-    	    	    TTE_LOG("FATAL: Game dependent object is still alive at a game switch: %s", alive->ObjName);
-	    	    }
-    	    }
-    	    if(errors)
-	    	    TTE_ASSERT(false, "Found %d alive game dependent objects before a game switch.", errors);
-    	    _SwitchDependents.clear();
-    	    
-            JobScheduler::Shutdown();
-            Meta::RelGame();
-            Blowfish::Shutdown();
-            
-            _Setup = false;
-            
-        }
-    }
+    void Release();
     
     // Switches the library configuration to a new game snapshot. All async jobs will have to complete so this can be blocking.
-    inline void Switch(GameSnapshot snapshot)
-    {
-        if(_Setup)
-            Release();
-        
-        _Snapshot = snapshot;
-        TTE_ASSERT(_Snapshot.ID.length() && _Snapshot.Platform.length(), "Game or platform not specified");
-        
-        Meta::InitGame();
-        JobScheduler::Initialise(_PerStateCollection);
-        
-        _Setup = true;
-    }
+    void Switch(GameSnapshot snapshot);
     
 private:
     
     // Call Switch with the game to setup the context to the given game. This constructor initialised low level APIs, constant for each game.
-    inline ToolContext(LuaFunctionCollection PerState = {})
-    {
-        DataStreamManager::Initialise();
-        Compression::Initialise();
-        _L[0].Initialise(LuaVersion::LUA_5_2_3);
-        _L[1].Initialise(LuaVersion::LUA_5_1_4);
-        _L[2].Initialise(LuaVersion::LUA_5_0_2);
-        Meta::Initialise();
-	    
-	    // higher level lua api for each thread, including this context
-	    _PerStateCollection = std::move(PerState);
-	    ScriptManager::RegisterCollection(GetLibraryLVM(), _PerStateCollection);
-	    
-    }
+    ToolContext(LuaFunctionCollection PerState = {});
     
 public:
     
@@ -129,27 +78,7 @@ public:
     }
     
     // Reads the library resource, see LoadlibraryResource, as a raw text file and returns the text. Returns empty string if errors.
-    inline String LoadLibraryStringResource(String name)
-    {
-        DataStreamRef stream = LoadLibraryResource(name);
-        if(!stream)
-            return ""; // Stream could not be opened
-        
-        String result{};
-        U8* tmp = TTE_ALLOC(stream->GetSize() + 1, MEMORY_TAG_TEMPORARY); // temp buffer to read string from
-        
-        if(!stream->Read(tmp, stream->GetSize())){
-            TTE_FREE(tmp); // free buffer
-            return ""; // could not read all bytes
-        }
-        
-        tmp[stream->GetSize()] = 0; // add null terminator
-        result = (CString)tmp; // cast raw U8 bytes to c char string
-        
-        TTE_FREE(tmp); // Free buffer
-        
-        return result;
-    }
+    String LoadLibraryStringResource(String name);
     
     // Returns if a game is setup such that we can use the library
     inline Bool IsSetup() {

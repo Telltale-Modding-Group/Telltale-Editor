@@ -1,5 +1,6 @@
 #include <Core/Symbol.hpp>
 #include <Resource/DataStream.hpp>
+#include <Core/Context.hpp>
 
 #include <sstream>
 #include <iomanip>
@@ -41,6 +42,9 @@ U32 CRC32(const U8 *Buffer, U32 BufferLength, U32 InitialCRC32)
 }
 
 SymbolTable RuntimeSymbols{};
+SymbolTable GameSymbols{};
+
+SymbolTable* SymbolTable::_ActiveTables = nullptr;
 
 Symbol SymbolFromHexString(const String& str)
 {
@@ -70,6 +74,9 @@ String SymbolToHexString(Symbol sym)
 
 void SymbolTable::SerialiseIn(DataStreamRef& stream)
 {
+    TTE_ASSERT(IsCallingFromMain(), "Can only be called on main thread");
+    if(stream->GetSize() == 0)
+        return; // empty file
     
     // read total file into string stream.
     std::istringstream ss{};
@@ -89,6 +96,7 @@ void SymbolTable::SerialiseIn(DataStreamRef& stream)
 
 void SymbolTable::SerialiseOut(DataStreamRef& stream)
 {
+    TTE_ASSERT(IsCallingFromMain(), "Can only be called on main thread");
     std::ostringstream ss{};
     for(auto& str: _Table)
     {
@@ -98,7 +106,13 @@ void SymbolTable::SerialiseOut(DataStreamRef& stream)
     stream->Write((const U8*)str.c_str(), (U64)str.length());
 }
 
-String SymbolTable::Find(Symbol sym)
+SymbolTable::SymbolTable()
+{
+    _Next = _ActiveTables;
+    _ActiveTables = this;
+}
+
+String SymbolTable::_Find(Symbol sym)
 {
     std::lock_guard<std::mutex> _L{_Lock};
     auto it = _SortedHashed.find(sym); // BINARY SEARCH
@@ -108,7 +122,8 @@ String SymbolTable::Find(Symbol sym)
     }
     else
     {
-        return _Table[it->second];
+        String& str = _Table[it->second];
+        return StringStartsWith(str, "CRC32:") ? String(str.c_str() + 6) : std::move(str);
     }
 }
 
@@ -125,7 +140,15 @@ void SymbolTable::Register(const String& str)
         return;
     std::lock_guard<std::mutex> _L{_Lock};
     
-    Symbol sym = Symbol(str);
+    Symbol sym;
+    if(StringStartsWith(str, "CRC32:"))
+    {
+        CString s = str.c_str() + 6;
+        sym = Symbol((U64)CRC32((const U8*)s, (U32)str.length() - 6));
+    }
+    else
+        sym = Symbol(str);
+    
     auto it = _SortedHashed.find(sym); // BINARY SEARCH
     if(it == _SortedHashed.end())
     {

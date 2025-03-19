@@ -1,0 +1,38 @@
+uint32
+int
+uint
+int32
+uint64
+int64
+unsigned __int64
+long
+float
+double
+bool
+int8
+uint8
+int16
+uint16
+signed char
+char
+long double
+unsigned char
+unsigned int
+unsigned long
+unsigned short
+short
+wchar_t
+long long
+unsigned long long
+__int64
+Symbol
+class Symbol
+String
+class String
+__INTERNAL_BINARY_BUFFER__
+__INTERNAL_DATASTREAM_CACHE__
+ContainerInterface
+HashMap<String,TTArchiveFolder>
+TTArchiveFileTemplate
+TTArchiveFolder
+TTArchive

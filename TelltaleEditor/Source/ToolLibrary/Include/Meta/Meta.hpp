@@ -4,6 +4,7 @@
 #include <Scheduler/JobScheduler.hpp>
 #include <Resource/DataStream.hpp>
 #include <Scripting/LuaManager.hpp>
+#include <Core/BitSet.hpp>
 
 #include <climits>
 #include <vector>
@@ -34,6 +35,22 @@ namespace Meta {
 	    "Debug"
     };
     
+    constexpr CString PlatformNames[] {
+        "PC",
+        "MacOS",
+        "PS2",
+        "PS3",
+        "PS4",
+        "XBOne",
+        "XB360",
+        "Linux",
+        "NX" // Switch
+        "WiiU",
+        "iPhone",
+        "Android",
+        "Vita"
+    };
+    
     // Binary stream versions
     enum StreamVersion {
         MBIN = 0, // Meta BINary
@@ -43,6 +60,8 @@ namespace Meta {
         MSV4 = 4, // Meta Stream Version 4 (unused)
         MSV5 = 5, // 5
         MSV6 = 6, // 6
+        BMS3 = 7, // Legacy CSI3/PS2. Binary Meta Stream 3
+        EMS3 = 8, // Legacy CSI3/PS2. Haven't seen any files use it. Encrypted Meta Stream 3
     };
     
     // A binary meta stream. Used internally.
@@ -129,6 +148,7 @@ namespace Meta {
     };
     
     class ClassInstance;
+    struct RegGame;
     
     // Weak reference to the parent. Deep into member trees, these point to the top level class, eg: array of materials , top level is D3DMesh
     using ParentWeakReference = std::weak_ptr<U8>;
@@ -149,6 +169,7 @@ namespace Meta {
         U32 ClassID;
         U32 VersionCRC;
         U32 VersionNumber; // similar to version crc, but a number (normally 0, 1 etc). Associate a ID for multiple verisons of the same typename.
+        U32 LegacyHash; // (CSI3 PS2) hash. simple loop of bit shifting
         
         // USE FOR CONTAINER TYPES
         U32 ArraySize = 0; // if this is an SArray<T,N>, this is N. Value only set of SArrays
@@ -190,6 +211,12 @@ namespace Meta {
     
     // Internal implementation
     namespace _Impl {
+        
+        Bool _CheckPlatformForGame(RegGame&, const String& platform);
+        
+        Bool _CheckPlatform(const String& platform);
+        
+        U32 _PerformLegacyClassHash(const String& name);
         
         Class* _GetClass(U32 i); // gets class ptr from index. MUST exist.
         
@@ -263,6 +290,14 @@ namespace Meta {
         
         void MoveBinaryBuffer(void* pSrc, void* pDst, ParentWeakReference host);
         
+        void CtorDSCache(void* pMemory, U32 Array, ParentWeakReference host);
+        
+        void DtorDSCache(void* pMemory, U32);
+        
+        void CopyDSCache(const void* pSrc, void* pDst, ParentWeakReference host);
+        
+        void MoveDSCache(void* pSrc, void* pDst, ParentWeakReference host);
+        
     }
     
     // Special type internally used to store binary buffers. No serialiser in this type, but just holds a reference to the memory (frees it)
@@ -270,6 +305,12 @@ namespace Meta {
     {
 	    Ptr<U8> BufferData;
         U32 BufferSize = 0;
+    };
+    
+    // Special type internall used to store reference to a data stream. This is used mainly for large cached files which we dont want to load into memory which are used in meta streams.
+    struct DataStreamCache
+    {
+        DataStreamRef Stream;
     };
     
     struct BlowfishKey // encryption key
@@ -288,15 +329,27 @@ namespace Meta {
     // Registered game
     struct RegGame {
         
+        enum GameFlags
+        {
+            MODIFIED_BLOWFISH = 1, // new games use a modified blowfish version
+            ARCHIVE2 = 2,  // if the game uses .ttarch2 instead of .ttarch
+            ENABLE_OODLE = 4, // some games are not shipped with oodle, so keep this safe. If they are, this is true.
+            LEGACY_HASHING = 8, // legacy hashing for select old games
+        };
+        
 	    String Name, ID, ResourceSetDescMask;
         StreamVersion MetaVersion = MBIN;
         LuaVersion LVersion = LuaVersion::LUA_5_2_3;
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
+        std::vector<String> ValidPlatforms; // game platforms
         BlowfishKey MasterKey; // key used for all platforms
-        Bool ModifiedBlowfish = false;
-        Bool UsesArchive2 = false; // if the game uses .ttarch2 instead of .ttarch
-        Bool DisableOodle = true; // some games are not shipped with oodle, so keep this safe as true. If they are, this is true.
+        Flags Fl; // flags
         U32 ArchiveVersion = 0; // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
+        
+        inline Bool UsesArchive2() const
+        {
+            return Fl.Test(ARCHIVE2);
+        }
         
     };
     
@@ -773,7 +826,7 @@ namespace Meta {
             if(member.Name == name) // Find matching member
             {
                 TTE_ASSERT(_Impl::_GetClass(member.ClassID)->Flags & CLASS_INTRINSIC || Is(inst, "class Symbol") || Is(inst, "class Flags")
-                           || Is(inst, "Symbol") || Is(inst, "Flags") || Is(inst, "__INTERNAL_BINARY_BUFFER__"),
+                           || Is(inst, "Symbol") || Is(inst, "Flags") || Is(inst, "__INTERNAL_BINARY_BUFFER__") || Is(inst, "__INTERNAL_DATASTREAM_CACHE__"),
                            "GetMember<T> can only be used on intrinsic types!");
                 return *((T*)(inst._GetInternal() + member.RTOffset)); // Offset in memory, skip header.
             }
@@ -818,6 +871,29 @@ namespace Meta {
 	    std::map<Symbol, CompiledScript> Specialisers{};
 	    I32 GameIndex = -1;
 	    String VersionCalcFun{}; // lua function which calculates version crc for a type.
+        
+        
+        struct DeferredRegister
+        {
+            String KeyType, ValueType;
+            U32 KeyVersion, ValueVersion;
+            U32 CollectionClass;
+        };
+        
+        struct DeferredWarning
+        {
+            String Class;
+            U32 Calculated;
+            U32 Overriden;
+        };
+        
+        struct
+        {
+            
+            std::vector<DeferredRegister> Deferred;
+            std::vector<DeferredWarning> DeferredWarnings;
+            
+        } _Temp; // temporary internal deferred collection registr
 	    
 	    inline const RegGame& GetActiveGame() const
 	    {

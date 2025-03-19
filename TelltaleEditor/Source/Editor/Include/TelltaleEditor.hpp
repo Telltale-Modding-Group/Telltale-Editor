@@ -74,6 +74,11 @@ public:
     U32 EnqueueArchive2ExtractTask(TTArchive2* pArchive, std::set<String>&& files, String outputFolder);
     
     /**
+     Enqueues a task which will asynchronously extract all files into the given output foldes from the given logical resource system locator. Pass empty string for string mask to get all files, else supply a mask.
+     */
+    U32 EnqueueResourceLocationExtractTask(Ptr<ResourceRegistry> registry, const String& logical, String outputFolder, StringMask mask);
+    
+    /**
      Creates a resource registry which can be used to manage telltale games resources. These cannot be used between game switches. Must be destroyed before this object or a switch!
      See ToolContext:CreateResourceRegistry().
      */

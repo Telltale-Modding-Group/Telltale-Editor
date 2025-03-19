@@ -9,6 +9,7 @@
 #include <Resource/TTArchive.hpp>
 #include <Resource/ISO9660.hpp>
 #include <Resource/TTArchive2.hpp>
+#include <Resource/Pack2.hpp>
 #include <Scripting/ScriptManager.hpp>
 #include <Meta/Meta.hpp>
 
@@ -319,6 +320,45 @@ public:
     
 };
 
+/**
+ Legacy console telltale games pack file
+ */
+class RegistryDirectory_GamePack2 : public RegistryDirectory
+{
+    
+    friend class ResourceRegistry;
+    
+    String _LastLocatedResource;
+    Bool _LastLocatedResourceStatus = false; // true if it existed
+    
+    GamePack2 _Pack;
+    
+public:
+    
+    inline RegistryDirectory_GamePack2(const String& path, GamePack2&& arc) : RegistryDirectory(path), _LastLocatedResource(), _Pack(std::move(arc)) {}
+    
+    virtual Bool GetResourceNames(std::set<String>& resources, const StringMask* optionalMask); // get file names
+    virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
+                              Ptr<ResourceLocation>& self, const StringMask* optionalMask);
+    virtual Bool GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names
+    virtual Bool GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names, recursively (set no dups)
+    virtual Bool HasResource(const Symbol& resourceName, const String* actualName /*optional*/); // pass in actual name if you know it to speed up.
+    virtual String GetResourceName(const Symbol& resource); // to string resource name (quicker than symbol table
+    virtual Bool DeleteResource(const Symbol& resource); // delete it if we can
+    virtual Bool RenameResource(const Symbol& resource, const String& newName); // rename it
+    virtual DataStreamRef CreateResource(const String& name); // create resource and open writing stream
+    virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr); // copy resource to dest
+    virtual DataStreamRef OpenResource(const Symbol& resourceName,String* outName); // open resource
+    virtual void RefreshResources(); // refresh
+    
+    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck); // update from resource sys
+    
+    virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // although its not flat, treat as it is. do nothing here.
+    
+    virtual ~RegistryDirectory_GamePack2() = default;
+    
+};
+
 // TODO other directory types: PS3 encrypted ISOs (AES 128), STFS (?). store enc keys within meta state.
 
 /**
@@ -504,6 +544,7 @@ class ResourceRegistry : public GameDependentObject
     friend U32 luaResourceSetRegister(LuaManager& man); // access allowed
     
     friend struct ToolContext;
+    friend struct ResourcesExtractionTask;
     
     /**
      Constructor. The lua manager version passed in MUST match any game scripts lua versions being run! This is because this will run any resource sets, which may use an older version!
@@ -527,7 +568,7 @@ public:
      */
     inline Bool UsingLegacyCompat()
     {
-        return !Meta::GetInternalState().GetActiveGame().UsesArchive2;
+        return !Meta::GetInternalState().GetActiveGame().UsesArchive2();
     }
     
     /**

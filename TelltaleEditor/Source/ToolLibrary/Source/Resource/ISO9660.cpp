@@ -88,6 +88,12 @@ Bool ISO9660::_ReadDir(DataStreamRef &in, ISO9660::DirectoryRecord& r)
     TTE_ASSERT(in->Read(&r.InterleavedUnitSize, 1), "ISO9660: Could not read directory record bytes");
     TTE_ASSERT(in->Read(&r.InterleavedUnitGap, 1), "ISO9660: Could not read directory record bytes");
     
+    if(r.InterleavedUnitGap || r.InterleavedUnitSize)
+    {
+        TTE_ASSERT(false, "Interleaved ISOs not currently supported");
+        return false;
+    }
+    
     TTE_ASSERT(in->Read((U8*)&r.ISOIndex, 2), "ISO9660: Could not read directory record bytes");
     ADVANCE(2); // big endian
     
@@ -116,6 +122,10 @@ Bool ISO9660::_ReadDir(DataStreamRef &in, ISO9660::DirectoryRecord& r)
     {
         bReadChildren = r.Fl.Test(DirectoryRecord::DIRECTORY);
         r.Name = _ReadString<207>(in, nameLength);
+        auto pos = r.Name.find_last_of(';');
+        String fn = r.Name;
+        if(pos != String::npos)
+            r.Name = fn.substr(0, pos);
     }
     
     if ((nameLength & 1) == 0) // padding
@@ -453,11 +463,7 @@ void ISO9660::_GetFilesInternal(std::set<String>& result, const String& currentP
             _GetFilesInternal(result, path, record.Children);
             continue;;
         }
-        auto pos = record.Name.find_last_of(';');
-        String fn = record.Name;
-        if(pos != String::npos)
-            fn = fn.substr(0, pos);
-        result.insert(currentPath + fn);
+        result.insert(currentPath + record.Name);
     }
 }
 

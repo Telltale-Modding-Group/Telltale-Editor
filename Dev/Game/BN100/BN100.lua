@@ -880,9 +880,7 @@ function RegisterBone100(vendor, platform)
 
 	RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AudioData> >", nil, hAud)
 	RegisterBoneCollection(MetaCI, "class Map<class String,class String,struct std::less<class String> >", kMetaClassString, kMetaClassString)
-  
-	MetaDumpVersions() -- dbg out
-
+	
 	return true
 end
 

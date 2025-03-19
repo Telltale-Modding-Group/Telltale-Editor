@@ -25,7 +25,7 @@ TelltaleEditor::TelltaleEditor(GameSnapshot s, Bool ui)
     LuaFunctionCollection commonAPI = CreateScriptAPI();
     _ModdingContext = CreateToolContext(std::move(commonAPI));
     
-    _ModdingContext->Switch(s);
+    _ModdingContext->Switch(s); // create context loads the symbols. in the editor lets resave them in close
     
     RenderContext::Initialise();
 }
@@ -114,6 +114,20 @@ U32 TelltaleEditor::EnqueueArchive2ExtractTask(TTArchive2* pArchive, std::set<St
     task->Folder = std::move(outputFolder);
     task->Archive2 = pArchive;
     task->Archive1 = nullptr;
+    _EnqueueTask(task);
+    return _TaskFence++;
+}
+
+U32 TelltaleEditor::EnqueueResourceLocationExtractTask(Ptr<ResourceRegistry> registry, const String& logical, String outputFolder, StringMask mask)
+{
+    TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
+    ResourcesExtractionTask* task = TTE_NEW(ResourcesExtractionTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
+    task->Folder = std::move(outputFolder);
+    task->Logical = logical;
+    task->Mask = mask;
+    if(mask.length())
+        task->UseMask = true;
+    task->Registry = std::move(registry);
     _EnqueueTask(task);
     return _TaskFence++;
 }

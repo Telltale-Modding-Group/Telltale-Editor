@@ -271,7 +271,7 @@ namespace ScriptManager
     // Tries to find it from the global symbol table first, if not then returns a hex string.
     inline void PushSymbol(LuaManager& man, Symbol value)
     {
-        String val = RuntimeSymbols.Find(value);
+        String val = SymbolTable::Find(value);
         man.PushLString(val.length() == 0 ? SymbolToHexString(value) : val);
     }
     

@@ -5,7 +5,7 @@
 #include <unordered_map>
 
 // STRING MASK
-
+/*
 Bool StringMask::MaskCompare(CString pattern, CString str, CString end, MaskMode mode)
 {
     Bool allowPartialMatch = (mode == MASKMODE_ANY_SUBSTRING || mode == MASKMODE_ANY_ENDING);
@@ -69,7 +69,80 @@ Bool StringMask::MaskCompare(CString pattern, CString str, CString end, MaskMode
     }
     
     return false;
+}*/
+
+Bool StringMask::MaskCompare(CString pattern, CString str, CString end, MaskMode mode)
+{
+    Bool allowPartialMatch = (mode == MASKMODE_ANY_SUBSTRING || mode == MASKMODE_ANY_ENDING);
+    
+    // Loop over test string until its null terminator (ignore 'end' here)
+    while (*str)
+    {
+        CString patternPtr = pattern;
+        CString strPtr = str;
+        
+        // Compare while we haven't reached the end of the pattern substring and test string
+        while (patternPtr != end && *patternPtr && *strPtr)
+        {
+            char patternChar = *patternPtr;
+            char strChar = *strPtr;
+            
+            if (patternChar == '*')
+            {
+                // Skip consecutive '*' characters, but do not overrun the pattern substring
+                while (patternPtr != end && *patternPtr == '*')
+                    ++patternPtr;
+                if (patternPtr == end || !*patternPtr)
+                    return true;  // Trailing '*' matches everything
+                
+                // Try matching the remaining pattern at different positions in test string
+                CString remainingPattern = patternPtr;
+                for (CString t = strPtr; *t; ++t)
+                {
+                    if (MaskCompare(remainingPattern, t, end, mode))
+                        return true;
+                }
+                return false;
+            }
+            else if (patternChar == '?')
+            {
+                if (strChar == '.')
+                    return false;  // '?' does not match '.'
+            }
+            else
+            {
+                // Case-insensitive comparison
+                if (std::toupper(strChar) != std::toupper(patternChar))
+                {
+                    if (allowPartialMatch)
+                        break;  // Try next position in test string
+                    return false;
+                }
+            }
+            
+            ++patternPtr;
+            ++strPtr;
+        }
+        
+        // Skip any trailing '*' in the pattern substring
+        while (patternPtr != end && *patternPtr == '*')
+            ++patternPtr;
+        if (patternPtr == end)
+            return true;  // Entire pattern substring matched
+        
+        // If we're allowing partial matches, move to the next character in test string and retry
+        if (allowPartialMatch)
+        {
+            ++str;
+            continue;
+        }
+        return false;
+    }
+    
+    return false;
 }
+
+
 
 Bool StringMask::MatchSearchMask(CString testString,CString searchMask,StringMask::MaskMode mode, Bool* excluded)
 {
@@ -102,7 +175,10 @@ Bool StringMask::MatchSearchMask(CString testString,CString searchMask,StringMas
         // Check if testString matches the current pattern
         if (!foundMatch || isExclusion)
         {
-            Bool matches = MaskCompare(patternStart, testString, nextPattern, mode);
+            CString patternEnd = nextPattern ? nextPattern : patternStart + strlen(patternStart);
+            Bool matches = MaskCompare(patternStart, testString, patternEnd, mode);
+
+            //Bool matches = MaskCompare(patternStart, testString, nextPattern, mode);
             if (matches != isExclusion)
             {
                 // If `isExclusion`, we invert the match result
@@ -483,6 +559,163 @@ Bool RegistryDirectory_TTArchive::GetResources(std::vector<std::pair<Symbol, Ptr
     return true;
 }
 
+// PK2 DIRECTORY
+
+Ptr<RegistryDirectory> RegistryDirectory_GamePack2::OpenDirectory(const String &name)
+{
+    return {};
+}
+
+String RegistryDirectory_GamePack2::GetResourceName(const Symbol &resource)
+{
+    String n{};
+    _Pack.Find(resource, &n);
+    return n;
+}
+
+Bool RegistryDirectory_GamePack2::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)
+{
+    TTE_ASSERT(StringEndsWith(resourceName, ".pk2"), "Resource is not a valid PK2 filename: %s", resourceName.c_str());
+    _Pack.Reset();
+    DataStreamRef newStream = location->LocateResource(resourceName, nullptr);
+    TTE_ASSERT(false, "Failed retrieve stream for ISO %s!", resourceName.c_str());
+    lck.unlock();
+    Bool result = _Pack.SerialiseIn(newStream);
+    lck.lock();
+    return result;
+}
+
+Bool RegistryDirectory_GamePack2::GetResourceNames(std::set<String>& resources, const StringMask* optionalMask)
+{
+    _Pack.GetFiles(resources);
+    if (optionalMask)
+    {
+        for (auto it = resources.begin(); it != resources.end(); )
+        {
+            if (*optionalMask != *it)
+            {
+                it = resources.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+    
+    return true;
+}
+
+Bool RegistryDirectory_GamePack2::GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask)
+{
+    _Pack.GetSubDirectories(false, resources);
+    if (optionalMask)
+    {
+        for (auto it = resources.begin(); it != resources.end(); )
+        {
+            if (*optionalMask != *it)
+            {
+                it = resources.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+    
+    return true;
+}
+
+Bool RegistryDirectory_GamePack2::GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask)
+{
+    _Pack.GetSubDirectories(true, resources);
+    if (optionalMask)
+    {
+        for (auto it = resources.begin(); it != resources.end(); )
+        {
+            if (*optionalMask != *it)
+            {
+                it = resources.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+    
+    return true;
+}
+
+Bool RegistryDirectory_GamePack2::HasResource(const Symbol& resourceName, const String* o)
+{
+    _LastLocatedResource.clear();
+    _LastLocatedResourceStatus = false;
+    
+    _Pack.Find(resourceName, &_LastLocatedResource);
+    _LastLocatedResourceStatus = _LastLocatedResource.length() != 0;
+    
+    return _LastLocatedResourceStatus;
+}
+
+String RegistryDirectory_ISO9660::GetResourceName(const Symbol& resource)
+{
+    return HasResource(resource, nullptr) ? _LastLocatedResource : "";
+}
+
+Bool RegistryDirectory_GamePack2::DeleteResource(const Symbol& resource)
+{
+    _Pack.DeleteFile(resource);
+    return true;
+}
+
+Bool RegistryDirectory_GamePack2::RenameResource(const Symbol& resource, const String& newName)
+{
+    _Pack.RenameResource(resource, newName);
+    return true;
+}
+
+DataStreamRef RegistryDirectory_GamePack2::CreateResource(const String& name)
+{
+    return _Pack.CreateResource(name);
+}
+
+Bool RegistryDirectory_GamePack2::CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr)
+{
+    _Pack.CopyResource(srcResourceName, dstResourceNameStr);
+    return true;
+}
+
+DataStreamRef RegistryDirectory_GamePack2::OpenResource(const Symbol& resourceName, String* outName)
+{
+    String out{};
+    return _Pack.Find(resourceName, outName ? outName : &out);
+}
+
+void RegistryDirectory_GamePack2::RefreshResources()
+{
+    _LastLocatedResource.clear();
+    _LastLocatedResourceStatus = false;
+}
+
+Ptr<RegistryDirectory> RegistryDirectory_ISO9660::OpenDirectory(const String& name)
+{
+    return {};
+}
+
+Bool RegistryDirectory_GamePack2::GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
+                                             Ptr<ResourceLocation>& self, const StringMask* optionalMask)
+{
+    std::set<String> files{};
+    _Pack.GetFiles(files);
+    
+    for(auto& f: files)
+        resources.push_back(std::make_pair(Symbol(f), self));
+    
+    return true;
+}
+
 // ISO DIRECTORY
 
 Bool RegistryDirectory_ISO9660::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)
@@ -538,11 +771,6 @@ Bool RegistryDirectory_ISO9660::HasResource(const Symbol& resourceName, const St
     return _LastLocatedResourceStatus;
 }
 
-String RegistryDirectory_ISO9660::GetResourceName(const Symbol& resource)
-{
-    return HasResource(resource, nullptr) ? _LastLocatedResource : "";
-}
-
 Bool RegistryDirectory_ISO9660::DeleteResource(const Symbol& resource)
 {
     TTE_LOG("Cannot delete files from ISOs!");
@@ -577,11 +805,6 @@ void RegistryDirectory_ISO9660::RefreshResources()
 {
     _LastLocatedResource.clear();
     _LastLocatedResourceStatus = false;
-}
-
-Ptr<RegistryDirectory> RegistryDirectory_ISO9660::OpenDirectory(const String& name)
-{
-    return {};
 }
 
 Bool RegistryDirectory_ISO9660::GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
@@ -1286,7 +1509,7 @@ void ResourceRegistry::MountArchive(const String &id, const String &fspath)
     StringMask mask = _ArchivesMask(UsingLegacyCompat());
     TTE_ASSERT(mask == fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
     _CheckConcrete(id);
-    Bool bUsesResourceSys = Meta::GetInternalState().GetActiveGame().UsesArchive2;
+    Bool bUsesResourceSys = UsingLegacyCompat();
     SCOPE_LOCK();
     if(_Locate(id) != nullptr)
     {
@@ -1301,15 +1524,48 @@ void ResourceRegistry::MountArchive(const String &id, const String &fspath)
     }
     if(_ImportArchivePack(fs::path(fspath).filename().string(), id, fspath, is, lck))
     {
+        Ptr<ResourceLocation> pLocation = _Locations.back(); // last newly processed
+        ResourceLogicalLocation* pLogicalMaster = dynamic_cast<ResourceLogicalLocation*>(_Locate("<>").get());
+        TTE_ASSERT(pLogicalMaster, "Master location not found!");
+        
         // Map newly mounted to master
         {
-            ResourceLogicalLocation* pLogicalMaster = dynamic_cast<ResourceLogicalLocation*>(_Locate("<>").get());
-            TTE_ASSERT(pLogicalMaster, "Master location not found!");
             ResourceLogicalLocation::SetInfo mapping{};
             mapping.Set = id;
             mapping.Priority = 0;
-            mapping.Resolved = _Locations.back(); // last newly processed
+            mapping.Resolved = pLocation;
             pLogicalMaster->SetStack.insert(std::move(mapping));
+        }
+        
+        // Similar to apply legacy mount. Search for any other archives inside this mounted one (eg if this is an ISO look for PK2/TTARCH)
+        
+        std::set<String> archives{};
+        StringMask mask = _ArchivesMask(UsingLegacyCompat());
+        TTE_ASSERT(pLocation->GetResourceNames(archives, &mask), "Could not gather resource names from %s", fspath.c_str());
+        
+        for(auto& arc: archives)
+        {
+            String archiveID = id + arc + "/";
+            if(_Locate(archiveID))
+                continue; // already exists
+            
+            DataStreamRef is = pLocation->LocateResource(arc, nullptr);
+            if(is && _ImportArchivePack(arc, archiveID, fspath + "/" + arc, is, lck))
+            {
+                // Map archive location to master
+                {
+                    ResourceLogicalLocation::SetInfo mapping{};
+                    mapping.Set = archiveID;
+                    mapping.Priority = 99; // set a higher priority than folders. prefer archives like the engine
+                    mapping.Resolved = _Locations.back();
+                    pLogicalMaster->SetStack.insert(std::move(mapping));
+                }
+                
+            }
+            else
+            {
+                TTE_LOG("WARNING: The archive %s could not be opened!", arc.c_str());
+            }
         }
         
     }
@@ -1321,7 +1577,7 @@ void ResourceRegistry::MountSystem(const String &id, const String& _fspath)
     StringMask mask = _ArchivesMask(UsingLegacyCompat());
     TTE_ASSERT(mask == _fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
     _CheckConcrete(id);
-    Bool bUsesResourceSys = Meta::GetInternalState().GetActiveGame().UsesArchive2;
+    Bool bUsesResourceSys = UsingLegacyCompat();
     SCOPE_LOCK();
     if(_Locate(id) != nullptr)
     {
@@ -1433,7 +1689,7 @@ void ResourceRegistry::CreateConcreteDirectoryLocation(const String &name, const
 
 StringMask ResourceRegistry::_ArchivesMask(Bool bLegacy)
 {
-    return bLegacy ? StringMask("*.ttarch;*.iso") : StringMask("*.ttarch2;*.iso"); // TODO add .pk2
+    return bLegacy ? StringMask("*.ttarch;*.iso;*.pk2") : StringMask("*.ttarch2;*.iso");
 }
 
 Bool ResourceRegistry::_ImportAllocateArchivePack(const String& resourceName, const String& archiveID,
@@ -1447,7 +1703,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
                                           const String& archivePhysicalPath, DataStreamRef& archiveStream, std::unique_lock<std::mutex>& lck)
 {
     // create archive location
-    if(StringEndsWith(resourceName, ".ttarch"))
+    if(StringEndsWith(resourceName, ".ttarch", false))
     {
         TTArchive arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
         lck.unlock(); // may take time, dont keep everyone waiting!
@@ -1456,7 +1712,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
         _Locations.push_back(std::move(pLoc));
     }
-    else if(StringEndsWith(resourceName, ".ttarch2"))
+    else if(StringEndsWith(resourceName, ".ttarch2", false))
     {
         TTArchive2 arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
         lck.unlock(); // may take time, dont keep everyone waiting!
@@ -1465,7 +1721,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive2>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
         _Locations.push_back(std::move(pLoc));
     }
-    else if(StringEndsWith(resourceName, ".iso"))
+    else if(StringEndsWith(resourceName, ".iso", false))
     {
         ISO9660 iso{};
         lck.unlock(); // may take time, dont keep everyone waiting!
@@ -1476,6 +1732,19 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
         }
         lck.lock();
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_ISO9660>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(iso));
+        _Locations.push_back(std::move(pLoc));
+    }
+    else if(StringEndsWith(resourceName, ".pk2", false))
+    {
+        GamePack2 pk2{};
+        lck.unlock(); // may take time, dont keep everyone waiting!
+        if(!pk2.SerialiseIn(archiveStream))
+        {
+            TTE_LOG("Failed to import archive packed file (PK2) %s!", resourceName.c_str());
+            return false;
+        }
+        lck.lock();
+        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_GamePack2>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(pk2));
         _Locations.push_back(std::move(pLoc));
     }
     else
@@ -1862,6 +2131,14 @@ DataStreamRef ResourceRegistry::FindResource(const Symbol& name)
     SCOPE_LOCK();
     DataStreamRef ref{};
     _LocateResourceInternal(name, nullptr, &ref);
+    if(ref)
+    {
+        // The resource needs to be thread safe. Before unlocking, lets create a copy of this resource (the complete bytes) so that its not going to interfere.
+        DataStreamRef buffer = DataStreamManager::GetInstance()->CreateBufferStream("", ref->GetSize(), 0, 0);
+        DataStreamManager::GetInstance()->Transfer(ref, buffer, ref->GetSize());
+        buffer->SetPosition(0);
+        ref = buffer;
+    }
     return ref;
 }
 

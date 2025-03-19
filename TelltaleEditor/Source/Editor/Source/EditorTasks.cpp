@@ -1,5 +1,24 @@
 #include <TelltaleEditor.hpp>
 
+#include <cctype>
+#include <cstring>
+#include <set>
+#include <mutex>
+#include <type_traits>
+#include <filesystem>
+#include <algorithm>
+#include <map>
+
+#ifdef MACOS
+
+namespace sfs = std::__fs::filesystem; // makes my blood boil istg
+
+#else
+
+namespace sfs = std::filesystem;
+
+#endif
+
 Bool AsyncTTETaskDelegate(const JobThread& thread, void* argA, void* argB)
 {
     EditorTask* pTask = (EditorTask*)argA;
@@ -95,6 +114,86 @@ void TextureNormalisationTask::Finalise(TelltaleEditor& editor)
     pTexture->_Handle = pTextureH;
     pTexture->TextureFlags += flags; // concat flags
 }
+
+// RESOURCE SYSTEM EXTRACTION
+
+static Bool _DoResourcesExtract(Ptr<ResourceRegistry>& reg, const String& outputFolder, std::set<String>::const_iterator begin, std::set<String>::const_iterator end)
+{
+    for(auto it = begin; it != end; it++)
+    {
+        String fileName = outputFolder + *it;
+        
+        // ensure directory exists (may have concat paths)
+        sfs::path p = fileName;
+        p = p.parent_path();
+        if(!sfs::exists(p))
+            sfs::create_directories(p);
+        
+        DataStreamRef src = reg->FindResource(*it);
+        
+        if(src)
+        {
+            DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(fileName);
+            DataStreamManager::GetInstance()->Transfer(src, out, src->GetSize());
+        } // quietly ignore for now
+    }
+    return true;
+}
+
+#define RES_EXTRACT_BLK 512
+
+static Bool _DoResourcesExtractAsync(const JobThread& thread, void* pRawTask, void* pRawIndex)
+{
+    U32 index = (U32)((U64)pRawIndex);
+    ResourcesExtractionTask* task = (ResourcesExtractionTask*)pRawTask;
+    auto it = task->WorkingFiles->cbegin();
+    std::advance(it, index * ((U32)task->WorkingFiles->size() / task->AsyncWorkers));
+    auto itend = it;
+    std::advance(itend, ((U32)task->WorkingFiles->size() / task->AsyncWorkers));
+    return _DoResourcesExtract(task->Registry, task->Folder, it, itend);
+}
+
+Bool ResourcesExtractionTask::PerformAsync(const JobThread &thread, ToolContext *pLockedContext)
+{
+    if(!StringEndsWith(Folder, "/") && !StringEndsWith(Folder, "\\"))
+        Folder += "/";
+    std::set<String> files{};
+    
+    {
+        std::lock_guard<std::mutex> G{Registry->_Guard};
+        Ptr<ResourceLocation> loc = Registry->_Locate(Logical);
+        TTE_ASSERT(loc != nullptr, "The location %s could not be found!", Logical.c_str());
+        loc->GetResourceNames(files, UseMask ? &Mask : nullptr);
+    }
+    
+    WorkingFiles = &files;
+    AsyncWorkers = files.size() <= RES_EXTRACT_BLK ? 1 : (U32)files.size() / RES_EXTRACT_BLK;
+    JobHandle H[7]{};
+    if(AsyncWorkers > 8)
+        AsyncWorkers = 8;
+    
+    for(U32 worker = 0; worker < AsyncWorkers - 1; worker++)
+    {
+        JobDescriptor J{};
+        J.Priority = JobPriority::JOB_PRIORITY_NORMAL;
+        J.UserArgA = this;
+        J.UserArgB = reinterpret_cast<void*>(static_cast<uintptr_t>(worker));;
+        J.AsyncFunction = &_DoResourcesExtractAsync;
+        H[worker] = JobScheduler::Instance->Post(J);
+    }
+    
+    auto it = files.cbegin();
+    std::advance(it, (AsyncWorkers - 1) * ((U32)files.size() / AsyncWorkers));
+    Bool bResult = _DoResourcesExtract(Registry, Folder, it, files.cend());
+
+    return bResult && JobScheduler::Instance->Wait(AsyncWorkers - 1, H);
+}
+
+void ResourcesExtractionTask::Finalise(TelltaleEditor& editorContext)
+{
+    // No finalisation needed
+}
+
 
 // ARCHIVE EXTRACTION
 

@@ -6,6 +6,7 @@
 #include <Meta/Meta.hpp>
 #include <Resource/TTArchive.hpp>
 #include <Resource/TTArchive2.hpp>
+#include <Resource/ResourceRegistry.hpp>
 
 #include <vector>
 
@@ -102,6 +103,29 @@ struct ArchiveExtractionTask : EditorTask
     
     TTArchive* Archive1 = nullptr; // archives, either 1 or 2 is set for .ttarch or .ttarch2
     TTArchive2* Archive2 = nullptr;
+    
+};
+
+// Extracts from resource sys
+struct ResourcesExtractionTask : EditorTask
+{
+    
+    inline ResourcesExtractionTask(U32 id) : EditorTask(false, id) {}
+    
+    virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override;
+    
+    virtual void Finalise(TelltaleEditor&) override;
+    
+    Ptr<ResourceRegistry> Registry;
+    
+    String Folder;
+    
+    String Logical;
+    StringMask Mask{""};
+    Bool UseMask = false;
+    
+    U32 AsyncWorkers = 0; // per thread
+    std::set<String>* WorkingFiles;
     
 };
 

@@ -8,6 +8,7 @@
 #include <sstream>
 #include <utility>
 #include <set>
+#include <sstream>
 
 extern thread_local bool _IsMain;
 
@@ -63,25 +64,30 @@ namespace Meta
     	    else
 	    	    man.Pop(1);
             ScriptManager::TableGet(man, "IsArchive2");
-            reg.UsesArchive2 = ScriptManager::PopBool(man);
+            if(ScriptManager::PopBool(man))
+                reg.Fl.Add(RegGame::ARCHIVE2);
             ScriptManager::TableGet(man, "ArchiveVersion");
             reg.ArchiveVersion = ScriptManager::PopUnsignedInteger(man);
             ScriptManager::TableGet(man, "ModifiedEncryption");
             if(man.Type(-1) == LuaType::BOOL)
-                reg.ModifiedBlowfish = ScriptManager::PopBool(man);
+            {
+                if(ScriptManager::PopBool(man))
+                    reg.Fl.Add(RegGame::MODIFIED_BLOWFISH);
+            }
             else
             {
                 man.Pop(1);
-                reg.ModifiedBlowfish = false; // not modified default
             }
             
             ScriptManager::TableGet(man, "AllowOodle");
             if(man.Type(-1) == LuaType::BOOL)
-                reg.DisableOodle = !ScriptManager::PopBool(man);
+            {
+                if(ScriptManager::PopBool(man))
+                    reg.Fl.Add(RegGame::ENABLE_OODLE);
+            }
             else
             {
                 man.Pop(1);
-                reg.DisableOodle = true; // oodle not allowed (no dll/dylib/so/etc in game)
             }
             
             ScriptManager::TableGet(man, "Key");
@@ -101,6 +107,7 @@ namespace Meta
                     
                     String key = man.ToString(-2);
                     String platformName = man.ToString(-1);
+                    TTE_ASSERT(_Impl::_CheckPlatform(platformName), "The platform '%s' is invalid! Check valid ones", platformName.c_str());
                     reg.PlatformToEncryptionKey[platformName] = luaToKey(key); // set platform key
                     
                     man.Pop(2);
@@ -108,6 +115,25 @@ namespace Meta
                 man.Pop(1); // pop last key
             }
             else man.Pop(1); // no key given, skip
+            
+            ScriptManager::TableGet(man, "Platforms");
+            if(man.Type(-1) == LuaType::STRING)
+            {
+                String val = ScriptManager::PopString(man);
+                std::stringstream ss(val);
+                String token{};
+                while (std::getline(ss, token, ';'))
+                {
+                    TTE_ASSERT(_Impl::_CheckPlatform(token), "The platform %s is not valid", token.c_str());
+                    reg.ValidPlatforms.push_back(token);
+                }
+            }
+            else
+            {
+                TTE_ASSERT(false, "Game table must specify Platform as a string");
+                man.Pop(1);
+                return 0;
+            }
             
             ScriptManager::TableGet(man, "LuaVersion");
             String v = ScriptManager::PopString(man);
@@ -177,7 +203,7 @@ namespace Meta
         static String SymbolToStringOperation(const void* pSym)
         {
             U64 hash = ((const Symbol*)pSym)->GetCRC64();
-            String s = RuntimeSymbols.Find(hash); // try find it first
+            String s = SymbolTable::Find(hash); // try find it first
             if(s.length() > 0)
                 return s;
             return "Symbol<" + SymbolToHexString(hash) + ">";
@@ -286,6 +312,17 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             c.CopyConstruct = &_Impl::CopyBinaryBuffer;
             c.MoveConstruct = &_Impl::MoveBinaryBuffer;
             AddIntrinsic(man, "kMetaClassInternalBinaryBuffer", "__INTERNAL_BINARY_BUFFER__", std::move(c));
+            memset(&c, 0, sizeof(Class));
+            
+            // data stream cache internal
+            c.Flags = CLASS_INTRINSIC | CLASS_NON_BLOCKED; // keep it intrinsic, so it does not go into meta headers. ensure no block size (invis)
+            c.Name = "__INTERNAL_DATASTREAM_CACHE__"; // internal class.
+            c.RTSize = (U32)sizeof(DataStreamCache);
+            c.Constructor = &_Impl::CtorDSCache;
+            c.Destructor = &_Impl::DtorDSCache;
+            c.CopyConstruct = &_Impl::CopyDSCache;
+            c.MoveConstruct = &_Impl::MoveDSCache;
+            AddIntrinsic(man, "kMetaClassInternalDataStreamCache", "__INTERNAL_DATASTREAM_CACHE__", std::move(c));
             memset(&c, 0, sizeof(Class));
             
             return 0;
@@ -461,7 +498,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             ScriptManager::TableGet(man, "VersionIndex");
             c.VersionNumber = ScriptManager::PopInteger(man);
             ScriptManager::TableGet(man, "Name");
-            c.Name = ScriptManager::PopString(man);
+            String name = c.Name = ScriptManager::PopString(man);
             ScriptManager::TableGet(man, "Extension");
             if(man.Type(-1) == LuaType::STRING)
                 c.Extension = ScriptManager::PopString(man);
@@ -503,6 +540,22 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             
             U32 id = _Impl::_Register(man, std::move(c), man.GetTop());
             
+            ScriptManager::TableGet(man, "VersionOverride");
+            if(man.Type(-1) == LuaType::STRING)
+            {
+                U32 crc = 0;
+                std::stringstream ss;
+                ss << std::hex << ScriptManager::PopString(man);
+                ss >> crc;
+                Class* pClass = _Impl::_GetClass(id);
+                TTE_ASSERT(crc != pClass->VersionCRC, "Version CRCs already match for %s!",name.c_str()); // GOOD
+                State._Temp.DeferredWarnings.push_back({pClass->Name, pClass->VersionCRC, crc});
+                pClass->VersionCRC = crc;
+                
+            }
+            else
+                man.Pop(1);
+            
             man.PushLString("__MetaId");
             man.PushUnsignedInteger(id);
             man.SetTable(-3);
@@ -519,8 +572,6 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
         {
             Class c{};
             TTE_ASSERT(man.GetTop() == 3, "Incorrect call");
-            TTE_ASSERT(man.Type(3) == LuaType::TABLE, "At MetaRegisterCollection, the value class argument (3) was not a table.");
-            TTE_ASSERT(man.Type(1) == LuaType::TABLE, "At MetaRegisterCollection, the collection class argument (1) was not a table.");
             
             if(!GetToolContext() || GetToolContext()->GetActiveGame())
             {
@@ -566,6 +617,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             
             man.Pop(1); // pop copy of first arg
             
+            InternalState::DeferredRegister def{};
+            
             if(man.Type(2) == LuaType::NUMBER) // SArray
                 c.ArraySize = man.ToInteger(2);
             else if(man.Type(2) == LuaType::TABLE)
@@ -575,17 +628,53 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 TTE_ASSERT(man.Type(-1) == LuaType::NUMBER, "When registering collection, key type table not registered properly");
                 c.ArrayKeyClass = (U32)ScriptManager::PopInteger(man);
             }
+            else if(man.Type(2) == LuaType::STRING) // defer it
+            {
+                String val = man.ToString(2);
+                auto semi = val.find_last_of(';');
+                if(semi != String::npos)
+                {
+                    def.KeyVersion = (U32)std::stoi(val.substr(semi+1));
+                    val = val.substr(0, semi);
+                }
+                def.KeyType = std::move(val);
+            }
+    
             
-            man.PushLString("__MetaId");
-            man.GetTable(3);
-            TTE_ASSERT(man.Type(-1) == LuaType::NUMBER, "When registering collection, value type table not registered properly");
-            c.ArrayValClass = (U32)ScriptManager::PopInteger(man);
-            
+            if(man.Type(3) == LuaType::STRING) // defer it
+            {
+                String val = man.ToString(3);
+                auto semi = val.find_last_of(';');
+                if(semi != String::npos)
+                {
+                    def.ValueVersion = (U32)std::stoi(val.substr(semi+1));
+                    val = val.substr(0, semi);
+                }
+                def.ValueType = std::move(val);
+            }
+            else if(man.Type(3) == LuaType::NUMBER)
+            {
+                man.PushLString("__MetaId");
+                man.GetTable(3);
+                TTE_ASSERT(man.Type(-1) == LuaType::NUMBER, "When registering collection, value type table not registered properly");
+                c.ArrayValClass = (U32)ScriptManager::PopInteger(man);
+            }
+            else
+            {
+                TTE_ASSERT(false, "When registering collection, value type table not registered properly");
+            }
+  
             U32 id = _Impl::_Register(man, std::move(c), 1);
             
             man.PushLString("__MetaId");
             man.PushUnsignedInteger(id);
             man.SetTable(1);
+            
+            if(def.KeyType.length() || def.ValueType.length())
+            {
+                def.CollectionClass = id;
+                State._Temp.Deferred.push_back(std::move(def));
+            }
             
             return 0;
         }
@@ -1329,9 +1418,13 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             for(auto& clazz: State.Classes)
             {
                 std::ostringstream ss{};
-                ss << clazz.second.Name << " => 0x";
-                ss << std::hex << std::uppercase << clazz.second.VersionCRC;
-                ss << " [" << std::dec << std::nouppercase << clazz.second.VersionNumber << "]";
+                ss << std::left << std::setw(50) << clazz.second.Name;
+                ss << " => VCRC: 0x" << std::hex << std::uppercase
+                << std::setw(10) << clazz.second.VersionCRC;
+                ss << "[" << std::dec << std::nouppercase
+                << clazz.second.VersionNumber << "]";
+                ss << " LHASH: 0x" << std::hex << std::uppercase << std::setw(0)
+                << clazz.second.LegacyHash;
                 sortedClassNames.insert(ss.str());
             }
             for(auto& it: sortedClassNames)
@@ -1643,6 +1736,94 @@ namespace MS
         return 0;
     }
     
+    // CachedreadBffer(stream, buffer_member, size [-1 => read remaining])
+    static U32 luaMetaStreamReadCache(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() >= 2, "Incorrect usage of MetaStreamReadCache");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(1));
+        I32 size = man.GetTop() > 2 ? man.ToInteger(3) : -1;
+        Meta::ClassInstance bufInst = Meta::AcquireScriptInstance(man, 2);
+        
+        TTE_ASSERT(bufInst, "Invalid buffer");
+        if(size != -1)
+            TTE_ASSERT(size >= 0 && size < 0x10000000, "Buffer size invalid (>256MB)"); // increase size limit?
+        
+        DataStreamRef& sect = stream.Sect[stream.CurrentSection].Data;
+        
+        U32 actualSize = size == -1 ? (U32)(sect->GetSize() - sect->GetPosition()) : (U32)size;
+        
+        Meta::DataStreamCache& buf = *((Meta::DataStreamCache*)bufInst._GetInternal());
+        
+        buf.Stream = DataStreamManager::GetInstance()->CreateSubStream(sect, sect->GetPosition(), (U64)actualSize);
+        
+        TTE_ASSERT(sect->GetPosition() + actualSize <= sect->GetSize(), "At read cache, trying to read too many bytes");
+        
+        U64 endPos = sect->GetPosition() + actualSize; // cache here as output dbg may change it
+        
+        if(stream.DebugOutputFile)
+        {
+            stream.WriteTabs();
+            U32 base64Encoded = MIN(stream.MaxInlinableBuffer, actualSize);
+            
+            U8* Temp = TTE_ALLOC(base64Encoded, MEMORY_TAG_TEMPORARY);
+            buf.Stream->Read(Temp, base64Encoded);
+            buf.Stream->SetPosition(0);
+            
+            String base64 = Base64::Encode(Temp, base64Encoded);
+            stream.DebugOutput << "[CachedBufferData Base64] >> \"" << base64;
+            if(base64Encoded != actualSize)
+                stream.DebugOutput << "...\"\n";
+            else
+                stream.DebugOutput << "\"\n";
+            
+            TTE_FREE(Temp);
+        }
+        
+        sect->SetPosition(endPos); // move pointer
+        
+        return 0;
+    }
+    
+    // write(stream, member)
+    static U32 luaMetaStreamWriteCached(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaStreamWriteCached");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
+        Meta::ClassInstance bufInst = Meta::AcquireScriptInstance(man, -1);
+        
+        TTE_ASSERT(bufInst, "Invalid cache");
+        
+        Meta::DataStreamCache& buf = *((Meta::DataStreamCache*)bufInst._GetInternal());
+        
+        if(buf.Stream)
+        {
+            buf.Stream->SetPosition(0);
+            DataStreamManager::GetInstance()->Transfer(buf.Stream, stream.Sect[stream.CurrentSection].Data, buf.Stream->GetSize());
+            buf.Stream->SetPosition(0);
+        }
+        
+        return 0;
+    }
+    
+    // size(stream, buffer_member)
+    static U32 luaMetaStreamCachedSize(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaStreamCachedSize");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
+        Meta::ClassInstance bufInst = Meta::AcquireScriptInstance(man, -1);
+        
+        TTE_ASSERT(bufInst, "Invalid cache");
+        
+        Meta::DataStreamCache& buf = *((Meta::DataStreamCache*)bufInst._GetInternal());
+        
+        man.PushUnsignedInteger(buf.Stream ? (U32)buf.Stream->GetSize() : 0);
+        
+        return 0;
+    }
+    
     static U32 luaMetaBufferSize(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaGetBufferSize");
@@ -1836,7 +2017,7 @@ namespace LuaMisc
     {
         TTE_ASSERT(man.GetTop() == 1, "Incorrect usage for SymbolFind")
         Symbol sym = SymbolFromHexString(man.ToString(-1));
-        String str = sym.GetCRC64() == 0 ? man.ToString(-1) : RuntimeSymbols.Find(sym);
+        String str = sym.GetCRC64() == 0 ? man.ToString(-1) : SymbolTable::Find(sym);
         man.PushLString(std::move(str));
         return 1;
     }
@@ -2043,7 +2224,7 @@ namespace TTE
         man.SetTable(-3);
         
         man.PushLString("IsArchive2");
-        man.PushBool(pGame->UsesArchive2);
+        man.PushBool(pGame->UsesArchive2());
         man.SetTable(-3);
         
         return 1;
@@ -2061,7 +2242,7 @@ namespace TTE
             return 1;
         }
         
-        if(!Context->GetActiveGame()->UsesArchive2)
+        if(!Context->GetActiveGame()->UsesArchive2())
         {
             TTE_ASSERT(false, "At TTE_OpenArchive2: please use TTE_OpenArchive as the current game does not use .TTARCH, but rather .TTARCH2.");
             man.PushNil();
@@ -2103,7 +2284,7 @@ namespace TTE
             return 1;
         }
         
-        if(Context->GetActiveGame()->UsesArchive2)
+        if(Context->GetActiveGame()->UsesArchive2())
         {
             TTE_ASSERT(false, "At TTE_OpenArchive: please use TTE_OpenArchive2 as the current game does not use .TTARCH2, but rather .TTARCH.");
             man.PushNil();
@@ -2350,6 +2531,9 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(MS, "MetaGetBufferSize", luaMetaBufferSize);
     ADD_FN(MS, "MetaStreamReadBuffer", luaMetaStreamReadBuffer);
     ADD_FN(MS, "MetaStreamWriteBuffer", luaMetaStreamWriteBuffer);
+    ADD_FN(MS, "MetaStreamReadCache", luaMetaStreamReadCache);
+    ADD_FN(MS, "MetaStreamWriteCached", luaMetaStreamWriteCached);
+    ADD_FN(MS, "MetaGetCachedSize", luaMetaStreamCachedSize);
     ADD_FN(MS, "MetaStreamFindClass", luaMetaStreamFindClass);
     ADD_FN(Meta::L, "MetaSerialiseDefault", luaMetaSerialiseDefault); // serialise related
     ADD_FN(Meta::L, "MetaSerialise", luaMetaSerialise);

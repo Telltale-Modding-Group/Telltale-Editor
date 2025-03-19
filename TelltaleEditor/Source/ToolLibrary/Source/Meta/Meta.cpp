@@ -21,6 +21,25 @@ namespace Meta {
     // ===================================================================
     
     namespace _Impl {
+        
+        Bool _CheckPlatformForGame(RegGame& game, const String& platform)
+        {
+            for(auto& p: game.ValidPlatforms)
+                if(CompareCaseInsensitive(p, platform))
+                    return true;
+            return false;
+        }
+        
+        Bool _CheckPlatform(const String& name)
+        {
+            constexpr U32 platforms = sizeof(PlatformNames) / sizeof(CString);
+            for(U32 i = 0; i < platforms; i++)
+            {
+                if(CompareCaseInsensitive(name, PlatformNames[i]))
+                    return true;
+            }
+            return false;
+        }
 	    
 	    U32 _GenerateClassID(U64 typeHash, U32 versionNumber)
 	    {
@@ -145,6 +164,8 @@ namespace Meta {
     	    	    cls.RTSize += sizeof(ClassChildMap);
 	    	    }
     	    }
+            
+            cls.LegacyHash = _PerformLegacyClassHash(cls.Name);
     	    
     	    cls.VersionCRC = crc;
     	    cls.ClassID = id;
@@ -262,6 +283,7 @@ namespace Meta {
 	    	    if(acq == pMemory) // if host is the same
 	    	    {
     	    	    tmp = host;
+                    tmp._InstanceClassID = clazz->ClassID; // may have same memory but be a different member at offset 0.
 	    	    }
 	    	    else
 	    	    {
@@ -461,6 +483,20 @@ namespace Meta {
     	    
     	    return sz;
 	    }
+        
+        U32 _PerformLegacyClassHash(const String& name)
+        {
+            U32 ind = 0;
+            U32 l = (U32)name.length();
+            U32 hash = 0;
+            for(U32 i = 0; i < l; i++)
+            {
+                U32 shift = 8*ind;
+                ind=(ind+1) & 3;
+                hash = hash ^ ((U8)name[i] << shift);
+            }
+            return hash;
+        }
 	    
 	    U32 _ClassRuntimeSize(Class& clazz, Bool forceChildArray)
 	    {
@@ -707,6 +743,27 @@ namespace Meta {
 	    {
     	    new (pDst) String(std::move(*((String*)pSrc))); // force call move constructor
 	    }
+        
+        void CtorDSCache(void* pMemory, U32 Array, ParentWeakReference host)
+        {
+            new (pMemory) DataStreamCache();
+        }
+        
+        void DtorDSCache(void* pMemory, U32)
+        {
+            ((DataStreamCache*)pMemory)->~DataStreamCache();
+        }
+        
+        void CopyDSCache(const void* pSrc, void* pDst, ParentWeakReference host)
+        {
+            // copy ptr lightly, no deep copy. its a cache, if a deep copy is wanted then it should be in memory and a Binary Buffer would be used
+            *((DataStreamCache*)pDst) = *((const DataStreamCache*)pSrc);
+        }
+        
+        void MoveDSCache(void* pSrc, void* pDst, ParentWeakReference host)
+        {
+            *((DataStreamCache*)pDst) = std::move(*((DataStreamCache*)pSrc));
+        }
 	    
 	    void CtorBinaryBuffer(void* pMemory, U32, ParentWeakReference)
 	    {
@@ -789,7 +846,7 @@ namespace Meta {
     	    {
 	    	    if(stream.Version == MBIN)
 	    	    {
-    	    	    String value = RuntimeSymbols.Find(sym); // find the string for it
+    	    	    String value = SymbolTable::Find(sym); // find the string for it
     	    	    if(value.length() == 0 && sym.GetCRC64() != 0)
     	    	    {
 	    	    	    TTE_ASSERT(false, "Could not resolve symbol which should have been already loaded (runtime symbols cleared?)");
@@ -1176,6 +1233,11 @@ namespace Meta {
     	    {
 	    	    Found = true;
 	    	    gameIdx = i;
+                if(!_Impl::_CheckPlatformForGame(game, snap.Platform))
+                {
+                    TTE_ASSERT(false, "The platform '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
+                    return;
+                }
 	    	    break;
     	    }
     	    i++;
@@ -1210,6 +1272,39 @@ namespace Meta {
     	    }
     	    else // success, so init blowfish encryption for the game
     	    {
+                
+                // Process deferred
+                for(auto& def: State._Temp.Deferred)
+                {
+                    auto it = State.Classes.find(def.CollectionClass);
+                    if(it != State.Classes.end())
+                    {
+                        Class& c = it->second;
+                        if(def.KeyType.length())
+                        {
+                            U32 clazz = FindClass(def.KeyType, def.KeyVersion);
+                            TTE_ASSERT(clazz != 0, "When registering deferred collection, the key type '%s' (%d) does not exist", def.KeyType.c_str(), def.KeyVersion);
+                            c.ArrayKeyClass = clazz;
+                        }
+                        if(def.ValueType.length())
+                        {
+                            U32 clazz = FindClass(def.ValueType, def.ValueVersion);
+                            TTE_ASSERT(clazz != 0, "When registering deferred collection, the value type '%s' (%d) does not exist", def.ValueType.c_str(), def.ValueVersion);
+                            c.ArrayValClass = clazz;
+                        }
+                    }
+                    else
+                    {
+                        TTE_ASSERT(false, "When registering deferred collection, the class could not be found. INTERNAL ERROR");
+                    }
+                }
+                State._Temp.Deferred.clear();
+                for(auto& warn: State._Temp.DeferredWarnings)
+                {
+                    TTE_LOG("WARNING: Class %s has mismatched version CRC [TODO]. Calculated 0x%X != 0x%X", warn.Class.c_str(), warn.Calculated, warn.Overriden);
+                }
+                State._Temp.DeferredWarnings.clear();
+                
 	    	    BlowfishKey key = State.Games[gameIdx].MasterKey; // set to master key
 	    	    
 	    	    // if there is a specific platform encryption key, do that here
@@ -1226,7 +1321,7 @@ namespace Meta {
     	    	    return;
 	    	    }
 	    	    
-	    	    Blowfish::Initialise(State.Games[gameIdx].ModifiedBlowfish, key.BfKey, key.BfKeyLength);
+	    	    Blowfish::Initialise(State.Games[gameIdx].Fl.Test(RegGame::MODIFIED_BLOWFISH), key.BfKey, key.BfKeyLength);
     	    }
 	    }
 	    
@@ -1328,6 +1423,7 @@ namespace Meta {
 	    U8 Buffer[32]{};
 	    String magic =  params.Version == MSV6 ? "6VSM" :
 	    	    	    params.Version == MSV5 ? "5VSM" :
+                        params.Version == BMS3 ? "BMS3" :
     	    	       // StreamVersion == MSV4 ? "4VSM" :
     	    	       // StreamVersion == MCOM ? "MOCM" :
 	    	    	    params.Version == MTRE ? "ERTM" :
@@ -1336,7 +1432,7 @@ namespace Meta {
 	    
 	    if(magic == "X")
 	    {
-    	    TTE_LOG("Invalid meta stream version");
+    	    TTE_LOG("The given meta stream version is not supported at the moment to be written with.");
     	    return false;
 	    }
 	    
@@ -1346,7 +1442,7 @@ namespace Meta {
 	    metaStream.CurrentSection = STREAM_SECTION_MAIN;
         metaStream.Name = name;
 	    metaStream.Sect[STREAM_SECTION_MAIN].Data = DataStreamManager::GetInstance()->CreatePrivateCache(name, 0x8000); // 32 KB
-	    if(params.Version == MSV5 || params.Version  == MSV6)
+	    if(params.Version == MSV5 || params.Version == MSV6)
 	    {
     	    // set main and async as memory streams
     	    metaStream.Sect[STREAM_SECTION_ASYNC].Data = DataStreamManager::GetInstance()->CreatePrivateCache(name, 0x100000);// 1 MB (mesh/tex)
@@ -1379,7 +1475,7 @@ namespace Meta {
 	    
 	    SerialiseDataU32(stream, nullptr, const_cast<char*>(magic.c_str()), true); // magic
 	    
-	    if(params.Version == MSV6 || params.Version == MSV5) // TODO optional compressed sections (set top bit of size to 1)
+	    if(params.Version == MSV6 || params.Version == MSV5) // TODO optional compressed sections (set top bit of size to 1 ?)
 	    {
     	    U32 size = (U32)metaStream.Sect[STREAM_SECTION_MAIN].Data->GetSize(); // size MUST fit into a U31 (yes a 1). otherwise file too large.
     	    TTE_ASSERT((U64)(size & 0x7FFF'FFFF) ==
@@ -1396,6 +1492,12 @@ namespace Meta {
     	    	       metaStream.Sect[STREAM_SECTION_DEBUG].Data->GetSize(), "Cannot serialise out meta stream: debug section too large");
     	    SerialiseDataU32(stream, nullptr, &size, true);
 	    }
+        else if(params.Version == BMS3)
+        {
+            // Im not sure what this value is about. I know if 0x2000000 is set then we it stores the version header but its always set. theres also 0x1000000. Idk
+            U32 value = 0x02'01'00'00;
+            SerialiseDataU32(stream, nullptr, &value, true);
+        }
 	    
 	    U32 numVersionInfo = (U32)metaStream.VersionInf.size();
 	    SerialiseDataU32(stream, nullptr, &numVersionInfo, true); // write version info count
@@ -1414,6 +1516,12 @@ namespace Meta {
     	    	    return false;
 	    	    }
     	    }
+            else if(params.Version == BMS3)
+            {
+                // Write legacy hash
+                U32 hash = State.Classes[metaStream.VersionInf[i]].LegacyHash;
+                SerialiseDataU32(stream, nullptr, &hash, true);
+            }
     	    else
     	    {
 	    	    SerialiseDataU64(stream, nullptr, &State.Classes[metaStream.VersionInf[i]].TypeHash, true); // write type hash
@@ -1518,6 +1626,8 @@ namespace Meta {
 	    
 	    String magic = (const char*)Buffer;
 	    metaStream.Version =    magic == "6VSM" ? MSV6 :
+                                magic == "BMS3" ? BMS3 :
+                                magic == "EMS3" ? EMS3 :
 	    	    	    	    magic == "5VSM" ? MSV5 :
 	    	    	    	    magic == "4VSM" ? MSV4 :
 	    	    	    	    magic == "MOCM" ? MCOM :
@@ -1538,9 +1648,9 @@ namespace Meta {
 	    }
 	    
 	    // these versions need looking into. they exist, but very very rare (if ever used)
-	    if(metaStream.Version == MSV4 || metaStream.Version == MCOM)
+	    if(metaStream.Version == MSV4 || metaStream.Version == MCOM || metaStream.Version == EMS3)
 	    {
-    	    TTE_LOG("Unsupported meta stream version %d", metaStream.Version);
+    	    TTE_LOG("Unsupported meta stream version %d. Contact us immidiately with this file!", metaStream.Version);
     	    return {};
 	    }
 	    
@@ -1571,6 +1681,17 @@ namespace Meta {
 	    	    asyncSectionSize &= 0x7F'FF'FF'FF;
     	    }
 	    }
+        else if(metaStream.Version == BMS3)
+        {
+            // I have no idea on what the 0x10000 value means. 0x2000000 means we have version info. if not!? we will have to require it then because we use that to detect the instance stored.
+            U32 unk{};
+            SerialiseDataU32(stream, nullptr, &unk, false);
+            if(unk != 0x02010000)
+            {
+                TTE_ASSERT(false, "ERROR: The file %s has an unknown flags field. Please let us know about this file.", fn.c_str());
+                return {};
+            }
+        }
 	    
 	    U32 numVersionInfo{};
 	    SerialiseDataU32(stream, nullptr, &numVersionInfo, false);
@@ -1586,6 +1707,33 @@ namespace Meta {
 	    for(U32 i = 0; i < numVersionInfo; i++)
 	    {
     	    U64 typeHash{}; U32 versionCRC{};
+            
+            if(metaStream.Version == BMS3) // Legacy CSI3/PS2
+            {
+                U32 legacyTN{};
+                SerialiseDataU32(stream, nullptr, &legacyTN, false);
+                U32 versionCRC{};
+                SerialiseDataU32(stream, nullptr, &versionCRC, false);
+                
+                U32 clazzID = 0;
+                for(auto& clazz: State.Classes)
+                {
+                    if(clazz.second.LegacyHash == legacyTN && versionCRC == clazz.second.VersionCRC)
+                    {
+                        clazzID = clazz.first;
+                        break;
+                    }
+                }
+                if(clazzID == 0)
+                {
+                    TTE_LOG("Cannot serialise in meta stream: a serialised class does not match any runtime class version."
+                            " Legacy type hash 0x%X and version CRC 0x%X. Most likely it exists, and its calculated version"
+                            " hash was not correct. Check the class, possibly with the compiled executable.", legacyTN, versionCRC);
+                    return {};
+                }
+                metaStream.VersionInf.push_back(clazzID);
+                continue;
+            }
     	    
     	    // read type hash (or string if very old).
     	    if(metaStream.Version == MBIN)
@@ -1623,18 +1771,18 @@ namespace Meta {
     	    if(State.Classes.find(ClassID) == State.Classes.end())
     	    {
 	    	    // COMMON ERROR! The calculated version hash was wrong, or the class does not exist yet.
-	    	    String resolved = RuntimeSymbols.Find(typeHash);
+	    	    String resolved = SymbolTable::Find(typeHash);
 	    	    if(resolved.length())
 	    	    {
     	    	    TTE_LOG("Cannot serialise in meta stream: a serialised class does not match any runtime class version."
     	    	    	    " Class '%s' and version %X. Most likely it exists, and its calculated version"
-    	    	    	    " has was not correct. Check the class, possibly with the compiled executable.", resolved.c_str(), versionCRC);
+    	    	    	    " hash was not correct. Check the class, possibly with the compiled executable.", resolved.c_str(), versionCRC);
 	    	    }
 	    	    else
 	    	    {
     	    	    TTE_LOG("Cannot serialise in meta stream: a serialised class does not match any runtime class version."
     	    	    	    " Type hash 0x%llX and version %X. Most likely it exists, and its calculated version"
-    	    	    	    " has was not correct. Check the class, possibly with the compiled executable.", typeHash, versionCRC);
+    	    	    	    " hash was not correct. Check the class, possibly with the compiled executable.", typeHash, versionCRC);
 	    	    }
 	    	    return {};
     	    }
@@ -1797,7 +1945,7 @@ namespace Meta {
 	    {
     	    // we will need padding bytes if the key type is small (lower than 8 bytes) and the value type is big (8 bytes or larger)
     	    Class* pKey = _Impl::_GetClass(clazz->second.ArrayKeyClass);
-    	    Class* pVal = &clazz->second;
+            Class* pVal = _Impl::_GetClass(clazz->second.ArrayValClass);
     	    
     	    // key flags
     	    if(pKey->Constructor == nullptr && pKey->Flags & CLASS_INTRINSIC)
@@ -2236,7 +2384,7 @@ namespace Meta {
     	    	    {
 	    	    	    //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].Destructor,
 	    	    	    //           "Meta collection class: no value destructor found");
-	    	    	    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem);
+	    	    	    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem + _PairSize - _ValuSize);
     	    	    }
     	    	    
 	    	    }

@@ -197,21 +197,41 @@ template <typename T> class hacked_priority_queue : public std::priority_queue<T
 };
 
 // Checks if a string starts with the other string prefix
-inline Bool StringStartsWith(const String& str, const String& prefix) {
+inline Bool StringStartsWith(const String& str, const String& prefix)
+{
     return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
 }
 
 // Checks if a string ends with the other string suffix
-inline Bool StringEndsWith(const String& str, const String& suffix)
+inline Bool StringEndsWith(const String& str, const String& suffix, Bool bCaseSensitive = true)
 {
-    if (str.length() < suffix.length()) {
-	    return false;
+    if (str.length() < suffix.length())
+        return false;
+    
+    if (bCaseSensitive)
+    {
+        return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
     }
-    return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+    else
+    {
+        size_t offset = str.length() - suffix.length();
+        for (size_t i = 0; i < suffix.length(); ++i)
+        {
+            // Compare each character in a case-insensitive way
+            if (std::tolower(static_cast<U8>(str[offset + i])) !=
+                std::tolower(static_cast<U8>(suffix[i])))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
+
 template <typename T> // checks if the weak ptr has no reference at all, even to an Ptr that has been reset.
-inline bool IsWeakPtrUnbound(const std::weak_ptr<T>& weak) {
+inline bool IsWeakPtrUnbound(const std::weak_ptr<T>& weak)
+{
     // Compare the weak pointer to a default-constructed weak pointer
     return !(weak.owner_before(std::weak_ptr<T>()) || std::weak_ptr<T>().owner_before(weak));
 }

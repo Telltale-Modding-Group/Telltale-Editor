@@ -770,7 +770,7 @@ DataStreamSubStream::DataStreamSubStream(const DataStreamRef &ref, U64 off, U64 
 
 void DataStreamSubStream::SetPosition(U64 pos)
 {
-    TTE_ASSERT(pos < _Size, "Trying to seek to invalid position in buffer stream");
+    TTE_ASSERT(pos <= _Size, "Trying to seek to invalid position in buffer stream");
     _Off = pos;
 }
 
@@ -1526,7 +1526,7 @@ Bool DataStreamManager::FlushContainer(DataStreamRef& src, U64 n, DataStreamRef&
     if(p.Compression == Compression::END_LIBRARY && p.Encrypt)
         p.Compression = Compression::ZLIB; // must compress if encrypting
     
-    if(p.Compression == Compression::OODLE && GetToolContext()->GetActiveGame()->DisableOodle)
+    if(p.Compression == Compression::OODLE && !GetToolContext()->GetActiveGame()->Fl.Test(Meta::RegGame::ENABLE_OODLE))
     {
         TTE_LOG("Cannot use oodle compression for the current game snapshot - it is not supported in the game. Please specify Zlib and retry!");
         return false;
