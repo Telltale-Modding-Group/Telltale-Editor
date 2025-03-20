@@ -1,9 +1,6 @@
 #include <TelltaleEditor.hpp>
 
-namespace sfs
-{
-    using namespace std::filesystem;
-}
+namespace sfs = std::filesystem;
 
 Bool AsyncTTETaskDelegate(const JobThread& thread, void* argA, void* argB)
 {
