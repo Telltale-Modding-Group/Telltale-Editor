@@ -797,7 +797,7 @@ function RegisterBone100(vendor, platform)
 	font.Members[5] = NewMember("mTexturePages", arrayTex)
 	MetaRegisterClass(font)
 
-	local dlg = NewClass("class DialogResource", 0) -- custom serialiser
+	local dlg = NewClass("class DialogResource", 0) -- custom serialiser needed
 	dlg.Extension = "dlg"
 	dlg.Members[1] = NewMember("miNextDialogID", kMetaInt)
 	dlg.Members[2] = NewMember("miNextBranchID", kMetaInt)

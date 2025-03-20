@@ -11,6 +11,7 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <filesystem>
 
 // =================================================================== LIBRARY CONFIGURATION
 // ===================================================================

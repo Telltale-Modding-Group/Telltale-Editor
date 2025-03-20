@@ -1,23 +1,9 @@
 #include <TelltaleEditor.hpp>
 
-#include <cctype>
-#include <cstring>
-#include <set>
-#include <mutex>
-#include <type_traits>
-#include <filesystem>
-#include <algorithm>
-#include <map>
-
-#ifdef MACOS
-
-namespace sfs = std::__fs::filesystem; // makes my blood boil istg
-
-#else
-
-namespace sfs = std::filesystem;
-
-#endif
+namespace sfs
+{
+    using namespace std::filesystem;
+}
 
 Bool AsyncTTETaskDelegate(const JobThread& thread, void* argA, void* argB)
 {

@@ -4,72 +4,9 @@
 #include <regex>
 #include <unordered_map>
 
+#include <filesystem>
+
 // STRING MASK
-/*
-Bool StringMask::MaskCompare(CString pattern, CString str, CString end, MaskMode mode)
-{
-    Bool allowPartialMatch = (mode == MASKMODE_ANY_SUBSTRING || mode == MASKMODE_ANY_ENDING);
-    
-    while (*str && str != end)
-    {
-        CString patternPtr = pattern;
-        CString strPtr = str;
-        
-        while (*patternPtr && strPtr != end)
-        {
-            char patternChar = *patternPtr;
-            char strChar = *strPtr;
-            
-            if (patternChar == '*')
-            {
-                // Skip consecutive '*' characters
-                while (*patternPtr == '*') ++patternPtr;
-                if (!*patternPtr) return true;  // Trailing '*' matches everything
-                
-                // Try matching the remaining pattern at different positions in `str`
-                while (*str && str != end) {
-                    if (MaskCompare(patternPtr, str, end, mode)) return true;
-                    ++str;
-                }
-                return false;
-            }
-            else if (patternChar == '?')
-            {
-                if (strChar == '.') return false;  // '?' does not match '.'
-            }
-            else
-            {
-                // Case-insensitive match
-                if (std::toupper(strChar) != std::toupper(patternChar))
-                {
-                    if (allowPartialMatch)
-                    {
-                        break;  // Move `str` forward and try again
-                    }
-                    return false;
-                }
-            }
-            
-            ++patternPtr;
-            ++strPtr;
-        }
-        
-        // If we matched the whole pattern, return success
-        while (*patternPtr == '*') ++patternPtr;
-        if (*patternPtr == '\0')
-            return true;
-        
-        // If partial matching is allowed, try shifting `str` and reattempt matching
-        if (allowPartialMatch)
-        {
-            ++str;
-            continue;
-        }
-        return false;
-    }
-    
-    return false;
-}*/
 
 Bool StringMask::MaskCompare(CString pattern, CString str, CString end, MaskMode mode)
 {
