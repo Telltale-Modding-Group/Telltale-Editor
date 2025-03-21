@@ -25,7 +25,7 @@ public:
     {
 	    FileInfo proxy{"", fn, DataStreamRef{}};
 	    auto it = std::lower_bound(_Files.begin(), _Files.end(), proxy);
-	    if(it != _Files.end())
+        if(it != _Files.end() && it->NameSymbol == fn)
 	    {
     	    if(outName)
 	    	    *outName = it->Name;

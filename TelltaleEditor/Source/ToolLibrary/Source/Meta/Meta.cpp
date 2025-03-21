@@ -94,6 +94,61 @@ namespace Meta {
 	    	    }
     	    }
 	    }
+        
+        void _CalculateCollectionSizes(Class* pKey, Class* pVal, U32& _ValuSize, U32& _PairSize, U32& _ColFl)
+        {
+            
+            // flags init
+            if(pVal->Constructor == nullptr && pVal->Flags & CLASS_INTRINSIC)
+                _ColFl |= _COL_VAL_SKIP_CT;
+            if(pVal->Destructor == nullptr && pVal->Flags & CLASS_INTRINSIC)
+                _ColFl |= _COL_VAL_SKIP_DT;
+            if(pVal->CopyConstruct == nullptr  && pVal->Flags & CLASS_INTRINSIC)
+                _ColFl |= _COL_VAL_SKIP_CP;
+            if(pVal->MoveConstruct == nullptr  && pVal->Flags & CLASS_INTRINSIC)
+                _ColFl |= _COL_VAL_SKIP_MV;
+            
+            _ValuSize = pVal->RTSize;
+            
+            if(pKey) // if this is a Map type
+            {
+                // we will need padding bytes if the key type is small (lower than 8 bytes) and the value type is big (8 bytes or larger)
+                
+                // key flags
+                if(pKey->Constructor == nullptr && pKey->Flags & CLASS_INTRINSIC)
+                    _ColFl |= _COL_KEY_SKIP_CT;
+                if(pKey->Destructor == nullptr && pKey->Flags & CLASS_INTRINSIC)
+                    _ColFl |= _COL_KEY_SKIP_DT;
+                if(pKey->CopyConstruct == nullptr && pKey->Flags & CLASS_INTRINSIC)
+                    _ColFl |= _COL_KEY_SKIP_CP;
+                if(pKey->MoveConstruct == nullptr && pKey->Flags & CLASS_INTRINSIC)
+                    _ColFl |= _COL_KEY_SKIP_MV;
+                
+                
+                if(pKey->RTSize < 8) // we need alignment bytes between key and value in memory. max align is 8 !!
+                {
+                    if(pVal->RTSize < 8) // both are small types, intrinsic types.
+                    {
+                        // we could use __builtin_clz to detect bit indices, we know its only used for values 1 to 7, so macro can be used
+                        // use _TO_ALIGN since align isnt stored in State.Classes. sizes 7-4 have align 4, 3-2 align 2 and 1 align 1, as best approx.
+                        
+#define _TO_ALIGN(val) (val & 0b100) ? 4 : (val & 0b010) ? 2 : 1
+                        
+                        _PairSize = pKey->RTSize + TTE_PADDING(pKey->RTSize, _TO_ALIGN(pVal->RTSize)) + pVal->RTSize;
+                        
+#undef _TO_ALIGN
+                        
+                    }else _PairSize = pKey->RTSize + TTE_PADDING(pKey->RTSize, 8) + _ValuSize; // pair size plus in between padding bytes for value
+                }
+                else _PairSize = pKey->RTSize + pVal->RTSize; // max align is 8, so no padding needed.
+                
+            }
+            else // this is *not* a map type. always skip key construction
+            {
+                _ColFl |= (_COL_KEY_SKIP_CP | _COL_KEY_SKIP_CT | _COL_KEY_SKIP_DT | _COL_KEY_SKIP_MV); // skip all key stuff
+                _PairSize = _ValuSize; // same size, non keyed container
+            }
+        }
 	    
 	    // register class argument to meta system
 	    U32 _Register(LuaManager& man, Class&& cls, I32 stackIndex)
@@ -165,6 +220,20 @@ namespace Meta {
 	    	    }
     	    }
             
+            if(cls.Members.size() == 1 && cls.Members[0].Descriptors.size() > 0 && State.Classes[cls.Members[0].ClassID].RTSize == 4)
+            {
+                cls.ToString = &_EnumFlagToString;
+            }
+            
+            if((cls.Flags & CLASS_CONTAINER) && cls.ArraySize > 0)
+            {
+                Class* pVal = &State.Classes[cls.ArrayValClass];
+                Class* pKey = cls.ArrayKeyClass == 0 ? nullptr : &State.Classes[cls.ArrayKeyClass];
+                U32 _fl, _v, p;
+                _CalculateCollectionSizes(pKey, pVal, _v, p, _fl);
+                cls.RTSize += p * cls.ArraySize;
+            }
+            
             cls.LegacyHash = _PerformLegacyClassHash(cls.Name);
     	    
     	    cls.VersionCRC = crc;
@@ -172,8 +241,50 @@ namespace Meta {
     	    State.Classes[id] = std::move(cls);
     	    return id;
 	    }
+        
+        String _EnumFlagMemberToString(Member& member, const void* pVal)
+        {
+            U32 value = *((const U32*)(pVal));
+            String val{};
+            if(member.Flags & MEMBER_ENUM)
+            {
+                for(auto& desc: member.Descriptors)
+                {
+                    if(desc.Value == value)
+                    {
+                        if(val.length())
+                        {
+                            val += ";";
+                            val += desc.Name;
+                        }
+                        else val = desc.Name;
+                    }
+                }
+            }
+            else
+            {
+                for(auto& desc: member.Descriptors)
+                {
+                    if((U32)desc.Value & value)
+                    {
+                        if(val.length())
+                        {
+                            val += ", ";
+                            val += desc.Name;
+                        }
+                        else val = desc.Name;
+                    }
+                }
+            }
+            return val;
+        }
+        
+        String _EnumFlagToString(Class* pClass, const void* pVal)
+        {
+            return _EnumFlagMemberToString(pClass->Members[0], pVal);
+        }
 	    
-	    Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member)
+	    Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member, Member* hostMember)
 	    {
     	    if(!pMemory || clazz == nullptr)
     	    {
@@ -228,18 +339,21 @@ namespace Meta {
     	    	    stream.TabDepth++;
 	    	    }
 	    	    result = clazz->Serialise(stream, host, clazz, pMemory, IsWrite);
-	    	    if(clazz->ToString)
-	    	    {
-    	    	    String val = clazz->ToString(pMemory);
-    	    	    stream.WriteTabs();
-    	    	    stream.DebugOutput << clazz->Name << " " << member << ": " << val.c_str() << "\n";
-	    	    }
-	    	    else if(clazz->Flags & CLASS_CONTAINER)
+	    	    if(clazz->Flags & CLASS_CONTAINER)
 	    	    {
     	    	    stream.TabDepth--;
     	    	    stream.WriteTabs();
     	    	    stream.DebugOutput << "}\n";
-	    	    }
+	    	    }else
+                {
+                    String val{};
+                    if(hostMember && (hostMember->Flags & (MEMBER_FLAG | MEMBER_ENUM)))
+                       val = _EnumFlagMemberToString(*hostMember, pMemory);
+                    else
+                       val = _PerformToString((U8*)pMemory, clazz);
+                    stream.WriteTabs();
+                    stream.DebugOutput << clazz->Name << " " << member << ": " << val.c_str() << "\n";
+                }
     	    }
     	    else if(clazz->SerialiseScriptFn.length() > 0) // RUN LUA SERIALISER FUNCTION
     	    {
@@ -307,7 +421,7 @@ namespace Meta {
     	    }
     	    else
     	    {
-	    	    result = _DefaultSerialise(stream, host, clazz, pMemory, IsWrite, member);
+	    	    result = _DefaultSerialise(stream, host, clazz, pMemory, IsWrite, member, hostMember);
     	    }
     	    
     	    stream.CurrentSection = initialSection;
@@ -316,7 +430,7 @@ namespace Meta {
 	    }
 	    
 	    // Meta serialise all the members (default)
-	    Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString mem)
+	    Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString mem, Member* hostMember)
 	    {
     	    if(!pMemory || clazz == nullptr)
     	    {
@@ -366,7 +480,7 @@ namespace Meta {
 	    	    }
 	    	    
 	    	    // BLOCK DATA
-	    	    if(!_Serialise(stream, host, &State.Classes[member.ClassID], (U8*)pMemory + member.RTOffset, IsWrite, member.Name.c_str()))
+	    	    if(!_Serialise(stream, host, &State.Classes[member.ClassID], (U8*)pMemory + member.RTOffset, IsWrite, member.Name.c_str(), &member))
     	    	    return false; // serialise it
 	    	    
 	    	    // END OF BLOCK
@@ -391,9 +505,9 @@ namespace Meta {
 	    	    	    U64 pos = stream.Sect[stream.CurrentSection].Data->GetPosition();
 	    	    	    if(pos != fpos)
 	    	    	    {
-    	    	    	    TTE_ASSERT(false, "Block size mismatch when reading %s: at member %s %s => "
+    	    	    	    TTE_ASSERT(false, "Block size mismatch in %s when reading %s: at member %s %s => "
     	    	    	    	       "current section position != expected section position: 0x%llX != 0x%llX [%s] [diff 0x%llX].",
-    	    	    	    	       clazz->Name.c_str(), State.Classes[member.ClassID].Name.c_str(),
+    	    	    	    	       stream.Name.c_str(), clazz->Name.c_str(), State.Classes[member.ClassID].Name.c_str(),
     	    	    	    	       member.Name.c_str(), pos, fpos, pos > fpos ? "too many bytes read" : "not enough bytes read",
     	    	    	    	       fpos > pos ? fpos - pos : pos - fpos);
     	    	    	    return false;
@@ -419,7 +533,7 @@ namespace Meta {
 	    {
     	    if(pClass->ToString != nullptr) // we have a function to do it, else use members
     	    {
-	    	    return pClass->ToString(pMemory);
+	    	    return pClass->ToString(pClass, pMemory);
     	    }
     	    if(pClass->Members.size() == 0)
 	    	    return pClass->Name; // return the name of the class - it has no runtime data to get
@@ -911,14 +1025,29 @@ namespace Meta {
 	    {
     	    ClassInstanceCollection* pCollection = (ClassInstanceCollection*)pMemory;
     	    Bool bKeyed = pCollection->IsKeyedCollection();
+            Bool bStatic = pCollection->IsStaticArray();
     	    
     	    U32 keyClass = pCollection->GetKeyClass();
     	    U32 valClass = pCollection->GetValueClass();
+            
+            U32 size = (U32)pCollection->GetSize();
+            
+            if(bStatic)
+            {
+                for(U32 i = 0; i < size; i++)
+                {
+                    ClassInstance instance = pCollection->GetValue(i);
+                    String kname = "[Value ";
+                    kname = kname + std::to_string(i) + "]";
+                    if(!_Serialise(stream, host, &State.Classes[valClass], instance._GetInternal(), IsWrite, kname.c_str()))
+                        return false;
+                }
+                return true;
+            }
+            else SerialiseU32(stream, host, nullptr, &size, IsWrite);
     	    
     	    if(IsWrite)
     	    {
-	    	    U32 size = (U32)pCollection->GetSize();
-	    	    SerialiseU32(stream, host, nullptr, &size, true);
 	    	    for(U32 i = 0; i < size; i++)
 	    	    {
     	    	    ClassInstance instance{};
@@ -946,8 +1075,6 @@ namespace Meta {
     	    else
     	    {
 	    	    pCollection->Clear(); // ensure empty
-	    	    U32 size{};
-	    	    SerialiseU32(stream, host, nullptr, &size, false);
 	    	    if(size > 0x10000)
 	    	    {
     	    	    TTE_ASSERT(false, "When serialising collection class: read size too large. Assuming corrupt: %d", size);
@@ -1640,7 +1767,7 @@ namespace Meta {
 	    {
 	       // override stream. decryptingStream has access to stream, so it will delete when it gets deleted.
     	    stream = MapDecryptingStream0(stream, Buffer);
-    	    TTE_ASSERT(stream, "File is not a meta stream!");
+    	    TTE_ASSERT(stream, "File %s is not a meta stream!", fn.c_str());
     	    if(stream)
 	    	    metaStream.Version = MBIN;
     	    else
@@ -1650,7 +1777,7 @@ namespace Meta {
 	    // these versions need looking into. they exist, but very very rare (if ever used)
 	    if(metaStream.Version == MSV4 || metaStream.Version == MCOM || metaStream.Version == EMS3)
 	    {
-    	    TTE_LOG("Unsupported meta stream version %d. Contact us immidiately with this file!", metaStream.Version);
+    	    TTE_LOG("Unsupported meta stream version %d. Contact us immidiately with this file! File: %s", metaStream.Version, fn.c_str());
     	    return {};
 	    }
 	    
@@ -1699,7 +1826,7 @@ namespace Meta {
 	    // Sanity check
 	    if(numVersionInfo > (U32)State.Classes.size())
 	    {
-    	    TTE_ASSERT(false, "Input data stream does not follow the meta stream format, or file is corrupt");
+    	    TTE_ASSERT(false, "Input data stream does not follow the meta stream format, or file is corrupt (%s)", fn.c_str());
     	    return {};
 	    }
 	    
@@ -1726,9 +1853,9 @@ namespace Meta {
                 }
                 if(clazzID == 0)
                 {
-                    TTE_LOG("Cannot serialise in meta stream: a serialised class does not match any runtime class version."
+                    TTE_LOG("Cannot serialise in meta stream %s: a serialised class does not match any runtime class version."
                             " Legacy type hash 0x%X and version CRC 0x%X. Most likely it exists, and its calculated version"
-                            " hash was not correct. Check the class, possibly with the compiled executable.", legacyTN, versionCRC);
+                            " hash was not correct. Check the class, possibly with the compiled executable.", fn.c_str(), legacyTN, versionCRC);
                     return {};
                 }
                 metaStream.VersionInf.push_back(clazzID);
@@ -1744,16 +1871,19 @@ namespace Meta {
 	    	    
 	    	    if(len > 256) // should never occur.
 	    	    {
-    	    	    TTE_ASSERT(false, "Cannot serialise in meta stream: a serialised class name is too long");
+    	    	    TTE_ASSERT(false, "Cannot serialise in meta stream %s: a serialised class name is too long", fn.c_str());
     	    	    return {};
 	    	    }
 	    	    
 	    	    if(!stream->Read(Buffer, len))
 	    	    {
-    	    	    TTE_LOG("Cannot serialise in meta stream: unexpected EOF");
+    	    	    TTE_LOG("Cannot serialise in meta stream %s: unexpected EOF", fn.c_str());
     	    	    return {};
 	    	    }
 	    	    
+                Buffer[len] = 0;
+                String str((CString)Buffer);
+                RuntimeSymbols.Register(str);
 	    	    typeHash = CRC64LowerCase(Buffer, len);
     	    }
     	    else
@@ -1774,15 +1904,15 @@ namespace Meta {
 	    	    String resolved = SymbolTable::Find(typeHash);
 	    	    if(resolved.length())
 	    	    {
-    	    	    TTE_LOG("Cannot serialise in meta stream: a serialised class does not match any runtime class version."
+    	    	    TTE_LOG("Cannot serialise in meta stream %s: a serialised class does not match any runtime class version."
     	    	    	    " Class '%s' and version %X. Most likely it exists, and its calculated version"
-    	    	    	    " hash was not correct. Check the class, possibly with the compiled executable.", resolved.c_str(), versionCRC);
+    	    	    	    " hash was not correct. Check the class, possibly with the compiled executable.", fn.c_str(), resolved.c_str(), versionCRC);
 	    	    }
 	    	    else
 	    	    {
-    	    	    TTE_LOG("Cannot serialise in meta stream: a serialised class does not match any runtime class version."
+    	    	    TTE_LOG("Cannot serialise in meta stream %s: a serialised class does not match any runtime class version."
     	    	    	    " Type hash 0x%llX and version %X. Most likely it exists, and its calculated version"
-    	    	    	    " hash was not correct. Check the class, possibly with the compiled executable.", typeHash, versionCRC);
+    	    	    	    " hash was not correct. Check the class, possibly with the compiled executable.", fn.c_str(), typeHash, versionCRC);
 	    	    }
 	    	    return {};
     	    }
@@ -1794,7 +1924,7 @@ namespace Meta {
 	    // .VERS files contain a Class serialised to a file. They can be loaded separately in the future. Cannot detect a type from it.
 	    if(numVersionInfo == 0)
 	    {
-    	    TTE_LOG("Cannot serialise in meta stream: no version information. Is this a .VERS file? If so, it cannot be loaded this way.");
+    	    TTE_LOG("Cannot serialise in meta stream %s: no version information. Is this a .VERS file? If so, it cannot be loaded this way.", fn.c_str());
     	    return {};
 	    }
 	    
@@ -1825,7 +1955,7 @@ namespace Meta {
 	    
 	    if(!instance)
 	    {
-    	    TTE_LOG("Could not create instance for class stored in meta stream");
+    	    TTE_LOG("Could not create instance for class stored in meta stream %s", fn.c_str());
     	    return instance;
 	    }
 	    
@@ -1837,7 +1967,7 @@ namespace Meta {
     	    // ensure its OK
     	    if(!std::static_pointer_cast<DataStreamContainer>(metaStream.Sect[STREAM_SECTION_MAIN].Data)->IsValid())
     	    {
-	    	    TTE_LOG("When opening meta stream: main section is wrapped but invalid");
+	    	    TTE_LOG("When opening meta stream %s: main section is wrapped but invalid", fn.c_str());
 	    	    return {};
     	    }
 	    }
@@ -1847,7 +1977,7 @@ namespace Meta {
 	    	    DataStreamManager::GetInstance()->CreateContainerStream(metaStream.Sect[STREAM_SECTION_DEBUG].Data);
     	    if(!std::static_pointer_cast<DataStreamContainer>(metaStream.Sect[STREAM_SECTION_DEBUG].Data)->IsValid())
     	    {
-	    	    TTE_LOG("When opening meta stream: debug section is wrapped but invalid");
+	    	    TTE_LOG("When opening meta stream %s: debug section is wrapped but invalid", fn.c_str());
 	    	    return {};
     	    }
 	    }
@@ -1857,7 +1987,7 @@ namespace Meta {
 	    	    DataStreamManager::GetInstance()->CreateContainerStream(metaStream.Sect[STREAM_SECTION_ASYNC].Data);
     	    if(!std::static_pointer_cast<DataStreamContainer>(metaStream.Sect[STREAM_SECTION_ASYNC].Data)->IsValid())
     	    {
-	    	    TTE_LOG("When opening meta stream: async section is wrapped but invalid");
+	    	    TTE_LOG("When opening meta stream %s: async section is wrapped but invalid", fn.c_str());
 	    	    return {};
     	    }
 	    }
@@ -1879,23 +2009,29 @@ namespace Meta {
 	    // perform actual serialisation of the primary class stored.
 	    if(!_Impl::_Serialise(metaStream, instance, &State.Classes[ClassID], instance._GetInternal(), false, nullptr))
 	    {
-    	    TTE_ASSERT(false, "Could not seralise meta stream primary class");
-    	    return {};
+    	    TTE_ASSERT(false, "Could not seralise meta stream primary class for %s", fn.c_str());
+            instance = {};
 	    }
 	    
-	    for(U32 i = 0; i < STREAM_SECTION_COUNT; i++)
-	    {
-    	    U64 diff = (U64)(metaStream.Sect[i].Data->GetSize()-metaStream.Sect[i].Data->GetPosition());
-    	    if(diff != 0)
-    	    {
-	    	    TTE_ASSERT(false, "At section %s: not all bytes were read from stream! Remaining: 0x%X bytes",
-	    	    	       StreamSectionName[i], (U32)diff);
-	    	    return {};
-    	    }
-	    }
+        if(instance)
+        {
+            for(U32 i = 0; i < STREAM_SECTION_COUNT; i++)
+            {
+                U64 diff = (U64)(metaStream.Sect[i].Data->GetSize()-metaStream.Sect[i].Data->GetPosition());
+                if(diff != 0)
+                {
+                    TTE_ASSERT(false, "At section %s: not all bytes were read from stream! Remaining: 0x%X bytes in %s",
+                               StreamSectionName[i], (U32)diff, fn.c_str());
+                }
+            }
+        }
 	    
 	    if(metaStream.DebugOutputFile)
 	    {
+            if(!instance)
+            {
+                metaStream.DebugOutput << "\n>> ERRORED! Could not read remaining bytes... (see console)";
+            }
     	    // Move output string file
     	    String val = metaStream.DebugOutput.str();
     	    metaStream.DebugOutputFile->Write((const U8*)val.c_str(), val.length());
@@ -1903,7 +2039,7 @@ namespace Meta {
     	    metaStream.DebugOutputFile.reset(); // flush
 	    }
 	    
-	    return instance; // OK
+	    return instance; // OK / FAIL
     }
     
     // ===================================================================         COLLECTIONS
@@ -1919,71 +2055,21 @@ namespace Meta {
 	    	    	    || State.Classes[clazz->second.ArrayKeyClass].RTSize > 0), "Collection key or value class has no size");
 	    
 	    _ColID = type;
-	    _ValuSize = State.Classes[clazz->second.ArrayValClass].RTSize;
 	    
-	    // flags init
-	    if(State.Classes[clazz->second.ArrayValClass].Constructor == nullptr && State.Classes[clazz->second.ArrayValClass].Flags & CLASS_INTRINSIC)
-    	    _ColFl |= _COL_VAL_SKIP_CT;
-	    if(State.Classes[clazz->second.ArrayValClass].Destructor == nullptr && State.Classes[clazz->second.ArrayValClass].Flags & CLASS_INTRINSIC)
-    	    _ColFl |= _COL_VAL_SKIP_DT;
-	    if(State.Classes[clazz->second.ArrayValClass].CopyConstruct == nullptr  && State.Classes[clazz->second.ArrayValClass].Flags & CLASS_INTRINSIC)
-    	    _ColFl |= _COL_VAL_SKIP_CP;
-	    if(State.Classes[clazz->second.ArrayValClass].MoveConstruct == nullptr  && State.Classes[clazz->second.ArrayValClass].Flags & CLASS_INTRINSIC)
-    	    _ColFl |= _COL_VAL_SKIP_MV;
-	    
-	    
-	    // if we are an SArray, we are not dynamic so allocate fixed size
+	    // if we are an SArray
 	    if(clazz->second.ArraySize > 0)
 	    {
-    	    Reserve(clazz->second.ArraySize);
-    	    _Size = clazz->second.ArraySize;
-    	    _Cap = UINT32_MAX; // signal we are an sarray.
     	    _ColFl |= _COL_IS_SARRAY;
 	    }
 	    
-	    if(clazz->second.ArrayKeyClass) // if this is a Map type
-	    {
-    	    // we will need padding bytes if the key type is small (lower than 8 bytes) and the value type is big (8 bytes or larger)
-    	    Class* pKey = _Impl::_GetClass(clazz->second.ArrayKeyClass);
-            Class* pVal = _Impl::_GetClass(clazz->second.ArrayValClass);
-    	    
-    	    // key flags
-    	    if(pKey->Constructor == nullptr && pKey->Flags & CLASS_INTRINSIC)
-	    	    _ColFl |= _COL_KEY_SKIP_CT;
-    	    if(pKey->Destructor == nullptr && pKey->Flags & CLASS_INTRINSIC)
-	    	    _ColFl |= _COL_KEY_SKIP_DT;
-    	    if(pKey->CopyConstruct == nullptr && pKey->Flags & CLASS_INTRINSIC)
-	    	    _ColFl |= _COL_KEY_SKIP_CP;
-    	    if(pKey->MoveConstruct == nullptr && pKey->Flags & CLASS_INTRINSIC)
-	    	    _ColFl |= _COL_KEY_SKIP_MV;
-    	    
-    	    
-    	    if(pKey->RTSize < 8) // we need alignment bytes between key and value in memory. max align is 8 !!
-    	    {
-	    	    if(pVal->RTSize < 8) // both are small types, intrinsic types.
-	    	    {
-    	    	    // we could use __builtin_clz to detect bit indices, we know its only used for values 1 to 7, so macro can be used
-    	    	    // use _TO_ALIGN since align isnt stored in State.Classes. sizes 7-4 have align 4, 3-2 align 2 and 1 align 1, as best approx.
-    	    	    
-#define _TO_ALIGN(val) (val & 0b100) ? 4 : (val & 0b010) ? 2 : 1
-    	    	    
-    	    	    _PairSize = pKey->RTSize + TTE_PADDING(pKey->RTSize, _TO_ALIGN(pVal->RTSize)) + pVal->RTSize;
-    	    	    
-#undef _TO_ALIGN
-    	    	    
-	    	    }else _PairSize = pKey->RTSize + TTE_PADDING(pKey->RTSize, 8) + _ValuSize; // pair size plus in between padding bytes for value
-    	    }
-    	    else _PairSize = pKey->RTSize + pVal->RTSize; // max align is 8, so no padding needed.
-    	    
-	    }
-	    else // this is *not* a map type. always skip key construction
-	    {
-    	    _ColFl |= (_COL_KEY_SKIP_CP | _COL_KEY_SKIP_CT | _COL_KEY_SKIP_DT | _COL_KEY_SKIP_MV); // skip all key stuff
-    	    _PairSize = _ValuSize; // same size, non keyed container
-	    }
+        Class* pKey = clazz->second.ArrayKeyClass == 0 ? nullptr : _Impl::_GetClass(clazz->second.ArrayKeyClass);
+        Class* pVal = _Impl::_GetClass(clazz->second.ArrayValClass);
+        
+        _Impl::_CalculateCollectionSizes(pKey, pVal, _ValuSize, _PairSize, _ColFl);
 	    
 	    if(_ColFl & _COL_IS_SARRAY)
 	    {
+            _Cap = UINT32_MAX; // signal we are an sarray.
     	    _PairSize = _ValuSize;
     	    _Size = clazz->second.ArraySize;
     	    _Memory = (U8*)this + sizeof(ClassInstanceCollection); // memory is stored after this
@@ -2025,7 +2111,7 @@ namespace Meta {
     {
 	    auto fence = std::move(_TransienceFence);
 	    if(fence.use_count() > 1)
-    	    fence->store(MEMORY_TAG_TRANSIENT_FENCE);
+    	    fence->store(COLLECTION_TRANSIENCE_MAX);
 	    Clear();
 	    if(_ColFl & _COL_IS_SARRAY) // now we can destruct our elements (treat them as members)
 	    {

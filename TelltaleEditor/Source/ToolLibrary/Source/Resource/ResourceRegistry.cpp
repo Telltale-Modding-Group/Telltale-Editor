@@ -10,15 +10,16 @@
 
 Bool StringMask::MaskCompare(CString pattern, CString str, CString end, MaskMode mode)
 {
+    // In strict mode (e.g. MASKMODE_EXACT), extra characters after a match are not allowed.
+    // allowPartialMatch is true for substring or ending modes.
     Bool allowPartialMatch = (mode == MASKMODE_ANY_SUBSTRING || mode == MASKMODE_ANY_ENDING);
     
-    // Loop over test string until its null terminator (ignore 'end' here)
+    // Try matching at every position in the test string if partial matching is allowed.
     while (*str)
     {
         CString patternPtr = pattern;
         CString strPtr = str;
         
-        // Compare while we haven't reached the end of the pattern substring and test string
         while (patternPtr != end && *patternPtr && *strPtr)
         {
             char patternChar = *patternPtr;
@@ -26,13 +27,14 @@ Bool StringMask::MaskCompare(CString pattern, CString str, CString end, MaskMode
             
             if (patternChar == '*')
             {
-                // Skip consecutive '*' characters, but do not overrun the pattern substring
+                // Skip consecutive '*' characters.
                 while (patternPtr != end && *patternPtr == '*')
                     ++patternPtr;
+                // If the pattern ends with '*', then it matches the rest of the string.
                 if (patternPtr == end || !*patternPtr)
-                    return true;  // Trailing '*' matches everything
+                    return true;
                 
-                // Try matching the remaining pattern at different positions in test string
+                // Recursively try to match the remaining pattern.
                 CString remainingPattern = patternPtr;
                 for (CString t = strPtr; *t; ++t)
                 {
@@ -43,16 +45,17 @@ Bool StringMask::MaskCompare(CString pattern, CString str, CString end, MaskMode
             }
             else if (patternChar == '?')
             {
+                // The '?' wildcard should not match a literal '.'
                 if (strChar == '.')
-                    return false;  // '?' does not match '.'
+                    return false;
             }
             else
             {
-                // Case-insensitive comparison
+                // Case-insensitive comparison.
                 if (std::toupper(strChar) != std::toupper(patternChar))
                 {
                     if (allowPartialMatch)
-                        break;  // Try next position in test string
+                        break;  // Try the next starting position in the test string.
                     return false;
                 }
             }
@@ -61,13 +64,20 @@ Bool StringMask::MaskCompare(CString pattern, CString str, CString end, MaskMode
             ++strPtr;
         }
         
-        // Skip any trailing '*' in the pattern substring
+        // Skip any trailing '*' in the pattern.
         while (patternPtr != end && *patternPtr == '*')
             ++patternPtr;
-        if (patternPtr == end)
-            return true;  // Entire pattern substring matched
         
-        // If we're allowing partial matches, move to the next character in test string and retry
+        if (patternPtr == end)
+        {
+            // Here, if we're not allowing partial matches (i.e. strict mode),
+            // then ensure the entire test string was consumed.
+            if (!allowPartialMatch && *strPtr)
+                return false;
+            return true;
+        }
+        
+        // In partial matching mode, try matching from the next character.
         if (allowPartialMatch)
         {
             ++str;
@@ -95,11 +105,11 @@ Bool StringMask::MatchSearchMask(CString testString,CString searchMask,StringMas
         // Find next ';' separator
         CString nextPattern = strchr(searchMask, ';');
         
-        // Handle exclusion (`-pattern`)
-        if (*patternStart == '-')
+        // Handle exclusion (`!pattern`)
+        if (*patternStart == '!')
         {
             isExclusion = true;
-            ++patternStart;  // Skip '-'
+            ++patternStart;  // Skip '!'
         }
         
         // If mode is MASKMODE_ANY_ENDING_NO_DIRECTORY, remove directory part
@@ -189,6 +199,7 @@ Bool RegistryDirectory_System::GetSubDirectories(std::set<String>& directories, 
 Bool RegistryDirectory_System::GetAllSubDirectories(std::set<String>& directories, const StringMask* optionalMask)
 {
     const auto basePath = fs::absolute(_Path); // Get absolute path for reference length
+    StringMask baseMask = EXCLUDE_SYSTEM_FILTER;
     
     for (const auto& entry : fs::recursive_directory_iterator(basePath))
     {
@@ -201,7 +212,7 @@ Bool RegistryDirectory_System::GetAllSubDirectories(std::set<String>& directorie
                 relativePath += '/';
             
             // Apply optional mask filtering
-            if (!optionalMask || *optionalMask == relativePath)
+            if (baseMask == relativePath && (!optionalMask || *optionalMask == relativePath))
                 directories.insert(relativePath);
         }
     }
@@ -1446,7 +1457,6 @@ void ResourceRegistry::MountArchive(const String &id, const String &fspath)
     StringMask mask = _ArchivesMask(UsingLegacyCompat());
     TTE_ASSERT(mask == fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
     _CheckConcrete(id);
-    Bool bUsesResourceSys = UsingLegacyCompat();
     SCOPE_LOCK();
     if(_Locate(id) != nullptr)
     {
@@ -1511,10 +1521,15 @@ void ResourceRegistry::MountArchive(const String &id, const String &fspath)
 
 void ResourceRegistry::MountSystem(const String &id, const String& _fspath)
 {
+    
+    // ensure no archives
     StringMask mask = _ArchivesMask(UsingLegacyCompat());
-    TTE_ASSERT(mask == _fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
+    TTE_ASSERT(mask != _fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
+    mask = _ArchivesMask(!UsingLegacyCompat());
+    TTE_ASSERT(mask != _fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
+    
     _CheckConcrete(id);
-    Bool bUsesResourceSys = UsingLegacyCompat();
+    Bool bUsesResourceSys = !UsingLegacyCompat();
     SCOPE_LOCK();
     if(_Locate(id) != nullptr)
     {

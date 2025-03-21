@@ -42,6 +42,41 @@ namespace Meta
             return ret;
         }
         
+        // assign(gameName, mask, foldername)
+        U32 luaAssignFolderExt(LuaManager& man)
+        {
+            TTE_ASSERT(_IsMain, "MetaAssociateFolderExtension can only be called in initialisation on the main thread");
+            if(!GetToolContext() || GetToolContext()->GetActiveGame()) // no active game can be set here
+            {
+                TTE_ASSERT(false, "At MetaAssociateFolderExtension: this can only be called during initialisation of a game");
+                return 0;
+            }
+            TTE_ASSERT(man.GetTop() == 3, "MetaAssociateFolderExtension: invalid number of argumenst, expected 3");
+            
+            String game = man.ToString(1);
+            String folder = man.ToString(3);
+            String ext = man.ToString(2);
+            TTE_ASSERT(folder.length(), "MetaAssociateFolderExtension: folder name empty")
+            
+            for(auto& gameit : State.Games)
+            {
+                if(CompareCaseInsensitive(gameit.ID, game))
+                {
+                    std::replace(folder.begin(), folder.end(), '\\', '/');
+                    if(folder[folder.length() - 1] != '/')
+                    {
+                        folder += '/';
+                    }
+                    gameit.FolderAssociates.insert(std::make_pair(std::move(ext), std::move(folder)));
+                    return 0;
+                }
+            }
+            
+            TTE_ASSERT(false, "When registering %s => %s, the game %s has not been registered", ext.c_str(), folder.c_str(), game.c_str());
+            
+            return 0;
+        }
+        
         // MetaRegisterGame(gameInfoTable)
         U32 luaMetaRegisterGame(LuaManager& man)
         {
@@ -176,7 +211,7 @@ namespace Meta
         // TO STRING, EQUALS, AND LESS THAN OPERATORS FOR INTRINSICS.
         
         template <typename _Type>
-        static String GenerateToString(const void* pIntrin)
+        static String GenerateToString(Class*, const void* pIntrin)
         {
             std::ostringstream ss{};
             ss << *((const _Type*)pIntrin);
@@ -195,12 +230,12 @@ namespace Meta
             return *((const _Type*)l) < *((const _Type*)r);
         }
         
-        static String StringToStringOperation(const void* pStr) // to string operation for string... returns the string
+        static String StringToStringOperation(Class*, const void* pStr) // to string operation for string... returns the string
         {
             return *((const String*)pStr);
         }
         
-        static String SymbolToStringOperation(const void* pSym)
+        static String SymbolToStringOperation(Class*,const void* pSym)
         {
             U64 hash = ((const Symbol*)pSym)->GetCRC64();
             String s = SymbolTable::Find(hash); // try find it first
@@ -652,7 +687,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 }
                 def.ValueType = std::move(val);
             }
-            else if(man.Type(3) == LuaType::NUMBER)
+            else if(man.Type(3) == LuaType::TABLE)
             {
                 man.PushLString("__MetaId");
                 man.GetTable(3);
@@ -1261,11 +1296,11 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
         // bool serialse(stream, instance, is write, debug name)
         static U32 luaMetaSerialise(LuaManager& man)
         {
-            TTE_ASSERT(man.GetTop() == 4, "Incorrect usage of MetaSerialise");
-            ClassInstance inst = AcquireScriptInstance(man, -3);
-            Bool isWrite = man.ToBool(-2);
-            Stream* stream = ((Stream*)man.ToPointer(-4));
-    	    String name = man.ToString(-1);
+            TTE_ASSERT(man.GetTop() == 4 || man.GetTop() == 3, "Incorrect usage of MetaSerialise");
+            ClassInstance inst = AcquireScriptInstance(man, 2);
+            Bool isWrite = man.ToBool(3);
+            Stream* stream = ((Stream*)man.ToPointer(1));
+            String name = man.GetTop() == 4 ? man.ToString(-1) : ("Embedded " + State.Classes[inst.GetClassID()].Name);
             
             if(stream == nullptr || !inst)
             {
@@ -1667,6 +1702,17 @@ namespace MS
         return 0;
     }
     
+    static U32 luaMetaStreamWriteZeros(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaStreamZeros");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
+        U32 val = ScriptManager::PopUnsignedInteger(man);
+        DataStreamManager::GetInstance()->WriteZeros(stream.Sect[stream.CurrentSection].Data, val);
+        
+        return 0;
+    }
+    
     // read symbol from stream
     static U32 luaMetaStreamReadSymbol(LuaManager& man)
     {
@@ -1703,21 +1749,24 @@ namespace MS
     // Bffer(stream, buffer_member, size)
     static U32 luaMetaStreamReadBuffer(LuaManager& man)
     {
-        TTE_ASSERT(man.GetTop() == 3, "Incorrect usage of MetaStreamReadBuffer");
+        TTE_ASSERT(man.GetTop() >= 2, "Incorrect usage of MetaStreamReadBuffer");
         
-        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-3));
-        I32 size = man.ToInteger(-1);
-        Meta::ClassInstance bufInst = Meta::AcquireScriptInstance(man, -2);
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(1));
+        I32 _size = man.GetTop() > 2 ? man.ToInteger(3) : -1;
+        Meta::ClassInstance bufInst = Meta::AcquireScriptInstance(man, 2);
+        DataStreamRef& sect = stream.Sect[stream.CurrentSection].Data;
+        
+        U32 actualSize = _size == -1 ? (U32)(sect->GetSize() - sect->GetPosition()) : (U32)_size;
         
         TTE_ASSERT(bufInst, "Invalid buffer");
-        TTE_ASSERT(size >= 0 && size < 0x10000000, "Buffer size invalid (>256MB)"); // increase size limit?
+        TTE_ASSERT(actualSize >= 0 && actualSize < 0x10000000, "Buffer size invalid (>256MB)"); // increase size limit?
         
         Meta::BinaryBuffer& buf = *((Meta::BinaryBuffer*)bufInst._GetInternal());
         
-        U8* Buffer = TTE_ALLOC(size, MEMORY_TAG_RUNTIME_BUFFER);
-        buf.BufferSize = (U32)size;
+        U8* Buffer = TTE_ALLOC(actualSize, MEMORY_TAG_RUNTIME_BUFFER);
+        buf.BufferSize = (U32)actualSize;
         
-        TTE_ASSERT(stream.Read(Buffer, (U64)size), "Binary buffer read fail - size is likely too large.");
+        TTE_ASSERT(stream.Read(Buffer, (U64)actualSize), "Binary buffer read fail - size is likely too large.");
 	    
 	    buf.BufferData = Ptr<U8>(Buffer, [](U8* p){TTE_FREE(p);});
 	    
@@ -1887,6 +1936,17 @@ namespace MS
         Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
         
         stream.CurrentSection = Meta::STREAM_SECTION_DEBUG;
+        
+        return 0;
+    }
+    
+    static U32 luaMetaStreamAdvance(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 2, "Incorrect use of MetaStreamAdvance");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
+        U32 nBytes = ScriptManager::PopUnsignedInteger(man);
+        stream.Sect[stream.CurrentSection].Data->SetPosition(stream.Sect[stream.CurrentSection].Data->GetPosition() + nBytes);
         
         return 0;
     }
@@ -2466,10 +2526,12 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     if(!bWorker)
     {
 	    Col.Functions.push_back({"MetaRegisterGame",&Meta::L::luaMetaRegisterGame});
+        Col.Functions.push_back({"MetaAssociateFolderExtension",&Meta::L::luaAssignFolderExt});
 	    Col.Functions.push_back({"MetaRegisterIntrinsics", &Meta::L::luaMetaRegisterIntrinsics});
 	    Col.Functions.push_back({"MetaRegisterClass", &Meta::L::luaMetaRegisterClass});
 	    Col.Functions.push_back({"MetaRegisterCollection", &Meta::L::luaRegisterCollection}); // used in Meta::Initialise4 in engine
     }
+    
     Col.Functions.push_back({"MetaGetClassID", &Meta::L::luaMetaGetId});
     Col.Functions.push_back({"MetaGetVersionCRC", &Meta::L::luaMetaGetVersion});
     Col.Functions.push_back({"MetaGetClassHash", &Meta::L::luaMetaGetClassHash});
@@ -2516,6 +2578,8 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(MS, "MetaStreamReadShort", luaMetaStreamReadShort);
     ADD_FN(MS, "MetaStreamReadString", luaMetaStreamReadString);
     ADD_FN(MS, "MetaStreamReadSymbol", luaMetaStreamReadSymbol);
+    ADD_FN(MS, "MetaStreamAdvance", luaMetaStreamAdvance);
+    ADD_FN(MS, "MetaStreamWriteZeros", luaMetaStreamWriteZeros);
     ADD_FN(MS, "MetaStreamWriteInt", luaMetaStreamWriteInt);
     ADD_FN(MS, "MetaStreamWriteByte", luaMetaStreamWriteByte);
     ADD_FN(MS, "MetaStreamWriteShort", luaMetaStreamWriteShort);

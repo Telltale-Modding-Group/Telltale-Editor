@@ -1,7 +1,5 @@
 -- PropertySet class implementation.
 
-require("ToolLibrary/Game/Common/LuaContainer.lua")
-
 -- Serialiser, V0 (oldest)
 function SerialisePropertySet_V0(metaStream, propInstance, isWrite)
 	-- start by calling default meta serialise (serialise members, so flags and parent list)

@@ -73,6 +73,12 @@ static U32 luaContainerGetElement(LuaManager& man)
     {
         ClassInstanceCollection& collection = CastToCollection(inst);
         I32 index = man.ToInteger(-1);
+        if(index >= collection.GetSize())
+        {
+            TTE_ASSERT(false, "Cannot access element index %d in container, out of bounds. Is the loop using 0 based indices?", index);
+            man.PushNil();
+            return 1;
+        }
 	    collection.PushTransientScriptRef(man, (U32)index, false, inst.ObtainParentRef());
     }
     else
@@ -90,6 +96,19 @@ static U32 luaContainerClear(LuaManager& man)
     ClassInstance inst = AcquireScriptInstance(man, -1);
     if(inst && IsCollection(inst))
         CastToCollection(inst).Clear();
+    return 0;
+}
+
+static U32 luaContainerReserve(LuaManager& man)
+{
+    TTE_ASSERT(man.GetTop() == 2, "Requires two args");
+    ClassInstance inst = AcquireScriptInstance(man, 1);
+    if(inst && IsCollection(inst))
+    {
+        U32 num = (U32)man.ToInteger(2);
+        TTE_ASSERT(num < 0x10000, "Container too large!");
+        CastToCollection(inst).Reserve(num);
+    }
     return 0;
 }
 
@@ -118,12 +137,13 @@ LuaFunctionCollection luaGameEngine(Bool bWorker) { // always define all
     LuaFunctionCollection col{};
     
     // 'LuaContainer'
-    col.Functions.push_back({"_ContainerGetNumElements", &luaContainerGetNumElements});
-    col.Functions.push_back({"_ContainerRemoveElement", &luaContainerRemoveElement});
-    col.Functions.push_back({"_ContainerInsertElement", &luaContainerInsertElement});
-    col.Functions.push_back({"_ContainerEmplaceElement", &luaContainerEmplaceElement});
-    col.Functions.push_back({"_ContainerGetElement", &luaContainerGetElement});
-    col.Functions.push_back({"_ContainerClear", &luaContainerClear});
+    col.Functions.push_back({"ContainerGetNumElements", &luaContainerGetNumElements});
+    col.Functions.push_back({"ContainerRemoveElement", &luaContainerRemoveElement});
+    col.Functions.push_back({"ContainerInsertElement", &luaContainerInsertElement});
+    col.Functions.push_back({"ContainerEmplaceElement", &luaContainerEmplaceElement});
+    col.Functions.push_back({"ContainerGetElement", &luaContainerGetElement});
+    col.Functions.push_back({"ContainerClear", &luaContainerClear});
+    col.Functions.push_back({"ContainerReserve", &luaContainerReserve});
     
     InjectResourceAPI(col, bWorker);
     

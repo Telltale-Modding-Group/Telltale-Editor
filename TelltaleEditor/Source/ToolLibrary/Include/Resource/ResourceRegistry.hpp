@@ -22,6 +22,9 @@
 #include <algorithm>
 #include <map>
 
+// folders excluded from disk unless explicitly mounted when recursively going through directories
+#define EXCLUDE_SYSTEM_FILTER "!*.DS_Store;!*.app"
+
 // HIGH LEVEL TELLTALE RESOURCE SYSTEM
 
 enum class ResourceSetVersion
@@ -55,6 +58,8 @@ struct ResourceSet
 class StringMask : public String {
 public:
     
+    // MUST HAVE NO MEMBERS.
+    
     enum MaskMode {
         MASKMODE_SIMPLE_MATCH = 0,          // Exact match required (except for wildcards)
         MASKMODE_ANY_SUBSTRING = 1,         // Pattern can match anywhere within `str`
@@ -70,8 +75,8 @@ public:
      * @brief Checks if a given string matches a search mask with wildcard patterns.
      *
      * @param testString The string to check against the search mask.
-     * @param searchMask A semicolon-separated list of patterns (e.g., "*.dlog;*.chore;-private_*").
-     *                   - Patterns prefixed with '-' indicate exclusion (negation).
+     * @param searchMask A semicolon-separated list of patterns (e.g., "*.dlog;*.chore;!private_*").
+     *                   - Patterns prefixed with '!' indicate exclusion (negation).
      * @param mode The matching mode from StringMask::MaskMode.
      *             - MASKMODE_SIMPLE_MATCH: Exact match with wildcards.
      *             - MASKMODE_ANY_SUBSTRING: Pattern can appear anywhere.
@@ -110,6 +115,8 @@ public:
     }
     
 };
+
+static_assert(sizeof(String) == sizeof(StringMask), "String and StringMask must have same size and be castable.");
 
 struct ResourceLocation;
 

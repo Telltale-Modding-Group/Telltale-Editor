@@ -100,22 +100,38 @@ void TextureNormalisationTask::Finalise(TelltaleEditor& editor)
 
 // RESOURCE SYSTEM EXTRACTION
 
-static Bool _DoResourcesExtract(Ptr<ResourceRegistry>& reg, const String& outputFolder, std::set<String>::const_iterator begin, std::set<String>::const_iterator end)
+static Bool _DoResourcesExtract(Ptr<ResourceRegistry>& reg, const String& outputFolder, std::set<String>::const_iterator begin, std::set<String>::const_iterator end, Bool bFolders)
 {
     for(auto it = begin; it != end; it++)
     {
-        String fileName = outputFolder + *it;
+        String outFolder = outputFolder;
         
-        // ensure directory exists (may have concat paths)
-        sfs::path p = fileName;
-        p = p.parent_path();
-        if(!sfs::exists(p))
-            sfs::create_directories(p);
+        if(bFolders)
+        {
+            TTE_ASSERT(Meta::GetInternalState().GameIndex != -1, "No active game present!");
+            for(auto& mapping: Meta::GetInternalState().GetActiveGame().FolderAssociates)
+            {
+                StringMask& coerced = *((StringMask*)&mapping.first);
+                if(coerced == *it)
+                {
+                    outFolder += mapping.second;
+                    break;
+                }
+            }
+        }
         
+        String fileName = outFolder + *it;
         DataStreamRef src = reg->FindResource(*it);
         
         if(src)
         {
+            // ensure directory exists (may have concat paths)
+            sfs::path p = fileName;
+            p = p.parent_path();
+            if(!sfs::exists(p))
+                sfs::create_directories(p);
+            
+            src->SetPosition(0);
             DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(fileName);
             DataStreamManager::GetInstance()->Transfer(src, out, src->GetSize());
         } // quietly ignore for now
@@ -133,7 +149,7 @@ static Bool _DoResourcesExtractAsync(const JobThread& thread, void* pRawTask, vo
     std::advance(it, index * ((U32)task->WorkingFiles->size() / task->AsyncWorkers));
     auto itend = it;
     std::advance(itend, ((U32)task->WorkingFiles->size() / task->AsyncWorkers));
-    return _DoResourcesExtract(task->Registry, task->Folder, it, itend);
+    return _DoResourcesExtract(task->Registry, task->Folder, it, itend, task->Folders);
 }
 
 Bool ResourcesExtractionTask::PerformAsync(const JobThread &thread, ToolContext *pLockedContext)
@@ -167,7 +183,7 @@ Bool ResourcesExtractionTask::PerformAsync(const JobThread &thread, ToolContext 
     
     auto it = files.cbegin();
     std::advance(it, (AsyncWorkers - 1) * ((U32)files.size() / AsyncWorkers));
-    Bool bResult = _DoResourcesExtract(Registry, Folder, it, files.cend());
+    Bool bResult = _DoResourcesExtract(Registry, Folder, it, files.cend(), Folders);
 
     return bResult && JobScheduler::Instance->Wait(AsyncWorkers - 1, H);
 }

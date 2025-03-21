@@ -88,7 +88,7 @@ struct TextureNormalisationTask : EditorTask
     
 };
 
-// Extracts a set of file names from an archive
+// Extracts a set of file names from an archive. Simpler version. Doesnt give option to sort files into folders 
 struct ArchiveExtractionTask : EditorTask
 {
     
@@ -122,7 +122,9 @@ struct ResourcesExtractionTask : EditorTask
     
     String Logical;
     StringMask Mask{""};
+    
     Bool UseMask = false;
+    Bool Folders = false; // split into folders
     
     U32 AsyncWorkers = 0; // per thread
     std::set<String>* WorkingFiles;

@@ -118,12 +118,13 @@ U32 TelltaleEditor::EnqueueArchive2ExtractTask(TTArchive2* pArchive, std::set<St
     return _TaskFence++;
 }
 
-U32 TelltaleEditor::EnqueueResourceLocationExtractTask(Ptr<ResourceRegistry> registry, const String& logical, String outputFolder, StringMask mask)
+U32 TelltaleEditor::EnqueueResourceLocationExtractTask(Ptr<ResourceRegistry> registry, const String& logical, String outputFolder, StringMask mask, Bool f)
 {
     TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
     ResourcesExtractionTask* task = TTE_NEW(ResourcesExtractionTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
     task->Folder = std::move(outputFolder);
     task->Logical = logical;
+    task->Folders = f;
     task->Mask = mask;
     if(mask.length())
         task->UseMask = true;

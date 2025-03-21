@@ -11,6 +11,7 @@
 #include <set>
 #include <sstream>
 #include <functional>
+#include <map>
 
 // maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
 #define MAX_VERSION_NUMBER 10
@@ -188,7 +189,7 @@ namespace Meta {
         // OTHER OPERATIONS (MAINLY FOR INTRINSICS)
         Bool (*LessThan)(const void* pLHS, const void* pRHS) = nullptr; // less than operator on two instances
         Bool (*Equals)(const void* pLHS, const void* pRHS) = nullptr; // compare two instances
-        String (*ToString)(const void* pMemory) = nullptr; // converts to string
+        String (*ToString)(Class* pClass, const void* pMemory) = nullptr; // converts to string
         
         // serialiser (needed for intrinsics/containers) function. iswrite if write, else reading.
         Bool (*Serialise)(Stream& stream, ClassInstance& host, Class* clazz, void* pInstance, Bool IsWrite) = nullptr;
@@ -211,6 +212,10 @@ namespace Meta {
     
     // Internal implementation
     namespace _Impl {
+        
+        String _EnumFlagMemberToString(Member& member, const void* pVal);
+        
+        String _EnumFlagToString(Class* pClass, const void* pVal);
         
         Bool _CheckPlatformForGame(RegGame&, const String& platform);
         
@@ -246,10 +251,10 @@ namespace Meta {
         ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host, Symbol name); // allocates but does not construct anything in the memory
         
         // some serialisers have 'host' argument: top level class object
-        Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString memberName);
+        Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString memberName, Member* hostMember = nullptr);
         // serialises a given type to the stream
         
-        Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString memberName);
+        Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString memberName, Member* hostMember = nullptr);
         // default serialise (member by member)
         
         // internal serialisers
@@ -307,7 +312,7 @@ namespace Meta {
         U32 BufferSize = 0;
     };
     
-    // Special type internall used to store reference to a data stream. This is used mainly for large cached files which we dont want to load into memory which are used in meta streams.
+    // Special type internal used to store reference to a data stream. This is used mainly for large cached files which we dont want to load into memory which are used in meta streams.
     struct DataStreamCache
     {
         DataStreamRef Stream;
@@ -337,10 +342,33 @@ namespace Meta {
             LEGACY_HASHING = 8, // legacy hashing for select old games
         };
         
+        struct FolderAssociateComparator
+        {
+            
+            inline Bool operator()(const String& maskLHS, const String& maskRHS) const
+            {
+                size_t cLeft = std::count(maskLHS.begin(), maskLHS.end(), '/');
+                size_t cRight = std::count(maskRHS.begin(), maskRHS.end(), '/');
+                
+                if (cLeft != cRight)
+                    return cLeft < cRight;
+                
+                if (maskLHS.length() != maskRHS.length())
+                    return maskLHS.length() > maskRHS.length();
+                
+                size_t wildcardsLHS = std::count(maskLHS.begin(), maskLHS.end(), '*') + std::count(maskLHS.begin(), maskLHS.end(), '?');
+                size_t wildcardsRHS = std::count(maskRHS.begin(), maskRHS.end(), '*') + std::count(maskRHS.begin(), maskRHS.end(), '?');
+
+                return wildcardsLHS < wildcardsRHS;
+            }
+            
+        };
+        
 	    String Name, ID, ResourceSetDescMask;
         StreamVersion MetaVersion = MBIN;
         LuaVersion LVersion = LuaVersion::LUA_5_2_3;
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
+        std::multimap<String, String, FolderAssociateComparator> FolderAssociates; // mask to folder name, eg '*.dlg' into Dialogs/, and 'module_*.prop' into Properties/Primitives/, '*.prop' => Properties/
         std::vector<String> ValidPlatforms; // game platforms
         BlowfishKey MasterKey; // key used for all platforms
         Flags Fl; // flags
@@ -369,7 +397,7 @@ namespace Meta {
         
         friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&, Symbol);
         
-        friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member);
+        friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member, Member*);
 	    
 	    friend ClassInstance CreateInstance(U32 ClassID, ClassInstance host, Symbol n);
 	    

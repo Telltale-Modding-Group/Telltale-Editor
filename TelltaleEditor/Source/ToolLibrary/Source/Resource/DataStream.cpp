@@ -242,7 +242,7 @@ Bool DataStreamManager::Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nby
     if (src && dst && Nbytes)
     {
 
-        U8 *Tmp = TTE_ALLOC(MAX(0x10000, Nbytes), MEMORY_TAG_TEMPORARY);
+        U8 *Tmp = TTE_ALLOC(MIN(0x10000, Nbytes), MEMORY_TAG_TEMPORARY);
         U64 Nblocks = Nbytes / 0x10000;
 
         Bool Result = true;
@@ -324,6 +324,10 @@ DataStreamFile::DataStreamFile(const ResourceURL &url) : DataStream(url), _Handl
 {
     // Attempt to open the file
     String fpath = url.GetRawPath(); // Get the raw path without the scheme, and pass it to the file system to try and find the file.
+    std::filesystem::path p{fpath.c_str()};
+    p = p.parent_path();
+    if(!std::filesystem::exists(p))
+        std::filesystem::create_directories(p);
     _Handle = FileOpen(fpath.c_str());
 }
 
@@ -961,17 +965,19 @@ Bool DataStreamSequentialStream::Read(U8 *OutputBuffer, U64 Nbytes)
        _StreamPos = 0;
     }
     
-    if(_StreamIndex >= (U64)_OrderedStreams.size()) // finished
-    {
-	    TTE_ASSERT(false, "Cannot read bytes from sequential stream: no data available");
-	    return false;
-    }
-    
     // finally read any remainding bytes
     if (Nbytes)
     {
+        
+        if(_StreamIndex >= (U64)_OrderedStreams.size()) // finished
+        {
+            TTE_ASSERT(false, "Cannot read bytes from sequential stream: no data available");
+            return false;
+        }
+        
         if(!_OrderedStreams[_StreamIndex]->Read(OutputBuffer, Nbytes))
             return false;
+        
         _StreamPos = Nbytes;
         _BytesRead += Nbytes;
     }

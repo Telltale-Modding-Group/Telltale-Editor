@@ -16,6 +16,31 @@
 
 -- Calculate the version CRC of a given class in Bone: Out from Boneville and more. 
 -- In the macOS executable for Application1, see function at 0xDE28E.
+-- This has a really annoying bug with dialog base but its fixed in this one.
+function VersionCRC_V0_Bone(classTable)
+	temp = 0
+	if not MetaFlagQuery(classTable.Flags, kMetaClassNonBlocked) then
+		temp = tonumber("0xFFFF")
+	end
+	hash = MetaHashInt(0, temp)
+
+	if type(classTable.Members) == "table" then 
+		for _,member in pairs(classTable.Members) do
+			if not MetaFlagQuery(member.Flags, kMetaMemberSerialiseDisable) and not MetaFlagQuery(member.Flags, kMetaMemberVersionDisable) then
+				hash = MetaHashString(hash, member.Name)
+				if member.Class.Name == "class DialogBase" then -- I know. Bone fix.
+					hash = MetaHashString(hash, "class DialogBase *")
+				else
+					hash = MetaHashString(hash, member.Class.Name)
+				end
+			end
+		end
+	end
+
+	return hash
+end
+
+-- Like above but without funny bug fix
 function VersionCRC_V0(classTable)
 	temp = 0
 	if not MetaFlagQuery(classTable.Flags, kMetaClassNonBlocked) then
@@ -23,7 +48,7 @@ function VersionCRC_V0(classTable)
 	end
 	hash = MetaHashInt(0, temp)
 
-	if type(classTable.Members) == "table" then -- if we have members iterate through them
+	if type(classTable.Members) == "table" then 
 		for _,member in pairs(classTable.Members) do
 			if not MetaFlagQuery(member.Flags, kMetaMemberSerialiseDisable) and not MetaFlagQuery(member.Flags, kMetaMemberVersionDisable) then
 				hash = MetaHashString(hash, member.Name)

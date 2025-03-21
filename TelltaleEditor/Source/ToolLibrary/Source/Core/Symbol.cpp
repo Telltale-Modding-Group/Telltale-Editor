@@ -97,6 +97,7 @@ void SymbolTable::SerialiseIn(DataStreamRef& stream)
 void SymbolTable::SerialiseOut(DataStreamRef& stream)
 {
     TTE_ASSERT(IsCallingFromMain(), "Can only be called on main thread");
+    std::lock_guard<std::mutex> _L{_Lock};
     std::ostringstream ss{};
     for(auto& str: _Table)
     {
@@ -123,7 +124,7 @@ String SymbolTable::_Find(Symbol sym)
     else
     {
         String& str = _Table[it->second];
-        return StringStartsWith(str, "CRC32:") ? String(str.c_str() + 6) : std::move(str);
+        return StringStartsWith(str, "CRC32:") ? String(str.c_str() + 6) : str;
     }
 }
 

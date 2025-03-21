@@ -28,7 +28,7 @@ static void RunMod()
 }
 
 // Run full application, with optional GUI
-static void RunApp()
+static void RunRender()
 {
     {
         TelltaleEditor editor{{"BN100","MacOS",""}, false}; // editor. dont run UI yet (doesn't exist)
@@ -38,7 +38,7 @@ static void RunApp()
             
             // Create resource system and attach to render context for runtime
             Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
-            registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone-Out from Boneville.app/Contents/Resources");
+            registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone/Bone-Out from Boneville.app/Contents/Resources");
             registry->PrintLocations();
             
             context.AttachResourceRegistry(registry);
@@ -92,7 +92,7 @@ static void RunApp()
     DumpTrackedMemory();
 }
 
-static void TestNew()
+static void ExtractPS2()
 {
     {
         TelltaleEditor editor{{"CSI3","PS2",""}, false}; // editor. dont run UI yet (doesn't exist)
@@ -109,8 +109,46 @@ static void TestNew()
     }
 }
 
+// TESTS: load all of given type mask in archive
+static void LoadAll(CString mask)
+{
+    {
+        TelltaleEditor editor{{"BN100","MacOS",""}, false}; // editor. dont run UI yet (doesn't exist)
+        
+        Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
+        registry->MountSystem("<Data>/", "/Users/lucassaragosa/Desktop/extract");
+        
+        //editor.EnqueueResourceLocationExtractTask(registry, "<Data>/", "/users/lucassaragosa/desktop/extract", "", true);
+        //editor.Wait();
+        
+        std::set<String> wExt{};
+        StringMask sMask = mask;
+        registry->GetResourceNames(wExt, &sMask);
+        
+        for(auto& fn: wExt)
+        {
+            DataStreamRef ref = registry->FindResource(fn);
+            if(ref)
+            {
+                DataStreamRef oref = editor.LoadLibraryResource("TestResources/Dbg/Decrypt/" + fn);
+                DataStreamRef dref = Meta::MapDecryptingStream(ref);
+                DataStreamManager::GetInstance()->Transfer(dref, oref, dref->GetSize());
+                ref->SetPosition(0);
+                Meta::ReadMetaStream(fn, ref, editor.LoadLibraryResource("TestResources/Dbg/debug_" + fn + ".txt"));
+            }
+            else
+            {
+                TTE_LOG("No stream for %s", fn.c_str());
+            }
+        }
+        
+        registry->PrintLocations();
+        
+    }
+}
+
 int main()
 {
-    TestNew();
+    LoadAll("*.anm");
     return 0;
 }

@@ -75,8 +75,9 @@ public:
     
     /**
      Enqueues a task which will asynchronously extract all files into the given output foldes from the given logical resource system locator. Pass empty string for string mask to get all files, else supply a mask.
+     Optionally set the last argument to true such that folders will be created for each association: so all dlg or imaps go into Dialogs folder etc.
      */
-    U32 EnqueueResourceLocationExtractTask(Ptr<ResourceRegistry> registry, const String& logical, String outputFolder, StringMask mask);
+    U32 EnqueueResourceLocationExtractTask(Ptr<ResourceRegistry> registry, const String& logical, String outputFolder, StringMask mask, Bool bFolders = false);
     
     /**
      Creates a resource registry which can be used to manage telltale games resources. These cannot be used between game switches. Must be destroyed before this object or a switch!
