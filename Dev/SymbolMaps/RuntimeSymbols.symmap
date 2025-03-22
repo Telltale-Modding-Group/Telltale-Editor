@@ -36,3 +36,296 @@ HashMap<String,TTArchiveFolder>
 TTArchiveFileTemplate
 TTArchiveFolder
 TTArchive
+class Vector2
+class Vector3
+class Polar
+class Color
+class Rect
+class TRect<float>
+class Quaternion
+class Flags
+class ContainerInterface *
+class Handle<class Animation>
+class Handle<class Chore>
+class Handle<class D3DMesh>
+class Handle<class D3DTexture>
+class Handle<class DialogResource>
+class Handle<class PropertySet>
+class Handle<class AudioData
+class Handle<class Scene>
+class Handle<class Skeleton>
+class Handle<class StyleGuide>
+class Handle<class VoiceData>
+class Handle<class WalkBoxes>
+class Handle<class Font>
+class List<class Handle<class PropertySet> >
+class PropertySet
+class ActorAgentMapper
+class AnimOrChore
+class BoundingBox
+enum NavCam::Mode
+class Enum<enum NavCam::Mode,1,2>
+struct NavCam::EnumMode
+enum InputCode
+enum InputMapper::EventType
+class InputMapper::EventMapping
+class LightType
+class TextAlignmentType
+ScriptEnum:Chore
+ScriptEnum:Cursors
+ScriptEnum:Evidence Comparison
+ScriptEnum:Evidence State
+ScriptEnum:Evidence
+ScriptEnum:EvidenceUpdate
+ScriptEnum:FactLog
+ScriptEnum:Lab Equipment Type
+ScriptEnum:Location
+ScriptEnum:Reconstructions
+ScriptEnum:Suspect
+ScriptEnum:Topics
+ScriptEnum:Trinity Evidence
+ScriptEnum:Trinity Suspect
+ScriptEnum:Victim
+ScriptEnum:View
+ScriptEnum:Warrant
+ScriptEnum:Warrent
+class TRange<float>
+class Transform
+class DCArray<class Handle<class Chore> >
+class DCArray<class Handle<class Animation> >
+class DCArray<class Handle<class AnimOrChore> >
+class DCArray<class AnimOrChore>
+class DCArray<class String>
+struct ActingPalette::EnumActiveDuring
+class ActingPalette
+class DCArray<class ActingPalette>
+class ActingPaletteClass
+struct AudioData::Streamed
+class AudioData
+class AnimationValueInterfaceBase
+class AnimatedValueInterface<bool>
+class AnimatedValueInterface<class Color>
+class AnimatedValueInterface<float>
+class AnimatedValueInterface<class Quaternion>
+class AnimatedValueInterface<class String>
+class AnimatedValueInterface<class Vector3>
+class KeyframedValue<bool>::Sample
+class DCArray<class KeyframedValue<bool>::Sample>
+class AnimatedValueInterface<bool> *
+class KeyframedValue<bool>
+class KeyframedValue<class Color>::Sample
+class DCArray<class KeyframedValue<class Color>::Sample>
+class AnimatedValueInterface<class Color> *
+class KeyframedValue<class Color>
+class KeyframedValue<float>::Sample
+class DCArray<class KeyframedValue<float>::Sample>
+class AnimatedValueInterface<float> *
+class KeyframedValue<float>
+class KeyframedValue<class Quaternion>::Sample
+class DCArray<class KeyframedValue<class Quaternion>::Sample>
+class AnimatedValueInterface<class Quaternion> *
+class KeyframedValue<class Quaternion>
+class KeyframedValue<class String>::Sample
+class DCArray<class KeyframedValue<class String>::Sample>
+class AnimatedValueInterface<class String> *
+class KeyframedValue<class String>
+class KeyframedValue<class Vector3>::Sample
+class DCArray<class KeyframedValue<class Vector3>::Sample>
+class AnimatedValueInterface<class Vector3> *
+class KeyframedValue<class Vector3>
+class Animation
+class Procedural_LookAt_Value
+class Animation *
+class Procedural_LookAt
+class CompressedQuaternionKeys
+class CompressedVector3Keys
+class DCArray<class InputMapper::EventMapping>
+class InputMapper
+class LanguageResource
+class LanguageResourceProxy
+class Map<int,class LanguageResource,struct std::less<int> >
+class LanguageDatabase
+struct Rule::AgentInfo
+__ArrayRuleAgents
+class Rule
+__ArrayRules
+class Set<class String,struct std::less<class String> >
+class Rules
+class SaveGame::AgentInfo
+class DCArray<class SaveGame::AgentInfo>
+class SaveGame
+class Scene::AgentInfo
+class DCArray<class Scene::AgentInfo>
+class Scene
+class Map<class String,float,struct std::less<class String> >
+class Skeleton::Entry
+class DCArray<class Skeleton::Entry>
+class Skeleton
+class DCArray<class ActingPaletteClass>
+class StyleGuide
+class DArray<bool>
+class DArray<int>
+class DCArray<int>
+class StyleGuideRef
+class DCArray<class StyleGuideRef>
+class VoiceData
+class WalkBoxes::Edge
+class SArray<int,3>
+class SArray<int,4>
+class SArray<float,3>
+class SArray<class WalkBoxes::Edge,3>
+class WalkBoxes::Tri
+class WalkBoxes::Vert
+class WalkBoxes::Quad
+class DCArray<class Vector3>
+class DCArray<class WalkBoxes::Quad>
+class DCArray<class WalkBoxes::Vert>
+class DCArray<class WalkBoxes::Tri>
+class WalkBoxes
+class ChoreAgent::Attachment
+class ChoreAgent
+class ChoreResource::Block
+class DCArray<class ChoreResource::Block>
+enum ChoreResource::AAStatus
+class ChoreResource
+class DCArray<class ChoreAgent>
+class DCArray<class ChoreResource>
+class Chore
+class D3DIndexBuffer
+class D3DMesh::TriangleSet
+class DCArray<class D3DMesh::TriangleSet>
+struct D3DMesh::PaletteEntry
+class DCArray<struct D3DMesh::PaletteEntry>
+class DCArray<class DCArray<struct D3DMesh::PaletteEntry> >
+class D3DVertexBuffer
+class D3DMesh
+class D3DTexture
+struct Font::GlyphInfo
+class DCArray<struct Font::GlyphInfo>
+class DCArray<class D3DTexture>
+class Font
+enum DialogUtils::DialogElemT
+class DialogBase
+class DialogBranch
+class DialogDialog
+class DialogExchange
+class DialogItem
+class DialogLine
+class DialogText
+__DialogDialogArray
+__DialogBranchArray
+__DialogItemArray
+__DialogTextArray
+__DialogExchangeArray
+__DialogLineArray
+class DialogResource
+class DCArray<class Handle<class AudioData> >
+class Map<class String,class String,struct std::less<class String> >
+struct ActingPalette::ActiveDuring
+class Handle<class AnimOrChore>
+enum ActingPalette::ActiveDuring
+sk08_gesture_handsHips.anm
+sk08_gesture_nodNo.anm
+sk08_gesture_nodYes.anm
+sk08_gesture_raiseHands.anm
+sk08_gesture_shrug.anm
+sk08_gesture_point.anm
+sk08_idle_armsBack.anm
+sk08_idle_armsFolded.anm
+sk08_idle_shift.anm
+sk08_gesture_thinking.anm
+sk05_gesture_handsHips.anm
+sk05_gesture_nodNo.anm
+sk05_gesture_nodYes.anm
+sk05_gesture_raiseHands.anm
+sk05_gesture_shrug.anm
+sk05_gesture_point.anm
+sk05_idle_armsBack.anm
+sk05_idle_armsFolded.anm
+sk05_idle_shift.anm
+sk05_gesture_thinking.anm
+sk09_gesture_handsHips.anm
+sk09_gesture_nodNo.anm
+sk09_gesture_nodYes.anm
+sk09_gesture_raiseHands.anm
+sk09_gesture_shrug.anm
+sk09_gesture_point.anm
+sk09_idle_armsBack.anm
+sk09_idle_armsFolded.anm
+sk09_idle_shift.anm
+sk09_gesture_thinking.anm
+sk02_gesture_handsHips.anm
+sk02_gesture_nodNo.anm
+sk02_gesture_nodYes.anm
+sk02_gesture_raiseHands.anm
+sk02_gesture_shrug.anm
+sk02_gesture_point.anm
+sk02_idle_armsBack.anm
+sk02_idle_armsFolded.anm
+sk02_idle_shift.anm
+sk02_gesture_thinking.anm
+fone_dinner_gesture_nodYes.chore
+fone_dinner_gesture_plead.chore
+fone_dinner_gesture_nodNo.chore
+fone_dinner_gesture_raiseHands.chore
+fone_dinner_gesture_self.chore
+fone_dinner_gesture_thinking.chore
+fone_dinner_gesture_take.chore
+sk04_gesture_handsHips.anm
+sk04_gesture_nodNo.anm
+sk04_gesture_nodYes.anm
+sk04_gesture_raiseHands.anm
+sk04_gesture_shrug.anm
+sk04_gesture_point.anm
+sk04_idle_armsBack.anm
+sk04_idle_armsFolded.anm
+sk04_idle_shift.anm
+granma_dinner_gesture_nodNo.chore
+granma_dinner_gesture_nodYes.chore
+granma_dinner_gesture_raiseHands.chore
+granma_dinner_gesture_slightHeadTilt.chore
+sk04_gesture_thinking.anm
+sk06_gesture_handsHips.anm
+sk06_gesture_nodNo.anm
+sk06_gesture_nodYes.anm
+sk06_gesture_raiseHands.anm
+sk06_gesture_shrug.anm
+sk06_gesture_point.anm
+sk06_idle_armsBack.anm
+sk06_idle_armsFolded.anm
+sk06_idle_shift.anm
+sk06_gesture_thinking.anm
+phoney_dinner_gesture_nodNo.chore
+phoney_dinner_gesture_nodYes.chore
+phoney_dinner_gesture_plead.chore
+phoney_dinner_gesture_raiseHands.chore
+phoney_dinner_gesture_self.chore
+phoney_dinner_gesture_glanceDown.chore
+phoney_dinner_gesture_grimace.chore
+phoney_dinner_gesture_take.chore
+phoney_dinner_gesture_thinking.chore
+sk11_gesture_handsHips.anm
+sk11_gesture_nodNo.anm
+sk11_gesture_nodYes.anm
+sk11_gesture_raiseHands.anm
+sk11_gesture_shrug.anm
+sk11_gesture_point.anm
+sk11_gesture_rubChin.anm
+sk11_gesture_giggle.anm
+sk11_gesture_laugh.anm
+sk07_gesture_express.anm
+sk07_gesture_nod.anm
+sk03_gesture_handsHips.anm
+sk03_gesture_nodNo.anm
+sk03_gesture_nodYes.anm
+sk03_gesture_raiseHands.anm
+sk03_gesture_shrug.anm
+sk03_gesture_point.anm
+sk03_idle_armsBack.anm
+sk03_idle_armsFolded.anm
+sk03_gesture_thinking.anm
+thorn_dinner_gesture_nodNo.chore
+thorn_dinner_gesture_nodYes.chore
+thorn_dinner_gesture_shrugSmall.chore
+thorn_dinner_gesture_point.chore
+thorn_dinner_gesture_armsCrossed.chore

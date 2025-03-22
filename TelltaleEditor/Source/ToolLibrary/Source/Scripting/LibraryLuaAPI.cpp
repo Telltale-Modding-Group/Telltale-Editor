@@ -757,6 +757,26 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             return 1; // return value
         }
         
+        static void _HandleClassNotFound(String tn, U32 ver)
+        {
+            Symbol s = SymbolFromHexString(tn, true);
+            if(s.GetCRC64())
+            {
+                String str = RuntimeSymbols.Find(s);
+                if(str.length())
+                {
+                    tn = str;
+                }
+                TTE_LOG("%s with version index %d does not exist", tn.c_str(), ver);
+            }
+            else
+            {
+                TTE_LOG("%s with version index %d does not exist", tn.c_str(), ver);
+            }
+            TTE_ASSERT(false, "Serialise requires class which does not exist. Please check serialiser");
+        }
+        
+        
         // bool MetaFlagQuery(flags, flag_To_Test) (although, order doesn't matter
         static U32 luaMetaFlagQuery(LuaManager& man)
         {
@@ -885,7 +905,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             
             if(cls == 0)
             {
-                TTE_LOG("%s with version index %s does not exist", tn.c_str(), ver);
+                _HandleClassNotFound(tn, ver);
                 man.PushNil();
                 return 1;
             }
@@ -917,7 +937,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
         
             if(cls == 0)
             {
-                TTE_LOG("%s with version index %s does not exist", tn.c_str(), ver);
+                _HandleClassNotFound(tn, ver);
                 man.PushNil();
                 man.PushNil();
                 return 2;
@@ -951,7 +971,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             
             if(cls == 0)
             {
-                TTE_LOG("%s with version index %s does not exist", tn.c_str(), ver);
+                _HandleClassNotFound(tn, ver);
                 man.PushNil();
                 return 1;
             }
@@ -998,7 +1018,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             
             if(cls == 0)
             {
-                TTE_LOG("%s with version index %s does not exist", tn.c_str(), ver);
+                _HandleClassNotFound(tn, ver);
                 man.PushNil();
                 return 1;
             }
@@ -1215,6 +1235,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
         static U32 luaMetaCreateInstance(LuaManager& man)
         {
             TTE_ASSERT(man.GetTop() == 4, "Incorrect usage of CreateInstance");
+            TTE_ASSERT(man.Type(1) == LuaType::STRING, "Typename is invalid. Likely the class was not found");
             String tn = man.ToString(-4);
             I32 ver = man.ToInteger(-3);
             
@@ -1229,11 +1250,11 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 return 1;
             }
             
-            U32 cls = FindClass(Symbol(tn), (U32)ver);
+            U32 cls = FindClass(SymbolFromHexString(tn), (U32)ver);
             
             if(cls == 0)
             {
-                TTE_LOG("%s with version index %s does not exist", tn.c_str(), ver);
+                _HandleClassNotFound(tn, ver);
                 man.PushNil();
                 return 1;
             }
@@ -1568,6 +1589,32 @@ namespace MS
 	    return 1;
     }
     
+    static U32 luaMetaStreamReadFloat(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaStreamRead");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
+        Float val{};
+        ::Meta::ClassInstance e{}; // empty
+        SerialiseU32(stream, e, 0, &val, false);
+        
+        man.PushFloat(val);
+        
+        return 1;
+    }
+    
+    static U32 luaMetaStreamWriteFloat(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaStreamWrite");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
+        Float val = ScriptManager::PopFloat(man);
+        ::Meta::ClassInstance e{}; // empty
+        SerialiseU32(stream, e, 0, &val, true);
+        
+        return 0;
+    }
+    
     // read signed integer from stream.
     static U32 luaMetaStreamReadInt(LuaManager& man)
     {
@@ -1722,6 +1769,10 @@ namespace MS
         Symbol val{};
         ::Meta::ClassInstance e{}; // empty
         ::Meta::_Impl::SerialiseSymbol(stream, e, 0, &val, false);
+        if(val == Symbol("class Procedural_LookAt_Value"))
+        {
+            TTE_LOG("");
+        }
         man.PushLString(SymbolToHexString(val));
         
         return 1;
@@ -2581,6 +2632,8 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(MS, "MetaStreamAdvance", luaMetaStreamAdvance);
     ADD_FN(MS, "MetaStreamWriteZeros", luaMetaStreamWriteZeros);
     ADD_FN(MS, "MetaStreamWriteInt", luaMetaStreamWriteInt);
+    ADD_FN(MS, "MetaStreamWriteFloat", luaMetaStreamWriteFloat);
+    ADD_FN(MS, "MetaStreamReadFloat", luaMetaStreamReadFloat);
     ADD_FN(MS, "MetaStreamWriteByte", luaMetaStreamWriteByte);
     ADD_FN(MS, "MetaStreamWriteShort", luaMetaStreamWriteShort);
     ADD_FN(MS, "MetaStreamGetFileName", luaMetaStreamGetFileName);

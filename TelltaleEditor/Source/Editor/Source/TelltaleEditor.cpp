@@ -36,6 +36,9 @@ TelltaleEditor::~TelltaleEditor()
     
     Wait(); // wait for all tasks to finish
     
+    DataStreamRef symbols = LoadLibraryResource("SymbolMaps/RuntimeSymbols.symmap"); // Save out runtime symbols
+    RuntimeSymbols.SerialiseOut(symbols);
+    
     RenderContext::Shutdown();
     
     DestroyToolContext();

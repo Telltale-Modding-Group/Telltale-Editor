@@ -99,13 +99,13 @@ namespace Meta {
         {
             
             // flags init
-            if(pVal->Constructor == nullptr && pVal->Flags & CLASS_INTRINSIC)
+            if(pVal->Constructor == nullptr && (pVal->Flags & CLASS_INTRINSIC) && !(pVal->Flags & CLASS_ATTACHABLE) && pVal->Members.size() == 0)
                 _ColFl |= _COL_VAL_SKIP_CT;
-            if(pVal->Destructor == nullptr && pVal->Flags & CLASS_INTRINSIC)
+            if(pVal->Destructor == nullptr && (pVal->Flags & CLASS_INTRINSIC) && !(pVal->Flags & CLASS_ATTACHABLE) && pVal->Members.size() == 0)
                 _ColFl |= _COL_VAL_SKIP_DT;
-            if(pVal->CopyConstruct == nullptr  && pVal->Flags & CLASS_INTRINSIC)
+            if(pVal->CopyConstruct == nullptr && (pVal->Flags & CLASS_INTRINSIC) && !(pVal->Flags & CLASS_ATTACHABLE) && pVal->Members.size() == 0)
                 _ColFl |= _COL_VAL_SKIP_CP;
-            if(pVal->MoveConstruct == nullptr  && pVal->Flags & CLASS_INTRINSIC)
+            if(pVal->MoveConstruct == nullptr && (pVal->Flags & CLASS_INTRINSIC) && !(pVal->Flags & CLASS_ATTACHABLE) && pVal->Members.size() == 0)
                 _ColFl |= _COL_VAL_SKIP_MV;
             
             _ValuSize = pVal->RTSize;
@@ -115,13 +115,13 @@ namespace Meta {
                 // we will need padding bytes if the key type is small (lower than 8 bytes) and the value type is big (8 bytes or larger)
                 
                 // key flags
-                if(pKey->Constructor == nullptr && pKey->Flags & CLASS_INTRINSIC)
+                if(pKey->Constructor == nullptr && (pKey->Flags & CLASS_INTRINSIC) && !(pKey->Flags & CLASS_ATTACHABLE) && pKey->Members.size() == 0)
                     _ColFl |= _COL_KEY_SKIP_CT;
-                if(pKey->Destructor == nullptr && pKey->Flags & CLASS_INTRINSIC)
+                if(pKey->Destructor == nullptr && (pKey->Flags & CLASS_INTRINSIC) && !(pKey->Flags & CLASS_ATTACHABLE) && pKey->Members.size() == 0)
                     _ColFl |= _COL_KEY_SKIP_DT;
-                if(pKey->CopyConstruct == nullptr && pKey->Flags & CLASS_INTRINSIC)
+                if(pKey->CopyConstruct == nullptr && (pKey->Flags & CLASS_INTRINSIC) && !(pKey->Flags & CLASS_ATTACHABLE) && pKey->Members.size() == 0)
                     _ColFl |= _COL_KEY_SKIP_CP;
-                if(pKey->MoveConstruct == nullptr && pKey->Flags & CLASS_INTRINSIC)
+                if(pKey->MoveConstruct == nullptr && (pKey->Flags & CLASS_INTRINSIC) && !(pKey->Flags & CLASS_ATTACHABLE) && pKey->Members.size() == 0)
                     _ColFl |= _COL_KEY_SKIP_MV;
                 
                 
@@ -269,7 +269,7 @@ namespace Meta {
                     {
                         if(val.length())
                         {
-                            val += ", ";
+                            val += "| ";
                             val += desc.Name;
                         }
                         else val = desc.Name;
@@ -379,12 +379,18 @@ namespace Meta {
     	    	    TTE_ASSERT(false, "Cannot serialise type %s: serialiser function failed to initilaise", clazz->Name.c_str());
     	    	    return false; // FAIL
 	    	    }
-	    	    
-	    	    if(!man.LoadChunk(clazz->SerialiseScriptFn, it->second.Binary, it->second.Size, LoadChunkMode::BINARY))
-	    	    {
-    	    	    TTE_ASSERT(false, "Cannot serialise type %s: compiled serialiser function failed to load", clazz->Name.c_str());
-    	    	    return false; // FAIL
-	    	    }
+                
+                ScriptManager::GetGlobal(man, clazz->SerialiseScriptFn, true);
+                if(man.Type(-1) != LuaType::FUNCTION)
+                {
+                    man.Pop(1);
+                    if(!man.LoadChunk(clazz->SerialiseScriptFn, it->second.Binary, it->second.Size, LoadChunkMode::BINARY))
+                    {
+                        TTE_ASSERT(false, "Cannot serialise type %s: compiled serialiser function failed to load", clazz->Name.c_str());
+                        return false; // FAIL
+                    }
+                }
+                // else its now on the stack
 	    	    
 	    	    // arguments: meta stream, instance, is write
 	    	    
@@ -452,6 +458,8 @@ namespace Meta {
     	    	    stream.TabDepth++;
 	    	    }
     	    }
+            
+            Bool bProxy = (clazz->Flags & CLASS_PROXY) != 0;
     	    
     	    // serialise each member
     	    for(auto& member: clazz->Members)
@@ -459,7 +467,7 @@ namespace Meta {
 	    	    if(member.Flags & MEMBER_SERIALISE_DISABLE)
     	    	    continue; // skip
 	    	    
-	    	    Bool bBlocked = (State.Classes[member.ClassID].Flags & CLASS_NON_BLOCKED) == 0;
+                Bool bBlocked = !bProxy && ((State.Classes[member.ClassID].Flags & CLASS_NON_BLOCKED) == 0);
 	    	    
 	    	    // START OF BLOCK
 	    	    if(bBlocked)
@@ -582,13 +590,6 @@ namespace Meta {
 	    {
     	    U32 sz = clazz.RTSize;
     	    
-    	    // for SArray types, store the static memory after the type to save an allocation
-    	    if(clazz.ArraySize > 0)
-    	    {
-	    	    sz += TTE_PADDING(sz, 8); // ensure 8 byte align
-	    	    sz += clazz.ArraySize * State.Classes[clazz.ArrayValClass].RTSize;
-    	    }
-    	    
     	    if((clazz.Flags & CLASS_ATTACHABLE) != 0)
     	    {
 	    	    // not top level but attachable. subtract from size its included
@@ -637,9 +638,8 @@ namespace Meta {
     	    ParentWeakReference host = topLevelParent.ObtainParentRef();
     	    
     	    // check if the parent is valid (ie if this new instance will be a top level class)
-    	    const Bool upvalue_TopLevel =  topLevelParent._InstanceClassID == 0;
-    	    const Bool upvalue_ChildMapLifetime = ((it->second.Flags & CLASS_ATTACHABLE) == 0) && upvalue_TopLevel;
-    	    Bool parentHasChildMap = upvalue_TopLevel ? false : ((State.Classes[topLevelParent.GetClassID()].Flags & CLASS_ATTACHABLE) != 0);
+    	    const Bool upvalue_TopLevel = topLevelParent._InstanceClassID == 0;
+    	    const Bool parentHasChildMap = upvalue_TopLevel ? false : ((State.Classes[topLevelParent.GetClassID()].Flags & CLASS_ATTACHABLE) != 0);
     	    const U32 upvalue_ClassID = ClassID;
     	    
     	    // calculate the size
@@ -667,14 +667,6 @@ namespace Meta {
 	    	    
 	    	    _Impl::_DoDestruct(&State.Classes[upvalue_ClassID], pMem); // call destructor
 	    	    
-	    	    if(upvalue_ChildMapLifetime) // free children, ensure strong refs == 1 for each
-	    	    {
-    	    	    auto& vec = *((ClassChildMap*)
-	    	    	    	     ((U8*)pMem + _ClassChildrenArrayOff(State.Classes[upvalue_ClassID])));
-    	    	    
-    	    	    DestroyObject<ClassChildMap>(vec); // free all and clear vector memory
-	    	    }
-	    	    
 	    	    // free memory
 	    	    TTE_FREE((U8*)pMem); // return with deleter
 	    	    
@@ -685,13 +677,6 @@ namespace Meta {
 	    	    TTE_ASSERT(name.GetCRC64() != 0, "When constructing non-top level class: name key must be specified");
 	    	    auto& vec = *topLevelParent._GetInternalChildrenRefs();
 	    	    vec[name] = inst; // ref counted
-    	    }
-	       
-    	    if(upvalue_ChildMapLifetime)
-    	    {
-	    	    // else we need to construct the child refs
-	    	    U8* mapMem = (U8*)inst._GetInternalChildrenRefs();
-	    	    new (mapMem) ClassChildMap();
     	    }
     	    
     	    return inst;
@@ -704,15 +689,16 @@ namespace Meta {
     	    if(pClass->Flags & CLASS_ATTACHABLE)
     	    {
 	    	    // construct child map
-	    	    U8* mapMem =pInstanceMemory + _ClassChildrenArrayOff(*pClass);
+	    	    U8* mapMem = pInstanceMemory + _ClassChildrenArrayOff(*pClass);
 	    	    new(mapMem) ClassChildMap();
-    	    }
+            }
     	    // If the whole class has a constructor, call it (eg String)
     	    if(pClass->Constructor)
     	    {
 	    	    pClass->Constructor(pInstanceMemory, pClass->ClassID, host);
     	    }
-    	    else if(pClass->Flags & CLASS_INTRINSIC) // the class has no explicit constructor, but is intrinsic, memset.
+    	    else if((pClass->Flags & CLASS_INTRINSIC) && pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
+                // the class has no explicit constructor, but is intrinsic, memset.
     	    {
 	    	    memset(pInstanceMemory, 0, pClass->RTSize); // set to zero (eg int types)
     	    }
@@ -733,14 +719,15 @@ namespace Meta {
     	    if(pClass->Flags & CLASS_ATTACHABLE)
     	    {
 	    	    // destruct child map
-	    	    ((ClassChildMap*)(pInstanceMemory + _ClassChildrenArrayOff(*pClass)))->~ClassChildMap();
+                U8* mapMem = pInstanceMemory + _ClassChildrenArrayOff(*pClass);
+	    	    ((ClassChildMap*)mapMem)->~ClassChildMap();
     	    }
     	    // If the whole class has a destructor, call it (eg String)
     	    if(pClass->Destructor)
     	    {
 	    	    pClass->Destructor(pInstanceMemory, pClass->ClassID);
     	    }
-    	    else if(pClass->Flags & CLASS_INTRINSIC) // the class has no explicit destructor, but is intrinsic.
+            else if((pClass->Flags & CLASS_INTRINSIC) && pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
     	    {
 	    	    memset(pInstanceMemory, 0, pClass->RTSize); // set to zero on destroys (eg int types)
     	    }
@@ -768,7 +755,8 @@ namespace Meta {
     	    if(pClass->CopyConstruct)
     	    {
 	    	    pClass->CopyConstruct(pSrc, pMemory, host);
-    	    }else if(pClass->Flags & CLASS_INTRINSIC) // the class has no explicit copy constructor, but is intrinsic, memcpy.
+    	    }
+            else if((pClass->Flags & CLASS_INTRINSIC) && pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
     	    {
 	    	    memcpy(pMemory, pSrc, pClass->RTSize);
     	    }
@@ -799,7 +787,8 @@ namespace Meta {
     	    if(pClass->MoveConstruct)
     	    {
 	    	    pClass->MoveConstruct(pSrc, pMemory, host);
-    	    }else if(pClass->Flags & CLASS_INTRINSIC) // the class has no explicit move constructor, but is intrinsic, memcpy.
+    	    }
+            else if((pClass->Flags & CLASS_INTRINSIC) && pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
     	    {
 	    	    memcpy(pMemory, pSrc, pClass->RTSize); // just in case, we wont clear to zeros.
     	    }
@@ -1030,6 +1019,8 @@ namespace Meta {
     	    U32 keyClass = pCollection->GetKeyClass();
     	    U32 valClass = pCollection->GetValueClass();
             
+            TTE_ASSERT(clazz->ArrayKeyClass == keyClass && valClass == clazz->ArrayValClass, "Corrupt collection! Memory overlap?");
+            
             U32 size = (U32)pCollection->GetSize();
             
             if(bStatic)
@@ -1218,7 +1209,10 @@ namespace Meta {
     ClassInstance AcquireScriptInstance(LuaManager& man, I32 stackIndex)
     {
 	    if(man.Type(stackIndex) != LuaType::FULL_OPAQUE)
-    	    return {};
+        {
+            TTE_LOG("Cannot acquire script instance at stack index %d: type is %s", stackIndex, man.Typename(man.Type(stackIndex)));
+            return {};
+        }
 	    
 	    ClassInstanceScriptRef* pRef = (ClassInstanceScriptRef*)man.ToPointer(stackIndex);
 	    
@@ -1498,6 +1492,8 @@ namespace Meta {
 	    ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassAbstract", true); // abstract
 	    GetToolContext()->GetLibraryLVM().PushInteger(CLASS_ATTACHABLE);
 	    ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassAttachable", true); // abstract
+        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_PROXY);
+        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassProxy", true); // proxy fix, disable all member blocking
 	    
 	    GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_ENUM);
 	    ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberEnum", true); // member is an enum
@@ -2022,6 +2018,7 @@ namespace Meta {
                 {
                     TTE_ASSERT(false, "At section %s: not all bytes were read from stream! Remaining: 0x%X bytes in %s",
                                StreamSectionName[i], (U32)diff, fn.c_str());
+                    instance = {};
                 }
             }
         }

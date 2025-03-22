@@ -28,8 +28,12 @@ function VersionCRC_V0_Bone(classTable)
 		for _,member in pairs(classTable.Members) do
 			if not MetaFlagQuery(member.Flags, kMetaMemberSerialiseDisable) and not MetaFlagQuery(member.Flags, kMetaMemberVersionDisable) then
 				hash = MetaHashString(hash, member.Name)
-				if member.Class.Name == "class DialogBase" then -- I know. Bone fix.
+				if member.Class.Name == "class DialogBase" then -- I know. Bone fix. Stupid pointers used in meta member types
 					hash = MetaHashString(hash, "class DialogBase *")
+				elseif member.Class.Name == "class AnimationValueInterfaceBase" then
+					hash = MetaHashString(hash, "class AnimationValueInterfaceBase *")
+				elseif member.Class.Name == "class AnimatedValueInterface<class Quaternion>" then
+					hash = MetaHashString(hash, "class AnimatedValueInterface<class Quaternion> *")
 				else
 					hash = MetaHashString(hash, member.Class.Name)
 				end

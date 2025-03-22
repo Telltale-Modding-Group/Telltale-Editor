@@ -16,7 +16,6 @@ function SerialiseScene_Bone1(stream, inst, write)
                 return false
             end
             local nameInst = MetaGetClassValue(MetaGetMember(agentInfo, "mAgentName"))
-            TTE_Log("Found agent " .. tostring(nameInst))
         end
     end
     MetaStreamEndBlock(stream, write)

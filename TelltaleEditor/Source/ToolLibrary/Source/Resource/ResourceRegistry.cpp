@@ -89,8 +89,6 @@ Bool StringMask::MaskCompare(CString pattern, CString str, CString end, MaskMode
     return false;
 }
 
-
-
 Bool StringMask::MatchSearchMask(CString testString,CString searchMask,StringMask::MaskMode mode, Bool* excluded)
 {
     if (!*searchMask) return true;  // Empty mask matches everything
@@ -163,6 +161,7 @@ Ptr<RegistryDirectory> RegistryDirectory_System::OpenDirectory(const String& nam
 
 Bool RegistryDirectory_System::GetResourceNames(std::set<String>& resources, const StringMask* optionalMask)
 {
+    StringMask baseMask = EXCLUDE_SYSTEM_FILTER;
     for (const auto& entry : fs::directory_iterator(_Path))
     {
         if (entry.is_regular_file())
@@ -170,7 +169,7 @@ Bool RegistryDirectory_System::GetResourceNames(std::set<String>& resources, con
             String fileName = entry.path().filename().string();
             
             // Apply optional mask filtering
-            if (!optionalMask || *optionalMask == fileName) {
+            if (baseMask == fileName && (!optionalMask || *optionalMask == fileName)) {
                 resources.insert(fileName);
             }
         }
@@ -180,6 +179,7 @@ Bool RegistryDirectory_System::GetResourceNames(std::set<String>& resources, con
 
 Bool RegistryDirectory_System::GetSubDirectories(std::set<String>& directories, const StringMask* optionalMask)
 {
+    StringMask baseMask = EXCLUDE_SYSTEM_FILTER;
     for (const auto& entry : fs::directory_iterator(_Path))
     {
         if (entry.is_directory())
@@ -187,7 +187,7 @@ Bool RegistryDirectory_System::GetSubDirectories(std::set<String>& directories, 
             String dirName = entry.path().filename().string();
             
             // Apply optional mask filtering
-            if (!optionalMask || *optionalMask == dirName)
+            if (baseMask == dirName && (!optionalMask || *optionalMask == dirName))
             {
                 directories.insert(dirName);
             }

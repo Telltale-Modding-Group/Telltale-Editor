@@ -86,7 +86,7 @@ void ToolContext::Switch(GameSnapshot snapshot)
     JobScheduler::Initialise(_PerStateCollection);
     
     DataStreamRef symbols = LoadLibraryResource("SymbolMaps/Files_" + snapshot.ID + ".symmap");
-    GameSymbols.SerialiseIn(symbols); // resave
+    GameSymbols.SerialiseIn(symbols); // reload
     
     _Setup = true;
 }

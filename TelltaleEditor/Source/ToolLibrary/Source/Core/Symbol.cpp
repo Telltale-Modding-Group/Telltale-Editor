@@ -46,18 +46,18 @@ SymbolTable GameSymbols{};
 
 SymbolTable* SymbolTable::_ActiveTables = nullptr;
 
-Symbol SymbolFromHexString(const String& str)
+Symbol SymbolFromHexString(const String& str, Bool bStrict)
 {
     if(str.length() != 16)
-        return Symbol();
+        return bStrict ? Symbol() : Symbol(str);
     
     // Parse the string as a hexadecimal number
     U64 result{};
     std::istringstream iss(str);
     iss >> std::hex >> result;
     
-    if(iss.fail())
-        return Symbol();
+    if(iss.fail() || !iss.eof())
+        return bStrict ? Symbol() : Symbol(str);
     
     return result;
 }

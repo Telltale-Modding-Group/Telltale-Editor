@@ -62,8 +62,8 @@ inline Symbol operator+(const Symbol &sym, const String &value)
     return CRC64LowerCase((const U8 *)value.c_str(), (U32)value.length(), sym.GetCRC64());
 }
 
-// Argument must be 16 characters long and a hex string, in big endian (ie normal reading format).
-Symbol SymbolFromHexString(const String& str);
+// Argument must be 16 characters long and a hex string, in big endian (ie normal reading format). Strict if it HAS to be a hex string. if not a hex string it returns normal symbol.
+Symbol SymbolFromHexString(const String& str, Bool bStrict = false);
 
 // Converts to a 16 byte hex string
 String SymbolToHexString(Symbol sym);

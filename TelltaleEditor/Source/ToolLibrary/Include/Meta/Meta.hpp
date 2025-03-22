@@ -45,7 +45,7 @@ namespace Meta {
         "XBOne",
         "XB360",
         "Linux",
-        "NX" // Switch
+        "NX", // Switch
         "WiiU",
         "iPhone",
         "Android",
@@ -124,6 +124,7 @@ namespace Meta {
         CLASS_ABSTRACT = 8, // this class is abstract (Baseclass_ prefix for ex.) so instances of it cannot be created.
         CLASS_NON_BLOCKED = 16, // this class is not blocked in serialisation
 	    CLASS_ATTACHABLE = 32, // can have children attached to it, used in PropertySet and other big complex types
+        CLASS_PROXY = 64, // proxy type which is used for telltale game errors. disables all block sizes in members of this type.
     };
     
     // Enum / flag descriptor for a member in a class

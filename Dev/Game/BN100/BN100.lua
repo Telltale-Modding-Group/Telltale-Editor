@@ -7,6 +7,8 @@ require("ToolLibrary/Game/BN100/Scene.lua")
 require("ToolLibrary/Game/BN100/Dialog.lua")
 require("ToolLibrary/Game/BN100/Rules.lua")
 require("ToolLibrary/Game/BN100/Audio.lua")
+require("ToolLibrary/Game/BN100/Animation.lua")
+require("ToolLibrary/Game/BN100/Chore.lua")
 
 -- registers two types: one with baseclass_containerinterface and one without (vers exists for both). pass in k and v table (or k being SArray N)
 function DoRegisterBoneCollection(containerInterfaceTbl, name, k, v, fl)
@@ -191,6 +193,7 @@ function RegisterBone100(vendor, platform)
 	hVoiceData = RegisterBoneHandle("class Handle<class VoiceData>")
 	hWalkBoxes = RegisterBoneHandle("class Handle<class WalkBoxes>")
 	hFont = RegisterBoneHandle("class Handle<class Font>")
+	hAnimChore = RegisterBoneHandle("class Handle<class AnimOrChore>")
 	
 	-- array of prop file names (for parent list in prop). only list in this game, rest are arrays etc
 	local MetaHandleArrayProp = { VersionIndex = 0}
@@ -299,12 +302,17 @@ function RegisterBone100(vendor, platform)
 
 	arrayHandleChore, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Chore> >", nil, hChore)
 	arrayHandleAnim , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Animation> >", nil, hAnim)
-	arrayHandleAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AnimOrChore> >", nil, hAnim)
-	arrayAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class AnimOrChore>", nil, hAnim)
+	arrayHandleAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AnimOrChore> >", nil, hAnimChore)
+	arrayAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class AnimOrChore>", nil, animOrChore)
 
 	arrayClassString, _ = RegisterBoneCollection(MetaCI, "class DCArray<class String>", nil, kMetaClassString)
 
-	local enumActiveDuring = NewProxyClass("struct ActingPalette::EnumActiveDuring", "mVal", kMetaInt)
+	local enumActiveDuring = NewClass("struct ActingPalette::EnumActiveDuring", 0)
+	enumActiveDuring.Members[1] = NewMember("mVal", NewProxyClass("enum ActingPalette::ActiveDuring", "mVal", kMetaInt))
+	AddEnum(enumActiveDuring, 1, "always", 1)
+	AddEnum(enumActiveDuring, 1, "talking", 2)
+	AddEnum(enumActiveDuring, 1, "listening", 3)
+	MetaRegisterClass(enumActiveDuring)
 
 	local actingPalette0 = NewClass("class ActingPalette", 1)
 	actingPalette0.Members[1] = NewMember("mName", kMetaClassString)
@@ -373,7 +381,7 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(aud)
 	MetaAssociateFolderExtension("BN100", "*.aud", "Audio/")
 
-	local anmBase = NewClass("class AnimationValueInterfaceBase", 0)
+	local anmBase = NewClass("class AnimationValueInterfaceBase", 0) -- this is the one used.they added a pointer to it?! (fixed in version hash)
 	anmBase.Members[1] = NewMember("mName", kMetaClassString)
 	anmBase.Members[2] = NewMember("mFlags", kMetaInt)
 	MetaRegisterClass(anmBase)
@@ -392,21 +400,62 @@ function RegisterBone100(vendor, platform)
 	RegisterBoneKeyframedValue(MetaCI, animatedStr, "class String", kMetaClassString)
 	RegisterBoneKeyframedValue(MetaCI, animatedVec3, "class Vector3", MetaVec3)
 
-	local anm1 = NewClass("class Animation", 1) -- not sure if this used anywhere
+	local anm1 = NewClass("class Animation", 1)
 	anm1.Extension = "anm"
+	anm1.Flags = kMetaClassAttachable
+	anm1.Serialiser = "SerialiseAnimationBone1"
 	anm1.Members[1] = NewMember("mName", kMetaClassString)
 	anm1.Members[2] = NewMember("mLength", kMetaFloat)
 	MetaRegisterClass(anm1)
 	MetaAssociateFolderExtension("BN100", "*.anm", "Animations/")
 
 	-- .ANM FILES
-	local anm0 = NewClass("class Animation", 0) -- this one is used
+	local anm0 = NewClass("class Animation", 0)
 	anm0.Extension = "anm"
+	anm0.Flags = kMetaClassAttachable
+	anm0.Serialiser = "SerialiseAnimationBone1"
 	anm0.Members[1] = NewMember("mFlags", MetaFlags)
 	anm0.Members[2] = NewMember("mName", kMetaClassString)
 	anm0.Members[3] = NewMember("mLength", kMetaFloat)
 	MetaRegisterClass(anm0)
-	-- ANIMATION TODO: has a custom serialiser.
+
+	local procval = NewClass("class Procedural_LookAt_Value", 0)
+	procval.Flags = kMetaClassIntrinsic + kMetaClassNonBlocked
+	procval.Members[1] = NewMember("Baseclass_AnimatedValueInterface<Quaternion>", animatedQuat, kMetaMemberSerialiseDisable)
+	MetaRegisterClass(procval)
+
+	local proc = NewClass("class Procedural_LookAt", 0)
+	proc.Serialiser = "SerialiseProceduralLookAtBone1"
+	proc.Flags = kMetaClassIntrinsic -- none of this is in headers. also only animation is serialised?
+	proc.Members[1] = NewMember("Baseclass_Animation", NewProxyClass("class Animation *", "Animation", anm0, true))
+	proc.Members[2] = NewMember("mHostNode", kMetaClassString)
+	proc.Members[3] = NewMember("mTargetAgent", kMetaClassString)
+	proc.Members[4] = NewMember("mTargetNode", kMetaClassString)
+	proc.Members[5] = NewMember("mTargetOffset", MetaVec3)
+	MetaRegisterClass(proc)
+	
+	local quatKeys = NewClass("class CompressedQuaternionKeys", 0)
+	quatKeys.Flags = kMetaClassIntrinsic -- not in headers
+	quatKeys.Serialiser = "SerialiseCQKeysBone1"
+	quatKeys.Members[1] = NewMember("_mName", kMetaClassString, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	quatKeys.Members[2] = NewMember("_mBuffer", kMetaClassInternalBinaryBuffer, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable) -- nSamples = size / 6
+	quatKeys.Members[3] = NewMember("_mLength", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	MetaRegisterClass(quatKeys)
+
+	local vecKeys = NewClass("class CompressedVector3Keys", 0)
+	vecKeys.Flags = kMetaClassIntrinsic -- not in headers
+	vecKeys.Serialiser = "SerialiseCVKeysBone1"
+	vecKeys.Members[1] = NewMember("_mName", kMetaClassString, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[2] = NewMember("_mBuffer", kMetaClassInternalBinaryBuffer, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable) -- nSamples = size / 6
+	vecKeys.Members[3] = NewMember("_mLength", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[4] = NewMember("_mV1X", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[5] = NewMember("_mV1Y", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[6] = NewMember("_mV1Z", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[7] = NewMember("_mV2X", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[8] = NewMember("_mV2Y", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[9] = NewMember("_mV2Z", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[10] = NewMember("_mTypeUnk", kMetaInt, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	MetaRegisterClass(vecKeys)
 
 	imapMappingArray, _ = RegisterBoneCollection(MetaCI, "class DCArray<class InputMapper::EventMapping>", nil, imapMapping)
 
@@ -530,6 +579,12 @@ function RegisterBone100(vendor, platform)
 
 	arrayRule, _ = RegisterBoneCollection(MetaCI, "__ArrayRules", nil, rule0)
 
+	local setString = { VersionIndex = 0 }
+	setString.Name = "class Set<class String,struct std::less<class String> >"
+	setString.Members = {}
+	setString.Members[1] = { Name = "Baseclass_ContainerInterface", Class = MetaCI, Flags = kMetaMemberMemoryDisable + kMetaMemberBaseClass }
+	MetaRegisterCollection(setString, nil, kMetaClassString)
+
 	local rules = NewClass("class Rules", 0) -- there are two other versions but they are empty (unusable files)
 	rules.Extension = "rules"
 	rules.Serialier = "SerialiseRulesBone1"
@@ -557,12 +612,6 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(sgAgent1)
 
 	arraySaveGameAgent, _ = RegisterBoneCollection(MetaCI, "class DCArray<class SaveGame::AgentInfo>", nil, sgAgent)
-
-	local setString = { VersionIndex = 0 }
-	setString.Name = "class Set<class String,struct std::less<class String> >"
-	setString.Members = {}
-	setString.Members[1] = { Name = "Baseclass_ContainerInterface", Class = MetaCI, Flags = kMetaMemberMemoryDisable + kMetaMemberBaseClass }
-	MetaRegisterCollection(setString, nil, kMetaClassString)
 
 	local sg0 = NewClass("class SaveGame", 0)
 	sg0.Extension = "save"
@@ -766,7 +815,7 @@ function RegisterBone100(vendor, platform)
 	choreAgentAttach.Members[7] = NewMember("mbLeaveAttachedWhenComplete", kMetaBool)
 	MetaRegisterClass(choreAgentAttach)
 
-	local choreAgent = NewClass("class ChoreAgent", 0) -- TODO custom serialiser
+	local choreAgent = NewClass("class ChoreAgent", 0)
 	choreAgent.Members[1] = NewMember("mAgentName", kMetaClassString)
 	choreAgent.Members[2] = NewMember("mFlags", MetaFlags)
 	choreAgent.Members[3] = NewMember("mResources", arrayDCInt)
@@ -782,7 +831,9 @@ function RegisterBone100(vendor, platform)
 
 	arrayChoreBlock, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreResource::Block>", nil, choreBlock)
 
-	local choreResource = NewClass("class ChoreResource", 0) -- TODO custom serialiser
+	local choreResource = NewClass("class ChoreResource", 0)
+	choreResource.Serialiser = "SerialiseChoreResourceBone1"
+	choreResource.Flags = kMetaClassAttachable
 	choreResource.Members[1] = NewMember("mResName", kMetaClassString)
 	choreResource.Members[2] = NewMember("mResLength", kMetaFloat)
 	choreResource.Members[3] = NewMember("mPriority", kMetaInt)
@@ -805,19 +856,22 @@ function RegisterBone100(vendor, platform)
 	arrayChoreAgent, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreAgent>", nil, choreAgent)
 	arrayChoreResource, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreResource>", nil, choreResource)
 
-	local chore = NewClass("class Chore", 0) -- TODO custom serialiser
+	local chore = NewClass("class Chore", 0)
 	chore.Extension = "chore"
+	chore.Serialiser = "SerialiseChoreBone1"
 	chore.Members[1] = NewMember("mName", kMetaClassString)
 	chore.Members[2] = NewMember("mbResetNavCamsOnExit", kMetaBool)
 	chore.Members[3] = NewMember("mLength", kMetaFloat)
 	chore.Members[4] = NewMember("mNumResources", kMetaInt)
 	chore.Members[5] = NewMember("mNumAgents", kMetaInt)
-	chore.Members[6] = NewMember("mResources", arrayChoreResource)
-	chore.Members[7] = NewMember("mAgents", arrayChoreAgent)
+	chore.Members[6] = NewMember("mResources", arrayChoreResource) -- WHY? this isnt even used.
+	chore.Members[7] = NewMember("mAgents", arrayChoreAgent) -- AGAIN THEY DONT USE THIS!
 	chore.Members[8] = NewMember("mEditorProps", prop)
 	chore.Members[9] = NewMember("mbChoreBackgroundFade", kMetaBool)
 	chore.Members[10] = NewMember("mbChoreBackgroundLoop", kMetaBool)
 	chore.Members[11] = NewMember("mChoreSceneFile", kMetaClassString)
+	chore.Members[12] = NewMember("_mResources", arrayChoreResource, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	chore.Members[13] = NewMember("_mAgents", arrayChoreAgent, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	MetaRegisterClass(chore)
 	MetaAssociateFolderExtension("BN100", "*.chore", "Chores/")
 	MetaAssociateFolderExtension("BN100", "dlg_*.chore", "Chores/Dialog/")

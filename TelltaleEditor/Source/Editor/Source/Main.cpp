@@ -149,6 +149,6 @@ static void LoadAll(CString mask)
 
 int main()
 {
-    LoadAll("*.anm");
+    LoadAll("*.style");
     return 0;
 }

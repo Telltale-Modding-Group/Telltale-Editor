@@ -3,14 +3,14 @@
 function SerialiseVoxBone1(stream, instance, write)
     if not MetaSerialiseDefault(stream, instance, write) then return false end
 
-    bEncrypted = not write
-    encMember = MetaGetMember(instance, "mbEncrypted")
-    if bEncrypted and not encMember == nil then
+    local bEncrypted = not write
+    local encMember = MetaGetMember(instance, "mbEncrypted")
+    if bEncrypted and encMember then
         bEncrypted = MetaGetClassValue(encMember)
     end
 
-    data = MetaGetMember(instance, "_mPacketData")
-    dataSize = MetaGetClassValue(MetaGetMember(instance, "mAllPacketsSize"))
+    local data = MetaGetMember(instance, "_mPacketData")
+    local dataSize = MetaGetClassValue(MetaGetMember(instance, "mAllPacketsSize"))
 
     if write then
         TTE_Assert(dataSize == MetaGetBufferSize(data), "Voice data not correctly updated. Buffer needs updating")
@@ -29,11 +29,11 @@ function SerialiseAudBone1(stream, instance, write)
 
     if write then
 
-        nChannels = MetaGetClassValue(MetaGetMember(instance, "_mNumChannels"))
-        sampleSize = MetaGetClassValue(MetaGetMember(instance, "_mSampleSizeBytes"))
-        bytesPerSecond = MetaGetClassValue(MetaGetMember(instance, "mBytesPerSecond"))
+        local nChannels = MetaGetClassValue(MetaGetMember(instance, "_mNumChannels"))
+        local sampleSize = MetaGetClassValue(MetaGetMember(instance, "_mSampleSizeBytes"))
+        local bytesPerSecond = MetaGetClassValue(MetaGetMember(instance, "mBytesPerSecond"))
 
-        MetaStreamWriteShort(stream, MetaGetClassValue(MetaGetMember(instance, "_mNumChannels")))
+        MetaStreamWriteShort(stream, nChannels)
         MetaStreamWriteShort(stream, (sampleSize * 8) / nChannels)
         MetaStreamWriteInt(stream, (bytesPerSecond / nChannels) / sampleSize) -- sample rate
         MetaStreamWriteInt(stream, bytesPerSecond)
@@ -46,14 +46,14 @@ function SerialiseAudBone1(stream, instance, write)
 
     else
 
-        nChannels = MetaStreamReadShort(stream)
-        bitDepth = MetaStreamReadShort(stream)
-        sampleRate  = MetaStreamReadInt(stream)
-        bytesPerSecond = MetaStreamReadInt(stream)
-        sampleSizeBytes = MetaStreamReadShort(stream) -- size of one sample
-        always1 = MetaStreamReadShort(stream)
-        always328160 = MetaStreamReadInt(stream)
-        bytesPerSecondCopy = MetaStreamReadInt(stream)
+        local nChannels = MetaStreamReadShort(stream)
+        local bitDepth = MetaStreamReadShort(stream)
+        local sampleRate  = MetaStreamReadInt(stream)
+        local bytesPerSecond = MetaStreamReadInt(stream)
+        local sampleSizeBytes = MetaStreamReadShort(stream) -- size of one sample
+        local always1 = MetaStreamReadShort(stream)
+        local always328160 = MetaStreamReadInt(stream)
+        local bytesPerSecondCopy = MetaStreamReadInt(stream)
 
         TTE_Assert(always1 == 1 and always328160 == 328160 and bytesPerSecond == bytesPerSecondCopy, "AudioData needs checking! Send this file to us")
 
