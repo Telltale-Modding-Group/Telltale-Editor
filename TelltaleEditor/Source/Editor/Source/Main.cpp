@@ -41,11 +41,10 @@ static void RunRender()
             registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone");
             registry->PrintLocations();
             
+            // Attach registry to context
             context.AttachResourceRegistry(registry);
             
-            // Loading and previewing a mesh example
-            
-            // test preload all textures
+            // preload all textures
             std::set<String> tex{};
             StringMask m("*.d3dtx");
             registry->GetResourceNames(tex, &m);
@@ -55,26 +54,8 @@ static void RunRender()
                 auto& handle = handles.emplace_back();
                 handle.SetObject<RenderTexture>(registry, t, false, false);
             }
-            U32 preload = registry->Preload(std::move(handles));
+            U32 preload = registry->Preload(std::move(handles), false);
             registry->WaitPreload(preload);
-            
-            // load all textures.
-            /*std::set<String> tex{};
-             StringMask m("*.d3dtx");
-             registry->GetResourceNames(tex, &m);
-             std::vector<Ptr<RenderTexture>> loadedTextures{};
-             for(auto& t: tex)
-             {
-             auto s = registry->FindResource(t);
-             Meta::ClassInstance textureInstance{};
-             if( (textureInstance = Meta::ReadMetaStream(t, s)) )
-             {
-             Ptr<RenderTexture> tex = TTE_NEW_PTR(RenderTexture, MEMORY_TAG_TEMPORARY);
-             loadedTextures.push_back(tex);
-             editor.EnqueueNormaliseTextureTask(textureInstance, tex);
-             }
-             else TTE_LOG("Failed %s", t.c_str());
-             }*/
             
             // 1. load a mesh
             DataStreamRef stream = registry->FindResource("adv_forestWaterfall.d3dmesh");
@@ -87,7 +68,7 @@ static void RunRender()
             types.Set(SceneModuleType::RENDERABLE, true);
             scene.AddAgent("Mesh Test Agent", types);
             
-            // 3. normalise the mesh above into the scene agent 'Icon' in the scene, from telltale specific to the common format
+            // 3. normalise the mesh above in the scene, from telltale specific to the common format
             editor.EnqueueNormaliseMeshTask(&scene, "Mesh Test Agent", std::move(inst));
             editor.Wait();
             

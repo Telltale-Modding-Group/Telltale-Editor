@@ -12,6 +12,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <filesystem>
+#include <mutex>
 
 // =================================================================== LIBRARY CONFIGURATION
 // ===================================================================

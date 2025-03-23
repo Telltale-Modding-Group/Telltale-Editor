@@ -140,7 +140,7 @@ class Handle : protected HandleBase
     }
     
 public:
-
+    
     inline Handle() : Handle(Symbol(), &AllocateCommon<T>) {}
     
     // Gets the underlying resouce. The resource will always be valid but may not be loaded. You can use other functionality to ensure its loaded.
@@ -641,8 +641,14 @@ struct ResourceConcreteLocation : ResourceLocation
 struct AsyncResourcePreloadBatchJob // async serialise and normalises
 {
     
+    enum Flag
+    {
+        BATCH_HIGH_PRIORITY = 1, // overwrite existing resources
+    };
+    
     Ptr<ResourceRegistry> Registry;
     U32 NumResources = 0; // 0 to 32 below
+    Flags BatchFlags;
     HandleObjectInfo HOI[STATIC_PRELOAD_BATCH_SIZE];
     CommonInstanceAllocator* Allocators[STATIC_PRELOAD_BATCH_SIZE];
     
@@ -650,7 +656,7 @@ struct AsyncResourcePreloadBatchJob // async serialise and normalises
 
 struct PreloadBatchJobRef // internal waitable batch job ref
 {
-  
+    
     U32 PreloadOffset;
     JobHandle Handle;
     
@@ -918,7 +924,8 @@ public:
     
     // Sets a set of resources to be loaded, which will be loaded async.
     // The handles should have been set with the resource names but not loaded, ie SetObject with the booleans all false.
-    U32 Preload(std::vector<HandleBase>&& resourceHandles);
+    // Set overwrite to true to overwrite any existing resources which may be loaded when inserting.
+    U32 Preload(std::vector<HandleBase>&& resourceHandles, Bool bOverwrite);
     
     // Preload offset. If bigger or equal to a return value of a previous Preload(), you can ensure all of those handles have loaded.
     U32 GetPreloadOffset();

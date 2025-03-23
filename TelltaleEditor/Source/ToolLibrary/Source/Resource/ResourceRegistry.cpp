@@ -1915,6 +1915,10 @@ static Bool _PerformHandleNormalise(HandleObjectInfo& handle)
             handle._Handle->FinaliseNormalisationAsync();
         }
     }
+    
+    // remove instance, not needed
+    handle._Instance = {};
+    
     handle._Flags.Add(HandleFlags::LOADED);
     handle._Flags.Remove(HandleFlags::NEEDS_NORMALISATION);
     return res;
@@ -2329,12 +2333,15 @@ U32 ResourceRegistry::GetPreloadOffset()
     return _PreloadOffset;
 }
 
-U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles)
+U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles, Bool bOverwrite)
 {
     SCOPE_LOCK();
     U32 numBatches = (U32)resourceHandles.size() / STATIC_PRELOAD_BATCH_SIZE;
     U32 remBatchNumResources = (U32)resourceHandles.size() % STATIC_PRELOAD_BATCH_SIZE;
     _PreloadJobs.reserve(_PreloadJobs.size() + numBatches + 1);
+    _PreloadSize += numBatches;
+    if(remBatchNumResources)
+        _PreloadSize++;
     for(U32 i = 0; i <= numBatches; i++)
     {
         U32 numResources = i == numBatches ? remBatchNumResources : STATIC_PRELOAD_BATCH_SIZE;
@@ -2342,6 +2349,8 @@ U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles)
             break;
         AsyncResourcePreloadBatchJob* pJob = TTE_NEW(AsyncResourcePreloadBatchJob, MEMORY_TAG_TEMPORARY_ASYNC);
         pJob->Registry = shared_from_this();
+        if(bOverwrite)
+            pJob->BatchFlags.Add(AsyncResourcePreloadBatchJob::BATCH_HIGH_PRIORITY);
         pJob->NumResources = numResources;
         for(U32 j = 0; j < numResources; j++)
         {
@@ -2359,7 +2368,7 @@ U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles)
         
         PreloadBatchJobRef ref{};
         ref.Handle = JobScheduler::Instance->Post(J);
-        ref.PreloadOffset = _PreloadSize++;
+        ref.PreloadOffset = _PreloadSize; // all the same
         _PreloadJobs.push_back(std::move(ref));
     }
     return _PreloadSize;
@@ -2399,6 +2408,7 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
                 // Normalise
                 job->HOI[i]._Handle = job->Allocators[i]();
                 bFail = !_PerformHandleNormalise(job->HOI[i]);
+                job->HOI[i]._Instance = {}; // ignore instance, not needed
             }
         }else bFail = true;
         
@@ -2418,29 +2428,53 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
         {
             if(job->HOI[i]._Flags.Test(HandleFlags::LOADED))
             {
+                
                 HandleObjectInfo proxy{};
                 proxy._ResourceName = job->HOI[i]._ResourceName;
-                auto iter = job->Registry->_AliveHandles.lower_bound(proxy);
-                if(iter != job->Registry->_AliveHandles.end() && iter->_ResourceName == proxy._ResourceName)
+                if(job->BatchFlags.Test(AsyncResourcePreloadBatchJob::BATCH_HIGH_PRIORITY))
                 {
-                    // erase
-                    job->Registry->_AliveHandles.erase(iter);
+                    auto iter = job->Registry->_AliveHandles.lower_bound(proxy);
+                    if(iter != job->Registry->_AliveHandles.end() && iter->_ResourceName == proxy._ResourceName)
+                    {
+                        // erase
+                        job->Registry->_AliveHandles.erase(iter);
+                    }
+                    else
+                    {
+                        // might be in dirty. check and if so then unload it
+                        for(auto it = job->Registry->_DirtyHandles.begin(); it != job->Registry->_DirtyHandles.end(); it++)
+                        {
+                            if(it->_ResourceName == job->HOI[i]._ResourceName)
+                            {
+                                it->_Flags.Add(HandleFlags::NEEDS_DESTROY);
+                                job->Registry->_ProcessDirtyHandle(std::move(*it), lck);
+                                job->Registry->_DirtyHandles.erase(it);
+                                break;
+                            }
+                        }
+                    }
+                    job->Registry->_AliveHandles.insert(std::move(job->HOI[i]));
                 }
                 else
                 {
-                    // might be in dirty. check and if so then unload it
-                    for(auto it = job->Registry->_DirtyHandles.begin(); it != job->Registry->_DirtyHandles.end(); it++)
+                    // if it exists, dont bother.
+                    auto iter = job->Registry->_AliveHandles.lower_bound(proxy);
+                    if(iter == job->Registry->_AliveHandles.end() || iter->_ResourceName != proxy._ResourceName)
                     {
-                        if(it->_ResourceName == job->HOI[i]._ResourceName)
+                        Bool bFound = false;
+                        // might be in dirty. check and if so then unload it
+                        for(auto it = job->Registry->_DirtyHandles.begin(); it != job->Registry->_DirtyHandles.end(); it++)
                         {
-                            it->_Flags.Add(HandleFlags::NEEDS_DESTROY);
-                            job->Registry->_ProcessDirtyHandle(std::move(*it), lck);
-                            job->Registry->_DirtyHandles.erase(it);
-                            break;
+                            if(it->_ResourceName == job->HOI[i]._ResourceName)
+                            {
+                                bFound = true;
+                                break;
+                            }
                         }
-                    }
+                        if(!bFound)
+                            job->Registry->_AliveHandles.insert(std::move(job->HOI[i]));
+                    } // else it exists
                 }
-                job->Registry->_AliveHandles.insert(std::move(job->HOI[i]));
             }
         }
         job->Registry->_PreloadOffset++;
@@ -2490,7 +2524,7 @@ void ResourceRegistry::Update(Float budget)
         SCOPE_LOCK();
         _ProcessDirtyHandles(budget, start, lck);
     }
-
+    
 }
 
 void ResourceRegistry::WaitPreload(U32 preloadOffset)
