@@ -116,9 +116,9 @@ public:
     // Gets the world matrix. INTERNAL
     inline Matrix4& GetWorldMatrix()
     {
-	    if (_BWorldTransformDirty)
-    	    _UpdateCachedTransform();
-	    return _CachedWorldMatrix;
+        if (_BWorldTransformDirty)
+            _UpdateCachedTransform();
+        return _CachedWorldMatrix;
     }
     
 public:
@@ -233,7 +233,7 @@ public:
         v.y = (((float)_ScreenHeight * 0.5f) - (v.y * tmp)) / (float)_ScreenHeight;
         return v;
     }
-
+    
     // At the near clip. See other overload.
     inline Vector3 ScreenPosToViewportPos(int sx, int sy)
     {
@@ -267,7 +267,7 @@ public:
         // Return the final transformed position
         return worldPos + Vector3(worldmat._Entries[3][0], worldmat._Entries[3][1], worldmat._Entries[3][2]);
     }
-
+    
     // Determines if a sphere is visible, after transforming it by the given transform. Optionally specify a rendering scale.
     inline Bool Visible(const Sphere& sphere, const Transform& sphere_xform, const Vector3& renderScale)
     {
@@ -347,7 +347,7 @@ public:
         // If screen size is not valid, return a default forward direction
         return Vector3::Forward;
     }
-
+    
     
     // Updates the internally cached world matrix
     inline void _UpdateCachedTransform()
@@ -366,20 +366,20 @@ public:
     // Get the view matrix
     inline Matrix4 GetViewMatrix()
     {
-	    if(_BViewMatrixDirty){
-    	    if (_BWorldTransformDirty)
-	    	    _UpdateCachedTransform();
-    	    
-    	    Vector3 Eye = Vector3(_CachedWorldMatrix.GetRow(3));  // Extract camera position
-    	    Vector3 ForwardDir = Vector3(_CachedWorldMatrix.GetRow(2));  // Third row is forward in row-major
-    	    Vector3 At = Eye + ForwardDir;
-    	    
-    	    _CachedViewMatrix = Matrix4::LookAt(Eye, At, Up());
-    	    _BViewMatrixDirty = false;
-	    }
-	    return _CachedViewMatrix;
+        if(_BViewMatrixDirty){
+            if (_BWorldTransformDirty)
+                _UpdateCachedTransform();
+            
+            Vector3 Eye = Vector3(_CachedWorldMatrix.GetRow(3));  // Extract camera position
+            Vector3 ForwardDir = Vector3(_CachedWorldMatrix.GetRow(2));  // Third row is forward in row-major
+            Vector3 At = Eye + ForwardDir;
+            
+            _CachedViewMatrix = Matrix4::LookAt(Eye, At, Up());
+            _BViewMatrixDirty = false;
+        }
+        return _CachedViewMatrix;
     }
-
+    
     
     // Return true if depth is inverted
     inline bool IsInvertedDepth() const
@@ -413,8 +413,8 @@ public:
     // Calculate and set aspect ratio as ration of screen width and height
     inline void SetAspectRatio()
     {
-	    _AspectRatio = (float)_ScreenWidth / (float)_ScreenHeight;
-	    _BProjectionMatrixDirty = true;
+        _AspectRatio = (float)_ScreenWidth / (float)_ScreenHeight;
+        _BProjectionMatrixDirty = true;
     }
     
     // Call when the camera agent transform has been modified
@@ -438,26 +438,26 @@ public:
     // Make the camera look at the given position (make it the center of the screen)
     inline void LookAt(const Vector3& worldAt)
     {
-	    if (_BWorldTransformDirty)
-    	    _UpdateCachedTransform();
-	    
-	    // Extract translation from row-major matrix (position is stored in row 3)
-	    Vector3 Translation = Vector3(_CachedWorldMatrix.GetRow(3));
-	    
-	    // Compute new forward direction
-	    Vector3 normalDir = worldAt - Translation;
-	    normalDir.Normalize();
-	    
-	    // Convert forward direction to quaternion
-	    Quaternion Rotation = Quaternion(normalDir);
-	    
-	    _CachedWorldMatrix = MatrixTransformation(Rotation, Translation);
-	    
-	    _BFrustumDirty = true;
-	    _BViewMatrixDirty = true;
-	    _BWorldTransformDirty = false;
+        if (_BWorldTransformDirty)
+            _UpdateCachedTransform();
+        
+        // Extract translation from row-major matrix (position is stored in row 3)
+        Vector3 Translation = Vector3(_CachedWorldMatrix.GetRow(3));
+        
+        // Compute new forward direction
+        Vector3 normalDir = worldAt - Translation;
+        normalDir.Normalize();
+        
+        // Convert forward direction to quaternion
+        Quaternion Rotation = Quaternion(normalDir);
+        
+        _CachedWorldMatrix = MatrixTransformation(Rotation, Translation);
+        
+        _BFrustumDirty = true;
+        _BViewMatrixDirty = true;
+        _BWorldTransformDirty = false;
     }
-
+    
     
     // Make the camera look at the given position, worldAt, given the worldEye position where you want the camera.
     inline void LookAt(const Vector3& worldEye, const Vector3& worldAt)
@@ -469,7 +469,7 @@ public:
         _BFrustumDirty = true;
         _BViewMatrixDirty = true;
     }
-
+    
     // Manually set the view matrix
     inline void SetViewMatrix(const Matrix4& lhs)
     {
@@ -489,24 +489,24 @@ public:
     
     // Set the position of the camera in row-major order
     inline void SetWorldPosition(const Vector3& position){
-	    _CachedWorldMatrix.SetRow(3, Vector4(position, 1.0f)); // Store translation in the last row
-	    _BFrustumDirty = _BViewMatrixDirty = true;
-	    _BWorldTransformDirty = false;
+        _CachedWorldMatrix.SetRow(3, Vector4(position, 1.0f)); // Store translation in the last row
+        _BFrustumDirty = _BViewMatrixDirty = true;
+        _BWorldTransformDirty = false;
     }
     
     // Set the camera's rotation in row-major order
     inline void SetWorldQuaternion(const Quaternion& quat){
-	    if (_BWorldTransformDirty)
-    	    _UpdateCachedTransform();
-	    
-	    // Extract current translation from row-major matrix (last row)
-	    Vector3 position = Vector3(_CachedWorldMatrix.GetRow(3));
-	    
-	    // Apply new rotation while keeping the translation
-	    _CachedWorldMatrix = MatrixTransformation(quat, position);
-	    
-	    _BFrustumDirty = _BViewMatrixDirty = true;
-	    _BWorldTransformDirty = false;
+        if (_BWorldTransformDirty)
+            _UpdateCachedTransform();
+        
+        // Extract current translation from row-major matrix (last row)
+        Vector3 position = Vector3(_CachedWorldMatrix.GetRow(3));
+        
+        // Apply new rotation while keeping the translation
+        _CachedWorldMatrix = MatrixTransformation(quat, position);
+        
+        _BFrustumDirty = _BViewMatrixDirty = true;
+        _BWorldTransformDirty = false;
     }
     
     // Set the transform of the camera, its rotation and translation
@@ -873,7 +873,7 @@ public:
     
     // Get the depth of field parameters into the output argument references
     inline void GetDOFParameters(float& outDOFFar, float& outDOFNear, float& outDOFFarRamp,
-            float& outDOFNearRamp, float& outDOFFarMax, float& outDOFNearMax, float& outDOFDebug, float& outCoverageBoost)
+                                 float& outDOFNearRamp, float& outDOFFarMax, float& outDOFNearMax, float& outDOFDebug, float& outCoverageBoost)
     {
         outDOFFar = this->_DOFFar;
         outDOFNear = this->_DOFNear;

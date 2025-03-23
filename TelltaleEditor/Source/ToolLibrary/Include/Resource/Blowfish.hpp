@@ -38,7 +38,7 @@ public:
         U32 _DoRounds(U32);
         
     };
-  
+    
 private:
     
     Bool _Modified; // use modified version of the encryption. endian swap on index 118 and some other changes. (newer games)

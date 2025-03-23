@@ -63,20 +63,20 @@ inline void LogConsole(const char* Msg, ...) {
 
 // First argument is expression to test, second is format string (optional) then optional format string arguments
 #define TTE_ASSERT(EXPR, ...)                                                                                                                        \
-    if (!(EXPR))                                                                                                                                     \
-    {                                                                                                                                                \
-        TTE_LOG(__VA_ARGS__);                                                                                                                    \
-        DebugBreakpoint();                                                                                                                           \
-    }
+if (!(EXPR))                                                                                                                                     \
+{                                                                                                                                                \
+TTE_LOG(__VA_ARGS__);                                                                                                                    \
+DebugBreakpoint();                                                                                                                           \
+}
 
 #else
 
 // In RELEASE, don't ignore but do LOG them.
 #define TTE_ASSERT(EXPR, ...) \
-    if (!(EXPR))  \
-    { \
-        TTE_LOG(__VA_ARGS__); \
-    }
+if (!(EXPR))  \
+{ \
+TTE_LOG(__VA_ARGS__); \
+}
 
 #endif
 
@@ -189,11 +189,11 @@ inline void NullDeleter(void*) {} // Useful in shared pointer, in which nothing 
 // Helper class. std::priority_queue normally does not let us access by finding elements. Little hack to bypass and get internal vector container.
 template <typename T> class hacked_priority_queue : public std::priority_queue<T>
 { // Not applying library convention, see this as an 'extension' to std::
-  public:
+public:
     std::vector<T> &get_container() { return this->c; }
-
+    
     const std::vector<T> &get_container() const { return this->c; }
-
+    
     auto get_cmp() { return this->comp; }
 };
 
@@ -254,7 +254,7 @@ inline void DestroyObject(T& val)
 inline U64 GetTimeStamp()
 {
     return std::chrono::duration_cast<std::chrono::microseconds>(
-	    	    	    std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+                                                                 std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
 // Gets the time difference in *seconds* between start and end.
@@ -267,13 +267,13 @@ inline String GetFormatedTime(Float secs) {
     std::ostringstream stream;
     
     if (secs >= 1.0f)
-	    stream << std::fixed << std::setprecision(3) << secs << " s";
+        stream << std::fixed << std::setprecision(3) << secs << " s";
     else if (secs >= 0.001f)
-	    stream << std::fixed << std::setprecision(3) << secs * 1000.0f << " ms";
+        stream << std::fixed << std::setprecision(3) << secs * 1000.0f << " ms";
     else if (secs >= 0.000001f)
-	    stream << std::fixed << std::setprecision(3) << secs * 1000000.0f << " µs";
+        stream << std::fixed << std::setprecision(3) << secs * 1000000.0f << " µs";
     else
-	    stream << std::fixed << std::setprecision(3) << secs * 1000000000.0f << " ns";
+        stream << std::fixed << std::setprecision(3) << secs * 1000000000.0f << " ns";
     
     return stream.str();
 }
@@ -338,7 +338,7 @@ void _DebugDeallocateTracked(U8* Ptr);
 #define TTE_FREE(ptr) _DebugDeallocateTracked((U8*)ptr)
 
 #define TTE_NEW(_Type, _MemoryTag, ...) new (_DebugAllocateTracked(sizeof(_Type), _MemoryTag, (CString)  \
-                                        __FILE__, (U32) __LINE__, #_Type)) _Type(__VA_ARGS__)
+__FILE__, (U32) __LINE__, #_Type)) _Type(__VA_ARGS__)
 
 #define TTE_DEL(_Inst) { if(_Inst) { DestroyObject(*_Inst); TTE_FREE((U8*)_Inst); } }
 

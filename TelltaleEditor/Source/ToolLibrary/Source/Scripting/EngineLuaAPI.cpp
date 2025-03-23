@@ -79,7 +79,7 @@ static U32 luaContainerGetElement(LuaManager& man)
             man.PushNil();
             return 1;
         }
-	    collection.PushTransientScriptRef(man, (U32)index, false, inst.ObtainParentRef());
+        collection.PushTransientScriptRef(man, (U32)index, false, inst.ObtainParentRef());
     }
     else
     {
@@ -121,13 +121,13 @@ static U32 luaContainerEmplaceElement(LuaManager& man)
     
     if(inst && IsCollection(inst))
     {
-	    ClassInstanceCollection& collection = CastToCollection(inst);
-	    collection.PushValue({}, false); // move it
-	    collection.PushTransientScriptRef(man, collection.GetSize() - 1, false, inst.ObtainParentRef());
+        ClassInstanceCollection& collection = CastToCollection(inst);
+        collection.PushValue({}, false); // move it
+        collection.PushTransientScriptRef(man, collection.GetSize() - 1, false, inst.ObtainParentRef());
     }
     else
     {
-	    TTE_LOG("At ContainerEmplaceElement: container was null or invalid");
+        TTE_LOG("At ContainerEmplaceElement: container was null or invalid");
     }
     
     return 1;

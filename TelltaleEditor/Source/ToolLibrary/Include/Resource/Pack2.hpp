@@ -38,13 +38,13 @@ public:
     // Clears everything and releases.
     inline void Reset()
     {
-	    
+        
     }
     
 private:
     
     void _GatherFiles(String folderName, DataStreamRef& cached, Meta::ClassInstance folder);
-
+    
     friend class RegistryDirectory_GamePack2;
     
     struct File

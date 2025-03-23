@@ -17,7 +17,7 @@ extern thread_local bool _IsMain;
 
 namespace Meta
 {
- 
+    
     // access meta.cpp
     extern InternalState State;
     
@@ -93,11 +93,11 @@ namespace Meta
             reg.Name = ScriptManager::PopString(man);
             ScriptManager::TableGet(man, "ID");
             reg.ID = ScriptManager::PopString(man);
-    	    ScriptManager::TableGet(man, "ResourceSetMask");
-    	    if(man.Type(-1) == LuaType::STRING)
-	    	    reg.ResourceSetDescMask = ScriptManager::PopString(man);
-    	    else
-	    	    man.Pop(1);
+            ScriptManager::TableGet(man, "ResourceSetMask");
+            if(man.Type(-1) == LuaType::STRING)
+                reg.ResourceSetDescMask = ScriptManager::PopString(man);
+            else
+                man.Pop(1);
             ScriptManager::TableGet(man, "IsArchive2");
             if(ScriptManager::PopBool(man))
                 reg.Fl.Add(RegGame::ARCHIVE2);
@@ -243,7 +243,7 @@ namespace Meta
                 return s;
             return "Symbol<" + SymbolToHexString(hash) + ">";
         }
-
+        
         // MetaRegisterIntrinsics()
         U32 luaMetaRegisterIntrinsics(LuaManager& man)
         {
@@ -551,24 +551,24 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.PushInteger(0);
                 man.SetTable(-3);
             }
-    	    
+            
             ScriptManager::TableGet(man, "Serialiser");
             if(man.Type(-1) == LuaType::STRING)
                 c.SerialiseScriptFn = ScriptManager::PopString(man);
             else
                 man.Pop(1);
-    	    
-    	    ScriptManager::TableGet(man, "Normaliser");
-    	    if(man.Type(-1) == LuaType::STRING)
-	    	    c.NormaliserStringFn = ScriptManager::PopString(man);
-    	    else
-	    	    man.Pop(1);
-    	    
-    	    ScriptManager::TableGet(man, "Specialiser");
-    	    if(man.Type(-1) == LuaType::STRING)
-	    	    c.SpecialiserStringFn = ScriptManager::PopString(man);
-    	    else
-	    	    man.Pop(1);
+            
+            ScriptManager::TableGet(man, "Normaliser");
+            if(man.Type(-1) == LuaType::STRING)
+                c.NormaliserStringFn = ScriptManager::PopString(man);
+            else
+                man.Pop(1);
+            
+            ScriptManager::TableGet(man, "Specialiser");
+            if(man.Type(-1) == LuaType::STRING)
+                c.SpecialiserStringFn = ScriptManager::PopString(man);
+            else
+                man.Pop(1);
             
             if(!luaHelperRegisterMembers(c, man))
                 return 0;
@@ -674,7 +674,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 }
                 def.KeyType = std::move(val);
             }
-    
+            
             
             if(man.Type(3) == LuaType::STRING) // defer it
             {
@@ -698,7 +698,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             {
                 TTE_ASSERT(false, "When registering collection, value type table not registered properly");
             }
-  
+            
             U32 id = _Impl::_Register(man, std::move(c), 1);
             
             man.PushLString("__MetaId");
@@ -934,7 +934,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             I32 ver = man.ToInteger(-2);
             U32 cls = FindClass(Symbol(tn), (U32)ver);
             String mem = man.ToString(-1);
-        
+            
             if(cls == 0)
             {
                 _HandleClassNotFound(tn, ver);
@@ -1123,7 +1123,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 else
                 {
                     TTE_LOG("Warning: trying to assign to non-intrinsic type %s from lua script! Ignoring",
-    	    	    	    State.Classes[inst.GetClassID()].Name.c_str());
+                            State.Classes[inst.GetClassID()].Name.c_str());
                 }
             }
             return 0;
@@ -1197,7 +1197,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                     }
                 }
                 else man.PushNil();
-    	    }else man.PushNil();
+            }else man.PushNil();
             return 1;
         }
         
@@ -1221,7 +1221,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             }
             else
             {
-	    	    String v = man.ToString(-1);
+                String v = man.ToString(-1);
                 TTE_LOG("MetaGetMember(%s) called with invalid instance. Returning nil", v.c_str());
                 man.PushNil();
             }
@@ -1258,16 +1258,16 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.PushNil();
                 return 1;
             }
-    	    
-    	    if(!IsAttachable(attach))
-    	    {
-	    	    TTE_ASSERT(false, "This class cannot have attached to it");
-	    	    man.PushNil();
-	    	    return 1;
-    	    }
+            
+            if(!IsAttachable(attach))
+            {
+                TTE_ASSERT(false, "This class cannot have attached to it");
+                man.PushNil();
+                return 1;
+            }
             
             ClassInstance cinst = CreateInstance(cls, attach, name);
-    	    cinst.PushWeakScriptRef(man, attach.ObtainParentRef());
+            cinst.PushWeakScriptRef(man, attach.ObtainParentRef());
             
             return 1;
         }
@@ -1307,9 +1307,9 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.PushBool(false);
                 return 1;
             }
-             
+            
             man.PushBool(_Impl::_DefaultSerialise(*stream,
-                            inst, &State.Classes[inst.GetClassID()], inst._GetInternal(), isWrite, nullptr)); // perform it
+                                                  inst, &State.Classes[inst.GetClassID()], inst._GetInternal(), isWrite, nullptr)); // perform it
             
             return 1;
         }
@@ -1331,7 +1331,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             }
             
             man.PushBool(_Impl::_Serialise(*stream,
-                            inst, &State.Classes[inst.GetClassID()], inst._GetInternal(), isWrite, name.c_str())); // perform it
+                                           inst, &State.Classes[inst.GetClassID()], inst._GetInternal(), isWrite, name.c_str())); // perform it
             
             return 1;
         }
@@ -1361,16 +1361,16 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
         static U32 luaMetaGetChildrenCount(LuaManager& man)
         {
             TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaGetChildrenCount");
-    	    
-    	    ClassInstance inst = AcquireScriptInstance(man, -1);
-    	    
-    	    if(!IsAttachable(inst))
-    	    {
-	    	    TTE_ASSERT("At MetaGetChildrenNames: class cannot have children (not attachable)");
-	    	    man.PushNil();
-	    	    return 1;
-    	    }
-    	    
+            
+            ClassInstance inst = AcquireScriptInstance(man, -1);
+            
+            if(!IsAttachable(inst))
+            {
+                TTE_ASSERT("At MetaGetChildrenNames: class cannot have children (not attachable)");
+                man.PushNil();
+                return 1;
+            }
+            
             man.PushInteger((I32)inst._GetInternalChildrenRefs()->size());
             return 1;
         }
@@ -1386,20 +1386,20 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.PushNil();
                 return 1;
             }
-    	    if(!IsAttachable(inst))
-    	    {
-	    	    TTE_ASSERT("At MetaGetChildrenNames: class cannot have children (not attachable)");
-	    	    man.PushNil();
-	    	    return 1;
-    	    }
+            if(!IsAttachable(inst))
+            {
+                TTE_ASSERT("At MetaGetChildrenNames: class cannot have children (not attachable)");
+                man.PushNil();
+                return 1;
+            }
             man.PushNil();
-    	    I32 i = 0;
+            I32 i = 0;
             auto refs = inst._GetInternalChildrenRefs();
             for(auto pair = refs->begin(); pair != refs->end(); pair++)
             {
-	    	    man.PushInteger(++i);
-	    	    ScriptManager::PushSymbol(man, pair->first);
-	    	    man.SetTable(-3);
+                man.PushInteger(++i);
+                ScriptManager::PushSymbol(man, pair->first);
+                man.SetTable(-3);
             }
             return 1;
         }
@@ -1416,12 +1416,12 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 TTE_ASSERT("At MetaReleaseChild: null instance passed in");
                 return 0;
             }
-    	    if(!IsAttachable(inst))
-    	    {
-	    	    TTE_ASSERT("At MetaReleaseChild: class is not attachable");
-	    	    man.PushNil();
-	    	    return 1;
-    	    }
+            if(!IsAttachable(inst))
+            {
+                TTE_ASSERT("At MetaReleaseChild: class is not attachable");
+                man.PushNil();
+                return 1;
+            }
             
             Symbol n = ScriptManager::ToSymbol(man, -1);
             
@@ -1429,9 +1429,9 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             auto children = inst._GetInternalChildrenRefs();
             auto it = children->find(n);
             if(it != children->end())
-    	    {
-	    	    children->erase(it);
-    	    }
+            {
+                children->erase(it);
+            }
             
             return 0;
         }
@@ -1449,21 +1449,21 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.PushNil();
                 return 1;
             }
-    	    if(!IsAttachable(inst))
-    	    {
-	    	    TTE_ASSERT("At MetaGetChild: class cannot have children (not attachable)");
-	    	    man.PushNil();
-	    	    return 1;
-    	    }
+            if(!IsAttachable(inst))
+            {
+                TTE_ASSERT("At MetaGetChild: class cannot have children (not attachable)");
+                man.PushNil();
+                return 1;
+            }
             
             auto it = inst._GetInternalChildrenRefs()->find(n);
             
             if(it == inst._GetInternalChildrenRefs()->end())
                 man.PushNil();
             else
-    	    {
-	    	    it->second.PushWeakScriptRef(man, inst.ObtainParentRef());
-    	    }
+            {
+                it->second.PushWeakScriptRef(man, inst.ObtainParentRef());
+            }
             
             return 1;
         }
@@ -1576,17 +1576,17 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
 
 namespace MS
 {
-
+    
     // async stuff isnt implemented BUT BEWARE WAITING FROM A JOB MAYBE DEADLOCK
     static U32 luaMetaStreamAsyncSerialiseEnabled(LuaManager& man)
     {
-	    TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaStreamAsyncSerialiseEnabled");
-	    
-	    Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
-	    
-	    man.PushBool(stream.DebugOutputFile.get() == nullptr); // if no debug file, we can async do stuff
-	    
-	    return 1;
+        TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaStreamAsyncSerialiseEnabled");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
+        
+        man.PushBool(stream.DebugOutputFile.get() == nullptr); // if no debug file, we can async do stuff
+        
+        return 1;
     }
     
     static U32 luaMetaStreamReadFloat(LuaManager& man)
@@ -1644,29 +1644,29 @@ namespace MS
     
     static U32 luaMetaStreamReadBool(LuaManager& man)
     {
-	    TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaStreamRead");
-	    
-	    Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
-	    I8 val{};
-	    ::Meta::ClassInstance e{}; // empty
-	    SerialiseU8(stream, e, 0, &val, false);
-	    
-	    man.PushBool(val == (U8)0x31);
-	    
-	    return 1;
+        TTE_ASSERT(man.GetTop() == 1, "Incorrect usage of MetaStreamRead");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-1));
+        I8 val{};
+        ::Meta::ClassInstance e{}; // empty
+        SerialiseU8(stream, e, 0, &val, false);
+        
+        man.PushBool(val == (U8)0x31);
+        
+        return 1;
     }
     
     static U32 luaMetaStreamWriteBool(LuaManager& man)
     {
-	    TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaStreamWrite");
-	    
-	    Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
-	    Bool val = ScriptManager::PopBool(man);
-	    I8 wval = val ? (U8)0x31 : (U8)0x30;
-	    ::Meta::ClassInstance e{}; // empty
-	    SerialiseU8(stream, e, 0, &wval, true);
-	    
-	    return 0;
+        TTE_ASSERT(man.GetTop() == 2, "Incorrect usage of MetaStreamWrite");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(-2));
+        Bool val = ScriptManager::PopBool(man);
+        I8 wval = val ? (U8)0x31 : (U8)0x30;
+        ::Meta::ClassInstance e{}; // empty
+        SerialiseU8(stream, e, 0, &wval, true);
+        
+        return 0;
     }
     
     static U32 luaMetaStreamReadByte(LuaManager& man)
@@ -1818,20 +1818,20 @@ namespace MS
         buf.BufferSize = (U32)actualSize;
         
         TTE_ASSERT(stream.Read(Buffer, (U64)actualSize), "Binary buffer read fail - size is likely too large.");
-	    
-	    buf.BufferData = Ptr<U8>(Buffer, [](U8* p){TTE_FREE(p);});
-	    
-	    if(stream.DebugOutputFile)
-	    {
-    	    stream.WriteTabs();
-    	    U32 base64Encoded = MIN(stream.MaxInlinableBuffer, buf.BufferSize);
-    	    String base64 = Base64::Encode(Buffer, base64Encoded);
-    	    stream.DebugOutput << "[BufferData Base64] >> \"" << base64;
-    	    if(base64Encoded != buf.BufferSize)
-	    	    stream.DebugOutput << "...\"\n";
-    	    else
-	    	    stream.DebugOutput << "\"\n";
-	    }
+        
+        buf.BufferData = Ptr<U8>(Buffer, [](U8* p){TTE_FREE(p);});
+        
+        if(stream.DebugOutputFile)
+        {
+            stream.WriteTabs();
+            U32 base64Encoded = MIN(stream.MaxInlinableBuffer, buf.BufferSize);
+            String base64 = Base64::Encode(Buffer, base64Encoded);
+            stream.DebugOutput << "[BufferData Base64] >> \"" << base64;
+            if(base64Encoded != buf.BufferSize)
+                stream.DebugOutput << "...\"\n";
+            else
+                stream.DebugOutput << "\"\n";
+        }
         
         return 0;
     }
@@ -1947,7 +1947,7 @@ namespace MS
         Meta::ClassInstance bufInst = Meta::AcquireScriptInstance(man, -1);
         
         TTE_ASSERT(bufInst, "Invalid buffer");
-
+        
         Meta::BinaryBuffer& buf = *((Meta::BinaryBuffer*)bufInst._GetInternal());
         
         TTE_ASSERT(buf.BufferData && stream.Write(buf.BufferData.get(), (U64)buf.BufferSize), "Binary buffer is null or buffer write fail");
@@ -2239,8 +2239,8 @@ namespace TTE
                 U32 tag = ScriptManager::GetScriptObjectTag(man, 2);
                 if(tag == TTARCHIVE1)
                     r = (ScriptManager::GetScriptObject<TTArchive>(man, 2))->Find(path, nullptr); // open stream
-	    	    else if(tag == TTARCHIVE2)
-    	    	    r = (ScriptManager::GetScriptObject<TTArchive2>(man, 2))->Find(path, nullptr); // open stream
+                else if(tag == TTARCHIVE2)
+                    r = (ScriptManager::GetScriptObject<TTArchive2>(man, 2))->Find(path, nullptr); // open stream
                 else
                 {
                     TTE_LOG("At TTE_OpenMetaStream: invalid argument(s()");
@@ -2253,7 +2253,7 @@ namespace TTE
                 Meta::ClassInstance inst = Meta::ReadMetaStream(path, r);
                 if(inst)
                 {
-    	    	    inst.PushStrongScriptRef(man);
+                    inst.PushStrongScriptRef(man);
                 }
                 else
                 {
@@ -2401,7 +2401,7 @@ namespace TTE
             man.PushNil();
             return 1;
         }
-    
+        
         String path = man.ToString(-1);
         DataStreamRef r = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, path));
         
@@ -2486,12 +2486,12 @@ namespace TTE
     
     static U32 luaAssert(LuaManager& man)
     {
-	    if(man.GetTop() >= 1 && man.Type(1) == LuaType::BOOL)
-	    {
-    	    String reason = man.GetTop() > 1 && man.Type(2) == LuaType::STRING ? man.ToString(2) : "General lua script assertion failed!";
-    	    TTE_ASSERT(man.ToBool(1), reason.c_str());
-	    }
-	    return 0;
+        if(man.GetTop() >= 1 && man.Type(1) == LuaType::BOOL)
+        {
+            String reason = man.GetTop() > 1 && man.Type(2) == LuaType::STRING ? man.ToString(2) : "General lua script assertion failed!";
+            TTE_ASSERT(man.ToBool(1), reason.c_str());
+        }
+        return 0;
     }
     
     // bool blowfish(bufferInstance, size, encrypt (true) or decrypt (false)) . size must be less than or equal to buffer size
@@ -2557,13 +2557,13 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     
     if(!bWorker)
     {
-	    Col.Functions.push_back({"TTE_Switch", &TTE::luaSwitch});
-	    Col.Functions.push_back({"TTE_OpenMetaStream", &TTE::luaOpenMetaStream});
-	    Col.Functions.push_back({"TTE_SaveMetaStream", &TTE::luaSaveMetaStream});
-	    Col.Functions.push_back({"TTE_OpenTTArchive", &TTE::luaOpenTTArch});
-	    Col.Functions.push_back({"TTE_OpenTTArchive2", &TTE::luaOpenTTArch2});
-	    Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles});
-	    Col.Functions.push_back({"TTE_Blowfish", &TTE::luaBlowfish});
+        Col.Functions.push_back({"TTE_Switch", &TTE::luaSwitch});
+        Col.Functions.push_back({"TTE_OpenMetaStream", &TTE::luaOpenMetaStream});
+        Col.Functions.push_back({"TTE_SaveMetaStream", &TTE::luaSaveMetaStream});
+        Col.Functions.push_back({"TTE_OpenTTArchive", &TTE::luaOpenTTArch});
+        Col.Functions.push_back({"TTE_OpenTTArchive2", &TTE::luaOpenTTArch2});
+        Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles});
+        Col.Functions.push_back({"TTE_Blowfish", &TTE::luaBlowfish});
     }
     
     // part of the TTE but can be called async
@@ -2576,11 +2576,11 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     
     if(!bWorker)
     {
-	    Col.Functions.push_back({"MetaRegisterGame",&Meta::L::luaMetaRegisterGame});
+        Col.Functions.push_back({"MetaRegisterGame",&Meta::L::luaMetaRegisterGame});
         Col.Functions.push_back({"MetaAssociateFolderExtension",&Meta::L::luaAssignFolderExt});
-	    Col.Functions.push_back({"MetaRegisterIntrinsics", &Meta::L::luaMetaRegisterIntrinsics});
-	    Col.Functions.push_back({"MetaRegisterClass", &Meta::L::luaMetaRegisterClass});
-	    Col.Functions.push_back({"MetaRegisterCollection", &Meta::L::luaRegisterCollection}); // used in Meta::Initialise4 in engine
+        Col.Functions.push_back({"MetaRegisterIntrinsics", &Meta::L::luaMetaRegisterIntrinsics});
+        Col.Functions.push_back({"MetaRegisterClass", &Meta::L::luaMetaRegisterClass});
+        Col.Functions.push_back({"MetaRegisterCollection", &Meta::L::luaRegisterCollection}); // used in Meta::Initialise4 in engine
     }
     
     Col.Functions.push_back({"MetaGetClassID", &Meta::L::luaMetaGetId});

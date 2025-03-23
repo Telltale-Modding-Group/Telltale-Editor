@@ -21,7 +21,7 @@ class LinearHeap
         
         ObjWrapperBase* _Next;
         
-	    virtual ~ObjWrapperBase() = default;
+        virtual ~ObjWrapperBase() = default;
         
     };
     
@@ -30,11 +30,11 @@ class LinearHeap
     {
         
         T _Obj;
-	    
-	    template<typename... Args>
-	    inline ObjWrapper(Args&&... args) : _Obj(std::forward<Args>(args)...) {}
         
-	    virtual ~ObjWrapper() = default;
+        template<typename... Args>
+        inline ObjWrapper(Args&&... args) : _Obj(std::forward<Args>(args)...) {}
+        
+        virtual ~ObjWrapper() = default;
         
     };
     
@@ -46,10 +46,10 @@ class LinearHeap
         T* _Array;
         
         virtual ~ObjArrayWrapper()
-	    {
-    	    for(U32 i = 0; i < _Size; i++)
-	    	    _Array[i].~T();
-	    }
+        {
+            for(U32 i = 0; i < _Size; i++)
+                _Array[i].~T();
+        }
         
     };
     
@@ -74,56 +74,56 @@ class LinearHeap
     
     // allocates page at end of list
     inline Page* _AllocatePage(U32 size) {
-	    size = MAX(size, _PageSize);
-	    Page* pg = (Page*)TTE_ALLOC(size + sizeof(Page), MEMORY_TAG_LINEAR_HEAP);
-	    if (!pg)
-    	    return nullptr;
-	    memset(pg, 0, size + sizeof(Page));
-	    pg->_Size = size;
-	    pg->_Next = nullptr;
-	    
-	    if (!_BasePage) // first page
-	    {
-    	    _BasePage = pg;
-	    }
-	    else
-	    {
-    	    // append to the end of the list
-    	    Page* iter = _BasePage;
-    	    while (iter->_Next)
-    	    {
-	    	    iter = iter->_Next;
-    	    }
-    	    iter->_Next = pg;
-	    }
-	    
-	    _CurrentPage = pg;
-	    _TotalMemUsed += size;
-	    return pg;
+        size = MAX(size, _PageSize);
+        Page* pg = (Page*)TTE_ALLOC(size + sizeof(Page), MEMORY_TAG_LINEAR_HEAP);
+        if (!pg)
+            return nullptr;
+        memset(pg, 0, size + sizeof(Page));
+        pg->_Size = size;
+        pg->_Next = nullptr;
+        
+        if (!_BasePage) // first page
+        {
+            _BasePage = pg;
+        }
+        else
+        {
+            // append to the end of the list
+            Page* iter = _BasePage;
+            while (iter->_Next)
+            {
+                iter = iter->_Next;
+            }
+            iter->_Next = pg;
+        }
+        
+        _CurrentPage = pg;
+        _TotalMemUsed += size;
+        return pg;
     }
     
     // cant fit in current page, finds next available page allocating if needed
     inline Page* _RequestNextPage(U32 size)
     {
-	    if(_CurrentPage == nullptr)
-    	    _CurrentPage = _BasePage;
-	    if(_BasePage == nullptr)
-    	    return _AllocatePage(size);
-	    
-	    for(Page* page = _CurrentPage->_Next; page; page = page->_Next)
-	    {
-    	    if(page->_Size >= size)
-    	    {
-	    	    // fits here, reset and clear page
-	    	    memset((U8*)page + sizeof(Page), 0, page->_Size);
-	    	    _CurrentPos = 0;
-	    	    return page;
-    	    }
-    	    else
-	    	    _FragmentedBytes += page->_Size;
-	    }
-	    
-	    return _AllocatePage(size); // none found so new one needed
+        if(_CurrentPage == nullptr)
+            _CurrentPage = _BasePage;
+        if(_BasePage == nullptr)
+            return _AllocatePage(size);
+        
+        for(Page* page = _CurrentPage->_Next; page; page = page->_Next)
+        {
+            if(page->_Size >= size)
+            {
+                // fits here, reset and clear page
+                memset((U8*)page + sizeof(Page), 0, page->_Size);
+                _CurrentPos = 0;
+                return page;
+            }
+            else
+                _FragmentedBytes += page->_Size;
+        }
+        
+        return _AllocatePage(size); // none found so new one needed
     }
     
     inline void _ReleasePageList(Page* pPage) {
@@ -140,15 +140,15 @@ class LinearHeap
             ObjWrapperBase* next = pObject->_Next;
             pObject->~ObjWrapperBase();
             pObject = next;
-    	    context._ObjCount--;
+            context._ObjCount--;
         }
         context._LastObject = context._FirstObject = NULL;
-	    context._ObjCount = 0;
+        context._ObjCount = 0;
     }
     
     inline void _AddObject(ObjWrapperBase* pObj)
     {
-	    pObj->_Next = nullptr;
+        pObj->_Next = nullptr;
         if(_ContextStack->_LastObject)
             _ContextStack->_LastObject->_Next = pObj;
         if (!_ContextStack->_FirstObject)
@@ -159,14 +159,14 @@ class LinearHeap
     
     inline void _ResetBaseContext()
     {
-	    _CallDestructors(_BaseContext);
-	    if(_ContextStack == nullptr)
-    	    _ContextStack = &_BaseContext;
-	    _BaseContext._FirstObject = _BaseContext._LastObject = nullptr;
-	    _BaseContext._Next = nullptr;
-	    _BaseContext._ObjCount = 0;
-	    _BaseContext._Page = nullptr;
-	    _BaseContext._PagePos = 0;
+        _CallDestructors(_BaseContext);
+        if(_ContextStack == nullptr)
+            _ContextStack = &_BaseContext;
+        _BaseContext._FirstObject = _BaseContext._LastObject = nullptr;
+        _BaseContext._Next = nullptr;
+        _BaseContext._ObjCount = 0;
+        _BaseContext._Page = nullptr;
+        _BaseContext._PagePos = 0;
     }
     
     inline void _PopContextInt()
@@ -177,14 +177,14 @@ class LinearHeap
         _CurrentPage = _ContextStack->_Page;
         _CurrentPos = _ContextStack->_PagePos;
         _ContextStack = _ContextStack->_Next;
-	    _ResetBaseContext();
+        _ResetBaseContext();
     }
     
 public:
     
     // Construct with optional non-default page size
     inline LinearHeap(U32 pageSize = 0x100000) : _ContextStack(&_BaseContext), _CurrentPage(0), _BasePage(0),
-        _TotalMemUsed(0), _PageSize(pageSize), _CurrentPos(0), _PageCount(0), _FragmentedBytes(0) {}
+    _TotalMemUsed(0), _PageSize(pageSize), _CurrentPos(0), _PageCount(0), _FragmentedBytes(0) {}
     
     // destruct normally.
     inline ~LinearHeap() {
@@ -204,14 +204,14 @@ public:
                 pRet = (U8*)currentPage + sizeof(Page) + alignedOffset;
                 _CurrentPos = size + alignedOffset;
             }else{
-	    	    _FragmentedBytes += (currentPage->_Size - (alignedOffset + size));
+                _FragmentedBytes += (currentPage->_Size - (alignedOffset + size));
                 Page* pNext = _RequestNextPage(size);
                 _CurrentPos = size;
-	    	    _CurrentPage = pNext;
+                _CurrentPage = pNext;
                 pRet = (U8*)pNext + sizeof(Page);
             }
         }else{
-    	    _CurrentPage = currentPage = _AllocatePage(size);
+            _CurrentPage = currentPage = _AllocatePage(size);
             pRet = (U8*)currentPage + sizeof(Page);
             _CurrentPos = size;
         }
@@ -236,11 +236,11 @@ public:
     template<typename T, typename... Args>
     inline T* NewArray(U32 numElem, Args&&... argsForEachElem) {
         ObjArrayWrapper<T>* pArrayWrapper = (ObjArrayWrapper<T>*)Alloc(sizeof(ObjArrayWrapper<T>), alignof(ObjArrayWrapper<T>));
-	    new (pArrayWrapper) ObjArrayWrapper<T>(); // set vfptrs
-	    pArrayWrapper->_Array = (T*)Alloc(sizeof(T) * numElem, alignof(T));
+        new (pArrayWrapper) ObjArrayWrapper<T>(); // set vfptrs
+        pArrayWrapper->_Array = (T*)Alloc(sizeof(T) * numElem, alignof(T));
         pArrayWrapper->_Next = 0;
-	    for(U32 i = 0; i < numElem; i++)
-    	    new (pArrayWrapper->_Array + i) T(argsForEachElem...);
+        for(U32 i = 0; i < numElem; i++)
+            new (pArrayWrapper->_Array + i) T(argsForEachElem...);
         _AddObject(pArrayWrapper);
         return pArrayWrapper->_Array;
     }
@@ -299,13 +299,13 @@ public:
      */
     inline U32 GetFragmentedBytes()
     {
-	    return _FragmentedBytes;
+        return _FragmentedBytes;
     }
     
     // Returns fragmentation factor, 0-100%, being number of fragmented and wasted space of bytes.
     inline Float GetFragmentationFactor()
     {
-	    return _TotalMemUsed ? ((Float)_FragmentedBytes / (Float)_TotalMemUsed) * 100.f : 0.0f;
+        return _TotalMemUsed ? ((Float)_FragmentedBytes / (Float)_TotalMemUsed) * 100.f : 0.0f;
     }
     
     /**
@@ -314,9 +314,9 @@ public:
     inline I32 Contains(void* pAlloc){
         for(Page* i = _BasePage; i; i = i->_Next){
             if (pAlloc >= ((U8*)i + sizeof(Page)) && pAlloc <= ((U8*)i + sizeof(Page) + i->_Size))
-	    	    return true;
+                return true;
         }
-	    return false;
+        return false;
     }
     
     /**
@@ -326,15 +326,15 @@ public:
     {
         while (_ContextStack != &_BaseContext)
             PopContext();
-	    _ResetBaseContext();
-	    _CurrentPage = _BasePage;
-	    _CurrentPos = 0;
-	    _FragmentedBytes = 0;
-	    if(_BasePage)
-	    {
-    	    // clear page
-    	    memset((U8*)_BasePage + sizeof(Page), 0, _BasePage->_Size);
-	    }
+        _ResetBaseContext();
+        _CurrentPage = _BasePage;
+        _CurrentPos = 0;
+        _FragmentedBytes = 0;
+        if(_BasePage)
+        {
+            // clear page
+            memset((U8*)_BasePage + sizeof(Page), 0, _BasePage->_Size);
+        }
     }
     
     /**
@@ -342,10 +342,10 @@ public:
      */
     inline void ReleaseAll()
     {
-	    Rollback();
+        Rollback();
         _ReleasePageList(_BasePage);
-	    _BasePage = _CurrentPage = nullptr;
-	    _TotalMemUsed = _FragmentedBytes = 0;
+        _BasePage = _CurrentPage = nullptr;
+        _TotalMemUsed = _FragmentedBytes = 0;
     }
     
     /**

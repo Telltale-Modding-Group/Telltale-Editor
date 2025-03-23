@@ -77,7 +77,7 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
         U32 filenameBufferOffset = {};
         SerialiseDataU32(in, 0, &filenameBufferOffset, false); // they read two ushorts, ill read the uint and flip the top&bottom ushorts.
         filenameBufferOffset = ((filenameBufferOffset & 0xFFFF) << 16) | (filenameBufferOffset >> 16);
-
+        
         info.NameOffset = filenameBufferOffset;
         
         TTE_ASSERT(filenameBufferOffset < filenameBufferSize, "Error opening archive 2: file name buffer offset is invalid");
@@ -104,7 +104,7 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
         // read file names
         FileInfo& inf = _Files.emplace_back();
         inf.Name = (CString)(TempFileNames + _inf[i].NameOffset); // these are null terminated, create string memory w/ std string
-	    inf.NameSymbol = _inf[i].CRC;
+        inf.NameSymbol = _inf[i].CRC;
         
         // create sub stream
         inf.Stream = DataStreamManager::GetInstance()->CreateSubStream(in, _inf[i].Offset, (U64)_inf[i].Size);
@@ -131,7 +131,7 @@ Bool TTArchive2::SerialiseOut(DataStreamRef& o, ContainerParams params, JobHandl
     
     DataStreamRef headerStream = DataStreamManager::GetInstance()->CreatePrivateCache("TTArchive2::Header");
     DataStreamRef nameStream = DataStreamManager::GetInstance()->CreatePrivateCache("TTArchive2::NameTable");
-
+    
     // Write magic
     U8 Magic[4] {'0', 'A', 'T', 'T'};
     Magic[0] = 0x30 + _Version;
@@ -145,7 +145,7 @@ Bool TTArchive2::SerialiseOut(DataStreamRef& o, ContainerParams params, JobHandl
     SerialiseDataU32(headerStream, nullptr, &files, true);
     
     // Write file information for each file
-   // std::sort(_Files.begin(), _Files.end(), FileInfoSort{}); // archive hashes need to be sorted for internal binary sorts. already sorted.
+    // std::sort(_Files.begin(), _Files.end(), FileInfoSort{}); // archive hashes need to be sorted for internal binary sorts. already sorted.
     U32 nameTableOffs = 0;
     U64 runningOffset = 0;
     for(auto& file : _Files)
@@ -188,7 +188,7 @@ Bool TTArchive2::SerialiseOut(DataStreamRef& o, ContainerParams params, JobHandl
         return false;
     }
     SerialiseDataU32(headerStream, nullptr, &NTSize, true); // write name table size
-
+    
     headerStream->SetPosition(0);
     nameStream->SetPosition(0);
     

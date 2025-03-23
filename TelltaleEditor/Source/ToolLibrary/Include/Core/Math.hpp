@@ -226,15 +226,15 @@ struct alignas(4) Vector3 {
     }
     
     inline Float DistanceSquared(const Vector3& other) const {
-	    float dx = x - other.x;
-	    float dy = y - other.y;
-	    float dz = z - other.z;
-	    return (dx * dx + dy * dy + dz * dz);
+        float dx = x - other.x;
+        float dy = y - other.y;
+        float dz = z - other.z;
+        return (dx * dx + dy * dy + dz * dz);
     }
     
     inline Float Distance(const Vector3& other) const
     {
-	    return sqrtf(DistanceSquared(other));
+        return sqrtf(DistanceSquared(other));
     }
     
     // Returns component by index
@@ -468,7 +468,7 @@ struct alignas(4) Vector4 {
     {
         return index == 0 ? x : index == 1 ? y : index == 2 ? z : w;
     }
-
+    
     // Sets components
     inline void Set(float x, float y, float z, float w)
     {
@@ -729,13 +729,13 @@ struct BoundingBox {
     
     inline Float Volume() const
     {
-	    Float width  = _Max.x - _Min.x;
-	    Float height = _Max.y - _Min.y;
-	    Float depth  = _Max.z - _Min.z;
-	    
-	    return MAX(width * height * depth, 0);
+        Float width  = _Max.x - _Min.x;
+        Float height = _Max.y - _Min.y;
+        Float depth  = _Max.z - _Min.z;
+        
+        return MAX(width * height * depth, 0);
     }
-
+    
 };
 
 // A sphere
@@ -758,7 +758,7 @@ struct Sphere
     
     inline Float Volume() const
     {
-	    return 4.1887902f * _Radius * _Radius * _Radius; // 4/3 pi r cubed
+        return 4.1887902f * _Radius * _Radius * _Radius; // 4/3 pi r cubed
     }
     
 };
@@ -797,18 +797,18 @@ struct Quaternion {
     
     inline Quaternion(const Vector3& normalizedAxis, float radians)
     {
-	    // Calculate half angle
-	    float halfAngle = radians * 0.5f;
-	    float sine = sinf(halfAngle);
-	    float cosine = cosf(halfAngle);
-	    
-	    // Set the quaternion components
-	    x = normalizedAxis.x * sine;
-	    y = normalizedAxis.y * sine;
-	    z = normalizedAxis.z * sine;
-	    w = cosine;
+        // Calculate half angle
+        float halfAngle = radians * 0.5f;
+        float sine = sinf(halfAngle);
+        float cosine = cosf(halfAngle);
+        
+        // Set the quaternion components
+        x = normalizedAxis.x * sine;
+        y = normalizedAxis.y * sine;
+        z = normalizedAxis.z * sine;
+        w = cosine;
     }
-
+    
     
     inline void SetEuler(float xrot, float yrot, float zrot)
     { // expanded matrix stuff
@@ -1046,12 +1046,12 @@ struct Polar
 
 /*
  Matrix4 Written by Matthew Fisher: a 4x4 transformation matrix structure.
-*/
+ */
 
 class alignas(16) Matrix4
 {
 public:
-
+    
     Matrix4();
     Matrix4(const Matrix4& M);
     Matrix4(const Vector3& V0, const Vector3& V1, const Vector3& V2);
@@ -1060,7 +1060,7 @@ public:
     // input in row major order, 64 bytes, of matrix
     inline Matrix4(float* entries)
     {
-	    memcpy(_Entries, entries, 64);
+        memcpy(_Entries, entries, 64);
     }
     
     //

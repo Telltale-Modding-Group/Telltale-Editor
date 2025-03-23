@@ -105,16 +105,16 @@ static void DataStreamDeleter(DataStream *Stream) { TTE_DEL(Stream); }
 DataStreamRef DataStreamManager::CreateFileStream(const ResourceURL &path)
 {
     TTE_ASSERT(path.GetScheme() == ResourceScheme::FILE, "Resource URL must be a file path");
-
+    
     DataStreamFile *pDSFile = TTE_NEW(DataStreamFile, MEMORY_TAG_DATASTREAM, path);
     return DataStreamRef(pDSFile, &DataStreamDeleter);
 }
 
 ResourceURL DataStreamManager::Resolve(const Symbol &unresolved)
 {
-
+    
     // TODO. resource set descriptions, search archives and folders like engine, OR search data.ttarch if not found on fsys.
-
+    
     return ResourceURL(); // Not found
 }
 
@@ -241,49 +241,49 @@ Bool DataStreamManager::Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nby
 {
     if (src && dst && Nbytes)
     {
-
+        
         U8 *Tmp = TTE_ALLOC(MIN(0x10000, Nbytes), MEMORY_TAG_TEMPORARY);
         U64 Nblocks = Nbytes / 0x10000;
-
+        
         Bool Result = true;
-
+        
         for (U64 i = 0; i < Nblocks; i++)
         {
-
+            
             Result = src->Read(Tmp, 0x10000);
             if (!Result)
-    	    {
-	    	    TTE_FREE(Tmp);
-	    	    return false;
-    	    }
-
+            {
+                TTE_FREE(Tmp);
+                return false;
+            }
+            
             Result = dst->Write(Tmp, 0x10000);
-    	    if (!Result)
-    	    {
-	    	    TTE_FREE(Tmp);
-	    	    return false;
-    	    }
+            if (!Result)
+            {
+                TTE_FREE(Tmp);
+                return false;
+            }
         }
         
         if(Nbytes & 0xFFFF) // transfer remaining bytes
         {
             Result = src->Read(Tmp, Nbytes & 0xFFFF);
-    	    if (!Result)
-    	    {
-	    	    TTE_FREE(Tmp);
-	    	    return false;
-    	    }
+            if (!Result)
+            {
+                TTE_FREE(Tmp);
+                return false;
+            }
             
             Result = dst->Write(Tmp, Nbytes & 0xFFFF);
-    	    if (!Result)
-    	    {
-	    	    TTE_FREE(Tmp);
-	    	    return false;
-    	    }
+            if (!Result)
+            {
+                TTE_FREE(Tmp);
+                return false;
+            }
         }
-
+        
         TTE_FREE(Tmp);
-
+        
         return Result;
     }
     else
@@ -345,14 +345,14 @@ DataStreamRef ResourceURL::Open()
         return DataStreamManager::GetInstance()->CreateFileStream(*this); // Open the file
     else if (_Scheme == ResourceScheme::CACHE)
     {
-
+        
         // First try and search cache for it.
         Ptr<DataStreamMemory> pMemoryStream = DataStreamManager::GetInstance()->FindCache(_Path);
-
+        
         // If it does not exist, create the public cached one and return it.
         if (!pMemoryStream)
             pMemoryStream = DataStreamManager::GetInstance()->CreatePublicCache(_Path);
-
+        
         return pMemoryStream;
     }
     else if (_Scheme == ResourceScheme::SYMBOL)
@@ -360,9 +360,9 @@ DataStreamRef ResourceURL::Open()
         // Try and resolve it first. If the hex hash is valid and was resolved, yay! Update this current resource URL too.
         try
         {
-
+            
             Symbol value = std::stoull(_Path, nullptr, 0x10); // to string
-
+            
             ResourceURL resolvedURL = DataStreamManager::GetInstance()->Resolve(value);
             if (resolvedURL)
             {
@@ -427,11 +427,11 @@ void ResourceURL::_Normalise()
 {
     // replace backslashes with forward slashes
     std::replace(_Path.begin(), _Path.end(), '\\', '/');
-
+    
     // paths cannot contain bad characters
     std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_ ";
     _Path.erase(std::remove_if(_Path.begin(), _Path.end(), [&validChars](char c) { return validChars.find(c) == std::string::npos; }), _Path.end());
-
+    
     // remove leading/trailing whitespace 'trim' and slashes
     _Path.erase(0, _Path.find_first_not_of(" \t\n\r\\")); // dont remove '/' prefix, macos absolute paths / linux
     _Path.erase(_Path.find_last_not_of(" \t\n\r\\/") + 1);
@@ -461,10 +461,10 @@ Bool DataStreamDeferred::Read(U8 *OutputBuffer, U64 Nbytes)
         TTE_ASSERT(false, "Cannot read 0x%llx bytes from current offset in deferred stream, not enough remaining bytes", Nbytes);
         return false;
     }
-
+    
     // first read bytes from current page
     U64 remInCurrentPage = _PageSize - _PagePos;
-
+    
     if (remInCurrentPage > Nbytes)
     {
         if (!_SerialisePage(_PageIdx, OutputBuffer, Nbytes, _PagePos, false))
@@ -480,7 +480,7 @@ Bool DataStreamDeferred::Read(U8 *OutputBuffer, U64 Nbytes)
         Nbytes -= remInCurrentPage; // decrease pending bytes to be read
         OutputBuffer += remInCurrentPage;
     }
-
+    
     // next loop through and read pages totally
     while (Nbytes >= _PageSize)
     {
@@ -489,7 +489,7 @@ Bool DataStreamDeferred::Read(U8 *OutputBuffer, U64 Nbytes)
         OutputBuffer += _PageSize;
         Nbytes -= _PageSize;
     }
-
+    
     // finally read any remainding bytes
     if (Nbytes)
     {
@@ -499,17 +499,17 @@ Bool DataStreamDeferred::Read(U8 *OutputBuffer, U64 Nbytes)
     }
     else
     {
-	    _PageIdx++;
-	    _PagePos = 0;
+        _PageIdx++;
+        _PagePos = 0;
     }
-
+    
     return true;
 }
 
 Bool DataStreamDeferred::Write(const U8 *InputBuffer, U64 Nbytes)
 {
     if(!Nbytes)
-	    return true; // edge case: nothing to write
+        return true; // edge case: nothing to write
     
     // first read bytes from current page
     U64 remInCurrentPage = _PageSize - _PagePos;
@@ -518,78 +518,24 @@ Bool DataStreamDeferred::Write(const U8 *InputBuffer, U64 Nbytes)
     
     if (remInCurrentPage > Nbytes)
     {
-	    // Write the bytes to the current page
-	    if(!_SerialisePage(_PageIdx, const_cast<U8*>(InputBuffer), Nbytes, _PagePos, true))
-    	    return false;
-	    _PagePos += Nbytes;
-	    return true; // enough bytes to write to the single current page.
-    }
-    else if(remInCurrentPage)
-    {
-	    // Write remaining bytes to the current page
-	    if(!_SerialisePage(_PageIdx, const_cast<U8*>(InputBuffer), remInCurrentPage, _PagePos, true))
-    	    return false;
-	    // Decrease remaining bytes to be written
-	    Nbytes -= remInCurrentPage;
-	    InputBuffer += remInCurrentPage;
-	    _PagePos = 0;
-    }
-    
-    // Write full pages if remaining bytes are >= _PageSize
-    while (Nbytes >= _PageSize)
-    {
-	    if(!_SerialisePage(++_PageIdx, const_cast<U8*>(InputBuffer), _PageSize, 0, true))
-    	    return false;
-	    InputBuffer += _PageSize;
-	    Nbytes -= _PageSize;
-    }
-    
-    // Finally, handle the remaining bytes that don't fill a full page
-    if (Nbytes)
-    {
-	    if(!_SerialisePage(++_PageIdx, const_cast<U8*>(InputBuffer), Nbytes, 0, true))
-    	    return false;
-	    _PagePos = Nbytes;  // Update the position for the next write operation
-    }
-    else
-    {
-	    _PagePos = 0;  // Reset position when no remaining bytes
-	    _PageIdx++;    // Move to next page for next write
-    }
-    
-    return true;
-}
-
-
-// split data into first remaining chunk in current page, chunks for middle full sized pages, then final remainder page.
-/*Bool DataStreamDeferred::Write(const U8 *InputBuffer, U64 Nbytes)
-{
-    if(!Nbytes)
-        return true; //edge case
-    
-    // first read bytes from current page
-    U64 remInCurrentPage = _PageSize - _PagePos;
-    
-    _Size = MAX(GetPosition() + Nbytes, _Size); // update size if needed
-    
-    if (remInCurrentPage > Nbytes)
-    {
+        // Write the bytes to the current page
         if(!_SerialisePage(_PageIdx, const_cast<U8*>(InputBuffer), Nbytes, _PagePos, true))
-           return false;
+            return false;
         _PagePos += Nbytes;
         return true; // enough bytes to write to the single current page.
     }
     else if(remInCurrentPage)
     {
-        if(!_SerialisePage(_PageIdx, const_cast<U8*>(InputBuffer), Nbytes, _PagePos, true))
+        // Write remaining bytes to the current page
+        if(!_SerialisePage(_PageIdx, const_cast<U8*>(InputBuffer), remInCurrentPage, _PagePos, true))
             return false;
-        // write remaining bytes to the current page
-        Nbytes -= remInCurrentPage; // decrease pending bytes
+        // Decrease remaining bytes to be written
+        Nbytes -= remInCurrentPage;
         InputBuffer += remInCurrentPage;
         _PagePos = 0;
     }
     
-    // next loop through and read pages totally
+    // Write full pages if remaining bytes are >= _PageSize
     while (Nbytes >= _PageSize)
     {
         if(!_SerialisePage(++_PageIdx, const_cast<U8*>(InputBuffer), _PageSize, 0, true))
@@ -598,21 +544,75 @@ Bool DataStreamDeferred::Write(const U8 *InputBuffer, U64 Nbytes)
         Nbytes -= _PageSize;
     }
     
-    // finally read any remainding bytes
+    // Finally, handle the remaining bytes that don't fill a full page
     if (Nbytes)
     {
         if(!_SerialisePage(++_PageIdx, const_cast<U8*>(InputBuffer), Nbytes, 0, true))
             return false;
-        _PagePos = Nbytes;
+        _PagePos = Nbytes;  // Update the position for the next write operation
     }
     else
     {
-	    _PagePos = 0;
-	    _PageIdx++;
+        _PagePos = 0;  // Reset position when no remaining bytes
+        _PageIdx++;    // Move to next page for next write
     }
     
     return true;
-}*/
+}
+
+
+// split data into first remaining chunk in current page, chunks for middle full sized pages, then final remainder page.
+/*Bool DataStreamDeferred::Write(const U8 *InputBuffer, U64 Nbytes)
+ {
+ if(!Nbytes)
+ return true; //edge case
+ 
+ // first read bytes from current page
+ U64 remInCurrentPage = _PageSize - _PagePos;
+ 
+ _Size = MAX(GetPosition() + Nbytes, _Size); // update size if needed
+ 
+ if (remInCurrentPage > Nbytes)
+ {
+ if(!_SerialisePage(_PageIdx, const_cast<U8*>(InputBuffer), Nbytes, _PagePos, true))
+ return false;
+ _PagePos += Nbytes;
+ return true; // enough bytes to write to the single current page.
+ }
+ else if(remInCurrentPage)
+ {
+ if(!_SerialisePage(_PageIdx, const_cast<U8*>(InputBuffer), Nbytes, _PagePos, true))
+ return false;
+ // write remaining bytes to the current page
+ Nbytes -= remInCurrentPage; // decrease pending bytes
+ InputBuffer += remInCurrentPage;
+ _PagePos = 0;
+ }
+ 
+ // next loop through and read pages totally
+ while (Nbytes >= _PageSize)
+ {
+ if(!_SerialisePage(++_PageIdx, const_cast<U8*>(InputBuffer), _PageSize, 0, true))
+ return false;
+ InputBuffer += _PageSize;
+ Nbytes -= _PageSize;
+ }
+ 
+ // finally read any remainding bytes
+ if (Nbytes)
+ {
+ if(!_SerialisePage(++_PageIdx, const_cast<U8*>(InputBuffer), Nbytes, 0, true))
+ return false;
+ _PagePos = Nbytes;
+ }
+ else
+ {
+ _PagePos = 0;
+ _PageIdx++;
+ }
+ 
+ return true;
+ }*/
 
 void DataStreamDeferred::SetPosition(U64 newPosition)
 {
@@ -638,7 +638,7 @@ Bool DataStreamMemory::_SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 off
             for(U64 i = 0; i < between; i++)
             {
                 U8* Page = TTE_ALLOC(_PageSize, MEMORY_TAG_RUNTIME_BUFFER);
-	    	    memset(Page, 0, _PageSize);
+                memset(Page, 0, _PageSize);
                 _PageTable.push_back(Page);
                 
             }
@@ -648,7 +648,7 @@ Bool DataStreamMemory::_SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 off
         if(index == _PageTable.size())
         {
             Page = TTE_ALLOC(_PageSize, MEMORY_TAG_RUNTIME_BUFFER);
-    	    memset(Page, 0, _PageSize);
+            memset(Page, 0, _PageSize);
             _PageTable.push_back(Page);
         }
         else
@@ -833,9 +833,9 @@ Bool DataStreamLegacyEncrypted::Write(const U8 *InBuffer, U64 Nbytes)
     TTE_ASSERT(false, "Write mode not available for encrypted streams - don't use this wrapper class here.");
     return false;
 }
- 
+
 DataStreamLegacyEncrypted::DataStreamLegacyEncrypted(const DataStreamRef& p, U64 o, U16 z, U8 r, U8 bf)
-    : DataStreamDeferred(p->GetURL(), (U64)z)
+: DataStreamDeferred(p->GetURL(), (U64)z)
 {
     TTE_ASSERT(bf != r, "Frequencies cannot be the same");
     // init members
@@ -961,8 +961,8 @@ Bool DataStreamSequentialStream::Read(U8 *OutputBuffer, U64 Nbytes)
         OutputBuffer += ssize;
         Nbytes -= ssize;
         _BytesRead += ssize;
-       _StreamIndex++;
-       _StreamPos = 0;
+        _StreamIndex++;
+        _StreamPos = 0;
     }
     
     // finally read any remainding bytes
@@ -983,7 +983,7 @@ Bool DataStreamSequentialStream::Read(U8 *OutputBuffer, U64 Nbytes)
     }
     else
     {
-	    _StreamPos = 0;
+        _StreamPos = 0;
     }
     
     return true;
@@ -1002,7 +1002,7 @@ Bool DataStreamContainer::_SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 
         if(_CachedPageIndex != index)
         {
             // cache new page index
-    	    U32 pageSize = (U32)(_PageOffsets[index+1] - _PageOffsets[index]);
+            U32 pageSize = (U32)(_PageOffsets[index+1] - _PageOffsets[index]);
             _Prnt->SetPosition(_DataOffsetStart + _PageOffsets[index]);
             if(!_Prnt->Read(_IntPage, pageSize))
             {
@@ -1041,7 +1041,7 @@ Bool DataStreamContainer::_SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 
 }
 
 DataStreamContainer::DataStreamContainer(const DataStreamRef& p) : DataStreamDeferred(p->GetURL(), 0x10000), _CachedPage(nullptr),
-    _Valid(false), _Compressed(false), _Encrypted(false), _Compression(Compression::ZLIB),  _CachedPageIndex(0)
+_Valid(false), _Compressed(false), _Encrypted(false), _Compression(Compression::ZLIB),  _CachedPageIndex(0)
 {
     _Prnt = p; // set parent
     U32 Magic = {}; // top 3 bytes should be TTC - telltale container
@@ -1216,7 +1216,7 @@ static Bool _AsyncCreateContainerSlave(const JobThread& thread, void* pCtx, void
         ProcessedPageBulk blk{};
         
         Bool bThisPageNeedsPendingFlush = !Finished; // set false if we can flush already
-
+        
         if(!Finished)
         {
             // read all pages we can
@@ -1302,7 +1302,7 @@ static Bool _AsyncCreateContainerSlave(const JobThread& thread, void* pCtx, void
                             return false;
                         }
                     }
-
+                    
                     // add compressed sizes to final
                     ctx->FinalCompressedSizes.insert(ctx->FinalCompressedSizes.end(), &pg.CompressedSizes[0], &pg.CompressedSizes[CONTAINER_BULK_SIZE]);
                     
@@ -1330,7 +1330,7 @@ static Bool _AsyncCreateContainerSlave(const JobThread& thread, void* pCtx, void
                     ctx->FinalCompressedSizes.insert(ctx->FinalCompressedSizes.end(), &blk.CompressedSizes[0], &blk.CompressedSizes[CONTAINER_BULK_SIZE]);
                     
                     ctx->FlushIndex +=CONTAINER_BULK_SIZE;
-                   
+                    
                     bThisPageNeedsPendingFlush = false;
                 }
                 
@@ -1394,8 +1394,8 @@ static Bool _AsyncCreateContainerMaster(const JobThread* pThread, void* pCtx, vo
     
     // 2. set the maximum number of stashable pages per slave while waiting for their turn in the ordered final writes
     ctx->MaxPendingFlushes = MIN((MAX_FOOTPRINT_MB * 1024 * 1024 - (2 * 0x10000 * ctx->NumSlaves * CONTAINER_BULK_SIZE))
-                        / (0x10000 * ctx->NumSlaves  * CONTAINER_BULK_SIZE), ctx->NumPages / ctx->NumSlaves); // 512MB MAXIMUM in memory.
-  
+                                 / (0x10000 * ctx->NumSlaves  * CONTAINER_BULK_SIZE), ctx->NumPages / ctx->NumSlaves); // 512MB MAXIMUM in memory.
+    
     // 3. allocate temp buffers
     U8* TempMemory = TTE_ALLOC(ctx->NumSlaves * 0x10000 * (2 + CONTAINER_BULK_SIZE * (2 + ctx->MaxPendingFlushes)),
                                MEMORY_TAG_TEMPORARY_ASYNC); // + 2 for in and out, then plus on stashed pending. +2 for overflow compress

@@ -101,20 +101,20 @@ namespace ScriptManager
             man.SetTable(-3, true);
             
         }
-	    
-	    for(auto& st: collection.StringGlobals)
-	    {
-    	    man.PushLString(st.first.c_str());
-    	    man.PushLString(st.second.c_str());
-    	    man.SetTable(-3, true);
-	    }
-	    
-	    for(auto& st: collection.IntegerGlobals)
-	    {
-    	    man.PushLString(st.first.c_str());
-    	    man.PushUnsignedInteger(st.second);
-    	    man.SetTable(-3, true);
-	    }
+        
+        for(auto& st: collection.StringGlobals)
+        {
+            man.PushLString(st.first.c_str());
+            man.PushLString(st.second.c_str());
+            man.SetTable(-3, true);
+        }
+        
+        for(auto& st: collection.IntegerGlobals)
+        {
+            man.PushLString(st.first.c_str());
+            man.PushUnsignedInteger(st.second);
+            man.SetTable(-3, true);
+        }
         
         // set global
         if(collection.Name.length() > 0)
@@ -240,7 +240,7 @@ namespace ScriptManager
         man.PushLString("__tteobj");
         man.PushOpaque(obj);
         man.SetTable(-3);
-    
+        
         man.PushTable(); // meta table
         
         man.PushLString("__gc");

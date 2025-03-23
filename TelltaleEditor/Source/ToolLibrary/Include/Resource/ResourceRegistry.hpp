@@ -203,7 +203,7 @@ public:
     virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr); // copy resource to dest
     virtual DataStreamRef OpenResource(const Symbol& resourceName, String* outName); // open resource
     virtual void RefreshResources();
-
+    
     virtual Ptr<RegistryDirectory> OpenDirectory(const String& name);
     
     virtual ~RegistryDirectory_System() = default;
@@ -245,7 +245,7 @@ public:
     virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr); // copy resource to dest
     virtual DataStreamRef OpenResource(const Symbol& resourceName, String* outName); // open resource
     virtual void RefreshResources(); // refresh
-   
+    
     Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck); // update from resource syss
     
     virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // nothing in archive
@@ -380,7 +380,7 @@ struct ResourceLocation
 {
     
     inline ResourceLocation(const String& name) : Name(name) {}
-        
+    
     String Name;
     
     virtual Bool GetResourceNames(std::set<String>& names, const StringMask* optionalMask) = 0;
@@ -495,7 +495,7 @@ class ResourceRegistry : public GameDependentObject
 {
     
     LuaManager& _LVM; // local LVM used for this registry. Must be alive and acts as a parent!
-
+    
     std::vector<ResourceSet> _ResourceSets; // available high level resource groups
     
     std::vector<Ptr<ResourceLocation>> _Locations; // applied resource sets
@@ -518,7 +518,7 @@ class ResourceRegistry : public GameDependentObject
     void _BindVM(); // bind to current VM
     
     void _UnbindVM(); // unbind from current VM
-     
+    
     ResourceSet* _FindSet(const Symbol& name); // find a resource set
     
     // configure sets and unload resources if needed. can defer until
@@ -572,7 +572,7 @@ class ResourceRegistry : public GameDependentObject
         
         CreateLogicalLocation("<>");
     }
-
+    
 public:
     
     /**

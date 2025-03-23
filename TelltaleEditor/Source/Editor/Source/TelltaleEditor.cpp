@@ -13,7 +13,7 @@ TelltaleEditor* CreateEditorContext(GameSnapshot s, Bool ui)
 void FreeEditorContext()
 {
     if(_MyContext)
-	    TTE_DEL(_MyContext);
+        TTE_DEL(_MyContext);
     _MyContext = nullptr;
 }
 
@@ -58,26 +58,26 @@ Bool TelltaleEditor::_ProbeTasks(Bool wait, U32 t)
     TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
     for(auto it = _Active.begin(); it != _Active.end();)
     {
-	    if(wait) // wait for it then finalise it then remove it, we know it will finish
-	    {
-    	    JobScheduler::Instance->Wait(it->second);
-    	    it->first->Finalise(*this); // finalise on this mean
-    	    TTE_DEL(it->first);
-    	    _Active.erase(it);
-    	    continue;
-	    }
-	    JobResult result0 = JobScheduler::Instance->GetResult(it->second);
-	    if(result0 == JobResult::JOB_RESULT_RUNNING) // job still running, leave it.
-	    {
-    	    if(it->first->TaskID == t)
-	    	    result = false;
-    	    it++;
-    	    continue;
-	    }
-	    // job is finished so remove it and finalise it
-	    it->first->Finalise(*this); // finalise on this mean
-	    TTE_DEL(it->first);
-	    _Active.erase(it);
+        if(wait) // wait for it then finalise it then remove it, we know it will finish
+        {
+            JobScheduler::Instance->Wait(it->second);
+            it->first->Finalise(*this); // finalise on this mean
+            TTE_DEL(it->first);
+            _Active.erase(it);
+            continue;
+        }
+        JobResult result0 = JobScheduler::Instance->GetResult(it->second);
+        if(result0 == JobResult::JOB_RESULT_RUNNING) // job still running, leave it.
+        {
+            if(it->first->TaskID == t)
+                result = false;
+            it++;
+            continue;
+        }
+        // job is finished so remove it and finalise it
+        it->first->Finalise(*this); // finalise on this mean
+        TTE_DEL(it->first);
+        _Active.erase(it);
     }
     return result;
 }
@@ -87,8 +87,8 @@ Bool TelltaleEditor::ContextIsBusy()
     _ProbeTasks(false);
     for(auto& active: _Active)
     {
-	    if(active.first->IsBlocking)
-    	    return true;
+        if(active.first->IsBlocking)
+            return true;
     }
     return false;
 }
@@ -189,13 +189,13 @@ void TelltaleEditor::_EnqueueTask(EditorTask* pTask)
     desc.Priority = JobPriority::JOB_PRIORITY_NORMAL;
     if(_Active.size() != 0)
     {
-	    for(auto it = _Active.rbegin(); it != _Active.rend(); it++)
-	    {
-    	    if(!it->first->IsBlocking)
-	    	    continue; // ignore non blocking, they don't need an order
-    	    JobScheduler::Instance->EnqueueOne(it->second, std::move(desc)); // found a blocking job, enqueue it after
-    	    return;
-	    }
+        for(auto it = _Active.rbegin(); it != _Active.rend(); it++)
+        {
+            if(!it->first->IsBlocking)
+                continue; // ignore non blocking, they don't need an order
+            JobScheduler::Instance->EnqueueOne(it->second, std::move(desc)); // found a blocking job, enqueue it after
+            return;
+        }
     }
     JobHandle handle = JobScheduler::Instance->Post(std::move(desc));
     _Active.push_back(std::make_pair(pTask, std::move(handle)));

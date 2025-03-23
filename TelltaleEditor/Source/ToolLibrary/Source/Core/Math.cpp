@@ -380,24 +380,24 @@ BoundingBox::eFace BoundingBox::HitFace(Vector3 hitPos)
     
     // Check if the hit position is on the front or back faces (z-axis)
     if (hitPos.z >= (maxZ - tolerance) && hitPos.z <= (maxZ + tolerance))
-	    return kFace_Back;  // Back face
+        return kFace_Back;  // Back face
     
     if (hitPos.z >= (minZ - tolerance) && hitPos.z <= (minZ + tolerance))
-	    return kFace_Front;  // Front face
+        return kFace_Front;  // Front face
     
     // Check if the hit position is on the left or right faces (x-axis)
     if (hitPos.x >= (maxX - tolerance) && hitPos.x <= (maxX + tolerance))
-	    return kFace_Right;  // Right face
+        return kFace_Right;  // Right face
     
     if (hitPos.x >= (minX - tolerance) && hitPos.x <= (minX + tolerance))
-	    return kFace_Left;  // Left face
+        return kFace_Left;  // Left face
     
     // Check if the hit position is on the top or bottom faces (y-axis)
     if (hitPos.y >= (maxY - tolerance) && hitPos.y <= (maxY + tolerance))
-	    return kFace_Top;  // Top face
+        return kFace_Top;  // Top face
     
     if (hitPos.y >= (minY - tolerance) && hitPos.y <= (minY + tolerance))
-	    return kFace_Bottom;  // Bottom face
+        return kFace_Bottom;  // Bottom face
     
     return kFace_None;  // Default case if the point is not on any face
 }
