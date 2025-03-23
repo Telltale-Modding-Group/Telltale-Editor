@@ -69,7 +69,7 @@ struct ShaderParameterTypeInfo
     DefaultRenderTextureType DefaultTex;
     
     inline constexpr ShaderParameterTypeInfo(CString name, U64 sz, ShaderParameterTypeClass cl, DefaultRenderTextureType texDef)
-	    : Name(name), Size((U32)sz), Class(cl), DefaultTex(texDef)
+    : Name(name), Size((U32)sz), Class(cl), DefaultTex(texDef)
     {
     }
     
@@ -197,15 +197,15 @@ struct ShaderParametersGroup
     
     struct ParameterHeader
     {
-	    U8 Type; // parameter type enum
-	    U8 Class; // parameter class enum
+        U8 Type; // parameter type enum
+        U8 Class; // parameter class enum
     };
     
     union Parameter
     {
-	    UniformParameterBinding UniformValue; // if a uniform parameter, this field contains the info to bind when needed
-	    GenericBufferParameterBinding GenericValue; // if a generic parameter, this field contains the info to bind when needed
-	    SamplerParameterBinding SamplerValue; // if a sampler parameter, this field contains the info to bind when needed
+        UniformParameterBinding UniformValue; // if a uniform parameter, this field contains the info to bind when needed
+        GenericBufferParameterBinding GenericValue; // if a generic parameter, this field contains the info to bind when needed
+        SamplerParameterBinding SamplerValue; // if a sampler parameter, this field contains the info to bind when needed
     };
     
     U32 NumParameters = 0; // number of parameters in this group
@@ -213,15 +213,15 @@ struct ShaderParametersGroup
     // get parameter header by index
     inline ParameterHeader& GetHeader(U32 index)
     {
-	    return *(((ParameterHeader*)((U8*)this + sizeof(ShaderParametersGroup) + (index * sizeof(ParameterHeader)))));
+        return *(((ParameterHeader*)((U8*)this + sizeof(ShaderParametersGroup) + (index * sizeof(ParameterHeader)))));
     }
     
     // Gets a parameter by index
     inline Parameter& GetParameter(U32 index)
     {
-	    Parameter& p = *(((Parameter*)((U8*)this + sizeof(ShaderParametersGroup) +
-    	    	    	    	     (NumParameters * sizeof(ParameterHeader)) + (index*sizeof(Parameter)))));
-	    return p;
+        Parameter& p = *(((Parameter*)((U8*)this + sizeof(ShaderParametersGroup) +
+                                       (NumParameters * sizeof(ParameterHeader)) + (index*sizeof(Parameter)))));
+        return p;
     }
     
 };

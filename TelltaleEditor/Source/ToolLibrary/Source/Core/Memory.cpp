@@ -41,7 +41,7 @@ U8* _DebugAllocateTracked(U64 _Nbytes, MemoryTag tag, CString filename, U32 numb
     if(slash != String::npos)
         str = str.substr(slash + 1);
     alloc.SrcFile = std::move(str);
-
+    
     {
         std::lock_guard _Lck{_TrackedLock};
         _TrackedAllocs[Alloc] = std::move(alloc);
@@ -92,7 +92,7 @@ void DumpTrackedMemory()
     }
     
     if(CopyOfAllocs.size() == 0)
-	    return;
+        return;
     
     TTE_LOG("================ UNFREED MEMORY ALLOCATION DUMP ================");
     

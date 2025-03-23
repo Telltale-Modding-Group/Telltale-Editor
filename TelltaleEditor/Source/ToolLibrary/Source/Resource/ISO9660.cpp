@@ -61,7 +61,7 @@ Bool ISO9660::VolumeTs::SerialiseIn(DataStreamRef &ref)
 Bool ISO9660::_ReadDir(DataStreamRef &in, ISO9660::DirectoryRecord& r)
 {
     U8 Temp[8];
-
+    
     U64 finalPosition = in->GetPosition();
     TTE_ASSERT(in->Read(Temp, 1), "ISO9660: Could not read directory record bytes");
     if(Temp[0] == 0x00) return true; // reached end
@@ -174,7 +174,7 @@ Bool ISO9660::_ReadDir(DataStreamRef &in, ISO9660::DirectoryRecord& r)
         
         in->SetPosition(cachePos);
     }
-
+    
     
     return true;
 }
@@ -182,7 +182,7 @@ Bool ISO9660::_ReadDir(DataStreamRef &in, ISO9660::DirectoryRecord& r)
 Bool ISO9660::PrimaryVolumeDesc::SerialisePrimaryIn(DataStreamRef& in)
 {
     U8 Temp[256];
-
+    
     TTE_ASSERT(in->Read(Temp, 1), "ISO9660: Could not read bytes"); // expect version 1
     if(Temp[0] != 0x01)
     {
@@ -224,7 +224,7 @@ Bool ISO9660::PrimaryVolumeDesc::SerialisePrimaryIn(DataStreamRef& in)
     
     TTE_ASSERT(in->Read((U8*)&_PathTableSize, 4), "ISO9660: Could not read bytes");
     ADVANCE(4); // skip big endian form
-
+    
     TTE_ASSERT(in->Read((U8*)&_LPathTableLocator, 4), "ISO9660: Could not read bytes");
     TTE_ASSERT(in->Read((U8*)&_LPathTableAdditionalLocator, 4), "ISO9660: Could not read bytes"); // little endian, no big one stored
     
@@ -359,7 +359,7 @@ Bool ISO9660::SupplementaryVolumeDesc::SerialiseIn(DataStreamRef &in)
     TTE_ASSERT(_Modification.SerialiseIn(in), "ISO9660: Timestamp read fail");
     TTE_ASSERT(_Expiration.SerialiseIn(in), "ISO9660: Timestamp read fail");
     TTE_ASSERT(_Effective.SerialiseIn(in), "ISO9660: Timestamp read fail");
-   
+    
     TTE_ASSERT(in->Read((U8*)&_FileStructureVersion, 1), "ISO9660: Could not read bytes");
     
     return true;

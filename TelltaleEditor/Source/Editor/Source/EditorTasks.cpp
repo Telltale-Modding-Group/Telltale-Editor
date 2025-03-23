@@ -39,11 +39,11 @@ Bool MeshNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* p
     
     if(!(result=ScriptManager::PopBool(thread.L)))
     {
-	    TTE_LOG("Normalise failed for mesh in %s", fn.c_str());
+        TTE_LOG("Normalise failed for mesh in %s", fn.c_str());
     }
     else
     {
-	    Renderable.FinaliseNormalisationAsync();
+        Renderable.FinaliseNormalisationAsync();
     }
     
     return result;
@@ -184,7 +184,7 @@ Bool ResourcesExtractionTask::PerformAsync(const JobThread &thread, ToolContext 
     auto it = files.cbegin();
     std::advance(it, (AsyncWorkers - 1) * ((U32)files.size() / AsyncWorkers));
     Bool bResult = _DoResourcesExtract(Registry, Folder, it, files.cend(), Folders);
-
+    
     return bResult && JobScheduler::Instance->Wait(AsyncWorkers - 1, H);
 }
 
@@ -199,48 +199,48 @@ void ResourcesExtractionTask::Finalise(TelltaleEditor& editorContext)
 Bool ArchiveExtractionTask::PerformAsync(const JobThread &thread, ToolContext *pLockedContext)
 {
     if(!StringEndsWith(Folder, "/") && !StringEndsWith(Folder, "\\"))
-	    Folder += "/";
+        Folder += "/";
     if(Archive1 != nullptr)
     {
-	    // EXTRACT .TTARCH
-	    if(Files.size() == 0)
-    	    Archive1->GetFiles(Files);
-	    
-	    for(auto& fileName: Files)
-	    {
-    	    DataStreamRef file = Archive1->Find(fileName, nullptr);
-    	    file = Meta::MapDecryptingStream(file); // ensure its not encrypted.
-    	    DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, Folder + fileName));
-    	    if(out && file)
-    	    {
-	    	    DataStreamManager::GetInstance()->Transfer(file, out, file->GetSize());
-    	    }
-    	    else
-    	    {
-	    	    TTE_LOG("Could not extract %s: file streams were not valid", fileName.c_str());
-    	    }
-	    }
+        // EXTRACT .TTARCH
+        if(Files.size() == 0)
+            Archive1->GetFiles(Files);
+        
+        for(auto& fileName: Files)
+        {
+            DataStreamRef file = Archive1->Find(fileName, nullptr);
+            file = Meta::MapDecryptingStream(file); // ensure its not encrypted.
+            DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, Folder + fileName));
+            if(out && file)
+            {
+                DataStreamManager::GetInstance()->Transfer(file, out, file->GetSize());
+            }
+            else
+            {
+                TTE_LOG("Could not extract %s: file streams were not valid", fileName.c_str());
+            }
+        }
     }
     else
     {
-	    TTE_ASSERT(Archive2, "No archive set in extraction task!");
-	    // EXTRACT .TTARCH2
-	    if(Files.size() == 0)
-    	    Archive2->GetFiles(Files);
-	    
-	    for(auto& fileName: Files)
-	    {
-    	    DataStreamRef file = Archive2->Find(fileName, nullptr);
-    	    DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, Folder + fileName));
-    	    if(out && file)
-    	    {
-	    	    DataStreamManager::GetInstance()->Transfer(file, out, file->GetSize());
-    	    }
-    	    else
-    	    {
-	    	    TTE_LOG("Could not extract %s: file streams were not valid", fileName.c_str());
-    	    }
-	    }
+        TTE_ASSERT(Archive2, "No archive set in extraction task!");
+        // EXTRACT .TTARCH2
+        if(Files.size() == 0)
+            Archive2->GetFiles(Files);
+        
+        for(auto& fileName: Files)
+        {
+            DataStreamRef file = Archive2->Find(fileName, nullptr);
+            DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, Folder + fileName));
+            if(out && file)
+            {
+                DataStreamManager::GetInstance()->Transfer(file, out, file->GetSize());
+            }
+            else
+            {
+                TTE_LOG("Could not extract %s: file streams were not valid", fileName.c_str());
+            }
+        }
     }
     Files.clear(); // not needed
     return true;

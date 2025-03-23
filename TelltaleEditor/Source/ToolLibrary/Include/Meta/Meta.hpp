@@ -31,9 +31,9 @@ namespace Meta {
     };
     
     constexpr CString StreamSectionName[] {
-	    "Main",
-	    "Async",
-	    "Debug"
+        "Main",
+        "Async",
+        "Debug"
     };
     
     constexpr CString PlatformNames[] {
@@ -78,13 +78,13 @@ namespace Meta {
         StreamVersion Version;
         Section Sect[STREAM_SECTION_COUNT];
         std::vector<U32> VersionInf; // vector of class IDs
-	    
-	    // optional debug of reads. when reading if set outputs JSON-like
-	    // IF THESE ARE PRESENT, NO ASYNC STUFF!
-	    DataStreamRef DebugOutputFile;
-	    std::stringstream DebugOutput;
-	    U32 TabDepth = 0; // debug tab depth
-	    U32 MaxInlinableBuffer = UINT32_MAX;
+        
+        // optional debug of reads. when reading if set outputs JSON-like
+        // IF THESE ARE PRESENT, NO ASYNC STUFF!
+        DataStreamRef DebugOutputFile;
+        std::stringstream DebugOutput;
+        U32 TabDepth = 0; // debug tab depth
+        U32 MaxInlinableBuffer = UINT32_MAX;
         
         StreamSection CurrentSection = STREAM_SECTION_MAIN;
         
@@ -97,12 +97,12 @@ namespace Meta {
         {
             return Sect[CurrentSection].Data->Read(Buffer, BufferLength);
         }
-	    
-	    inline void WriteTabs()
-	    {
-    	    for(U32 i = 0; i < TabDepth; i++)
-	    	    DebugOutput << "    ";
-	    }
+        
+        inline void WriteTabs()
+        {
+            for(U32 i = 0; i < TabDepth; i++)
+                DebugOutput << "    ";
+        }
         
     };
     
@@ -123,7 +123,7 @@ namespace Meta {
         CLASS_CONTAINER = 4, // this class is a container type (map/set/array/etc)
         CLASS_ABSTRACT = 8, // this class is abstract (Baseclass_ prefix for ex.) so instances of it cannot be created.
         CLASS_NON_BLOCKED = 16, // this class is not blocked in serialisation
-	    CLASS_ATTACHABLE = 32, // can have children attached to it, used in PropertySet and other big complex types
+        CLASS_ATTACHABLE = 32, // can have children attached to it, used in PropertySet and other big complex types
         CLASS_PROXY = 64, // proxy type which is used for telltale game errors. disables all block sizes in members of this type.
     };
     
@@ -195,9 +195,9 @@ namespace Meta {
         // serialiser (needed for intrinsics/containers) function. iswrite if write, else reading.
         Bool (*Serialise)(Stream& stream, ClassInstance& host, Class* clazz, void* pInstance, Bool IsWrite) = nullptr;
         String SerialiseScriptFn = ""; // custom serialise overrider, function name in scripts
-	    
-	    String NormaliserStringFn = ""; // normalisation function
-	    String SpecialiserStringFn = ""; // specialiser function
+        
+        String NormaliserStringFn = ""; // normalisation function
+        String SpecialiserStringFn = ""; // specialiser function
         
         // MEMBERS ARRAY
         std::vector<Member> Members;
@@ -234,21 +234,21 @@ namespace Meta {
         
         U32 _DoLuaVersionCRC(LuaManager& man, I32 classTableStackIndex); // calculate version crc32
         
-	    // internally construct type into memory. concrete is actual ref if its a top level so members have it as its parent
+        // internally construct type into memory. concrete is actual ref if its a top level so members have it as its parent
         void _DoConstruct(Class* pClass, U8* pMemory, ParentWeakReference host, ParentWeakReference& concrete);
         
         void _DoDestruct(Class* pClass, U8* pMemory); // internally call destruct
         
-	    // internally copy type
+        // internally copy type
         void _DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete);
         
-	    // internally move type
+        // internally move type
         void _DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete);
         
         String _PerformToString(U8* pMemory, Class* pClass);
         
         // for c++ controlled: host is empty. if script object: host MUST be a reference to a higher level parent.
-	    // if host argument is attachable, name can be specified and it will be appended to the child list for host
+        // if host argument is attachable, name can be specified and it will be appended to the child list for host
         ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host, Symbol name); // allocates but does not construct anything in the memory
         
         // some serialisers have 'host' argument: top level class object
@@ -309,7 +309,7 @@ namespace Meta {
     // Special type internally used to store binary buffers. No serialiser in this type, but just holds a reference to the memory (frees it)
     struct BinaryBuffer
     {
-	    Ptr<U8> BufferData;
+        Ptr<U8> BufferData;
         U32 BufferSize = 0;
     };
     
@@ -359,13 +359,13 @@ namespace Meta {
                 
                 size_t wildcardsLHS = std::count(maskLHS.begin(), maskLHS.end(), '*') + std::count(maskLHS.begin(), maskLHS.end(), '?');
                 size_t wildcardsRHS = std::count(maskRHS.begin(), maskRHS.end(), '*') + std::count(maskRHS.begin(), maskRHS.end(), '?');
-
+                
                 return wildcardsLHS < wildcardsRHS;
             }
             
         };
         
-	    String Name, ID, ResourceSetDescMask;
+        String Name, ID, ResourceSetDescMask;
         StreamVersion MetaVersion = MBIN;
         LuaVersion LVersion = LuaVersion::LUA_5_2_3;
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
@@ -399,12 +399,12 @@ namespace Meta {
         friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&, Symbol);
         
         friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member, Member*);
-	    
-	    friend ClassInstance CreateInstance(U32 ClassID, ClassInstance host, Symbol n);
-	    
-	    friend ClassInstance CopyInstance(ClassInstance instance, ClassInstance host, Symbol n);
-	    
-	    friend ClassInstance MoveInstance(ClassInstance instance, ClassInstance host, Symbol n);
+        
+        friend ClassInstance CreateInstance(U32 ClassID, ClassInstance host, Symbol n);
+        
+        friend ClassInstance CopyInstance(ClassInstance instance, ClassInstance host, Symbol n);
+        
+        friend ClassInstance MoveInstance(ClassInstance instance, ClassInstance host, Symbol n);
         
     public:
         
@@ -433,11 +433,11 @@ namespace Meta {
         
         // The lua object will keep it alive. Only use this for high level calls.
         void PushStrongScriptRef(LuaManager& man);
-	    
-	    // Pushes a reference to this instance to the lua stack
-	    // Weak here means instance is not owned by the script reference. After all C++ instances are destroyed, getting the object returns nil.
-	    // Pass in the higher level object which will keep this alive. Keep alive can be empty, meaning it will be equal to this.
-	    void PushWeakScriptRef(LuaManager& man, ParentWeakReference keepAlive);
+        
+        // Pushes a reference to this instance to the lua stack
+        // Weak here means instance is not owned by the script reference. After all C++ instances are destroyed, getting the object returns nil.
+        // Pass in the higher level object which will keep this alive. Keep alive can be empty, meaning it will be equal to this.
+        void PushWeakScriptRef(LuaManager& man, ParentWeakReference keepAlive);
         
         // returns true if this instance has expired because its parent is no longer alive.
         inline Bool Expired() const
@@ -461,7 +461,7 @@ namespace Meta {
         inline ParentWeakReference ObtainParentRef()
         {
             return _InstanceMemory ? IsWeakPtrUnbound(_ParentAttachMemory) ?
-	    	    ParentWeakReference{_InstanceMemory} : _ParentAttachMemory : ParentWeakReference{};
+            ParentWeakReference{_InstanceMemory} : _ParentAttachMemory : ParentWeakReference{};
         }
         
         // sets the parent. NOTE: must have no parent present! Nothing happens if no instance.
@@ -493,15 +493,15 @@ namespace Meta {
         
         // Use by _MakeInstance. Deleter is defined in the meta.cpp TU.
         inline ClassInstance(U32 storedID, U8* memory, std::function<void(U8*)> _deleter, ParentWeakReference attachTo) :
-            _InstanceClassID(storedID), _InstanceMemory(memory, _deleter), _ParentAttachMemory(std::move(attachTo)) {}
+        _InstanceClassID(storedID), _InstanceMemory(memory, _deleter), _ParentAttachMemory(std::move(attachTo)) {}
         
         // Use by the collection class. takes in the class and memory, but the memory won't be deleted
         inline ClassInstance(U32 storedID, U8* memoryNoDelete, ParentWeakReference attachTo) : _InstanceClassID(storedID),
-            _InstanceMemory(memoryNoDelete, &NullDeleter), _ParentAttachMemory(std::move(attachTo)) {}
+        _InstanceMemory(memoryNoDelete, &NullDeleter), _ParentAttachMemory(std::move(attachTo)) {}
         
         // Use by the script ref to create an acquired reference from a script object
         inline ClassInstance(U32 storedID, Ptr<U8> acquired, ParentWeakReference prnt) : _InstanceClassID(storedID),
-            _InstanceMemory(std::move(acquired)), _ParentAttachMemory(std::move(prnt)) {}
+        _InstanceMemory(std::move(acquired)), _ParentAttachMemory(std::move(prnt)) {}
         
         U32 _InstanceClassID; // class id
         Ptr<U8> _InstanceMemory; // memory pointer to instance in memory
@@ -516,9 +516,9 @@ namespace Meta {
     // script reference juncture, used in transient references, a point in time when it was acquired.
     struct TransientJuncture
     {
-	    U32 JunctureValue; // value when created
-	    Ptr<std::atomic<U32>> CurrentValue; // current changing value
-	    U8* Value = nullptr; // value we cached
+        U32 JunctureValue; // value when created
+        Ptr<std::atomic<U32>> CurrentValue; // current changing value
+        U8* Value = nullptr; // value we cached
     };
     
     /**
@@ -532,48 +532,48 @@ namespace Meta {
     {
         
         U32 ClassID;
-	    U8* ConcreteInstanceRef; // actual instance pointer. only accessibe when the parent weak ref is alive
+        U8* ConcreteInstanceRef; // actual instance pointer. only accessibe when the parent weak ref is alive
         ParentWeakReference ParentWeakRef; // weak reference to parent
         Ptr<U8> StrongRef; // for strong lua managed references
-	    TransientJuncture Juncture; // if transient
+        TransientJuncture Juncture; // if transient
         
         // internal version returns ref counted pointer, so acquire increases strong ref #
         inline U8* __GetInternal()
         {
-    	    if(IsTransient())
-    	    {
-	    	    // Check transience state.
-	    	    if(Juncture.CurrentValue->load() > Juncture.JunctureValue)
-	    	    {
-    	    	    // someone has used a ContainerGetElement/Emplace etc to get an element but the collection changed
-    	    	    // and they pushed / poppped / clear etc, now the memory pointer is invalid. only access return values
-    	    	    // temporarily
-    	    	    TTE_ASSERT(false, "Script reference has expired: temporary collection access object still has references");
-    	    	    return nullptr;
-	    	    }
-	    	    return Juncture.Value; // dont delete it
-    	    }
+            if(IsTransient())
+            {
+                // Check transience state.
+                if(Juncture.CurrentValue->load() > Juncture.JunctureValue)
+                {
+                    // someone has used a ContainerGetElement/Emplace etc to get an element but the collection changed
+                    // and they pushed / poppped / clear etc, now the memory pointer is invalid. only access return values
+                    // temporarily
+                    TTE_ASSERT(false, "Script reference has expired: temporary collection access object still has references");
+                    return nullptr;
+                }
+                return Juncture.Value; // dont delete it
+            }
             if(IsWeakPtrUnbound(ParentWeakRef) || !ParentWeakRef.expired())
             {
-	    	    Bool exp = ParentWeakRef.expired();
-	    	    return exp ? nullptr : ConcreteInstanceRef;
+                Bool exp = ParentWeakRef.expired();
+                return exp ? nullptr : ConcreteInstanceRef;
             }
             return nullptr;
         }
         
     public:
-	    
-	    // INTERNAL: Create transient
-	    inline ClassInstanceScriptRef(U32 classID, TransientJuncture&& junc, ParentWeakReference&& p) :
-    	    Juncture(std::move(junc)), ClassID(classID), ParentWeakRef(std::move(p)) {}
-	    
-	    // INTERNAL: Create strong ref / persistent
-	    inline ClassInstanceScriptRef(ClassInstance& inst) : ClassID(inst.GetClassID())
-	    {
-    	    StrongRef = inst._InstanceMemory;
-	    }
         
-	    // INTERNAL: Create weak ref
+        // INTERNAL: Create transient
+        inline ClassInstanceScriptRef(U32 classID, TransientJuncture&& junc, ParentWeakReference&& p) :
+        Juncture(std::move(junc)), ClassID(classID), ParentWeakRef(std::move(p)) {}
+        
+        // INTERNAL: Create strong ref / persistent
+        inline ClassInstanceScriptRef(ClassInstance& inst) : ClassID(inst.GetClassID())
+        {
+            StrongRef = inst._InstanceMemory;
+        }
+        
+        // INTERNAL: Create weak ref
         inline ClassInstanceScriptRef(ClassInstance& inst, ParentWeakReference keepAlive)
         {
             if(!inst)
@@ -582,17 +582,17 @@ namespace Meta {
             {
                 ClassID = inst.GetClassID();
                 ConcreteInstanceRef = inst._InstanceMemory.get(); // only accessible through parent check
-	    	    ParentWeakRef = std::move(keepAlive);
+                ParentWeakRef = std::move(keepAlive);
             }
         }
         
         ~ClassInstanceScriptRef() = default; // default
-	    
-	    // Returns if this is a transient reference
-	    inline Bool IsTransient()
-	    {
-    	    return Juncture.Value != nullptr;
-	    }
+        
+        // Returns if this is a transient reference
+        inline Bool IsTransient()
+        {
+            return Juncture.Value != nullptr;
+        }
         
         inline U32 GetClassID()
         {
@@ -602,10 +602,10 @@ namespace Meta {
         // acquires to a normal class reference, or nullptr if expired
         inline ClassInstance Acquire()
         {
-    	    if(IsTransient())
-	    	    return ClassInstance(ClassID, __GetInternal(), ParentWeakRef);
-    	    if(StrongRef)
-	    	    return ClassInstance(ClassID, StrongRef, {}); // no parent required as *this* holds a strong reference
+            if(IsTransient())
+                return ClassInstance(ClassID, __GetInternal(), ParentWeakRef);
+            if(StrongRef)
+                return ClassInstance(ClassID, StrongRef, {}); // no parent required as *this* holds a strong reference
             auto pMemory = __GetInternal();
             return pMemory ? ClassInstance{ClassID, pMemory, ParentWeakRef} : ClassInstance{};
         }
@@ -688,13 +688,13 @@ namespace Meta {
         {
             Push(ClassInstance{}, std::move(val), false, bCopyVal);
         }
-	    
-	    // Pushes an object in this collection to the lua stack. If this collection transient state changes, the lua object
-	    // should not be accessed and any accesses will result in a transient test fault.
-	    // Set pushKey to true to push the key instead if this is a keyed collection
-	    // Pass in the parent, as it still required, it may be high level.
-	    void PushTransientScriptRef(LuaManager& L, U32 index, Bool bPushKey, ParentWeakReference parent);
-    
+        
+        // Pushes an object in this collection to the lua stack. If this collection transient state changes, the lua object
+        // should not be accessed and any accesses will result in a transient test fault.
+        // Set pushKey to true to push the key instead if this is a keyed collection
+        // Pass in the parent, as it still required, it may be high level.
+        void PushTransientScriptRef(LuaManager& L, U32 index, Bool bPushKey, ParentWeakReference parent);
+        
     private: // copy stuff is private, only to be done by meta sys
         
         ClassInstanceCollection& operator=(const ClassInstanceCollection& rhs) = delete;// copy operators
@@ -714,9 +714,9 @@ namespace Meta {
         void SetIndexInternal(U32 index, ClassInstance key, ClassInstance value, Bool bCopyKey, Bool bCopyVal);
         
         ClassInstance SubRef(U32 classID, U8* pMemory); // creates ref to memory inside this collection, depends that we are alive.
-	    
-	    // state is updated
-	    void AdvanceTransienceFenceInternal();
+        
+        // state is updated
+        void AdvanceTransienceFenceInternal();
         
         U32 _Size; // dynamic size of array
         U32 _Cap; // dynamic capacity of array (if SArray, not dynamic, this value is UINT32_MAX)
@@ -730,8 +730,8 @@ namespace Meta {
         U8* _Memory; // allocated memory
         
         ParentWeakReference _PrntRef; // parent ref for this collection
-	    
-	    Ptr<std::atomic<U32>> _TransienceFence;
+        
+        Ptr<std::atomic<U32>> _TransienceFence;
         
     };
     
@@ -793,7 +793,7 @@ namespace Meta {
     DataStreamRef MapDecryptingStream(DataStreamRef& stream);
     
     // ===== CLASS FUNCTIONALITY FOR SINGLE INSTANCES ======
-
+    
     // Creates an instance of the given class. Thread safe between game switches. If creating a type which belongs inside another parent
     // type (ie a non top-level) type, then pass the parent instance as the second argument along with the name to give to that child
     // class. This is needed as child classes are all named. If you just want it to hold a reference, generate a random symbol, or a known
@@ -893,13 +893,13 @@ namespace Meta {
     
     struct InternalState
     {
-	    std::vector<RegGame> Games{};
-	    std::map<U32, Class> Classes{};
-	    std::map<Symbol, CompiledScript> Serialisers{}; // map of serialiser name => compiled script binary
-	    std::map<Symbol, CompiledScript> Normalisers{};
-	    std::map<Symbol, CompiledScript> Specialisers{};
-	    I32 GameIndex = -1;
-	    String VersionCalcFun{}; // lua function which calculates version crc for a type.
+        std::vector<RegGame> Games{};
+        std::map<U32, Class> Classes{};
+        std::map<Symbol, CompiledScript> Serialisers{}; // map of serialiser name => compiled script binary
+        std::map<Symbol, CompiledScript> Normalisers{};
+        std::map<Symbol, CompiledScript> Specialisers{};
+        I32 GameIndex = -1;
+        String VersionCalcFun{}; // lua function which calculates version crc for a type.
         
         
         struct DeferredRegister
@@ -923,13 +923,13 @@ namespace Meta {
             std::vector<DeferredWarning> DeferredWarnings;
             
         } _Temp; // temporary internal deferred collection registr
-	    
-	    inline const RegGame& GetActiveGame() const
-	    {
-    	    TTE_ASSERT(GameIndex != -1, "No game set!");
-    	    return Games[GameIndex];
-	    }
-	    
+        
+        inline const RegGame& GetActiveGame() const
+        {
+            TTE_ASSERT(GameIndex != -1, "No game set!");
+            return Games[GameIndex];
+        }
+        
     };
     
     // Gets the internal state. Its important that this is constant as it should NOT change between game switches.

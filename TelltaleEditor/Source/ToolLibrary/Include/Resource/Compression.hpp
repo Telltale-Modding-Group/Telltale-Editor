@@ -4,7 +4,7 @@
 
 namespace Compression
 {
- 
+    
     // compression type
     enum Type
     {
@@ -14,7 +14,7 @@ namespace Compression
     };
     
     typedef long long (*OodleLZ_Compress)(int algo, const void *pSrc, unsigned int srcLen, void* dst, long long max, void* a, void* b, void* c);
-
+    
     typedef int (*OodleLZ_Decompress)(void* in, int insz, void* out, long long outsz, long long a, long long b, long long c, void* d, void* e, void* f, void* g, void* h, void* i, long long j);
     
     extern OodleLZ_Compress OodleCompressFn;

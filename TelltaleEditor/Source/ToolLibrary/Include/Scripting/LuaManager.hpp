@@ -60,10 +60,10 @@ typedef int (*lua_Writer) (lua_State *L, const void* p, size_t sz, void* ud);
 // Lua Manager class for managing lua calling and versioning. Not thread safe.
 class LuaManager
 {
-  public:
+public:
     // Initialises, must be called after construction, the lua manager with the given version. Only one instance can run per version!
     void Initialise(LuaVersion Vers);
-
+    
     // Runs a chunk of uncompiled lua source. Pass in the C string and its length. Pass in the Name of the lua file as the optional last argument.
     // Set lock context to true such that the context cannot be modified during this call from scripts, ensuring eg TTE_Switch fails.
     Bool RunText(CString Code, U32 Len, Bool LockContext, CString Name);
@@ -206,7 +206,7 @@ class LuaManager
     
     // DOES NOT POP. Compiles the function at the top of the stack and writes the compiled script to the given data stream argument.
     Bool Compile(DataStream* dst);
-
+    
     // Default constructor.
     LuaManager() = default;
     
@@ -214,19 +214,19 @@ class LuaManager
     LuaManager& operator=(LuaManager&&) = default;
     LuaManager(const LuaManager&) = delete;
     LuaManager& operator=(const LuaManager&) = delete;
-
+    
     // Releases lua.
     ~LuaManager();
-
+    
     // Gets the version of this lua manager.
     inline LuaVersion GetVersion() { return _Version; }
     
     // Converts a relative (negative) stack index to an absolute one, which can be used if other elements are pushed onto the stack.
     I32 ToAbsolute(I32 idx);
-
-  private:
+    
+private:
     LuaVersion _Version = LuaVersion::LUA_NONE; // This lua version
-
+    
     LuaAdapterBase *_Adapter = nullptr; // Adapter for the version, see below
 };
 
@@ -234,17 +234,17 @@ class LuaManager
 // defining these functions.
 class LuaAdapterBase
 {
-  protected:
+protected:
     
     LuaManager &_Manager;
     lua_State *_State = nullptr; // lua_State specific to the verison.
-
-  public:
+    
+public:
     
     virtual void Initialise() = 0;
-
+    
     virtual void Shutdown() = 0;
-
+    
     virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) = 0;
     
     virtual void CallFunction(U32 Nargs, U32 Nresults) = 0;
@@ -312,23 +312,23 @@ class LuaAdapterBase
     virtual void Error() = 0;
     
     virtual I32 UpvalueIndex(I32 index) = 0;
-
+    
     inline LuaAdapterBase(LuaManager &manager) : _Manager(manager) {}
-
+    
     inline virtual ~LuaAdapterBase() {}
 };
 
 // For Lua 5.2.3
 class LuaAdapter_523 : public LuaAdapterBase
 {
-  public:
+public:
     
     inline LuaAdapter_523(LuaManager &_Man) : LuaAdapterBase(_Man) {}
-
+    
     void Initialise() override;
-
+    
     void Shutdown() override;
-
+    
     virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
     virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) override;
@@ -400,14 +400,14 @@ class LuaAdapter_523 : public LuaAdapterBase
 // For Lua 5.1.4
 class LuaAdapter_514 : public LuaAdapterBase
 {
-  public:
+public:
     
     inline LuaAdapter_514(LuaManager &_Man) : LuaAdapterBase(_Man) {}
-
+    
     void Initialise() override;
-
+    
     void Shutdown() override;
-
+    
     virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
     virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) override;
@@ -479,14 +479,14 @@ class LuaAdapter_514 : public LuaAdapterBase
 // For Lua 5.0.2
 class LuaAdapter_502 : public LuaAdapterBase
 {
-  public:
+public:
     
     inline LuaAdapter_502(LuaManager &_Man) : LuaAdapterBase(_Man) {}
-
+    
     void Initialise() override;
-
+    
     void Shutdown() override;
-
+    
     virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
     virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) override;

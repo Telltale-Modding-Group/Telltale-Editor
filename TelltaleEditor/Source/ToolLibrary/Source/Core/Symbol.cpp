@@ -25,7 +25,7 @@ U64 CRC64LowerCase(const U8 *Buffer, U32 BufferLength, U64 InitialCRC64)
         U8 letter = Buffer[i];
         if (letter >= 0x41 && letter <= 0x5A) //[A,Z]
             letter |= 0x20;
-
+        
         InitialCRC64 = CRC64_Table[((U32)(InitialCRC64 >> 56) ^ letter) & 0xFF] ^ (InitialCRC64 << 8);
     }
     return InitialCRC64;

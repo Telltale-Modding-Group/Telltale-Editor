@@ -60,7 +60,7 @@ struct RenderTexture
         U32 RowPitch = 0;
         U32 SlicePitch = 0;
         RenderSurfaceFormat Format;
-    
+        
         Meta::BinaryBuffer Data;
         
     };

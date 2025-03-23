@@ -83,7 +83,7 @@ public:
     // Create a texture. Call its create member function to create.
     inline Ptr<RenderTexture> AllocateTexture()
     {
-	    return TTE_NEW_PTR(RenderTexture, MEMORY_TAG_RENDERER);
+        return TTE_NEW_PTR(RenderTexture, MEMORY_TAG_RENDERER);
     }
     
     // Pushes a scene to the currently rendering scene stack. No accesses to this can be made directly after this (internally held).
@@ -122,7 +122,7 @@ public:
      */
     inline ShaderParametersGroup* AllocateParameters(RenderFrame& frame, ShaderParameterTypes types)
     {
-	    return _CreateParameterGroup(frame, types);
+        return _CreateParameterGroup(frame, types);
     }
     
     /**
@@ -130,52 +130,52 @@ public:
      */
     inline ShaderParametersGroup* AllocateParameter(RenderFrame& frame, ShaderParameterType type)
     {
-	    ShaderParameterTypes types{};
-	    types.Set(type, true);
-	    return AllocateParameters(frame, types);
+        ShaderParameterTypes types{};
+        types.Set(type, true);
+        return AllocateParameters(frame, types);
     }
     
     // Sets a texture parameter. pSamplerDesc must be on the frame heap and not created. It will be resolved in render. Can be null for default.
     void SetParameterTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-    	    	    	     Ptr<RenderTexture> tex, RenderSampler* pSamplerDesc);
+                             Ptr<RenderTexture> tex, RenderSampler* pSamplerDesc);
     
     // Sets a uniform parameter
     void SetParameterUniform(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-    	    	    	     const void* uniformData, U32 size);
+                             const void* uniformData, U32 size);
     
     // Sets a generic buffer parameter
     void SetParameterGenericBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-    	    	    	     Ptr<RenderBuffer> buffer, U32 bufferOffset);
+                                   Ptr<RenderBuffer> buffer, U32 bufferOffset);
     
     // Set a vertex buffer parameter
     void SetParameterVertexBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-	    	    	    	      Ptr<RenderBuffer> buffer, U32 startOffset);
+                                  Ptr<RenderBuffer> buffer, U32 startOffset);
     
     // Set an index buffer parameter input.
     void SetParameterIndexBuffer(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-	    	    	    	      Ptr<RenderBuffer> buffer, U32 startIndex);
+                                 Ptr<RenderBuffer> buffer, U32 startIndex);
     
     // Sets a default texture binding. pSamplerDesc must be on the frame heap and not created. It will be resolved in render. Can be null for default.
     void SetParameterDefaultTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
-    	    	    	    	    DefaultRenderTextureType textype, RenderSampler* pSamplerDesc);
+                                    DefaultRenderTextureType textype, RenderSampler* pSamplerDesc);
     
     // Unsafe call, ensure calling from the correct place!
     inline RenderFrame& GetFrame(Bool bGetPopulatingFrame)
     {
-	    return bGetPopulatingFrame ? _Frame[_MainFrameIndex^ 1] : _Frame[_MainFrameIndex];
+        return bGetPopulatingFrame ? _Frame[_MainFrameIndex^ 1] : _Frame[_MainFrameIndex];
     }
     
     // Call from main thread only (ie high level outside of this class). Default cap macro is above. Range from 1 to 120
     inline void CapFrameRate(U32 fps)
     {
-	    TTE_ASSERT(fps > 0 && fps <= 120, "Frame rate can only be from 1 to 120!");
-	    _MinFrameTimeMS = (U32)(1000.0f / ((Float)fps));
+        TTE_ASSERT(fps > 0 && fps <= 120, "Frame rate can only be from 1 to 120!");
+        _MinFrameTimeMS = (U32)(1000.0f / ((Float)fps));
     }
     
     // Call from the main thread. See the default macro
     inline void AdjustHotResourceThreshold(U32 newValue)
     {
-	    _HotResourceThresh = newValue;
+        _HotResourceThresh = newValue;
     }
     
 private:
@@ -183,19 +183,19 @@ private:
     // Checks and ensures are being called from the main thread.
     inline void AssertMainThread()
     {
-	    TTE_ASSERT(IsCallingFromMain(), "This function cannot be called from anywhere but the main thread!");
+        TTE_ASSERT(IsCallingFromMain(), "This function cannot be called from anywhere but the main thread!");
     }
     
     inline Ptr<RenderTexture> _GetDefaultTexture(DefaultRenderTextureType type)
     {
-	    TTE_ASSERT(type != DefaultRenderTextureType::NONE, "Invalid default texture type");
-	    return _DefaultTextures[(U32)type - 1].Texture;
+        TTE_ASSERT(type != DefaultRenderTextureType::NONE, "Invalid default texture type");
+        return _DefaultTextures[(U32)type - 1].Texture;
     }
     
     inline DefaultRenderMesh& _GetDefaultMesh(DefaultRenderMeshType type)
     {
-	    TTE_ASSERT(type != DefaultRenderMeshType::NONE, "Invalid default mesh type");
-	    return _DefaultMeshes[(U32)type - 1];
+        TTE_ASSERT(type != DefaultRenderMeshType::NONE, "Invalid default mesh type");
+        return _DefaultMeshes[(U32)type - 1];
     }
     
     // =========== INTERNAL RENDERING FUNCTIONALITY
@@ -216,7 +216,7 @@ private:
     Ptr<RenderShader> _FindShader(String name, RenderShaderType);
     
     Bool _FindProgram(String name, Ptr<RenderShader>& vert, Ptr<RenderShader>& frag);
-
+    
     // note the transfer buffers below are UPLOAD ONES. DOWNLOAD BUFFERS COULD BE DONE IN THE FUTURE, BUT NO NEED ANY TIME SOON.
     
     _RenderTransferBuffer _AcquireTransferBuffer(U32 size, RenderCommandBuffer& cmds); // find an available transfer buffer to use
@@ -294,16 +294,16 @@ inline void FinalisePlatformMatrix(RenderContext& context, Vector4 (&out)[4], co
 {
     if(context.IsRowMajor())
     {
-	    out[0] = in.GetRow(0);
-	    out[1] = in.GetRow(1);
-	    out[2] = in.GetRow(2);
-	    out[3] = in.GetRow(3);
+        out[0] = in.GetRow(0);
+        out[1] = in.GetRow(1);
+        out[2] = in.GetRow(2);
+        out[3] = in.GetRow(3);
     }
     else
     {
-	    out[0] = in.GetColumn(0);
-	    out[1] = in.GetColumn(1);
-	    out[2] = in.GetColumn(2);
-	    out[3] = in.GetColumn(3);
+        out[0] = in.GetColumn(0);
+        out[1] = in.GetColumn(1);
+        out[2] = in.GetColumn(2);
+        out[3] = in.GetColumn(3);
     }
 }

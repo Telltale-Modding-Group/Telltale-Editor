@@ -76,7 +76,7 @@ static int _CompileWriter(lua_State*, const void* p, size_t sz, void* strm)
 {
     if(sz > 0)
     {
-	    DataStream* stream = (DataStream*)strm;
+        DataStream* stream = (DataStream*)strm;
         return stream->Write((const U8*)p, sz) ? 0 : 1; // write bytes
     }
     return 0;
@@ -120,7 +120,7 @@ void LuaManager::CallFunction(U32 Nargs, U32 Nresults, Bool bBlock)
 {
     if(bBlock)
     {
-	    TTE_ASSERT(!JobScheduler::IsRunningFromWorker(), "Worker threads cannot lock the tool context");
+        TTE_ASSERT(!JobScheduler::IsRunningFromWorker(), "Worker threads cannot lock the tool context");
         GetToolContext()->_LockedCallDepth++;
     }
     _Adapter->CallFunction(Nargs, Nresults);

@@ -114,7 +114,7 @@ void Blowfish::Cipher::_Do(Bool enc, Bool mod, U32& left, U32& right)
         temp = left;
         left = right;
         right = temp;
-    
+        
         // WHITEN
         right ^= P[16];
         left ^= P[16 + 1];
@@ -327,7 +327,7 @@ namespace {
         0xb6636521, 0xe7b9f9b6, 0xff34052e, 0xc5855664,
         0x53b02d5d, 0xa99f8fa1, 0x08ba4799, 0x6e85076a
     };
-   
+    
     U32 ks1[] =
     {
         0x4b7a70e9, 0xb5b32944, 0xdb75092e, 0xc4192623,

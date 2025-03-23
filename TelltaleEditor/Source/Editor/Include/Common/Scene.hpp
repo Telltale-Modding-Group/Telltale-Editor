@@ -52,19 +52,19 @@ struct SceneAgent
     
     inline SceneAgent() : Name("")
     {
-	    for(I32 i = 0; i < (I32)SceneModuleType::NUM; i++)
-    	    ModuleIndices[i] = -1;
+        for(I32 i = 0; i < (I32)SceneModuleType::NUM; i++)
+            ModuleIndices[i] = -1;
     }
     
     inline Bool operator==(const SceneAgent& rhs) const
     {
-	    return rhs.NameSymbol == NameSymbol;
+        return rhs.NameSymbol == NameSymbol;
     }
     
     inline SceneAgent(String _name) : SceneAgent()
     {
-	    Name = std::move(_name);
-	    NameSymbol = Symbol(Name);
+        Name = std::move(_name);
+        NameSymbol = Symbol(Name);
     }
     
 };
@@ -75,15 +75,15 @@ struct SceneAgentComparator {
     using is_transparent = void; // Enables lookup by U64
     
     inline Bool operator()(const SceneAgent& lhs, const SceneAgent& rhs) const {
-	    return lhs.NameSymbol < rhs.NameSymbol;
+        return lhs.NameSymbol < rhs.NameSymbol;
     }
     
     inline Bool operator()(const SceneAgent& lhs, Symbol rhs) const {
-	    return lhs.NameSymbol < rhs;
+        return lhs.NameSymbol < rhs;
     }
     
     inline Bool operator()(Symbol lhs, const SceneAgent& rhs) const {
-	    return lhs < rhs.NameSymbol;
+        return lhs < rhs.NameSymbol;
     }
 };
 
@@ -109,12 +109,12 @@ public:
     
     inline void SetName(String name)
     {
-	    Name = name;
+        Name = name;
     }
     
     inline String GetName()
     {
-	    return Name;
+        return Name;
     }
     
     // Add a new agent
@@ -136,11 +136,11 @@ public:
     template<SceneModuleType Type>
     inline SceneModule<Type>& GetAgentModule(const Symbol& Agent)
     {
-	    SceneAgent ag{};
-	    ag.NameSymbol = Agent;
-	    auto it = _Agents.find(ag);
-	    TTE_ASSERT(it != _Agents.end(), "The agent does not exist [GetAgentModule<>]");
-	    return SceneModule<Type>::GetForScene(*this, *it);
+        SceneAgent ag{};
+        ag.NameSymbol = Agent;
+        auto it = _Agents.find(ag);
+        TTE_ASSERT(it != _Agents.end(), "The agent does not exist [GetAgentModule<>]");
+        return SceneModule<Type>::GetForScene(*this, *it);
     }
     
     // Registers scene normalisers and specialisers

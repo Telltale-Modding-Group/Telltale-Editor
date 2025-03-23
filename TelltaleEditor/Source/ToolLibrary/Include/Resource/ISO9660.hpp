@@ -95,7 +95,7 @@ private:
     
     struct PrimaryVolumeDesc
     {
-
+        
         String _SystemID;
         String _VolumeID;
         
@@ -125,7 +125,7 @@ private:
         VolumeTs _Creation, _Modification, _Expiration, _Effective;
         
         U8 _FileStructureVersion; // should be 1 for ECMA
-      
+        
         Bool SerialisePrimaryIn(DataStreamRef& in);
         
     };
@@ -220,7 +220,7 @@ private:
     
     std::vector<SupplementaryVolumeDesc> _SupplementaryDescs;
     std::vector<BootVolumeDesc> _BootDescs;
-
+    
     std::vector<PartitionVolumeDesc> _PartitionDescs;
     
     std::vector<DirectoryRecord> _Records;

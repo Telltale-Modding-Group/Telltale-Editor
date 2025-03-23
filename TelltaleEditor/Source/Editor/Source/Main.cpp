@@ -14,7 +14,7 @@ static void RunMod()
     Context->Switch({"BN100", "MacOS", ""});
     
     {
-
+        
         // for now assume user has called 'editorui.exe "../../Dev/mod.lua"
         String src = Context->LoadLibraryStringResource("mod.lua");
         Context->GetLibraryLVM().RunText(src.c_str(), (U32)src.length(), false, "mod.lua"); // dont lock the context, allow any modding.
@@ -47,21 +47,21 @@ static void RunRender()
             
             // load all textures.
             /*std::set<String> tex{};
-            StringMask m("*.d3dtx");
-            registry->GetResourceNames(tex, &m);
-            std::vector<Ptr<RenderTexture>> loadedTextures{};
-            for(auto& t: tex)
-            {
-                auto s = registry->FindResource(t);
-                Meta::ClassInstance textureInstance{};
-                if( (textureInstance = Meta::ReadMetaStream(t, s)) )
-                {
-                    Ptr<RenderTexture> tex = TTE_NEW_PTR(RenderTexture, MEMORY_TAG_TEMPORARY);
-                    loadedTextures.push_back(tex);
-                    editor.EnqueueNormaliseTextureTask(textureInstance, tex);
-                }
-                else TTE_LOG("Failed %s", t.c_str());
-            }*/
+             StringMask m("*.d3dtx");
+             registry->GetResourceNames(tex, &m);
+             std::vector<Ptr<RenderTexture>> loadedTextures{};
+             for(auto& t: tex)
+             {
+             auto s = registry->FindResource(t);
+             Meta::ClassInstance textureInstance{};
+             if( (textureInstance = Meta::ReadMetaStream(t, s)) )
+             {
+             Ptr<RenderTexture> tex = TTE_NEW_PTR(RenderTexture, MEMORY_TAG_TEMPORARY);
+             loadedTextures.push_back(tex);
+             editor.EnqueueNormaliseTextureTask(textureInstance, tex);
+             }
+             else TTE_LOG("Failed %s", t.c_str());
+             }*/
             
             // 1. load a mesh
             DataStreamRef stream = registry->FindResource("adv_forestWaterfall.d3dmesh");
@@ -79,7 +79,7 @@ static void RunRender()
             editor.Wait();
             
             // 4. push scene to renderer
-
+            
             context.PushScene(std::move(scene)); // push scene to render
             
             // 5. Run renderer and show the mesh!

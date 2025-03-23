@@ -118,9 +118,9 @@ enum class RenderPrimitiveType : U32
 inline U32 GetNumVertsForPrimitiveType(RenderPrimitiveType type, U32 numPrims)
 {
     if(type == RenderPrimitiveType::TRIANGLE_LIST)
-	    return 3 * numPrims; // a triangle is defiend by three points
+        return 3 * numPrims; // a triangle is defiend by three points
     else if(type == RenderPrimitiveType::LINE_LIST)
-	    return 2 * numPrims; // a line is defined by two points
+        return 2 * numPrims; // a line is defined by two points
     return 0;
 }
 
@@ -154,7 +154,7 @@ struct _RenderTransferBuffer
     
     inline bool operator<(const _RenderTransferBuffer& rhs) const
     {
-	    return Capacity < rhs.Capacity;
+        return Capacity < rhs.Capacity;
     }
     
 };
@@ -176,7 +176,7 @@ struct RenderSampler
     // Test description, not the handle.
     inline Bool operator==(const RenderSampler& rhs)
     {
-	    return MipBias == rhs.MipBias && MipMode == rhs.MipMode && WrapU == rhs.WrapU && WrapV == rhs.WrapV;
+        return MipBias == rhs.MipBias && MipMode == rhs.MipMode && WrapU == rhs.WrapU && WrapV == rhs.WrapV;
     }
     
     ~RenderSampler();
@@ -191,9 +191,9 @@ struct RenderVertexState
     
     struct VertexAttrib
     {
-	    RenderAttributeType Attrib = RenderAttributeType::UNKNOWN; //  ie binding slot.
-	    RenderBufferAttributeFormat Format = RenderBufferAttributeFormat::UNKNOWN;
-	    U32 VertexBufferIndex = 0; // 0 to 31 (which vertex buffer to use)
+        RenderAttributeType Attrib = RenderAttributeType::UNKNOWN; //  ie binding slot.
+        RenderBufferAttributeFormat Format = RenderBufferAttributeFormat::UNKNOWN;
+        U32 VertexBufferIndex = 0; // 0 to 31 (which vertex buffer to use)
     };
     
     // === INFO FORMAT
@@ -216,10 +216,10 @@ struct RenderPipelineState
     
     struct
     {
-	    
-	    SDL_GPUGraphicsPipeline* _Handle = nullptr; // SDL handle
-	    RenderContext* _Context; // handle to context
-	    
+        
+        SDL_GPUGraphicsPipeline* _Handle = nullptr; // SDL handle
+        RenderContext* _Context; // handle to context
+        
     } _Internal;
     
     U64 Hash = 0; // calculated pipeline hash. draw calls etc specify this.
@@ -283,7 +283,7 @@ struct RenderShader
     
     inline RenderShader()
     {
-	    memset(ParameterSlots, 0xFF, PARAMETER_COUNT);
+        memset(ParameterSlots, 0xFF, PARAMETER_COUNT);
     }
     
     ~RenderShader();
@@ -315,7 +315,7 @@ struct RenderCommandBuffer
     
     // Binds num textures along with samplers, starting at the given slot, to the pipeline fragment shader. num is 0 to 32.
     void BindTextures(U32 slot, U32 num, RenderShaderType shader,
-    	    	      Ptr<RenderTexture>* pTextures, Ptr<RenderSampler>* pSamplers);
+                      Ptr<RenderTexture>* pTextures, Ptr<RenderSampler>* pSamplers);
     
     // Bind a default texture
     void BindDefaultTexture(U32 slot, RenderShaderType, Ptr<RenderSampler> sampler, DefaultRenderTextureType type);
@@ -337,7 +337,7 @@ struct RenderCommandBuffer
     
     // Perform a texture sub-image upload. Prefer to use render frame update list! This is OK for use in defaults.
     void UploadTextureDataSlow(Ptr<RenderTexture>& texture, DataStreamRef srcStream,
-	    	    	       U64 srcOffset, U32 mip, U32 slice, U32 dataSize);
+                               U64 srcOffset, U32 mip, U32 slice, U32 dataSize);
     
     // Draws indexed.
     void DrawIndexed(U32 numIndices, U32 numInstances, U32 indexStart, I32 vertexIndexOffset, U32 firstInstanceIndex);
@@ -379,7 +379,7 @@ struct SceneMessage
     
     inline bool operator<(const SceneMessage& rhs) const
     {
-	    return Priority < rhs.Priority;
+        return Priority < rhs.Priority;
     }
     
 };
@@ -395,7 +395,7 @@ class RenderInst
     
     /*Used to sort for render layers. BIT FORMAT:
      Bits 0-25: unused (all 0s for now)
-      Bits 26-36: sub layer (0-1023)
+     Bits 26-36: sub layer (0-1023)
      Bits 37-45: unused (all 1s for now)
      Bits 46-62: layer + 0x8000 (layer is signed short range, from -32767 to 32767)
      Bits 63-64: transparent mode (MSB, meaning most significant in determining order). not used yet.
@@ -422,62 +422,62 @@ class RenderInst
     DefaultRenderMeshType _DrawDefault = DefaultRenderMeshType::NONE;
     
     String Program;
-
+    
 public:
     
     /**
      * Sets the render layer. This determines the draw order. layer is from -0x8000 to 0x7FFF and sublayer is from 0 to 0x3FF.
      */
     inline void SetRenderLayer(I32 layer, U32 sublayer){
-	    U32 transparencyMode = 0; // no need rn
-	    layer = MIN(0x7FFF, MAX(layer, -0x8000));
-	    sublayer = MIN(0x3FF, MAX(sublayer, 0));
-	    _SortKey = ((U64)transparencyMode << 62) | ((U64)sublayer << 26) | ((U64)(layer + 0x8000) << 46) | 0x3FF000000000llu;
+        U32 transparencyMode = 0; // no need rn
+        layer = MIN(0x7FFF, MAX(layer, -0x8000));
+        sublayer = MIN(0x3FF, MAX(sublayer, 0));
+        _SortKey = ((U64)transparencyMode << 62) | ((U64)sublayer << 26) | ((U64)(layer + 0x8000) << 46) | 0x3FF000000000llu;
     }
     
     /**
      * Gets the current render layer of this draw instance.
      */
     inline I32 GetRenderLayer() {
-	    return (I32)((U32)(_SortKey >> 46)) - 0x8000;
+        return (I32)((U32)(_SortKey >> 46)) - 0x8000;
     }
     
     /**
      Gets the current sub-layer of this draw instance
      */
     inline U32 GetRenderSubLayer(){
-	    return (U32)((_SortKey >> 26) & 0x3FF);
+        return (U32)((_SortKey >> 26) & 0x3FF);
     }
     
     /**
      * Sets the range of indices to draw.
      
-    inline void SetIndexRange(U32 minIndex, U32 maxIndex){
-	    _MinIndex = minIndex;
-	    _MaxIndex = maxIndex;
-    } */
+     inline void SetIndexRange(U32 minIndex, U32 maxIndex){
+     _MinIndex = minIndex;
+     _MaxIndex = maxIndex;
+     } */
     
     /**
      Draws a primitive array.
      */
     inline void DrawPrimitives(RenderPrimitiveType type, U32 start_index, U32 prim_count, U32 instance_count, I32 baseIndex)
     {
-	    _StartIndex = start_index;
-	    _PrimitiveType = type;
-	    _InstanceCount = instance_count;
-	    _IndexCount = GetNumVertsForPrimitiveType(type, prim_count);
-	    _BaseIndex = baseIndex;
+        _StartIndex = start_index;
+        _PrimitiveType = type;
+        _InstanceCount = instance_count;
+        _IndexCount = GetNumVertsForPrimitiveType(type, prim_count);
+        _BaseIndex = baseIndex;
     }
     
     /**
      Draws vertices for a given primitive.
      */
     inline void DrawVertices(RenderPrimitiveType type, U32 start_index, U32 vertex_count, U32 instance_count, I32 baseIndex){
-	    _InstanceCount = instance_count;
-	    _PrimitiveType = type;
-	    _StartIndex = start_index;
-	    _IndexCount = vertex_count;
-	    _BaseIndex = baseIndex;
+        _InstanceCount = instance_count;
+        _PrimitiveType = type;
+        _StartIndex = start_index;
+        _IndexCount = vertex_count;
+        _BaseIndex = baseIndex;
     }
     
     /**
@@ -485,7 +485,7 @@ public:
      */
     inline void SetShaderProgram(String name)
     {
-	    Program = std::move(name);
+        Program = std::move(name);
     }
     
     /**
@@ -493,7 +493,7 @@ public:
      */
     inline void SetVertexState(RenderVertexState& info)
     {
-	    _VertexStateInfo = info;
+        _VertexStateInfo = info;
     }
     
     /**
@@ -502,13 +502,13 @@ public:
      */
     inline void DrawDefaultMesh(DefaultRenderMeshType type)
     {
-	    _DrawDefault = type;
-	    _InstanceCount = 1;
-	    _IndexCount = _IndexBufferIndex = 0; // set later
+        _DrawDefault = type;
+        _InstanceCount = 1;
+        _IndexCount = _IndexBufferIndex = 0; // set later
     }
     
     inline Bool operator<(const RenderInst& rhs) const {
-	    return _SortKey < rhs._SortKey;
+        return _SortKey < rhs._SortKey;
     }
     
     friend struct RenderInstSorter;
@@ -520,7 +520,7 @@ public:
 struct RenderInstSorter {
     
     inline Bool operator()(const RenderInst* lhs, const RenderInst* rhs) const {
-	    return lhs->_SortKey < rhs->_SortKey;
+        return lhs->_SortKey < rhs->_SortKey;
     }
     
 };
@@ -552,9 +552,9 @@ struct RenderFrame
     template<typename T>
     inline void PushAutorelease(Ptr<T> val)
     {
-	    auto it = _Autorelease.find((U64)val.get());
-	    if(it == _Autorelease.end())
-    	    _Autorelease[(U64)val.get()] = std::move(val);
+        auto it = _Autorelease.find((U64)val.get());
+        if(it == _Autorelease.end())
+            _Autorelease[(U64)val.get()] = std::move(val);
     }
     
     std::unordered_map<U64, Ptr<void>> _Autorelease; // released at end of frame.
@@ -571,30 +571,30 @@ class RenderFrameUpdateList
     // No staging buffer. Static data.
     struct MetaBufferUpload
     {
-	    
-	    MetaBufferUpload* Next = nullptr;
-	    
-	    Meta::BinaryBuffer Data;
-	    
-	    Ptr<RenderBuffer> Buffer;
-	    
-	    U64 DestPosition = 0; // dest position in Buffer
-	    
+        
+        MetaBufferUpload* Next = nullptr;
+        
+        Meta::BinaryBuffer Data;
+        
+        Ptr<RenderBuffer> Buffer;
+        
+        U64 DestPosition = 0; // dest position in Buffer
+        
     };
     
     struct DataStreamBufferUpload
     {
-	    
-	    DataStreamBufferUpload* Next = nullptr;
-	    
-	    DataStreamRef Src;
-	    Ptr<RenderBuffer> Buffer;
-	    
-	    U64 Position = 0; // start pos
-	    U64 UploadSize = 0;
-	    
-	    U64 DestPosition = 0; // dest position Buffer
-	    
+        
+        DataStreamBufferUpload* Next = nullptr;
+        
+        DataStreamRef Src;
+        Ptr<RenderBuffer> Buffer;
+        
+        U64 Position = 0; // start pos
+        U64 UploadSize = 0;
+        
+        U64 DestPosition = 0; // dest position Buffer
+        
     };
     
     friend class RenderContext;
@@ -648,40 +648,40 @@ namespace RenderUtility
      Creates a scaling and transforming matrix for the given bounding box so its the same
      */
     inline Matrix4 CreateBoundingBoxModelMatrix(BoundingBox box) {
-	    // Calculate the center of the bounding box from _Min and _Max
-	    Float centerX = (box._Min.x + box._Max.x) / 2.0f;
-	    Float centerY = (box._Min.y + box._Max.y) / 2.0f;
-	    Float centerZ = (box._Min.z + box._Max.z) / 2.0f;
-	    
-	    // Calculate the size (dimensions) of the bounding box
-	    Float width = box._Max.x - box._Min.x;
-	    Float height = box._Max.y - box._Min.y;
-	    Float depth = box._Max.z - box._Min.z;
-	    
-	    // Scale factors to transform the bounding box into a unit box from -1 to 1
-	    Float scaleX = 0.5f * width;
-	    Float scaleY = 0.5f * height;
-	    Float scaleZ = 0.5f * depth;
-	    
-	    // Translation to move the center of the bounding box to the origin
-	    Float translateX = -centerX;
-	    Float translateY = -centerY;
-	    Float translateZ = -centerZ;
-	    
-	    // Create the transformation matrix using scaling and translation
-	    Matrix4 modelMatrix{};
-	    
-	    modelMatrix = MatrixScaling(scaleX, scaleY, scaleZ) * MatrixTranslation(Vector3(translateX, translateY, translateZ));
-	    
-	    return modelMatrix;
+        // Calculate the center of the bounding box from _Min and _Max
+        Float centerX = (box._Min.x + box._Max.x) / 2.0f;
+        Float centerY = (box._Min.y + box._Max.y) / 2.0f;
+        Float centerZ = (box._Min.z + box._Max.z) / 2.0f;
+        
+        // Calculate the size (dimensions) of the bounding box
+        Float width = box._Max.x - box._Min.x;
+        Float height = box._Max.y - box._Min.y;
+        Float depth = box._Max.z - box._Min.z;
+        
+        // Scale factors to transform the bounding box into a unit box from -1 to 1
+        Float scaleX = 0.5f * width;
+        Float scaleY = 0.5f * height;
+        Float scaleZ = 0.5f * depth;
+        
+        // Translation to move the center of the bounding box to the origin
+        Float translateX = -centerX;
+        Float translateY = -centerY;
+        Float translateZ = -centerZ;
+        
+        // Create the transformation matrix using scaling and translation
+        Matrix4 modelMatrix{};
+        
+        modelMatrix = MatrixScaling(scaleX, scaleY, scaleZ) * MatrixTranslation(Vector3(translateX, translateY, translateZ));
+        
+        return modelMatrix;
     }
-
+    
     /**
      Creates a scaling and transforming matrix for the given sphere such that it can be drawn as default sphere or wireframe sphere
      */
     inline Matrix4 CreateSphereModelMatrix(Sphere sphere)
     {
-	    return MatrixTransformation(Vector3(sphere._Radius), Quaternion::kIdentity, sphere._Center);
+        return MatrixTransformation(Vector3(sphere._Radius), Quaternion::kIdentity, sphere._Center);
     }
     
     // internal draw. null camera means a higher level camera will be searched for in the base parameters stack
@@ -692,7 +692,7 @@ namespace RenderUtility
      */
     inline void DrawWireSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
     {
-	    _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_SPHERE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_SPHERE, pBaseParams);
     }
     
     /**
@@ -700,7 +700,7 @@ namespace RenderUtility
      */
     inline void DrawWireCapsule(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
     {
-	    _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CAPSULE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CAPSULE, pBaseParams);
     }
     
     /**
@@ -708,7 +708,7 @@ namespace RenderUtility
      */
     inline void DrawWireBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
     {
-	    _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_BOX, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_BOX, pBaseParams);
     }
     
     /**
@@ -716,7 +716,7 @@ namespace RenderUtility
      */
     inline void DrawFilledBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
     {
-	    _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_BOX, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_BOX, pBaseParams);
     }
     
     /**
@@ -724,7 +724,7 @@ namespace RenderUtility
      */
     inline void DrawFilledSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
     {
-	    _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_SPHERE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_SPHERE, pBaseParams);
     }
     
     /**
@@ -732,7 +732,7 @@ namespace RenderUtility
      */
     inline void DrawFilledCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
     {
-	    _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CONE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CONE, pBaseParams);
     }
     
     /**
@@ -740,7 +740,7 @@ namespace RenderUtility
      */
     inline void DrawWireCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
     {
-	    _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CONE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CONE, pBaseParams);
     }
     
     /**
@@ -748,7 +748,7 @@ namespace RenderUtility
      */
     inline void DrawFilledCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
     {
-	    _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CYLINDER, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CYLINDER, pBaseParams);
     }
     
     /**
@@ -756,7 +756,7 @@ namespace RenderUtility
      */
     inline void DrawWireCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
     {
-	    _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CYLINDER, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CYLINDER, pBaseParams);
     }
     
 }

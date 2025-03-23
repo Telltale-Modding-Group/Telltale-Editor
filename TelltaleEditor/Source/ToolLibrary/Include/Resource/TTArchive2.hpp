@@ -23,14 +23,14 @@ public:
     // Returns the binary stream of the given file name symbol in this data archive.
     inline DataStreamRef Find(const Symbol& fn, String* outName) const
     {
-	    FileInfo proxy{"", fn, DataStreamRef{}};
-	    auto it = std::lower_bound(_Files.begin(), _Files.end(), proxy);
+        FileInfo proxy{"", fn, DataStreamRef{}};
+        auto it = std::lower_bound(_Files.begin(), _Files.end(), proxy);
         if(it != _Files.end() && it->NameSymbol == fn)
-	    {
-    	    if(outName)
-	    	    *outName = it->Name;
-    	    return it->Stream;
-	    }
+        {
+            if(outName)
+                *outName = it->Name;
+            return it->Stream;
+        }
         return {};
     }
     
@@ -50,8 +50,8 @@ public:
         }
         
         // Doesn't exist, add new entry
-	    FileInfo inf{name, Symbol(name), std::move(stream)};
-	    VectorInsertSorted(_Files, std::move(inf));
+        FileInfo inf{name, Symbol(name), std::move(stream)};
+        VectorInsertSorted(_Files, std::move(inf));
     }
     
     // Puts all file names inside this archive into the output result array
@@ -63,7 +63,7 @@ public:
     
     inline void Reset()
     {
-	    _Files.clear();
+        _Files.clear();
     }
     
 private:
@@ -72,26 +72,26 @@ private:
     {
         
         String Name;
-	    Symbol NameSymbol;
+        Symbol NameSymbol;
         DataStreamRef Stream;
-	    
-	    inline Bool operator<(const FileInfo& rhs) const
-	    {
-    	    return NameSymbol < rhs.NameSymbol;
-	    }
+        
+        inline Bool operator<(const FileInfo& rhs) const
+        {
+            return NameSymbol < rhs.NameSymbol;
+        }
         
     };
     
     struct InternalFileInfo // internal while reading
     {
-	    
+        
         U64 Offset; // offset in archive
-	    U64 CRC; // fn crc
+        U64 CRC; // fn crc
         U32 Size; // size of file
         U32 NameOffset; // offset in filename buffer
-	    
+        
     };
-
+    
     U32 _Version; // 2 = TTA2, 3 = TTA3, 4 = TTA4.
     std::vector<FileInfo> _Files;
     

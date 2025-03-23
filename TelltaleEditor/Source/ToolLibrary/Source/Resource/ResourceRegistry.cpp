@@ -122,7 +122,7 @@ Bool StringMask::MatchSearchMask(CString testString,CString searchMask,StringMas
         {
             CString patternEnd = nextPattern ? nextPattern : patternStart + strlen(patternStart);
             Bool matches = MaskCompare(patternStart, testString, patternEnd, mode);
-
+            
             //Bool matches = MaskCompare(patternStart, testString, nextPattern, mode);
             if (matches != isExclusion)
             {
@@ -398,10 +398,10 @@ Bool RegistryDirectory_TTArchive::HasResource(const Symbol& resourceName, const 
 {
     _LastLocatedResource.clear();
     _LastLocatedResourceStatus = false;
-
+    
     _Archive.Find(resourceName, &_LastLocatedResource);
     _LastLocatedResourceStatus = _LastLocatedResource.length() != 0;
-
+    
     return _LastLocatedResourceStatus;
 }
 
@@ -494,7 +494,7 @@ Ptr<RegistryDirectory> RegistryDirectory_TTArchive::OpenDirectory(const String& 
 }
 
 Bool RegistryDirectory_TTArchive::GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-                                                Ptr<ResourceLocation>& self, const StringMask* optionalMask)
+                                               Ptr<ResourceLocation>& self, const StringMask* optionalMask)
 {
     resources.reserve(resources.size() + _Archive._Files.size());
     
@@ -654,7 +654,7 @@ Ptr<RegistryDirectory> RegistryDirectory_ISO9660::OpenDirectory(const String& na
 }
 
 Bool RegistryDirectory_GamePack2::GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-                                             Ptr<ResourceLocation>& self, const StringMask* optionalMask)
+                                               Ptr<ResourceLocation>& self, const StringMask* optionalMask)
 {
     std::set<String> files{};
     _Pack.GetFiles(files);
@@ -757,7 +757,7 @@ void RegistryDirectory_ISO9660::RefreshResources()
 }
 
 Bool RegistryDirectory_ISO9660::GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-                                               Ptr<ResourceLocation>& self, const StringMask* optionalMask)
+                                             Ptr<ResourceLocation>& self, const StringMask* optionalMask)
 {
     std::set<String> files{};
     _ISO.GetFiles(files);
@@ -1438,7 +1438,7 @@ void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDi
         String physicalPath = fspath + arc;
         if(_Locate(archiveID))
             continue; // already exists
-
+        
         TTE_ASSERT(_ImportAllocateArchivePack(arc, archiveID, physicalPath, castedPtr, lck), "Packed archive import failed");
         
         // Map archive location to master
@@ -1570,7 +1570,7 @@ void ResourceRegistry::MountSystem(const String &id, const String& _fspath)
         // Gather all subdirectories and add them as well
         std::set<String> subdirs{};
         TTE_ASSERT(dir->Directory.GetAllSubDirectories(subdirs, nullptr), "Could not get all subdirectories for %s", fspath.c_str());
-       
+        
         for(auto& sub: subdirs)
         {
             String folderID = id + sub;
@@ -1646,7 +1646,7 @@ StringMask ResourceRegistry::_ArchivesMask(Bool bLegacy)
 }
 
 Bool ResourceRegistry::_ImportAllocateArchivePack(const String& resourceName, const String& archiveID,
-                                          const String& archivePhysicalPath, Ptr<ResourceLocation>& parent, std::unique_lock<std::mutex>& lck)
+                                                  const String& archivePhysicalPath, Ptr<ResourceLocation>& parent, std::unique_lock<std::mutex>& lck)
 {
     DataStreamRef archiveStream = parent->LocateResource(resourceName, nullptr);
     return archiveStream ? _ImportArchivePack(resourceName, archiveID, archivePhysicalPath, archiveStream, lck) : false;
@@ -1883,7 +1883,7 @@ void ResourceRegistry::ReconfigureResourceSets(const std::set<Symbol>& turnOff, 
 }
 
 void ResourceRegistry::_UnloadResources(const std::vector<std::pair<Symbol, Ptr<ResourceLocation>>> &resources,
-                                            std::unique_lock<std::mutex>& lck, U32 mx)
+                                        std::unique_lock<std::mutex>& lck, U32 mx)
 {
     TTE_ASSERT(false, "Implement me");
     // resources is a map of file names to their directory, eg an archive or on disk.

@@ -88,7 +88,7 @@ public:
     // See ToolContext version. Delegates and thread safe.
     inline DataStreamRef LoadLibraryResource(String name)
     {
-	    return _ModdingContext->LoadLibraryResource(name);
+        return _ModdingContext->LoadLibraryResource(name);
     }
     
 private:
