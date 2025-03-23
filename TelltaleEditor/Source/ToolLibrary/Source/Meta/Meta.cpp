@@ -30,6 +30,16 @@ namespace Meta {
             return false;
         }
         
+        Bool _CheckVendorForGame(RegGame& game, const String& vendor)
+        {
+            if(game.ValidVendors.size() == 0)
+                return true; // most have only 1 branch/vendor
+            for(auto& p: game.ValidVendors)
+                if(CompareCaseInsensitive(p, vendor))
+                    return true;
+            return false;
+        }
+        
         Bool _CheckPlatform(const String& name)
         {
             constexpr U32 platforms = sizeof(PlatformNames) / sizeof(CString);
@@ -1357,6 +1367,11 @@ namespace Meta {
                 if(!_Impl::_CheckPlatformForGame(game, snap.Platform))
                 {
                     TTE_ASSERT(false, "The platform '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
+                    return;
+                }
+                if(!_Impl::_CheckVendorForGame(game, snap.Vendor))
+                {
+                    TTE_ASSERT(false, "The vendor '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
                     return;
                 }
                 break;

@@ -220,6 +220,8 @@ namespace Meta {
         
         Bool _CheckPlatformForGame(RegGame&, const String& platform);
         
+        Bool _CheckVendorForGame(RegGame&, const String& platform);
+        
         Bool _CheckPlatform(const String& platform);
         
         U32 _PerformLegacyClassHash(const String& name);
@@ -371,6 +373,7 @@ namespace Meta {
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
         std::multimap<String, String, FolderAssociateComparator> FolderAssociates; // mask to folder name, eg '*.dlg' into Dialogs/, and 'module_*.prop' into Properties/Primitives/, '*.prop' => Properties/
         std::vector<String> ValidPlatforms; // game platforms
+        std::vector<String> ValidVendors; // if non zero it must be specified. eg 'DevBuild' for early dev releases etc. see script
         BlowfishKey MasterKey; // key used for all platforms
         Flags Fl; // flags
         U32 ArchiveVersion = 0; // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
