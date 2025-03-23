@@ -92,8 +92,17 @@ public:
         return ""; // not found
     }
     
-    // DO NOT CREATE INSTANCES OF THESE UNLESS THEY ARE GLOBALS AND ONLY GET DESTROYED AT PROGRAM END!
-    SymbolTable();
+    // Same as normal find, else 'Symbol<xxx>' with hash
+    inline static String FindOrHashString(Symbol sym)
+    {
+        String val = Find(sym);
+        if(val.length() == 0)
+            val = SymbolToHexString(sym);
+        return val;
+    }
+    
+    // DO NOT CREATE NON PRIVATE INSTANCES OF THESE UNLESS THEY ARE GLOBALS AND ONLY GET DESTROYED AT PROGRAM END!
+    SymbolTable(Bool bPrivate = false);
     ~SymbolTable() = default;
     
     void Register(const String&); // Registers a symbol to the table

@@ -6,6 +6,11 @@ void Scene::RegisterScriptAPI(LuaFunctionCollection &Col)
     
 }
 
+void Scene::FinaliseNormalisationAsync()
+{
+    
+}
+
 void Scene::AddAgentModule(const String& Name, SceneModuleType module)
 {
     Symbol sym{Name};

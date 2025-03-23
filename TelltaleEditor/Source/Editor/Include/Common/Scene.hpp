@@ -74,17 +74,21 @@ struct SceneAgentComparator {
     
     using is_transparent = void; // Enables lookup by U64
     
-    inline Bool operator()(const SceneAgent& lhs, const SceneAgent& rhs) const {
+    inline Bool operator()(const SceneAgent& lhs, const SceneAgent& rhs) const
+    {
         return lhs.NameSymbol < rhs.NameSymbol;
     }
     
-    inline Bool operator()(const SceneAgent& lhs, Symbol rhs) const {
+    inline Bool operator()(const SceneAgent& lhs, Symbol rhs) const
+    {
         return lhs.NameSymbol < rhs;
     }
     
-    inline Bool operator()(Symbol lhs, const SceneAgent& rhs) const {
+    inline Bool operator()(Symbol lhs, const SceneAgent& rhs) const
+    {
         return lhs < rhs.NameSymbol;
     }
+    
 };
 
 enum class SceneMessageType : U32;
@@ -95,7 +99,7 @@ class RenderContext;
 
 /// A collection of agents. This is the common scene class for all games by telltale. This does not have any of the code for serialistion, that is done when lua injects scene information
 /// from its scene meta class into this. This is a common class to all games and represents a common telltale scene.
-class Scene
+class Scene : public Handleable
 {
 public:
     
@@ -145,6 +149,8 @@ public:
     
     // Registers scene normalisers and specialisers
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
+    
+    virtual void FinaliseNormalisationAsync() override;
     
 private:
     

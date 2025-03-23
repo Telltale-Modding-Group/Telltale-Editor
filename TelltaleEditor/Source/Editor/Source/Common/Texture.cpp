@@ -4,19 +4,19 @@
 namespace TextureAPI
 {
     
-    static inline TextureNormalisationTask* Task(LuaManager& man)
+    static inline RenderTexture* Task(LuaManager& man)
     {
-        return (TextureNormalisationTask*)man.ToPointer(1);
+        return (RenderTexture*)man.ToPointer(1);
     }
     
     static U32 luaTextureSetName(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 2, "Incorrect usage");
         
-        TextureNormalisationTask* task = Task(man);
+        RenderTexture* task = Task(man);
         String name = man.ToString(2);
         
-        task->Local.Name = std::move(name);
+        task->Name = std::move(name);
         
         return 0;
     }
@@ -25,8 +25,8 @@ namespace TextureAPI
     {
         TTE_ASSERT(man.GetTop() == 2, "Incorrect usage");
         
-        TextureNormalisationTask* task = Task(man);
-        task->Local.Format = (RenderSurfaceFormat)man.ToInteger(2);
+        RenderTexture* task = Task(man);
+        task->Format = (RenderSurfaceFormat)man.ToInteger(2);
         
         return 0;
     }
@@ -35,10 +35,10 @@ namespace TextureAPI
     {
         TTE_ASSERT(man.GetTop() == 4, "Incorrect usage");
         
-        TextureNormalisationTask* task = Task(man);
-        task->Local.Width = (U32)man.ToInteger(2);
-        task->Local.Height = (U32)man.ToInteger(3);
-        task->Local.Depth = (U32)man.ToInteger(4);
+        RenderTexture* task = Task(man);
+        task->Width = (U32)man.ToInteger(2);
+        task->Height = (U32)man.ToInteger(3);
+        task->Depth = (U32)man.ToInteger(4);
         
         return 0;
     }
@@ -47,7 +47,7 @@ namespace TextureAPI
     {
         TTE_ASSERT(man.GetTop() == 7, "Incorrect usage");
         
-        TextureNormalisationTask* task = Task(man);
+        RenderTexture* task = Task(man);
         
         RenderTexture::Image img{};
         img.Width = (U32)man.ToInteger(2);
@@ -62,7 +62,7 @@ namespace TextureAPI
         Meta::BinaryBuffer* pBuffer = (Meta::BinaryBuffer*)buf._GetInternal();
         img.Data = *pBuffer;
         
-        task->Local.Images.push_back(std::move(img));
+        task->Images.push_back(std::move(img));
         
         return 0;
     }
@@ -72,7 +72,7 @@ namespace TextureAPI
     {
         TTE_ASSERT(man.GetTop() == 5, "Incorrect usage");
         
-        TextureNormalisationTask* task = Task(man);
+        RenderTexture* task = Task(man);
         
         Meta::ClassInstance buf = Meta::AcquireScriptInstance(man, 2);
         TTE_ASSERT(buf, "Texture data buffer invalid");
@@ -122,7 +122,7 @@ void RenderTexture::RegisterScriptAPI(LuaFunctionCollection &Col)
     
 }
 
-void RenderTexture::FinishNormalisationAsync()
+void RenderTexture::FinaliseNormalisationAsync()
 {
     // Any final checks?
 }

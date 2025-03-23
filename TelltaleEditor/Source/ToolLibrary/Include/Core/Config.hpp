@@ -34,6 +34,8 @@
 inline void LogConsole() {}
 
 inline void LogConsole(const char* Msg, ...) {
+    static std::mutex _Guard{}; // used for \n not coming up because of interleaved calls multithreaded
+    _Guard.lock();
     va_list va{};
     va_start(va, Msg);
     vprintf(Msg, va);
@@ -43,6 +45,7 @@ inline void LogConsole(const char* Msg, ...) {
     size_t len = strlen(Msg);
     if(len && Msg[len-1] != '\n')
         printf("\n");
+    _Guard.unlock();
 }
 
 // In DEBUG, simply log any messages simply to the console. Adds a newline character. This is a workaround so empty VA_ARGS works ok. If changing
@@ -319,6 +322,7 @@ enum MemoryTag
     MEMORY_TAG_LINEAR_HEAP, // linear heap pages
     MEMORY_TAG_TRANSIENT_FENCE, // small U32 allocation. could be optimised in the future
     MEMORY_TAG_RESOURCE_REGISTRY, // resource registry
+    MEMORY_TAG_COMMON_INSTANCE, // common editor type instance, eg Mesh,Texture,Dialog,Chore,etc
 };
 
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.

@@ -118,9 +118,8 @@ I32 LuaManager::ToInteger(I32 index){
 
 void LuaManager::CallFunction(U32 Nargs, U32 Nresults, Bool bBlock)
 {
-    if(bBlock)
+    if(bBlock && !JobScheduler::IsRunningFromWorker())
     {
-        TTE_ASSERT(!JobScheduler::IsRunningFromWorker(), "Worker threads cannot lock the tool context");
         GetToolContext()->_LockedCallDepth++;
     }
     _Adapter->CallFunction(Nargs, Nresults);

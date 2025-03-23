@@ -4,6 +4,7 @@
 #include <Core/BitSet.hpp>
 #include <Scripting/ScriptManager.hpp>
 #include <Meta/Meta.hpp>
+#include <Resource/ResourceRegistry.hpp>
 
 #include <vector>
 #include <SDL3/SDL_gpu.h>
@@ -49,7 +50,7 @@ RenderSurfaceFormat FromSDLFormat(SDL_GPUTextureFormat format);
 // ==================================================
 
 /// A texture.
-struct RenderTexture
+struct RenderTexture : Handleable
 {
     
     struct Image
@@ -99,7 +100,7 @@ struct RenderTexture
     
     static void RegisterScriptAPI(LuaFunctionCollection& Col); // registry normalisation api
     
-    void FinishNormalisationAsync();
+    virtual void FinaliseNormalisationAsync() override;
     
 };
 

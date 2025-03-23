@@ -2,11 +2,9 @@
 
 #include <Scripting/ScriptManager.hpp>
 #include <Renderer/RenderAPI.hpp>
-
 #include <Common/Mesh.hpp>
 #include <Common/Scene.hpp>
 #include <Common/Texture.hpp>
-
 
 /**
  Creates function collection to register all common 

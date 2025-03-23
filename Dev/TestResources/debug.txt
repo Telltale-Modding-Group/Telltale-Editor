@@ -47,7 +47,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: tile_stream_C.d3dtx
+                class Symbol mHandle: tile_stream_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -266,7 +266,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_F2.d3dtx
+                class Symbol mHandle: env_cliff_wall_f2.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -339,7 +339,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_F1.d3dtx
+                class Symbol mHandle: env_cliff_wall_f1.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -485,7 +485,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -558,7 +558,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -631,7 +631,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -704,7 +704,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -777,7 +777,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -850,7 +850,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -923,7 +923,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -996,7 +996,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -1069,7 +1069,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -1142,7 +1142,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -1215,7 +1215,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -1288,7 +1288,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -2310,7 +2310,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -2383,7 +2383,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -2456,7 +2456,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -2529,7 +2529,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -2602,7 +2602,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -2675,7 +2675,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -2748,7 +2748,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -2821,7 +2821,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -2894,7 +2894,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -2967,7 +2967,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -3040,7 +3040,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -4792,7 +4792,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -4865,7 +4865,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -4938,7 +4938,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5011,7 +5011,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5084,7 +5084,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5157,7 +5157,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5230,7 +5230,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5303,7 +5303,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5376,7 +5376,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5449,7 +5449,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5522,7 +5522,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5595,7 +5595,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5668,7 +5668,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5741,7 +5741,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5814,7 +5814,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5887,7 +5887,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -5960,7 +5960,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6033,7 +6033,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6106,7 +6106,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6179,7 +6179,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6252,7 +6252,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6325,7 +6325,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6398,7 +6398,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6471,7 +6471,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6544,7 +6544,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6617,7 +6617,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6690,7 +6690,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_flowerLily_alp.d3dtx
+                class Symbol mHandle: env_flowerlily_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6763,7 +6763,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6836,7 +6836,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6909,7 +6909,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -6982,7 +6982,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7055,7 +7055,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_B.d3dtx
+                class Symbol mHandle: env_leaf_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7128,7 +7128,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_B.d3dtx
+                class Symbol mHandle: env_leaf_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7201,7 +7201,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7274,7 +7274,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7347,7 +7347,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7420,7 +7420,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7493,7 +7493,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7566,7 +7566,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7639,7 +7639,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7712,7 +7712,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7785,7 +7785,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7858,7 +7858,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -7931,7 +7931,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8004,7 +8004,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8077,7 +8077,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8150,7 +8150,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8223,7 +8223,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8296,7 +8296,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8369,7 +8369,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8442,7 +8442,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8515,7 +8515,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8588,7 +8588,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8661,7 +8661,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8734,7 +8734,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8807,7 +8807,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8880,7 +8880,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -8953,7 +8953,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_A.d3dtx
+                class Symbol mHandle: env_rock_riv_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9026,7 +9026,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_A.d3dtx
+                class Symbol mHandle: env_rock_riv_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9099,7 +9099,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_A.d3dtx
+                class Symbol mHandle: env_rock_riv_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9172,7 +9172,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9245,7 +9245,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9318,7 +9318,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9391,7 +9391,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9464,7 +9464,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9537,7 +9537,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9610,7 +9610,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9683,7 +9683,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9756,7 +9756,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -9829,7 +9829,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -10340,7 +10340,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -10413,7 +10413,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -10486,7 +10486,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -10559,7 +10559,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -10632,7 +10632,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_A.d3dtx
+                class Symbol mHandle: env_rock_riv_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -10705,7 +10705,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_B.d3dtx
+                class Symbol mHandle: env_rock_riv_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -10778,7 +10778,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -10851,7 +10851,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -10924,7 +10924,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_D.d3dtx
+                class Symbol mHandle: env_rock_d.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -10997,7 +10997,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_C.d3dtx
+                class Symbol mHandle: env_rock_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -11070,7 +11070,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_C.d3dtx
+                class Symbol mHandle: env_rock_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -11289,7 +11289,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -11362,7 +11362,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -11435,7 +11435,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -11508,7 +11508,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -11581,7 +11581,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -11654,7 +11654,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -11727,7 +11727,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -11800,7 +11800,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -11873,7 +11873,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12019,7 +12019,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12092,7 +12092,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12238,7 +12238,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12311,7 +12311,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12384,7 +12384,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12457,7 +12457,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12530,7 +12530,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12603,7 +12603,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12676,7 +12676,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12749,7 +12749,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12822,7 +12822,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12895,7 +12895,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -12968,7 +12968,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13041,7 +13041,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13114,7 +13114,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13187,7 +13187,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13260,7 +13260,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13333,7 +13333,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13406,7 +13406,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13479,7 +13479,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_A_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13552,7 +13552,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_A_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13625,7 +13625,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13698,7 +13698,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_A_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13771,7 +13771,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_A_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13844,7 +13844,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_A_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13917,7 +13917,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -13990,7 +13990,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14063,7 +14063,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14136,7 +14136,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14209,7 +14209,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14282,7 +14282,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14355,7 +14355,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14428,7 +14428,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14501,7 +14501,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14574,7 +14574,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14647,7 +14647,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14720,7 +14720,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14793,7 +14793,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14866,7 +14866,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -14939,7 +14939,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15012,7 +15012,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15085,7 +15085,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15158,7 +15158,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15231,7 +15231,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15304,7 +15304,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15377,7 +15377,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15450,7 +15450,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15523,7 +15523,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15596,7 +15596,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15669,7 +15669,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15742,7 +15742,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15815,7 +15815,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15888,7 +15888,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -15961,7 +15961,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16034,7 +16034,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16107,7 +16107,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16180,7 +16180,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16253,7 +16253,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16326,7 +16326,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16399,7 +16399,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16472,7 +16472,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16545,7 +16545,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16618,7 +16618,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16691,7 +16691,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16764,7 +16764,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_A_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16837,7 +16837,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16910,7 +16910,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_A_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -16983,7 +16983,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_C_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_c_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17056,7 +17056,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_C_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_c_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17129,7 +17129,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17202,7 +17202,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17275,7 +17275,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17348,7 +17348,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17421,7 +17421,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17494,7 +17494,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17567,7 +17567,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17640,7 +17640,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17713,7 +17713,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17786,7 +17786,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17859,7 +17859,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_b_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -17932,7 +17932,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_b_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18005,7 +18005,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_b_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18078,7 +18078,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_b_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18151,7 +18151,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18224,7 +18224,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_b_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18297,7 +18297,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18370,7 +18370,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_b_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18443,7 +18443,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_C.d3dtx
+                class Symbol mHandle: env_cliff_wall_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18516,7 +18516,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_E.d3dtx
+                class Symbol mHandle: env_cliff_wall_e.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18589,7 +18589,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_C.d3dtx
+                class Symbol mHandle: env_cliff_wall_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18662,7 +18662,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18735,7 +18735,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18808,7 +18808,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18881,7 +18881,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -18954,7 +18954,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_C_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_c_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19027,7 +19027,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19100,7 +19100,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19173,7 +19173,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19246,7 +19246,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19319,7 +19319,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19392,7 +19392,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_A_alp.d3dtx
+                class Symbol mHandle: env_twig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19465,7 +19465,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_A_alp.d3dtx
+                class Symbol mHandle: env_twig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19538,7 +19538,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19611,7 +19611,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_D_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_d_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19684,7 +19684,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_branch_A_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_branch_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19757,7 +19757,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_A_alp.d3dtx
+                class Symbol mHandle: env_twig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19830,7 +19830,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_A_alp.d3dtx
+                class Symbol mHandle: env_twig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19903,7 +19903,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_A_alp.d3dtx
+                class Symbol mHandle: env_twig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -19976,7 +19976,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -20049,7 +20049,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -20122,7 +20122,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -20195,7 +20195,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -20268,7 +20268,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -20341,7 +20341,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -20414,7 +20414,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_B_alp.d3dtx
+                class Symbol mHandle: env_twig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -20487,7 +20487,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_B_alp.d3dtx
+                class Symbol mHandle: env_twig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -20560,7 +20560,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -20852,7 +20852,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -20998,7 +20998,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -21071,7 +21071,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -21144,7 +21144,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -21363,7 +21363,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_B_alp.d3dtx
+                class Symbol mHandle: env_twig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -21436,7 +21436,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_A_alp.d3dtx
+                class Symbol mHandle: env_twig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -21582,7 +21582,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_A_alp.d3dtx
+                class Symbol mHandle: env_twig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -21655,7 +21655,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_A_alp.d3dtx
+                class Symbol mHandle: env_twig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -21801,7 +21801,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -21874,7 +21874,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -21947,7 +21947,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22020,7 +22020,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22093,7 +22093,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22166,7 +22166,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22239,7 +22239,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22312,7 +22312,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22385,7 +22385,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22531,7 +22531,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_E.d3dtx
+                class Symbol mHandle: env_cliff_wall_e.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22604,7 +22604,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22677,7 +22677,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22750,7 +22750,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22823,7 +22823,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -22896,7 +22896,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23042,7 +23042,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_b_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23115,7 +23115,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_apple_bot_B_alp.d3dtx
+                class Symbol mHandle: env_tree_apple_bot_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23334,7 +23334,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23407,7 +23407,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23480,7 +23480,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23553,7 +23553,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23626,7 +23626,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23699,7 +23699,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23772,7 +23772,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23845,7 +23845,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23918,7 +23918,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -23991,7 +23991,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24064,7 +24064,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24137,7 +24137,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24210,7 +24210,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24283,7 +24283,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24356,7 +24356,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24429,7 +24429,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24502,7 +24502,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24575,7 +24575,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_A.d3dtx
+                class Symbol mHandle: env_cliff_wall_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24648,7 +24648,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_B.d3dtx
+                class Symbol mHandle: env_cliff_wall_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24721,7 +24721,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_G.d3dtx
+                class Symbol mHandle: env_cliff_wall_g.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24794,7 +24794,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_F2.d3dtx
+                class Symbol mHandle: env_cliff_wall_f2.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24867,7 +24867,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_F2.d3dtx
+                class Symbol mHandle: env_cliff_wall_f2.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -24940,7 +24940,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_F1.d3dtx
+                class Symbol mHandle: env_cliff_wall_f1.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25013,7 +25013,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_D.d3dtx
+                class Symbol mHandle: env_cliff_wall_d.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25086,7 +25086,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_H.d3dtx
+                class Symbol mHandle: env_cliff_wall_h.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25159,7 +25159,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_A.d3dtx
+                class Symbol mHandle: env_cliff_wall_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25232,7 +25232,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25305,7 +25305,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25378,7 +25378,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25451,7 +25451,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25524,7 +25524,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25597,7 +25597,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25670,7 +25670,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25743,7 +25743,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_A.d3dtx
+                class Symbol mHandle: env_rock_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25816,7 +25816,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25889,7 +25889,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_C.d3dtx
+                class Symbol mHandle: env_rock_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -25962,7 +25962,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -26181,7 +26181,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -26254,7 +26254,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_C.d3dtx
+                class Symbol mHandle: env_rock_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -26327,7 +26327,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -26400,7 +26400,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -26473,7 +26473,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -26546,7 +26546,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_C.d3dtx
+                class Symbol mHandle: env_rock_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -26692,7 +26692,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_A.d3dtx
+                class Symbol mHandle: env_rock_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -26765,7 +26765,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -26838,7 +26838,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_C.d3dtx
+                class Symbol mHandle: env_rock_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -26911,7 +26911,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -27130,7 +27130,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -27203,7 +27203,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -27276,7 +27276,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -27349,7 +27349,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -27422,7 +27422,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -27495,7 +27495,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -27568,7 +27568,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -27714,7 +27714,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -27787,7 +27787,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -27933,7 +27933,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_A.d3dtx
+                class Symbol mHandle: env_rock_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28006,7 +28006,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28079,7 +28079,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_D.d3dtx
+                class Symbol mHandle: env_cliff_wall_d.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28152,7 +28152,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28225,7 +28225,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28517,7 +28517,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_C.d3dtx
+                class Symbol mHandle: env_rock_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28590,7 +28590,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28663,7 +28663,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28736,7 +28736,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28809,7 +28809,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28882,7 +28882,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_A.d3dtx
+                class Symbol mHandle: env_rock_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -28955,7 +28955,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -29028,7 +29028,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_A.d3dtx
+                class Symbol mHandle: env_rock_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -29101,7 +29101,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -29174,7 +29174,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_A.d3dtx
+                class Symbol mHandle: env_rock_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -29247,7 +29247,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -29831,7 +29831,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bg_trees_A.d3dtx
+                class Symbol mHandle: env_bg_trees_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -29904,7 +29904,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bg_trees_B.d3dtx
+                class Symbol mHandle: env_bg_trees_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30050,7 +30050,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_b_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30123,7 +30123,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bg_trees_B.d3dtx
+                class Symbol mHandle: env_bg_trees_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30196,7 +30196,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bg_trees_A.d3dtx
+                class Symbol mHandle: env_bg_trees_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30342,7 +30342,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30415,7 +30415,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30488,7 +30488,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30561,7 +30561,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30634,7 +30634,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30707,7 +30707,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30853,7 +30853,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30926,7 +30926,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -30999,7 +30999,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -31072,7 +31072,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -31145,7 +31145,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -31218,7 +31218,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -31291,7 +31291,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -31364,7 +31364,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bg_trees_A.d3dtx
+                class Symbol mHandle: env_bg_trees_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -31437,7 +31437,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bg_trees_B.d3dtx
+                class Symbol mHandle: env_bg_trees_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -31656,7 +31656,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_H.d3dtx
+                class Symbol mHandle: env_cliff_wall_h.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -31729,7 +31729,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -31802,7 +31802,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -31875,7 +31875,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_hill_A.d3dtx
+                class Symbol mHandle: env_hill_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32094,7 +32094,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_hill_A.d3dtx
+                class Symbol mHandle: env_hill_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32167,7 +32167,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_hill_B.d3dtx
+                class Symbol mHandle: env_hill_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32240,7 +32240,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_hill_A.d3dtx
+                class Symbol mHandle: env_hill_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32313,7 +32313,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_hill_B.d3dtx
+                class Symbol mHandle: env_hill_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32386,7 +32386,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32459,7 +32459,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_G1.d3dtx
+                class Symbol mHandle: env_rock_g1.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32532,7 +32532,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_G2.d3dtx
+                class Symbol mHandle: env_rock_g2.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32605,7 +32605,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32678,7 +32678,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32751,7 +32751,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32824,7 +32824,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32897,7 +32897,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_G1.d3dtx
+                class Symbol mHandle: env_rock_g1.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -32970,7 +32970,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_G2.d3dtx
+                class Symbol mHandle: env_rock_g2.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -33043,7 +33043,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_hill_A.d3dtx
+                class Symbol mHandle: env_hill_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -33116,7 +33116,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_hill_B.d3dtx
+                class Symbol mHandle: env_hill_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -33262,7 +33262,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_D.d3dtx
+                class Symbol mHandle: env_rock_d.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -33481,7 +33481,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -33554,7 +33554,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_twig_B_alp.d3dtx
+                class Symbol mHandle: env_twig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -33627,7 +33627,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -33773,7 +33773,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -33846,7 +33846,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -33919,7 +33919,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -33992,7 +33992,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -34065,7 +34065,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -34138,7 +34138,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -34211,7 +34211,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -34284,7 +34284,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -34576,7 +34576,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -34649,7 +34649,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -34722,7 +34722,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -34795,7 +34795,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -34868,7 +34868,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -34941,7 +34941,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35087,7 +35087,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_A.d3dtx
+                class Symbol mHandle: env_rock_riv_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35160,7 +35160,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_C.d3dtx
+                class Symbol mHandle: env_rock_gen_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35233,7 +35233,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_D2.d3dtx
+                class Symbol mHandle: env_rock_riv_d2.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35306,7 +35306,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_D1.d3dtx
+                class Symbol mHandle: env_rock_riv_d1.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35379,7 +35379,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_C.d3dtx
+                class Symbol mHandle: env_rock_riv_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35452,7 +35452,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35598,7 +35598,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35671,7 +35671,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35744,7 +35744,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35817,7 +35817,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -35890,7 +35890,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -36036,7 +36036,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -36109,7 +36109,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -36182,7 +36182,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -36255,7 +36255,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_B.d3dtx
+                class Symbol mHandle: env_rock_riv_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -36401,7 +36401,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bg_trees_B.d3dtx
+                class Symbol mHandle: env_bg_trees_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -36474,7 +36474,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bg_trees_A.d3dtx
+                class Symbol mHandle: env_bg_trees_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -36766,7 +36766,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -36839,7 +36839,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_B.d3dtx
+                class Symbol mHandle: env_rock_riv_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -36912,7 +36912,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -36985,7 +36985,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -37204,7 +37204,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -37496,7 +37496,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -37569,7 +37569,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -37715,7 +37715,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -37788,7 +37788,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -37861,7 +37861,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -37934,7 +37934,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -38372,7 +38372,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -38445,7 +38445,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -38518,7 +38518,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -38591,7 +38591,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -38664,7 +38664,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -38737,7 +38737,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -38810,7 +38810,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -38883,7 +38883,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_top_alp.d3dtx
+                class Symbol mHandle: env_bush_b_top_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -38956,7 +38956,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_b_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39029,7 +39029,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39102,7 +39102,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39175,7 +39175,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39248,7 +39248,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39321,7 +39321,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39394,7 +39394,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39467,7 +39467,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39540,7 +39540,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39613,7 +39613,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39686,7 +39686,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39759,7 +39759,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39832,7 +39832,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39905,7 +39905,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -39978,7 +39978,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40051,7 +40051,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40124,7 +40124,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40197,7 +40197,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_B_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_b_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40270,7 +40270,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40343,7 +40343,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40416,7 +40416,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40489,7 +40489,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40562,7 +40562,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_C.d3dtx
+                class Symbol mHandle: env_leaf_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40635,7 +40635,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40708,7 +40708,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40781,7 +40781,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40854,7 +40854,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -40927,7 +40927,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41000,7 +41000,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_B.d3dtx
+                class Symbol mHandle: env_leaf_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41073,7 +41073,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41146,7 +41146,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_leaf_A.d3dtx
+                class Symbol mHandle: env_leaf_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41219,7 +41219,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41292,7 +41292,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41365,7 +41365,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41438,7 +41438,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41511,7 +41511,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_G1.d3dtx
+                class Symbol mHandle: env_rock_g1.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41584,7 +41584,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_G2.d3dtx
+                class Symbol mHandle: env_rock_g2.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41657,7 +41657,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41730,7 +41730,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41803,7 +41803,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41876,7 +41876,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -41949,7 +41949,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_a_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -42022,7 +42022,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -42095,7 +42095,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_bot_alp.d3dtx
+                class Symbol mHandle: env_bush_c_bot_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -42168,7 +42168,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_DSGen_A.d3dtx
+                class Symbol mHandle: env_rock_dsgen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -42241,7 +42241,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -42314,7 +42314,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_F.d3dtx
+                class Symbol mHandle: env_rock_f.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -42460,7 +42460,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -42533,7 +42533,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -42606,7 +42606,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -42752,7 +42752,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -42898,7 +42898,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_C.d3dtx
+                class Symbol mHandle: env_rock_riv_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43044,7 +43044,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_C.d3dtx
+                class Symbol mHandle: env_rock_riv_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43263,7 +43263,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43336,7 +43336,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_C.d3dtx
+                class Symbol mHandle: env_rock_riv_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43409,7 +43409,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_DSGen_B.d3dtx
+                class Symbol mHandle: env_rock_dsgen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43482,7 +43482,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_B.d3dtx
+                class Symbol mHandle: env_rock_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43555,7 +43555,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_A.d3dtx
+                class Symbol mHandle: env_rock_riv_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43628,7 +43628,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_C.d3dtx
+                class Symbol mHandle: env_rock_riv_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43701,7 +43701,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_DSGen_B.d3dtx
+                class Symbol mHandle: env_rock_dsgen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43774,7 +43774,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_D2.d3dtx
+                class Symbol mHandle: env_rock_riv_d2.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43847,7 +43847,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_D1.d3dtx
+                class Symbol mHandle: env_rock_riv_d1.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43920,7 +43920,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_C.d3dtx
+                class Symbol mHandle: env_cliff_wall_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -43993,7 +43993,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_C.d3dtx
+                class Symbol mHandle: env_cliff_wall_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44066,7 +44066,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_DSGen_B.d3dtx
+                class Symbol mHandle: env_rock_dsgen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44139,7 +44139,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_DSGen_B.d3dtx
+                class Symbol mHandle: env_rock_dsgen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44212,7 +44212,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44285,7 +44285,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44358,7 +44358,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44431,7 +44431,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44504,7 +44504,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_cliff_wall_A.d3dtx
+                class Symbol mHandle: env_cliff_wall_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44577,7 +44577,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44650,7 +44650,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_A.d3dtx
+                class Symbol mHandle: env_rock_riv_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44723,7 +44723,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_C.d3dtx
+                class Symbol mHandle: env_rock_gen_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44796,7 +44796,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_C.d3dtx
+                class Symbol mHandle: env_rock_riv_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44869,7 +44869,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_A.d3dtx
+                class Symbol mHandle: env_rock_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -44942,7 +44942,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_A.d3dtx
+                class Symbol mHandle: env_rock_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45015,7 +45015,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45088,7 +45088,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45161,7 +45161,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_D2.d3dtx
+                class Symbol mHandle: env_rock_riv_d2.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45234,7 +45234,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_D1.d3dtx
+                class Symbol mHandle: env_rock_riv_d1.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45307,7 +45307,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_E.d3dtx
+                class Symbol mHandle: env_rock_e.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45380,7 +45380,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_E.d3dtx
+                class Symbol mHandle: env_rock_e.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45453,7 +45453,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_A.d3dtx
+                class Symbol mHandle: env_rock_riv_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45526,7 +45526,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_C.d3dtx
+                class Symbol mHandle: env_rock_riv_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45599,7 +45599,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_C.d3dtx
+                class Symbol mHandle: env_rock_riv_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45672,7 +45672,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_A.d3dtx
+                class Symbol mHandle: env_rock_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45745,7 +45745,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45818,7 +45818,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45891,7 +45891,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -45964,7 +45964,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -46037,7 +46037,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -46110,7 +46110,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_riv_C.d3dtx
+                class Symbol mHandle: env_rock_riv_c.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -46183,7 +46183,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -46256,7 +46256,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -46329,7 +46329,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -46402,7 +46402,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_rock_gen_B.d3dtx
+                class Symbol mHandle: env_rock_gen_b.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -46913,7 +46913,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -46986,7 +46986,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47059,7 +47059,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47132,7 +47132,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47205,7 +47205,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47278,7 +47278,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47351,7 +47351,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47424,7 +47424,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47497,7 +47497,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47570,7 +47570,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47643,7 +47643,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47716,7 +47716,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47789,7 +47789,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47862,7 +47862,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_B_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_b_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -47935,7 +47935,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_grass_sprig_A_alp.d3dtx
+                class Symbol mHandle: env_grass_sprig_a_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -48008,7 +48008,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -48081,7 +48081,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_C_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_c_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -48154,7 +48154,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_bush_A_branch_alp.d3dtx
+                class Symbol mHandle: env_bush_a_branch_alp.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -48227,7 +48227,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {
@@ -48300,7 +48300,7 @@ class D3DMesh :
             }
             class Handle<class D3DTexture> mhDiffuseMap:
             {
-                class Symbol mHandle: env_tree_gen_A.d3dtx
+                class Symbol mHandle: env_tree_gen_a.d3dtx
             }
             class Handle<class D3DTexture> mhDetailMap:
             {

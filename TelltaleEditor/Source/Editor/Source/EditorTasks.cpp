@@ -12,6 +12,10 @@ Bool AsyncTTETaskDelegate(const JobThread& thread, void* argA, void* argB)
 
 Bool SceneNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* pLockedContext)
 {
+    
+    // ... (push working scene ptr)
+    
+    Working.FinaliseNormalisationAsync();
     return true;
 }
 
@@ -31,7 +35,7 @@ Bool MeshNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* p
     TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, LoadChunkMode::BINARY), "Could not load chunk for %s", fn.c_str());
     
     Instance.PushWeakScriptRef(thread.L, Instance.ObtainParentRef());
-    thread.L.PushOpaque(this);
+    thread.L.PushOpaque(&Renderable);
     
     thread.L.CallFunction(2, 1, false);
     
@@ -68,7 +72,7 @@ Bool TextureNormalisationTask::PerformAsync(const JobThread& thread, ToolContext
     TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, LoadChunkMode::BINARY), "Could not load chunk for %s", fn.c_str());
     
     Instance.PushWeakScriptRef(thread.L, Instance.ObtainParentRef());
-    thread.L.PushOpaque(this);
+    thread.L.PushOpaque(&Local);
     
     thread.L.CallFunction(2, 1, false);
     
@@ -80,7 +84,7 @@ Bool TextureNormalisationTask::PerformAsync(const JobThread& thread, ToolContext
     }
     else
     {
-        Output->FinishNormalisationAsync();
+        Output->FinaliseNormalisationAsync();
     }
     
     return result;

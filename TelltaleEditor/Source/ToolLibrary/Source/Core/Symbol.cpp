@@ -107,10 +107,13 @@ void SymbolTable::SerialiseOut(DataStreamRef& stream)
     stream->Write((const U8*)str.c_str(), (U64)str.length());
 }
 
-SymbolTable::SymbolTable()
+SymbolTable::SymbolTable(Bool bPrivate)
 {
-    _Next = _ActiveTables;
-    _ActiveTables = this;
+    if(!bPrivate)
+    {
+        _Next = _ActiveTables;
+        _ActiveTables = this;
+    }
 }
 
 String SymbolTable::_Find(Symbol sym)

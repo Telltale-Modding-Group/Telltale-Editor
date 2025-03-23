@@ -1882,12 +1882,285 @@ void ResourceRegistry::ReconfigureResourceSets(const std::set<Symbol>& turnOff, 
     _ReconfigureSets(toff, ton, lck, bDeferUnloads);
 }
 
-void ResourceRegistry::_UnloadResources(const std::vector<std::pair<Symbol, Ptr<ResourceLocation>>> &resources,
+static Bool _PerformHandleNormalise(HandleObjectInfo& handle)
+{
+    Bool res = true;
+    TTE_ASSERT(handle._Instance, "Cannot normalise handle as the instance is not present / did not load correctly");
+    LuaManager& L = GetThreadLVM();
+    
+    String fn = Meta::GetInternalState().Classes.find(handle._Instance.GetClassID())->second.NormaliserStringFn;
+    auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
+    TTE_ASSERT(fn.length() && normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found for instance: '%s'. Is this snapshot's normalisation "
+               "routine defined for %s", fn.c_str(), Meta::GetInternalState().Classes.find(handle._Instance.GetClassID())->second.Name.c_str());
+    
+    if(fn.length())
+    {
+        ScriptManager::GetGlobal(L, fn, true);
+        if(L.Type(-1) != LuaType::FUNCTION)
+        {
+            L.Pop(1);
+            TTE_ASSERT(L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, LoadChunkMode::BINARY), "Could not load normaliser chunk for %s", fn.c_str());
+        }
+        handle._Instance.PushWeakScriptRef(L, handle._Instance.ObtainParentRef());
+        L.PushOpaque(handle._Handle.get());
+        L.CallFunction(2, 1, false);
+        Bool result;
+        if(!(result=ScriptManager::PopBool(L)))
+        {
+            TTE_LOG("Handle normalise failed in %s", fn.c_str());
+            res = false;
+        }
+        else
+        {
+            handle._Handle->FinaliseNormalisationAsync();
+        }
+    }
+    handle._Flags.Add(HandleFlags::LOADED);
+    handle._Flags.Remove(HandleFlags::NEEDS_NORMALISATION);
+    return res;
+}
+
+void ResourceRegistry::_ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::mutex>& lck)
+{
+    if(handle._Flags.Test(HandleFlags::NEEDS_DESTROY))
+    {
+        handle._OnUnload(*this, lck);
+        return;
+    }
+    String name = {};
+    if(handle._Flags.Test(HandleFlags::NEEDS_SERIALISE_IN))
+    {
+        TTE_ASSERT(handle._OpenStream, "Cannot serialise in handle as no data stream was assigned");
+        name = SymbolTable::Find(handle._ResourceName);
+        if(name.length() == 0)
+            name = SymbolToHexString(handle._ResourceName);
+        handle._Instance = Meta::ReadMetaStream(name, handle._OpenStream); // dont want to lock, as resource is not findable at the moment (until pushed into alive)
+        handle._OpenStream.reset(); // release stream
+        handle._Flags.Remove(HandleFlags::NEEDS_SERIALISE_IN);
+    }
+    if(handle._Flags.Test(HandleFlags::NEEDS_NORMALISATION))
+    {
+        _PerformHandleNormalise(handle);
+    }
+    _AliveHandles.insert(std::move(handle)); // make normal again
+}
+
+void ResourceRegistry::_ProcessDirtyHandles(Float budget, U64 startStamp, std::unique_lock<std::mutex>& lck)
+{
+    while (_DirtyHandles.size() && GetTimeStampDifference(startStamp, GetTimeStamp()) < budget)
+    {
+        auto handle = std::move(_DirtyHandles.back());
+        _DirtyHandles.pop_back();
+        _ProcessDirtyHandle(std::move(handle), lck);
+    }
+}
+
+void HandleBase::_SetObject(Ptr<ResourceRegistry> &registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
+{
+    _Validate();
+    // IF OLD NEEDS UNLOAD
+    if(_ResourceName && bUnloadOld)
+    {
+        Bool bFound = false;
+        std::unique_lock<std::mutex> lck{registry->_Guard}; // SCOPE LOCK
+        HandleObjectInfo proxy{};
+        proxy._ResourceName = _ResourceName;
+        auto it = registry->_AliveHandles.lower_bound(proxy);
+        // test alive handles
+        if(it != registry->_AliveHandles.end() && it->_ResourceName == _ResourceName)
+        {
+            Bool bHasLoaded = it->_Flags.Test(HandleFlags::LOADED);
+            if(!bHasLoaded)
+            {
+                // unload it
+                HandleObjectInfo&& handle = std::move(registry->_AliveHandles.extract(it).value());
+                handle._Flags.Add(HandleFlags::NEEDS_DESTROY); // everything else ignored
+                registry->_ProcessDirtyHandle(std::move(handle), lck);
+            }
+            bFound = true;
+        }
+        if(!bFound)
+        {
+            // test currently dirty
+            for(auto it = registry->_DirtyHandles.begin(); it != registry->_DirtyHandles.end(); it++)
+            {
+                if(it->_ResourceName == _ResourceName)
+                {
+                    it->_Flags.Add(HandleFlags::NEEDS_DESTROY);
+                    HandleObjectInfo&& handle = std::move(*it);
+                    registry->_DirtyHandles.erase(it);
+                    registry->_ProcessDirtyHandle(std::move(handle), lck);
+                    bFound = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    _ResourceName = name;
+    
+    // LOAD NEW
+    if(name && bEnsureLoaded)
+    {
+        EnsureIsLoaded(registry);
+    }
+}
+
+void HandleObjectInfo::_OnUnload(ResourceRegistry &registry, std::unique_lock<std::mutex> &lck)
+{
+    ;
+}
+
+Bool HandleBase::IsLoaded(Ptr<ResourceRegistry> &registry)
+{
+    _Validate();
+    return _ResourceName ? registry->_EnsureHandleLoadedLocked(*this, true) : false;
+}
+
+void HandleBase::EnsureIsLoaded(Ptr<ResourceRegistry> &registry)
+{
+    _Validate();
+    if(_ResourceName)
+        registry->_EnsureHandleLoadedLocked(*this, false);
+    else
+        TTE_LOG("Ensure loaded was called with an empty handle");
+}
+
+Ptr<Handleable> HandleBase::_GetObject(Ptr<ResourceRegistry>& registry)
+{
+    _Validate();
+    TTE_ASSERT(_ResourceName, "Invalid handle!");
+    registry->_Guard.lock();
+    HandleObjectInfo proxy{};
+    proxy._ResourceName = _ResourceName;
+    auto it = registry->_AliveHandles.lower_bound(proxy);
+    if(it != registry->_AliveHandles.end() && it->_ResourceName == _ResourceName)
+    {
+        registry->_Guard.unlock();
+        return it->_Handle;
+    }
+    registry->_Guard.unlock();
+    return {};
+}
+
+Bool ResourceRegistry::_SetupHandleResourceLoad(HandleObjectInfo &hoi, std::unique_lock<std::mutex> &lck)
+{
+    hoi._Flags.Add(HandleFlags::NEEDS_SERIALISE_IN);
+    hoi._Flags.Add(HandleFlags::NEEDS_NORMALISATION);
+    if(!hoi._OpenStream)
+    {
+        // find stream for resource
+        Ptr<ResourceLocation> master = _Locate("<>");
+        hoi._OpenStream = master->LocateResource(hoi._ResourceName, nullptr);
+        if(!hoi._OpenStream)
+        {
+            String name = SymbolTable::Find(hoi._ResourceName);
+            if(name.length() == 0)
+                name = SymbolToHexString(hoi._ResourceName);
+            TTE_LOG("WARNING: The resource %s was not found in the resource registry so cannot be loaded!", name.c_str());
+            return false;
+        }
+    }
+    return true;
+}
+
+Bool ResourceRegistry::_EnsureHandleLoadedLocked(const HandleBase& handle, Bool bOnlyQuery)
+{
+    SCOPE_LOCK();
+    HandleObjectInfo proxy{};
+    proxy._ResourceName = handle._ResourceName;
+    auto it = _AliveHandles.lower_bound(proxy);
+    // test alive handles
+    if(it != _AliveHandles.end() && it->_ResourceName == handle._ResourceName)
+    {
+        Bool bHasLoaded = it->_Flags.Test(HandleFlags::LOADED);
+        if(bOnlyQuery)
+            return bHasLoaded;
+        if(!bHasLoaded)
+        {
+            // load it now
+            
+            HandleObjectInfo&& handle = std::move(_AliveHandles.extract(it).value());
+            Bool bResult = _SetupHandleResourceLoad(handle, lck);
+            if(bResult)
+                _ProcessDirtyHandle(std::move(handle), lck);
+            else
+                _AliveHandles.insert(std::move(handle));
+            return bResult;
+        }
+    }
+    
+    // test currently dirty
+    for(auto it = _DirtyHandles.begin(); it != _DirtyHandles.end(); it++)
+    {
+        if(it->_ResourceName == handle._ResourceName)
+        {
+            if(bOnlyQuery)
+                return false; // not loaded
+            
+            // load now, ensuring we normalise and serialise
+            Bool bResult = _SetupHandleResourceLoad(*it, lck);
+            if(bResult)
+                _ProcessDirtyHandle(std::move(*it), lck);
+            else
+                _AliveHandles.insert(std::move(*it));
+            _DirtyHandles.erase(it);
+            return bResult;
+        }
+    }
+    if(bOnlyQuery)
+        return false; // not loaded
+    HandleObjectInfo hoi{};
+    hoi._ResourceName = handle._ResourceName;
+    TTE_ASSERT(handle._AllocatorFn, "Allocate function for common class was not set. Handle<T> should be used!");
+    hoi._Handle = handle._AllocatorFn();
+    TTE_ASSERT(hoi._Handle.get(), "Could not allocate underlying common class instance for Handle<T>!");
+    Bool bResult = _SetupHandleResourceLoad(hoi, lck);
+    if(bResult)
+        _ProcessDirtyHandle(std::move(hoi), lck);
+    else
+        _AliveHandles.insert(std::move(hoi));
+    return bResult;
+}
+
+void ResourceRegistry::_UnloadResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>> &resources,
                                         std::unique_lock<std::mutex>& lck, U32 mx)
 {
-    TTE_ASSERT(false, "Implement me");
-    // resources is a map of file names to their directory, eg an archive or on disk.
-    // ensure to unlock when not needed, and make sure to erase the section of resources being destroyed so no other thread (tiny chance) tries to
+    U32 processed = 0;
+    for(auto uit = resources.begin(); uit != resources.end();)
+    {
+        auto& unload = *uit;
+        Bool bFound = false;
+        for(auto it = _DirtyHandles.begin(); it != _DirtyHandles.end();)
+        {
+            if(it->_ResourceName == unload.first)
+            {
+                it->_OnUnload(*this, lck);
+                _DirtyHandles.erase(it);;
+                bFound = true;
+                break;
+            }
+            ++it;
+        }
+        if(!bFound)
+        {
+            HandleObjectInfo proxy{};
+            proxy._ResourceName = unload.first;
+            auto it = _AliveHandles.lower_bound(proxy);
+            if(it != _AliveHandles.end() && it->_ResourceName == unload.first)
+            {
+                proxy = std::move(_AliveHandles.extract(it).value());
+                proxy._OnUnload(*this, lck);
+                bFound = true;
+            }
+        }
+        if(bFound)
+        {
+            resources.erase(uit);
+            if(++processed >= mx)
+                break;
+        } else uit++;
+    }
 }
 
 void ResourceRegistry::_DestroyResourceSet(ResourceSet *pSet)
@@ -2050,9 +2323,154 @@ void ResourceRegistry::_ReconfigureSets(const std::set<ResourceSet*>& turnOff, c
     }
 }
 
+U32 ResourceRegistry::GetPreloadOffset()
+{
+    SCOPE_LOCK();
+    return _PreloadOffset;
+}
+
+U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles)
+{
+    SCOPE_LOCK();
+    U32 numBatches = (U32)resourceHandles.size() / STATIC_PRELOAD_BATCH_SIZE;
+    U32 remBatchNumResources = (U32)resourceHandles.size() % STATIC_PRELOAD_BATCH_SIZE;
+    _PreloadJobs.reserve(_PreloadJobs.size() + numBatches + 1);
+    for(U32 i = 0; i <= numBatches; i++)
+    {
+        U32 numResources = i == numBatches ? remBatchNumResources : STATIC_PRELOAD_BATCH_SIZE;
+        if(remBatchNumResources == 0)
+            break;
+        AsyncResourcePreloadBatchJob* pJob = TTE_NEW(AsyncResourcePreloadBatchJob, MEMORY_TAG_TEMPORARY_ASYNC);
+        pJob->Registry = shared_from_this();
+        pJob->NumResources = numResources;
+        for(U32 j = 0; j < numResources; j++)
+        {
+            HandleBase handle = resourceHandles.back();
+            resourceHandles.pop_back();
+            pJob->HOI[j]._ResourceName = handle._ResourceName;
+            pJob->Allocators[j] = handle._AllocatorFn;
+        }
+        
+        JobDescriptor J{};
+        J.AsyncFunction = &_AsyncPerformPreloadBatchJob;
+        J.UserArgA = pJob;
+        J.UserArgB = nullptr;
+        J.Priority = JOB_PRIORITY_NORMAL;
+        
+        PreloadBatchJobRef ref{};
+        ref.Handle = JobScheduler::Instance->Post(J);
+        ref.PreloadOffset = _PreloadSize++;
+        _PreloadJobs.push_back(std::move(ref));
+    }
+    return _PreloadSize;
+}
+
+Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
+{
+    AsyncResourcePreloadBatchJob* job = (AsyncResourcePreloadBatchJob*)j;
+    
+    U32 nFailed = 0;
+    std::stringstream ss{};
+    DataStreamRef Streams[STATIC_PRELOAD_BATCH_SIZE];
+    
+    // Locate streams
+    {
+        job->Registry->_Guard.lock();
+        Ptr<ResourceLocation> master = job->Registry->_Locate("<>");
+        for(U32 i = 0; i < job->NumResources; i++)
+        {
+            DataStreamRef unsafe = master->LocateResource(job->HOI[i]._ResourceName, nullptr); // need to read to buffer
+            DataStreamRef buffer = DataStreamManager::GetInstance()->CreateBufferStream("", unsafe->GetSize(), 0, 0);
+            DataStreamManager::GetInstance()->Transfer(unsafe, buffer, unsafe->GetSize());
+            Streams[i] = std::move(buffer);
+        }
+        job->Registry->_Guard.unlock();
+    }
+    
+    // Load the resources
+    for(U32 i = 0; i < job->NumResources; i++)
+    {
+        Bool bFail = false;
+        if(Streams[i].get() != nullptr)
+        {
+            job->HOI[i]._Instance = Meta::ReadMetaStream(SymbolTable::FindOrHashString(job->HOI[i]._ResourceName), Streams[i]);
+            if(job->HOI[i]._Instance)
+            {
+                // Normalise
+                job->HOI[i]._Handle = job->Allocators[i]();
+                bFail = !_PerformHandleNormalise(job->HOI[i]);
+            }
+        }else bFail = true;
+        
+        if(bFail)
+        {
+            if(ss.tellp())
+                ss << ", ";
+            ss <<  SymbolTable::Find(job->HOI[i]._ResourceName);
+            nFailed++;
+        }
+    }
+    
+    // Insert loaded into registry
+    {
+        std::unique_lock<std::mutex> lck{job->Registry->_Guard};
+        for(U32 i = 0; i < job->NumResources; i++)
+        {
+            if(job->HOI[i]._Flags.Test(HandleFlags::LOADED))
+            {
+                HandleObjectInfo proxy{};
+                proxy._ResourceName = job->HOI[i]._ResourceName;
+                auto iter = job->Registry->_AliveHandles.lower_bound(proxy);
+                if(iter != job->Registry->_AliveHandles.end() && iter->_ResourceName == proxy._ResourceName)
+                {
+                    // erase
+                    job->Registry->_AliveHandles.erase(iter);
+                }
+                else
+                {
+                    // might be in dirty. check and if so then unload it
+                    for(auto it = job->Registry->_DirtyHandles.begin(); it != job->Registry->_DirtyHandles.end(); it++)
+                    {
+                        if(it->_ResourceName == job->HOI[i]._ResourceName)
+                        {
+                            it->_Flags.Add(HandleFlags::NEEDS_DESTROY);
+                            job->Registry->_ProcessDirtyHandle(std::move(*it), lck);
+                            job->Registry->_DirtyHandles.erase(it);
+                            break;
+                        }
+                    }
+                }
+                job->Registry->_AliveHandles.insert(std::move(job->HOI[i]));
+            }
+        }
+        job->Registry->_PreloadOffset++;
+    }
+    
+    if(nFailed)
+    {
+        String s = ss.str();
+        TTE_LOG("At async preload batch, %d files failed to load successfully: %s", nFailed, s.c_str());
+    }
+    
+    TTE_DEL(job);
+    return true;
+}
+
 void ResourceRegistry::Update(Float budget)
 {
     U64 start = GetTimeStamp();
+    
+    // REMOVE UNUSED PRELOAD JOB REFS
+    {
+        SCOPE_LOCK();
+        for(auto it = _PreloadJobs.cbegin(); it != _PreloadJobs.end();)
+        {
+            if(it->PreloadOffset <= _PreloadOffset)
+            {
+                _PreloadJobs.erase(it);
+            }else ++it;
+        }
+    }
     
     // DEFERRED UNLOADS
     {
@@ -2067,8 +2485,35 @@ void ResourceRegistry::Update(Float budget)
         }
     }
     
-    // DEFERRED LOADS?
-    
+    // PROCESS DIRTY
+    {
+        SCOPE_LOCK();
+        _ProcessDirtyHandles(budget, start, lck);
+    }
+
+}
+
+void ResourceRegistry::WaitPreload(U32 preloadOffset)
+{
+    std::vector<JobHandle> handles{};
+    {
+        SCOPE_LOCK();
+        for(auto it = _PreloadJobs.cbegin(); it != _PreloadJobs.end();)
+        {
+            if(it->PreloadOffset <= _PreloadOffset) // remove any others that are done now
+            {
+                _PreloadJobs.erase(it);
+            }
+            else if(it->PreloadOffset <= preloadOffset) // remove all less than or equal to the juncture we want it to be (preload offset argument), and wait on them.
+            {
+                handles.push_back(it->Handle);
+                _PreloadJobs.erase(it);
+            }
+            else ++it;
+        }
+    }
+    if(handles.size())
+        JobScheduler::Instance->Wait((U32)handles.size(), handles.data());
 }
 
 void ResourceRegistry::_LocateResourceInternal(Symbol name, String* outName, DataStreamRef* outStream)

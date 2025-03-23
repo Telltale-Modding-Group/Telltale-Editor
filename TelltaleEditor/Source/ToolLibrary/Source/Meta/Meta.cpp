@@ -358,7 +358,7 @@ namespace Meta {
             else if(clazz->SerialiseScriptFn.length() > 0) // RUN LUA SERIALISER FUNCTION
             {
                 
-                LuaManager& man = JobScheduler::IsRunningFromWorker() ? JobScheduler::GetCurrentThread().L : GetToolContext()->GetLibraryLVM();
+                LuaManager& man = GetThreadLVM();
                 
                 if(stream.DebugOutputFile)
                 {
@@ -416,7 +416,7 @@ namespace Meta {
                 
                 man.CallFunction(3, 1, true); // call, locked.
                 
-                result = ScriptManager::PopBool(GetToolContext()->GetLibraryLVM()); // check result
+                result = ScriptManager::PopBool(man); // check result
                 
                 if(!result)
                 {

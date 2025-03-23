@@ -45,6 +45,19 @@ static void RunRender()
             
             // Loading and previewing a mesh example
             
+            // test preload all textures
+            std::set<String> tex{};
+            StringMask m("*.d3dtx");
+            registry->GetResourceNames(tex, &m);
+            std::vector<HandleBase> handles{};
+            for(auto& t: tex)
+            {
+                auto& handle = handles.emplace_back();
+                handle.SetObject<RenderTexture>(registry, t, false, false);
+            }
+            U32 preload = registry->Preload(std::move(handles));
+            registry->WaitPreload(preload);
+            
             // load all textures.
             /*std::set<String> tex{};
              StringMask m("*.d3dtx");
@@ -130,9 +143,32 @@ static void LoadAll(CString mask)
     }
 }
 
+static void GenerateFilesSymMap(CString mount, GameSnapshot snapshot)
+{
+    {
+        TelltaleEditor editor{snapshot, false}; // editor. dont run UI yet (doesn't exist)
+        
+        Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
+        registry->MountSystem("<Data>/", mount);
+        
+        std::set<String> all{};
+        registry->GetResourceNames(all, nullptr);
+        
+        DataStreamRef out = editor.LoadLibraryResource("Dump.symmap");
+        SymbolTable t(true);
+        for(auto& f: all)
+            t.Register(f);
+        t.SerialiseOut(out);
+        
+        TTE_LOG("Done");
+        
+    }
+}
+
 int main()
 {
     //LoadAll("!*.lenc");
     RunRender();
+    //GenerateFilesSymMap("/users/lucassaragosa/desktop/game/bone", {"BN100","MacOS", ""});
     return 0;
 }

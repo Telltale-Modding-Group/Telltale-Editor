@@ -60,7 +60,6 @@ function NormaliseD3DTexture_Bone(instance, state)
     -- TODO multiple mips. need to push in order.
     CommonTexturePushOrderedImage(state, width, height, rowPitch, slicePitch, actualFormat, data)
 
-    TTE_Log("Created common texture " .. name)
     return true
 end
 

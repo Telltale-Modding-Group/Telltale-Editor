@@ -3,9 +3,10 @@
 #include <Core/Config.hpp>
 #include <Core/Math.hpp>
 #include <Meta/Meta.hpp>
-
 #include <Renderer/RenderAPI.hpp>
 #include <Scripting/ScriptManager.hpp>
+#include <Common/Texture.hpp>
+#include <Resource/ResourceRegistry.hpp>
 
 /**
  The common mesh format which we normalise and specialise telltale classes to.
@@ -35,8 +36,16 @@ struct Mesh
         U32 NumPrimitives = 0;
         U32 NumIndices = 0;
         //I32 TextureIndices[RenderViewType::NUM]{-1, -1}; // index into textures array for the bound texture.
-        //I32 MaterialIndex = -1; // material index
+        I32 MaterialIndex = -1; // material index
         //U32 AdjacencyStartIndex = 0;
+        
+    };
+    
+    // A material used by a mesh batch.
+    struct MeshMaterial
+    {
+        
+        Handle<RenderTexture> DiffuseTexture;
         
     };
     
@@ -76,7 +85,7 @@ struct Mesh
     };
     
     // Renderable objects are a list of meshes (in props it has the 'D3D Mesh List' key or 'D3D Mesh'. base mesh + list
-    struct MeshInstance
+    struct MeshInstance : Handleable
     {
         
         String Name;
@@ -87,8 +96,9 @@ struct Mesh
         
         std::vector<LODInstance> LODs; // mesh LODs
         std::vector<VertexState> VertexStates; // vertex states (draw call bind sets), containing verts/inds/etc.
+        std::vector<MeshMaterial> Materials;
         
-        void FinaliseNormalisationAsync();
+        virtual void FinaliseNormalisationAsync() override;
         
     };
     

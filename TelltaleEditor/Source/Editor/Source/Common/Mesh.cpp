@@ -5,9 +5,9 @@
 namespace MeshAPI
 {
     
-    static inline MeshNormalisationTask* Task(LuaManager& man)
+    static inline Mesh::MeshInstance* Task(LuaManager& man)
     {
-        return (MeshNormalisationTask*)man.ToPointer(1);
+        return (Mesh::MeshInstance*)man.ToPointer(1);
     }
     
     // setname(commonInst, name)
@@ -15,8 +15,8 @@ namespace MeshAPI
     {
         TTE_ASSERT(man.GetTop() == 2, "Requires 2 arguments");
         TTE_ASSERT(man.Type(2) == LuaType::STRING, "Invalid usage");
-        MeshNormalisationTask* t = Task(man);
-        t->Renderable.Name = man.ToString(2);
+        Mesh::MeshInstance* t = Task(man);
+        t->Name = man.ToString(2);
         return 0;
     }
     
@@ -24,8 +24,8 @@ namespace MeshAPI
     static U32 luaSetDeformable(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 1, "Requires 1 arguments");
-        MeshNormalisationTask* t = Task(man);
-        t->Renderable.MeshFlags += Mesh::FLAG_DEFORMABLE;
+        Mesh::MeshInstance* t = Task(man);
+        t->MeshFlags += Mesh::FLAG_DEFORMABLE;
         return 0;
     }
     
@@ -33,10 +33,10 @@ namespace MeshAPI
     static U32 luaSetNextVertexBuffer(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 4, "Requires 4 arguments");
-        MeshNormalisationTask* t = Task(man);
+        Mesh::MeshInstance* t = Task(man);
         
-        if(t->Renderable.VertexStates.size() == 0)
-            t->Renderable.VertexStates.emplace_back();
+        if(t->VertexStates.size() == 0)
+            t->VertexStates.emplace_back();
         
         U32 nVerts = (U32)man.ToInteger(2);
         U32 stride = (U32)man.ToInteger(3);
@@ -51,7 +51,7 @@ namespace MeshAPI
         
         Meta::BinaryBuffer* pBuffer = (Meta::BinaryBuffer*)buf._GetInternal();
         
-        auto& vertexState = t->Renderable.VertexStates.back();
+        auto& vertexState = t->VertexStates.back();
         
         TTE_ASSERT(vertexState.Default.NumVertexBuffers != 32, "Too many vertex buffers pushed!");
         vertexState.Default.BufferPitches[vertexState.Default.NumVertexBuffers] = stride;
@@ -64,10 +64,10 @@ namespace MeshAPI
     static U32 luaSetIndexBuffer(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 4, "Requires 4 arguments");
-        MeshNormalisationTask* t = Task(man);
+        Mesh::MeshInstance* t = Task(man);
         
-        if(t->Renderable.VertexStates.size() == 0)
-            t->Renderable.VertexStates.emplace_back();
+        if(t->VertexStates.size() == 0)
+            t->VertexStates.emplace_back();
         
         U32 nVerts = (U32)man.ToInteger(2);
         Bool isHalf = man.ToBool(3);
@@ -84,7 +84,7 @@ namespace MeshAPI
         
         TTE_ASSERT(pBuffer && pBuffer->BufferSize >= nVerts * (isHalf?2:4), "Buffer invalid for index buffer: null or too small");
         
-        auto& vertexState = t->Renderable.VertexStates.back();
+        auto& vertexState = t->VertexStates.back();
         
         TTE_ASSERT(vertexState.IndexBuffer.BufferSize == 0, "Index buffer already set");
         vertexState.IndexBuffer = *pBuffer;
@@ -96,8 +96,8 @@ namespace MeshAPI
     static U32 luaAdvanceVertexState(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 1, "Requires 1 argument");
-        MeshNormalisationTask* t = Task(man);
-        t->Renderable.VertexStates.emplace_back();
+        Mesh::MeshInstance* t = Task(man);
+        t->VertexStates.emplace_back();
         return 0;
     }
     
@@ -117,8 +117,8 @@ namespace MeshAPI
     static U32 luaDecompressVertices(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 4, "Requires 4 arguments");
-        MeshNormalisationTask* t = Task(man);
-        TTE_ASSERT(t->Renderable.VertexStates.size() && t->Renderable.VertexStates.back().Default.NumVertexBuffers, "No vertex buffers set yet");
+        Mesh::MeshInstance* t = Task(man);
+        TTE_ASSERT(t->VertexStates.size() && t->VertexStates.back().Default.NumVertexBuffers, "No vertex buffers set yet");
         
         Meta::ClassInstance bb = Meta::AcquireScriptInstance(man, 2);
         Meta::BinaryBuffer* buf = (Meta::BinaryBuffer*)bb._GetInternal();
@@ -184,11 +184,11 @@ namespace MeshAPI
     {
         TTE_ASSERT(man.GetTop() == 2, "Requires 2 arguments");
         
-        MeshNormalisationTask* t = Task(man);
+        Mesh::MeshInstance* t = Task(man);
         U32 sindex = (U32)man.ToInteger(2);
         
-        t->Renderable.LODs.emplace_back();
-        t->Renderable.LODs.back().VertexStateIndex = sindex;
+        t->LODs.emplace_back();
+        t->LODs.back().VertexStateIndex = sindex;
         
         return 0;
     }
@@ -215,7 +215,7 @@ namespace MeshAPI
     {
         TTE_ASSERT(man.GetTop() == 2 || man.GetTop() == 3, "Required 2/3 arguments");
         
-        MeshNormalisationTask* t = Task(man);
+        Mesh::MeshInstance* t = Task(man);
         
         Meta::ClassInstance bb = Meta::AcquireScriptInstance(man, 2);
         TTE_ASSERT(bb, "Bounding box meta instance was not found or was invalid");
@@ -230,8 +230,8 @@ namespace MeshAPI
         Sphere bsph{};
         _GetBoundings(man, bb, sph, box, bsph, man.GetTop() == 2);
         
-        t->Renderable.LODs.back().BBox = box;
-        t->Renderable.LODs.back().BSphere = bsph;
+        t->LODs.back().BBox = box;
+        t->LODs.back().BSphere = bsph;
         
         return 0;
     }
@@ -241,17 +241,17 @@ namespace MeshAPI
     static U32 luaPushBatch(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 2, "Requires 2 arguments");
-        MeshNormalisationTask* t = Task(man);
-        TTE_ASSERT(t->Renderable.LODs.size(), "No LODs");
+        Mesh::MeshInstance* t = Task(man);
+        TTE_ASSERT(t->LODs.size(), "No LODs");
         
         U32 batchIndex = man.ToBool(2) ? 1 : 0;
         
-        t->Renderable.LODs.back().Batches[batchIndex].emplace_back();
+        t->LODs.back().Batches[batchIndex].emplace_back();
         
-        auto& batch = t->Renderable.LODs.back().Batches[batchIndex].back();
+        auto& batch = t->LODs.back().Batches[batchIndex].back();
         
-        batch.BBox = t->Renderable.LODs.back().BBox; // default bounds
-        batch.BSphere = t->Renderable.LODs.back().BSphere;
+        batch.BBox = t->LODs.back().BBox; // default bounds
+        batch.BSphere = t->LODs.back().BSphere;
         
         return 0;
     }
@@ -261,8 +261,8 @@ namespace MeshAPI
     {
         TTE_ASSERT(man.GetTop() == 3 || man.GetTop() == 4, "Required 3/4 arguments");
         
-        MeshNormalisationTask* t = Task(man);
-        TTE_ASSERT(t->Renderable.LODs.size(), "No LODs");
+        Mesh::MeshInstance* t = Task(man);
+        TTE_ASSERT(t->LODs.size(), "No LODs");
         
         U32 batchIndex = man.ToBool(2) ? 1 : 0;
         Meta::ClassInstance bb = Meta::AcquireScriptInstance(man, 3);
@@ -278,8 +278,8 @@ namespace MeshAPI
         Sphere bsph{};
         _GetBoundings(man, bb, sph, box, bsph, man.GetTop() == 3);
         
-        t->Renderable.LODs.back().Batches[batchIndex].back().BBox = box;
-        t->Renderable.LODs.back().Batches[batchIndex].back().BSphere = bsph;
+        t->LODs.back().Batches[batchIndex].back().BBox = box;
+        t->LODs.back().Batches[batchIndex].back().BSphere = bsph;
         
         return 0;
     }
@@ -290,7 +290,7 @@ namespace MeshAPI
     {
         TTE_ASSERT(man.GetTop() == 8, "Required 8 arguments");
         
-        MeshNormalisationTask* t = Task(man);
+        Mesh::MeshInstance* t = Task(man);
         
         U32 batchType = man.ToBool(2) ? 1 : 0;
         U32 minVert = (U32)man.ToInteger(3);
@@ -302,9 +302,9 @@ namespace MeshAPI
         
         TTE_ASSERT(baseInd == 0, "Base index implementation needed!"); // wtf is this
         
-        TTE_ASSERT(t->Renderable.LODs.size() && t->Renderable.LODs.back().Batches[batchType].size(), "No LODs/batches");
+        TTE_ASSERT(t->LODs.size() && t->LODs.back().Batches[batchType].size(), "No LODs/batches");
         
-        auto& batch = t->Renderable.LODs.back().Batches[batchType].back();
+        auto& batch = t->LODs.back().Batches[batchType].back();
         batch.MinVertIndex = minVert;
         batch.MaxVertIndex = maxVert;
         batch.NumIndices = numInd;
@@ -319,10 +319,10 @@ namespace MeshAPI
     static U32 luaAddVertexAttrib(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 4, "Requires 4 arguments");
-        MeshNormalisationTask* t = Task(man);
-        TTE_ASSERT(t->Renderable.VertexStates.size() && t->Renderable.VertexStates.back().Default.NumVertexAttribs != 32,"Too many attributes!");
+        Mesh::MeshInstance* t = Task(man);
+        TTE_ASSERT(t->VertexStates.size() && t->VertexStates.back().Default.NumVertexAttribs != 32,"Too many attributes!");
         
-        auto& state = t->Renderable.VertexStates.back().Default;
+        auto& state = t->VertexStates.back().Default;
         state.Attribs[state.NumVertexAttribs].Attrib = (RenderAttributeType)man.ToInteger(2);
         state.Attribs[state.NumVertexAttribs].VertexBufferIndex = man.ToInteger(3);
         state.Attribs[state.NumVertexAttribs].Format = (RenderBufferAttributeFormat)man.ToInteger(4);
