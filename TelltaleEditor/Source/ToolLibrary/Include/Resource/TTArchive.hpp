@@ -8,7 +8,7 @@
 class TTArchive {
 public:
     
-    static constexpr CString Extension = ".ttarch";
+    static constexpr CString Extension = ".ttarch"; // also .TTA as well
     
     inline TTArchive(U32 version)
     {
@@ -22,10 +22,6 @@ public:
     // Returns the binary stream of the given file name symbol in this data archive.
     inline DataStreamRef Find(const Symbol& fn, String* outName) const
     {
-        if(fn == Symbol(0xDB68AAE77ED26464ull))//dlg_1010_fonedesertdialog.dlg_item1_e1_54.chore
-        {
-            TTE_LOG("");
-        }
 	    FileInfo proxy{"", fn, DataStreamRef{}};
 	    auto it = std::lower_bound(_Files.begin(), _Files.end(), proxy);
 	    if(it != _Files.end() && it->NameSymbol == fn)

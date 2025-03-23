@@ -64,6 +64,7 @@ Bool ISO9660::_ReadDir(DataStreamRef &in, ISO9660::DirectoryRecord& r)
 
     U64 finalPosition = in->GetPosition();
     TTE_ASSERT(in->Read(Temp, 1), "ISO9660: Could not read directory record bytes");
+    if(Temp[0] == 0x00) return true; // reached end
     finalPosition += Temp[0]; // read size
     
     TTE_ASSERT(in->Read(&r.ExtendedAttribRecordLength, 1), "ISO9660: Could not read directory record bytes");
@@ -88,7 +89,7 @@ Bool ISO9660::_ReadDir(DataStreamRef &in, ISO9660::DirectoryRecord& r)
     TTE_ASSERT(in->Read(&r.InterleavedUnitSize, 1), "ISO9660: Could not read directory record bytes");
     TTE_ASSERT(in->Read(&r.InterleavedUnitGap, 1), "ISO9660: Could not read directory record bytes");
     
-    if(r.InterleavedUnitGap || r.InterleavedUnitSize)
+    if(r.InterleavedUnitGap && r.InterleavedUnitSize)
     {
         TTE_ASSERT(false, "Interleaved ISOs not currently supported");
         return false;
@@ -148,23 +149,32 @@ Bool ISO9660::_ReadDir(DataStreamRef &in, ISO9660::DirectoryRecord& r)
     }
     
     // READ CHILDREN
-    if(bReadChildren)
+    if (bReadChildren)
     {
         U64 cachePos = in->GetPosition();
         ADVANCE_LOCATOR(r.LogicalLocator);
         U64 currentPos = in->GetPosition();
-        for(;;)
+        U64 remainingData = currentPos + r.DataLength;
+        
+        while (in->GetPosition() < remainingData)
         {
             U64 myPos = in->GetPosition();
-            if(myPos >= currentPos + r.DataLength)
+            if (myPos >= remainingData)
                 break;
+            
             DirectoryRecord rec{};
-            if(!_ReadDir(in, rec))
+            if (!_ReadDir(in, rec))
                 return false;
+            
+            if(rec.Name.length() == 0)
+                break;
+            
             r.Children.push_back(std::move(rec));
         }
+        
         in->SetPosition(cachePos);
     }
+
     
     return true;
 }
@@ -306,7 +316,7 @@ Bool ISO9660::SupplementaryVolumeDesc::SerialiseIn(DataStreamRef &in)
         }
     }
     
-    ADVANCE(24); // empty
+    ADVANCE(23); // empty
     
     // VOLUME SET SIZE - SEE 8.2.4 OF ECMA STANDARD
     TTE_ASSERT(in->Read((U8*)&_NumISOs, 2), "ISO9660: Could not read bytes");
@@ -445,6 +455,8 @@ Bool ISO9660::SerialiseIn(DataStreamRef &in)
         DirectoryRecord record{};
         if(!_ReadDir(in, record))
             return false;
+        if(record.Name.length() == 0) // some annoyingly have this padded !! skip if name is empty
+            break;
         _Records.push_back(std::move(record));
     }
     

@@ -60,8 +60,4 @@ function RegisterCSI3TTArchive(MetaCI)
     archive.Members[3] = { Name = "_mCachedPayload", Class = kMetaClassInternalDataStreamCache, Flags = kMetaMemberSerialiseDisable + kMetaMemberVersionDisable }
     MetaRegisterClass(archive)
 
-    -- TODO version crc may need update. replaces 'class ' 'struct ' 'enum ' and ' ' in type names
-
-    MetaDumpVersions()
-
 end

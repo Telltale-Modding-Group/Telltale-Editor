@@ -23,7 +23,7 @@
 #include <map>
 
 // folders excluded from disk unless explicitly mounted when recursively going through directories
-#define EXCLUDE_SYSTEM_FILTER "!*.DS_Store;!*.app"
+#define EXCLUDE_SYSTEM_FILTER "!*.DS_Store;!*.app/*"
 
 // HIGH LEVEL TELLTALE RESOURCE SYSTEM
 
@@ -115,6 +115,11 @@ public:
     }
     
 };
+
+inline Bool operator==(const String& lhs, const StringMask& mask) // otherway round just in case
+{
+    return mask == lhs;
+}
 
 static_assert(sizeof(String) == sizeof(StringMask), "String and StringMask must have same size and be castable.");
 

@@ -353,7 +353,8 @@ void RegistryDirectory_System::RefreshResources()
 
 Bool RegistryDirectory_TTArchive::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)
 {
-    TTE_ASSERT(StringEndsWith(resourceName, ".ttarch"), "Resource is not a valid TTARCH filename: %s", resourceName.c_str());
+    StringMask mask = "*.ttarch;*.tta";
+    TTE_ASSERT(resourceName == mask, "Resource is not a valid TTARCH filename: %s", resourceName.c_str());
     _Archive.Reset();
     DataStreamRef newStream = location->LocateResource(resourceName, nullptr);
     TTE_ASSERT(false, "Failed retrieve stream for archive %s!", resourceName.c_str());
@@ -428,7 +429,7 @@ Bool RegistryDirectory_TTArchive::RenameResource(const Symbol& resource, const S
 {
     if(HasResource(newName, nullptr))
     {
-        TTE_LOG("When renaming to %s: a resource already exists with thie name", newName.c_str());
+        TTE_LOG("When renaming to %s: a resource already exists with this name", newName.c_str());
         return false;
     }
     for(auto it = _Archive._Files.begin(); it != _Archive._Files.end(); )
@@ -1641,7 +1642,7 @@ void ResourceRegistry::CreateConcreteDirectoryLocation(const String &name, const
 
 StringMask ResourceRegistry::_ArchivesMask(Bool bLegacy)
 {
-    return bLegacy ? StringMask("*.ttarch;*.iso;*.pk2") : StringMask("*.ttarch2;*.iso");
+    return bLegacy ? StringMask("*.ttarch;*.iso;*.pk2;*.tta") : StringMask("*.ttarch2;*.iso");
 }
 
 Bool ResourceRegistry::_ImportAllocateArchivePack(const String& resourceName, const String& archiveID,
@@ -1655,7 +1656,9 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
                                           const String& archivePhysicalPath, DataStreamRef& archiveStream, std::unique_lock<std::mutex>& lck)
 {
     // create archive location
-    if(StringEndsWith(resourceName, ".ttarch", false))
+    StringMask maskTTArch1 = "*.ttarch;*.tta";
+    StringMask maskTTArch2 = "*.ttarch2";
+    if(resourceName == maskTTArch1)
     {
         TTArchive arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
         lck.unlock(); // may take time, dont keep everyone waiting!
@@ -1664,7 +1667,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
         _Locations.push_back(std::move(pLoc));
     }
-    else if(StringEndsWith(resourceName, ".ttarch2", false))
+    else if(resourceName == maskTTArch2)
     {
         TTArchive2 arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
         lck.unlock(); // may take time, dont keep everyone waiting!

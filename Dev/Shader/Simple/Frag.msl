@@ -9,8 +9,8 @@ struct VertexOut {
 };
 
 fragment float4 main0(VertexOut in [[stage_in]], 
-                              texture2d<uint> texture [[texture(0)]], 
+                              texture2d<float> texture [[texture(0)]], 
                               sampler samplr [[sampler(0)]]) {
-    uint4 texColor = texture.sample(samplr, in.uv); // Sample as uint4
-    return float4(texColor) / 255.0;  // Convert to float4 [0,1] range
+    float4 texColor = texture.sample(samplr, in.uv);
+    return texColor;
 }

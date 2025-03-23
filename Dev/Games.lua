@@ -30,7 +30,7 @@ CSI3.ID = "CSI3"
 CSI3.DefaultMetaVersion = "MBIN" -- Although, the PS2 uses a special one of version BMS3 (and encrypted EMS3, not used), MBIN is supported.
 CSI3.LuaVersion = "5.0.2"
 CSI3.IsArchive2 = false
-CSI3.ArchiveVersion = 1
+CSI3.ArchiveVersion = 0 -- still archive version 0d
 CSI3.Platforms = "PC;PS2"
 MetaRegisterGame(CSI3)
 

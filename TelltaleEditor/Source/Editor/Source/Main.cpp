@@ -38,7 +38,7 @@ static void RunRender()
             
             // Create resource system and attach to render context for runtime
             Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
-            registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone/Bone-Out from Boneville.app/Contents/Resources");
+            registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone");
             registry->PrintLocations();
             
             context.AttachResourceRegistry(registry);
@@ -46,7 +46,7 @@ static void RunRender()
             // Loading and previewing a mesh example
             
             // load all textures.
-            std::set<String> tex{};
+            /*std::set<String> tex{};
             StringMask m("*.d3dtx");
             registry->GetResourceNames(tex, &m);
             std::vector<Ptr<RenderTexture>> loadedTextures{};
@@ -61,7 +61,7 @@ static void RunRender()
                     editor.EnqueueNormaliseTextureTask(textureInstance, tex);
                 }
                 else TTE_LOG("Failed %s", t.c_str());
-            }
+            }*/
             
             // 1. load a mesh
             DataStreamRef stream = registry->FindResource("adv_forestWaterfall.d3dmesh");
@@ -92,33 +92,16 @@ static void RunRender()
     DumpTrackedMemory();
 }
 
-static void ExtractPS2()
-{
-    {
-        TelltaleEditor editor{{"CSI3","PS2",""}, false}; // editor. dont run UI yet (doesn't exist)
-        
-        Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
-        registry->MountArchive("<PS2_Data>/", "/Users/lucassaragosa/Desktop/Game/CSI3/CSI3_PS2.iso");
-        
-        U32 task = editor.EnqueueResourceLocationExtractTask(registry, "<PS2_Data>/GAMEDATA.PK2/", "/users/lucassaragosa/desktop/CSI3", "");
-        editor.Wait();
-    
-        
-        registry->PrintLocations();
-        
-    }
-}
-
 // TESTS: load all of given type mask in archive
 static void LoadAll(CString mask)
 {
     {
-        TelltaleEditor editor{{"BN100","MacOS",""}, false}; // editor. dont run UI yet (doesn't exist)
+        TelltaleEditor editor{{"CSI3","PC",""}, false}; // editor. dont run UI yet (doesn't exist)
         
         Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
         registry->MountSystem("<Data>/", "/Users/lucassaragosa/Desktop/extract");
         
-        //editor.EnqueueResourceLocationExtractTask(registry, "<Data>/", "/users/lucassaragosa/desktop/extract", "", true);
+        //editor.EnqueueResourceLocationExtractTask(registry, "<ISO>/", "/users/lucassaragosa/desktop/extract", "", true);
         //editor.Wait();
         
         std::set<String> wExt{};
@@ -149,6 +132,7 @@ static void LoadAll(CString mask)
 
 int main()
 {
-    LoadAll("*.style");
+    //LoadAll("!*.lenc");
+    RunRender();
     return 0;
 }

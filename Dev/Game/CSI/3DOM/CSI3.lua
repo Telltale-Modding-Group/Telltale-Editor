@@ -1,11 +1,11 @@
 -- CSI: 3 Dimensions of Murder. This game is special in the sense that the PS2 version is vastly different. It uses a one off stream type and 
--- archives are actually meta streams and not usual TTArchives.
+-- archives are actually meta streams and not usual TTArchives. PC version as normal. PS2 version was released a year later, probably why
 
 require("ToolLibrary/Game/CSI/3DOM/TTArchive.lua")
 require("ToolLibrary/Game/VersionCRC.lua")
 
 function RegisterCSI3Collection(containerInterfaceTbl, name, fl, k, v)
-    local withBaseclass = { VersionIndex = 0 } -- eg DCArray_String_(1j6j2xe).vers. each array has two versions, one without the baseclass container member
+    local withBaseclass = { VersionIndex = 0 }
 	withBaseclass.Name = name
 	withBaseclass.Flags = fl
 	withBaseclass.Members = {}
@@ -16,7 +16,7 @@ function RegisterCSI3Collection(containerInterfaceTbl, name, fl, k, v)
     return withBaseclass
 end
 
-function RegisterCSI3(v, platform)
+function RegisterCSI3(venderUnused, platform)
 
     MetaSetVersionFn("VersionCRC_V0")
 	MetaRegisterIntrinsics()
@@ -26,7 +26,7 @@ function RegisterCSI3(v, platform)
 	MetaCI.Flags = kMetaClassAbstract
 	MetaRegisterClass(MetaCI)
 
-    RegisterCSI3TTArchive(MetaCI) -- register .PK2 archive
+    RegisterCSI3TTArchive(MetaCI) -- register .PK2 archive. Normal .ttarch handled as usual
 
     return true
 end

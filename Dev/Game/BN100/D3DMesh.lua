@@ -113,8 +113,6 @@ end
 -- Bone D3DMesh => common mesh. any accesses outside this functiom will return nil!
 function NormaliseBoneD3DMesh(inst, state)
 
-    require("ToolLibrary/Game/Common/LuaContainer.lua")
-
     CommonMeshSetName(state, MetaGetClassValue(MetaGetMember(inst, "mName")))
 
     if MetaGetClassValue(MetaGetMember(inst, "mbDeformable")) then
