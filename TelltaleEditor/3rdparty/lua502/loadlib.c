@@ -77,9 +77,9 @@ static int loadlib(lua_State *L)
 */
 #ifndef USE_DLL
 #ifdef _WIN32
-#define USE_DLL	1
+#define USE_DLL    1
 #else
-#define USE_DLL	0
+#define USE_DLL    0
 #endif
 #endif
 
@@ -97,7 +97,7 @@ static void pusherror(lua_State *L)
  int error=GetLastError();
  char buffer[128];
  if (FormatMessage(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM,
-	0, error, 0, buffer, sizeof(buffer), 0))
+    0, error, 0, buffer, sizeof(buffer), 0))
   lua_pushstring(L,buffer);
  else
   lua_pushfstring(L,"system error %d\n",error);
@@ -158,9 +158,9 @@ static int loadlib(lua_State *L)
 
 #ifdef LOADLIB
 #undef LOADLIB
-#define LOADLIB	"`loadlib' not installed (check your Lua configuration)"
+#define LOADLIB    "`loadlib' not installed (check your Lua configuration)"
 #else
-#define LOADLIB	"`loadlib' not supported"
+#define LOADLIB    "`loadlib' not supported"
 #endif
 
 static int loadlib(lua_State *L)

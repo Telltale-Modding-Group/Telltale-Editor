@@ -20,11 +20,15 @@ function NewMember(name, classTable, flags)
 end
 
 -- Returns new class (registers) table for which the underlying argument is the class in memory/file but it now can go under this name
-function NewProxyClass(name, memberName, underlyingClassTable)
+-- Set disableMemberBlocking to true (else can ignore it) if you want all members which may be blocked to be non-blocked by force.
+function NewProxyClass(name, memberName, underlyingClassTable, disableMemberBlocking)
     local clazz = {}
     clazz.VersionIndex = 0
     clazz.Name = name
-    clazz.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic -- ensure no extra block size and not in headers
+    clazz.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic-- ensure no extra block size and not in headers
+    if disableMemberBlocking then
+        clazz.Flags = clazz.Flags + kMetaClassProxy
+    end
     clazz.Members = {}
     clazz.Members[1] = NewMember(memberName, underlyingClassTable, kMetaMemberVersionDisable) -- the actual member
     MetaRegisterClass(clazz)
@@ -52,8 +56,11 @@ function RegisterAll(game_id, platform, vendor)
     if game_id == "BN100" then
         require("ToolLibrary/Game/BN100/BN100.lua")
         return RegisterBone100(vendor, platform)
+    elseif game_id == "CSI3" then
+        require("ToolLibrary/Game/CSI/3DOM/CSI3.lua")
+        return RegisterCSI3(vendor, platform)
     else
-        print("ERROR: during testing only boneville is supported")
+        print("ERROR: This game is not currently supported")
     end
 
     return false

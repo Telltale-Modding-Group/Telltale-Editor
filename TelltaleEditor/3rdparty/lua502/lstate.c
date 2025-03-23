@@ -27,7 +27,7 @@
 ** macro to allow the inclusion of user information in Lua state
 */
 #ifndef LUA_USERSTATE
-#define EXTRASPACE	0
+#define EXTRASPACE    0
 #else
 union UEXTRASPACE {L_Umaxalign a; LUA_USERSTATE b;};
 #define EXTRASPACE (sizeof(union UEXTRASPACE))

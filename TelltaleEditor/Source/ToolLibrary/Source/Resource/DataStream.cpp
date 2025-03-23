@@ -118,8 +118,9 @@ ResourceURL DataStreamManager::Resolve(const Symbol &unresolved)
     return ResourceURL(); // Not found
 }
 
-void DataStreamManager::Publicise(std::shared_ptr<DataStreamMemory> &stream)
+void DataStreamManager::Publicise(Ptr<DataStreamMemory> &stream)
 {
+    std::lock_guard<std::mutex> G{_CacheLock};
     for (auto &it : _Cache)
     {
         if (it.second == stream)
@@ -130,6 +131,7 @@ void DataStreamManager::Publicise(std::shared_ptr<DataStreamMemory> &stream)
 
 void DataStreamManager::ReleaseCache(const String &path)
 {
+    std::lock_guard<std::mutex> G{_CacheLock};
     for (auto it = _Cache.begin(); it != _Cache.end(); it++)
     {
         if (CompareCaseInsensitive(it->first, path))
@@ -140,27 +142,29 @@ void DataStreamManager::ReleaseCache(const String &path)
     }
 }
 
-std::shared_ptr<DataStreamMemory> DataStreamManager::CreatePublicCache(const String &path, U32 pageSize)
+Ptr<DataStreamMemory> DataStreamManager::CreatePublicCache(const String &path, U32 pageSize)
 {
-    std::shared_ptr<DataStreamMemory> pMemoryStream = _Cache[path] = CreatePrivateCache(path, pageSize);
+    std::lock_guard<std::mutex> G{_CacheLock};
+    Ptr<DataStreamMemory> pMemoryStream = _Cache[path] = CreatePrivateCache(path, pageSize);
     return pMemoryStream; // Create privately, make public, return it.
 }
 
-std::shared_ptr<DataStreamMemory> DataStreamManager::CreatePrivateCache(const String &path, U32 pageSize)
+Ptr<DataStreamMemory> DataStreamManager::CreatePrivateCache(const String &path, U32 pageSize)
 {
     // Allocate new instance with correct deleter.
     DataStreamMemory *pDSFile = TTE_NEW(DataStreamMemory, MEMORY_TAG_DATASTREAM, path, (U64)pageSize);
-    return std::shared_ptr<DataStreamMemory>(pDSFile, &DataStreamDeleter);
+    return Ptr<DataStreamMemory>(pDSFile, &DataStreamDeleter);
 }
 
-std::shared_ptr<DataStreamSequentialStream> DataStreamManager::CreateSequentialStream(const String& url)
+Ptr<DataStreamSequentialStream> DataStreamManager::CreateSequentialStream(const String& url)
 {
     DataStreamSequentialStream *pDS = TTE_NEW(DataStreamSequentialStream, MEMORY_TAG_DATASTREAM, url);
-    return std::shared_ptr<DataStreamSequentialStream>(pDS, &DataStreamDeleter);
+    return Ptr<DataStreamSequentialStream>(pDS, &DataStreamDeleter);
 }
 
-std::shared_ptr<DataStreamMemory> DataStreamManager::FindCache(const String &path)
+Ptr<DataStreamMemory> DataStreamManager::FindCache(const String &path)
 {
+    std::lock_guard<std::mutex> G{_CacheLock};
     for (auto it = _Cache.begin(); it != _Cache.end(); it++)
     {
         if (CompareCaseInsensitive(it->first, path))
@@ -199,6 +203,15 @@ DataStreamRef DataStreamManager::CreateCachedStream(const DataStreamRef& src)
     return DataStreamRef(pDS, &DataStreamDeleter);
 }
 
+DataStreamRef DataStreamManager::Copy(DataStreamRef src, U64 srcOff, U64 n)
+{
+    TTE_ASSERT(src, "Source stream");
+    DataStreamRef mem = CreatePrivateCache("");
+    src->SetPosition(srcOff);
+    Transfer(src, mem, n);
+    return mem;
+}
+
 DataStreamRef DataStreamManager::CreateNullStream()
 {
     DataStreamNull *pDS = TTE_NEW(DataStreamNull, MEMORY_TAG_DATASTREAM, ResourceURL());
@@ -229,7 +242,7 @@ Bool DataStreamManager::Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nby
     if (src && dst && Nbytes)
     {
 
-        U8 *Tmp = TTE_ALLOC(MAX(0x10000, Nbytes), MEMORY_TAG_TEMPORARY);
+        U8 *Tmp = TTE_ALLOC(MIN(0x10000, Nbytes), MEMORY_TAG_TEMPORARY);
         U64 Nblocks = Nbytes / 0x10000;
 
         Bool Result = true;
@@ -239,22 +252,34 @@ Bool DataStreamManager::Transfer(DataStreamRef &src, DataStreamRef &dst, U64 Nby
 
             Result = src->Read(Tmp, 0x10000);
             if (!Result)
-                return false;
+    	    {
+	    	    TTE_FREE(Tmp);
+	    	    return false;
+    	    }
 
             Result = dst->Write(Tmp, 0x10000);
-            if (!Result)
-                return false;
+    	    if (!Result)
+    	    {
+	    	    TTE_FREE(Tmp);
+	    	    return false;
+    	    }
         }
         
         if(Nbytes & 0xFFFF) // transfer remaining bytes
         {
             Result = src->Read(Tmp, Nbytes & 0xFFFF);
-            if (!Result)
-                return false;
+    	    if (!Result)
+    	    {
+	    	    TTE_FREE(Tmp);
+	    	    return false;
+    	    }
             
             Result = dst->Write(Tmp, Nbytes & 0xFFFF);
-            if (!Result)
-                return false;
+    	    if (!Result)
+    	    {
+	    	    TTE_FREE(Tmp);
+	    	    return false;
+    	    }
         }
 
         TTE_FREE(Tmp);
@@ -278,6 +303,7 @@ Bool DataStreamFile::Read(U8 *OutputBuffer, U64 Nbytes)
 Bool DataStreamFile::Write(const U8 *InputBuffer, U64 Nbytes)
 {
     TTE_ASSERT(_Handle != FileNull(), "File handle is null. Cannot write");
+    _MaxOffset = MAX(_MaxOffset, (GetPosition() + Nbytes));
     return FileWrite(_Handle, InputBuffer, Nbytes);
 }
 
@@ -289,15 +315,19 @@ DataStreamFile::~DataStreamFile()
 {
     if (_Handle != FileNull())
     {
-        FileClose(_Handle);
+        FileClose(_Handle, _MaxOffset);
         _Handle = FileNull();
     }
 }
 
-DataStreamFile::DataStreamFile(const ResourceURL &url) : DataStream(url), _Handle(FileNull())
+DataStreamFile::DataStreamFile(const ResourceURL &url) : DataStream(url), _Handle(FileNull()), _MaxOffset(0)
 {
     // Attempt to open the file
     String fpath = url.GetRawPath(); // Get the raw path without the scheme, and pass it to the file system to try and find the file.
+    std::filesystem::path p{fpath.c_str()};
+    p = p.parent_path();
+    if(!std::filesystem::exists(p))
+        std::filesystem::create_directories(p);
     _Handle = FileOpen(fpath.c_str());
 }
 
@@ -317,7 +347,7 @@ DataStreamRef ResourceURL::Open()
     {
 
         // First try and search cache for it.
-        std::shared_ptr<DataStreamMemory> pMemoryStream = DataStreamManager::GetInstance()->FindCache(_Path);
+        Ptr<DataStreamMemory> pMemoryStream = DataStreamManager::GetInstance()->FindCache(_Path);
 
         // If it does not exist, create the public cached one and return it.
         if (!pMemoryStream)
@@ -399,7 +429,7 @@ void ResourceURL::_Normalise()
     std::replace(_Path.begin(), _Path.end(), '\\', '/');
 
     // paths cannot contain bad characters
-    std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_";
+    std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_ ";
     _Path.erase(std::remove_if(_Path.begin(), _Path.end(), [&validChars](char c) { return validChars.find(c) == std::string::npos; }), _Path.end());
 
     // remove leading/trailing whitespace 'trim' and slashes
@@ -468,13 +498,71 @@ Bool DataStreamDeferred::Read(U8 *OutputBuffer, U64 Nbytes)
         _PagePos = Nbytes;
     }
     else
-        _PagePos = 0;
+    {
+	    _PageIdx++;
+	    _PagePos = 0;
+    }
 
     return true;
 }
 
-// split data into first remaining chunk in current page, chunks for middle full sized pages, then final remainder page.
 Bool DataStreamDeferred::Write(const U8 *InputBuffer, U64 Nbytes)
+{
+    if(!Nbytes)
+	    return true; // edge case: nothing to write
+    
+    // first read bytes from current page
+    U64 remInCurrentPage = _PageSize - _PagePos;
+    
+    _Size = MAX(GetPosition() + Nbytes, _Size); // update size if needed
+    
+    if (remInCurrentPage > Nbytes)
+    {
+	    // Write the bytes to the current page
+	    if(!_SerialisePage(_PageIdx, const_cast<U8*>(InputBuffer), Nbytes, _PagePos, true))
+    	    return false;
+	    _PagePos += Nbytes;
+	    return true; // enough bytes to write to the single current page.
+    }
+    else if(remInCurrentPage)
+    {
+	    // Write remaining bytes to the current page
+	    if(!_SerialisePage(_PageIdx, const_cast<U8*>(InputBuffer), remInCurrentPage, _PagePos, true))
+    	    return false;
+	    // Decrease remaining bytes to be written
+	    Nbytes -= remInCurrentPage;
+	    InputBuffer += remInCurrentPage;
+	    _PagePos = 0;
+    }
+    
+    // Write full pages if remaining bytes are >= _PageSize
+    while (Nbytes >= _PageSize)
+    {
+	    if(!_SerialisePage(++_PageIdx, const_cast<U8*>(InputBuffer), _PageSize, 0, true))
+    	    return false;
+	    InputBuffer += _PageSize;
+	    Nbytes -= _PageSize;
+    }
+    
+    // Finally, handle the remaining bytes that don't fill a full page
+    if (Nbytes)
+    {
+	    if(!_SerialisePage(++_PageIdx, const_cast<U8*>(InputBuffer), Nbytes, 0, true))
+    	    return false;
+	    _PagePos = Nbytes;  // Update the position for the next write operation
+    }
+    else
+    {
+	    _PagePos = 0;  // Reset position when no remaining bytes
+	    _PageIdx++;    // Move to next page for next write
+    }
+    
+    return true;
+}
+
+
+// split data into first remaining chunk in current page, chunks for middle full sized pages, then final remainder page.
+/*Bool DataStreamDeferred::Write(const U8 *InputBuffer, U64 Nbytes)
 {
     if(!Nbytes)
         return true; //edge case
@@ -518,10 +606,13 @@ Bool DataStreamDeferred::Write(const U8 *InputBuffer, U64 Nbytes)
         _PagePos = Nbytes;
     }
     else
-        _PagePos = 0;
+    {
+	    _PagePos = 0;
+	    _PageIdx++;
+    }
     
     return true;
-}
+}*/
 
 void DataStreamDeferred::SetPosition(U64 newPosition)
 {
@@ -547,6 +638,7 @@ Bool DataStreamMemory::_SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 off
             for(U64 i = 0; i < between; i++)
             {
                 U8* Page = TTE_ALLOC(_PageSize, MEMORY_TAG_RUNTIME_BUFFER);
+	    	    memset(Page, 0, _PageSize);
                 _PageTable.push_back(Page);
                 
             }
@@ -556,6 +648,7 @@ Bool DataStreamMemory::_SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 off
         if(index == _PageTable.size())
         {
             Page = TTE_ALLOC(_PageSize, MEMORY_TAG_RUNTIME_BUFFER);
+    	    memset(Page, 0, _PageSize);
             _PageTable.push_back(Page);
         }
         else
@@ -571,7 +664,7 @@ Bool DataStreamMemory::_SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 off
         if(index >= _PageTable.size())
             memset(Buffer, 0, Nbytes); // read zeros
         else
-            memcpy(Buffer, _PageTable[_PageIdx] + off, Nbytes);
+            memcpy(Buffer, _PageTable[index] + off, Nbytes);
     }
     return true;
 }
@@ -628,7 +721,7 @@ DataStreamBuffer::DataStreamBuffer(const ResourceURL &url, U64 sz, U8 *buf, Bool
 {
     _Size = sz;
     _Off = 0;
-    _Owns = buf && f;
+    _Owns = buf ? f : true;
     if (buf == nullptr)
         _Buffer = TTE_ALLOC(sz, MEMORY_TAG_DATASTREAM);
     else
@@ -681,7 +774,7 @@ DataStreamSubStream::DataStreamSubStream(const DataStreamRef &ref, U64 off, U64 
 
 void DataStreamSubStream::SetPosition(U64 pos)
 {
-    TTE_ASSERT(pos < _Size, "Trying to seek to invalid position in buffer stream");
+    TTE_ASSERT(pos <= _Size, "Trying to seek to invalid position in buffer stream");
     _Off = pos;
 }
 
@@ -863,7 +956,7 @@ Bool DataStreamSequentialStream::Read(U8 *OutputBuffer, U64 Nbytes)
         U64 ssize = _OrderedStreams[_StreamIndex]->GetSize();
         if(Nbytes < ssize)
             break;
-        if(_OrderedStreams[_StreamIndex]->Read(OutputBuffer, ssize))
+        if(!_OrderedStreams[_StreamIndex]->Read(OutputBuffer, ssize))
             return false;
         OutputBuffer += ssize;
         Nbytes -= ssize;
@@ -875,18 +968,23 @@ Bool DataStreamSequentialStream::Read(U8 *OutputBuffer, U64 Nbytes)
     // finally read any remainding bytes
     if (Nbytes)
     {
+        
         if(_StreamIndex >= (U64)_OrderedStreams.size()) // finished
         {
             TTE_ASSERT(false, "Cannot read bytes from sequential stream: no data available");
             return false;
         }
-        if(_OrderedStreams[_StreamIndex]->Read(OutputBuffer, Nbytes))
+        
+        if(!_OrderedStreams[_StreamIndex]->Read(OutputBuffer, Nbytes))
             return false;
+        
         _StreamPos = Nbytes;
         _BytesRead += Nbytes;
     }
     else
-        _StreamPos = 0;
+    {
+	    _StreamPos = 0;
+    }
     
     return true;
 }
@@ -904,14 +1002,13 @@ Bool DataStreamContainer::_SerialisePage(U64 index, U8 *Buffer, U64 Nbytes, U64 
         if(_CachedPageIndex != index)
         {
             // cache new page index
+    	    U32 pageSize = (U32)(_PageOffsets[index+1] - _PageOffsets[index]);
             _Prnt->SetPosition(_DataOffsetStart + _PageOffsets[index]);
-            if(!_Prnt->Read(_IntPage, _PageSize))
+            if(!_Prnt->Read(_IntPage, pageSize))
             {
                 TTE_LOG("Could not read page from container stream: index %lld", index);
                 return false;
             }
-            
-            U32 pageSize = (U32)(_PageOffsets[index+1] - _PageOffsets[index]);
             
             if(_Encrypted)
             {
@@ -1063,7 +1160,7 @@ struct ProcessedPageBulk
     U32 FirstPageIndex;
     U32 FlushSlot; // slot in stashed buffer
     U32 CompressedSizes[CONTAINER_BULK_SIZE];
-    std::shared_ptr<U8> Overflow[CONTAINER_BULK_SIZE];
+    Ptr<U8> Overflow[CONTAINER_BULK_SIZE];
     // if compressed data is larger than window size (ie couldn't compress well) store it externally.
 };
 
@@ -1089,7 +1186,7 @@ static Bool _DoPage(U8* In, U8* Out, _AsyncContainerContext* ctx, ProcessedPageB
             return false;
         }
         Out = OutputBuffer;
-        blk.Overflow[pgIndex] = std::shared_ptr<U8>(Out, &_U8Deleter);
+        blk.Overflow[pgIndex] = Ptr<U8>(Out, &_U8Deleter);
     }
     
     blk.CompressedSizes[pgIndex] = (U32)compressedSize;
@@ -1128,7 +1225,6 @@ static Bool _AsyncCreateContainerSlave(const JobThread& thread, void* pCtx, void
             if(ctx->InputIndex >= (ctx->NumPages - (ctx->NumPages % CONTAINER_BULK_SIZE)))
             {
                 Finished = true;
-                bThisPageNeedsPendingFlush = false;
                 ctx->Input.unlock();
                 continue;
             }
@@ -1436,7 +1532,7 @@ Bool DataStreamManager::FlushContainer(DataStreamRef& src, U64 n, DataStreamRef&
     if(p.Compression == Compression::END_LIBRARY && p.Encrypt)
         p.Compression = Compression::ZLIB; // must compress if encrypting
     
-    if(p.Compression == Compression::OODLE && GetToolContext()->GetActiveGame()->DisableOodle)
+    if(p.Compression == Compression::OODLE && !GetToolContext()->GetActiveGame()->Fl.Test(Meta::RegGame::ENABLE_OODLE))
     {
         TTE_LOG("Cannot use oodle compression for the current game snapshot - it is not supported in the game. Please specify Zlib and retry!");
         return false;

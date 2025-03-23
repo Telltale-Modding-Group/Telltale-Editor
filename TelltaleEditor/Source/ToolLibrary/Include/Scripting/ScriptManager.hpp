@@ -2,11 +2,19 @@
 
 #include <Scripting/LuaManager.hpp>
 #include <vector>
+#include <unordered_map>
+#include <Core/Symbol.hpp>
 
 // High level LUA scripting API. This builds upon the Lua Manager which leads with the
 // lua API for different lua versions supported by the range of Telltale Games.
 
 // This has no state at all, lua manager and lua_State captures it all in the stack.
+
+/**
+ Gets this current thread LVM. If this is the main thread, gets the current tool context LVM. If a worker thread, then returns the worker thread. Any other thread will fail an assert.
+ This will ALWAYS return a VM which uses the latest Lua script version telltale uses, Lua 5.2.3!
+ */
+LuaManager& GetThreadLVM();
 
 #define LUA_MULTRET (-1)
 
@@ -22,10 +30,32 @@ struct LuaFunctionCollection
 {
     String Name;
     std::vector<LuaFunctionRegObject> Functions;
+    
+    std::unordered_map<String, String> StringGlobals; // global name to value to reg
+    std::unordered_map<String, U32> IntegerGlobals; // global name to value to reg
+    
 };
 
+#define PUSH_FUNC(Col, Name, Fn) Col.Functions.push_back({Name, Fn})
+
+#define PUSH_GLOBAL_S(Col, Name, Str) Col.StringGlobals[Name] = Str
+
+#define PUSH_GLOBAL_I(Col, Name, Val) Col.IntegerGlobals[Name] = Val
+
+LuaFunctionCollection luaGameEngine(Bool bWorker); // actual engine game api in EngineLUAApi.cpp
+LuaFunctionCollection luaLibraryAPI(Bool bWorker); // actual api in LibraryLUAApi.cpp
+
+void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker); // actual game engine resource API into luaGameEngine function collection (Internal)
+
 // Provides high level scripting access. Most of the functions are the same as Telltales actual ScriptManager API.
-namespace ScriptManager {
+namespace ScriptManager
+{
+    
+    // Decrypts scripts into a new readable stream.
+    DataStreamRef DecryptScript(DataStreamRef& src);
+    
+    // Encrypts scripts into a new telltale stream. Specify if the given file is a .lenc file, as opposed to .lua.
+    DataStreamRef EncryptScript(DataStreamRef& src, Bool bLenc);
     
     // Execute the function on the stack followed by its arguments pushed after. Function & args all popped. Nresults is number of arguments
     // pushed onto the stack, ensured to be padded with NILs if needed - or truncated. Pass LUA_MULTRET for whatever the function returns.
@@ -71,6 +101,20 @@ namespace ScriptManager {
             man.SetTable(-3, true);
             
         }
+	    
+	    for(auto& st: collection.StringGlobals)
+	    {
+    	    man.PushLString(st.first.c_str());
+    	    man.PushLString(st.second.c_str());
+    	    man.SetTable(-3, true);
+	    }
+	    
+	    for(auto& st: collection.IntegerGlobals)
+	    {
+    	    man.PushLString(st.first.c_str());
+    	    man.PushUnsignedInteger(st.second);
+    	    man.SetTable(-3, true);
+	    }
         
         // set global
         if(collection.Name.length() > 0)
@@ -84,7 +128,7 @@ namespace ScriptManager {
     // Pass in the name for debugging purposes, eg the file name.
     // If this returns false, nothing is pushed and error messages are logged to console.
     inline Bool LoadChunk(LuaManager& man, const String& name, const String& text){
-        return man.LoadChunk(name, (const U8*)text.c_str(), (U32)text.length(), false);
+        return man.LoadChunk(name, (const U8*)text.c_str(), (U32)text.length(), LoadChunkMode::SOURCE);
     }
     
     // Call the given function name, with no arguments. For information avout Lockcontext argument, see LuaManager::CallFunction
@@ -103,9 +147,9 @@ namespace ScriptManager {
     }
     
     // Run lua source code on the VM
-    inline void RunText(LuaManager& man, const String& code, CString Chunkname = "defaultrun.lua")
+    inline void RunText(LuaManager& man, const String& code, CString Chunkname, Bool lockContext)
     {
-        man.RunText(code.c_str(), (U32)code.length(), Chunkname);
+        man.RunText(code.c_str(), (U32)code.length(), lockContext, Chunkname);
     }
     
     inline String PopString(LuaManager& man) {
@@ -227,7 +271,7 @@ namespace ScriptManager {
     // Tries to find it from the global symbol table first, if not then returns a hex string.
     inline void PushSymbol(LuaManager& man, Symbol value)
     {
-        String val = RuntimeSymbols.Find(value);
+        String val = SymbolTable::Find(value);
         man.PushLString(val.length() == 0 ? SymbolToHexString(value) : val);
     }
     

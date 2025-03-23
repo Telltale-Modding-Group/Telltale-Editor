@@ -34,18 +34,18 @@ typedef struct GCState {
 /*
 ** some userful bit tricks
 */
-#define setbit(x,b)	((x) |= (1<<(b)))
-#define resetbit(x,b)	((x) &= cast(lu_byte, ~(1<<(b))))
-#define testbit(x,b)	((x) & (1<<(b)))
+#define setbit(x,b)    ((x) |= (1<<(b)))
+#define resetbit(x,b)    ((x) &= cast(lu_byte, ~(1<<(b))))
+#define testbit(x,b)    ((x) & (1<<(b)))
 
-#define unmark(x)	resetbit((x)->gch.marked, 0)
-#define ismarked(x)	((x)->gch.marked & ((1<<4)|1))
+#define unmark(x)    resetbit((x)->gch.marked, 0)
+#define ismarked(x)    ((x)->gch.marked & ((1<<4)|1))
 
-#define stringmark(s)	setbit((s)->tsv.marked, 0)
+#define stringmark(s)    setbit((s)->tsv.marked, 0)
 
 
-#define isfinalized(u)		(!testbit((u)->uv.marked, 1))
-#define markfinalized(u)	resetbit((u)->uv.marked, 1)
+#define isfinalized(u)	    (!testbit((u)->uv.marked, 1))
+#define markfinalized(u)    resetbit((u)->uv.marked, 1)
 
 
 #define KEYWEAKBIT    1
@@ -63,7 +63,7 @@ typedef struct GCState {
     reallymarkobject(st,gcvalue(o)); }
 
 #define markvalue(st,t) { if (!ismarked(valtogco(t))) \
-		reallymarkobject(st, valtogco(t)); }
+	    reallymarkobject(st, valtogco(t)); }
 
 
 

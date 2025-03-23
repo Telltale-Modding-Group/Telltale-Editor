@@ -28,7 +28,9 @@ U64 FileOpen(CString path){
     return (U64)file;
 }
 
-void FileClose(U64 Handle){
+void FileClose(U64 Handle, U64 truncateOffset){
+    if(truncateOffset > 0)
+	    ftruncate((int)Handle, truncateOffset);
     close((int)Handle);
 }
 
@@ -80,7 +82,7 @@ U64 FileNull() {
 String FileNewTemp(){
     char tmplt[] = "/tmp/tteditorMACOS_XXXXXX";
     
-    if (mktemp(tmplt) == NULL) {
+    if (mkstemp(tmplt) == 0) {
         TTE_ASSERT(false,"Call to mktemp failed");
         return "";
     }

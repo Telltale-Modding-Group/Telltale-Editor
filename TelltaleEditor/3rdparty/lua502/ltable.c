@@ -40,18 +40,18 @@
 ** max size of array part is 2^MAXBITS
 */
 #if BITS_INT > 26
-#define MAXBITS		24
+#define MAXBITS	    24
 #else
-#define MAXBITS		(BITS_INT-2)
+#define MAXBITS	    (BITS_INT-2)
 #endif
 
 /* check whether `x' < 2^MAXBITS */
-#define toobig(x)	((((x)-1) >> MAXBITS) != 0)
+#define toobig(x)    ((((x)-1) >> MAXBITS) != 0)
 
 
 /* function to convert a lua_Number to int (with any rounding method) */
 #ifndef lua_number2int
-#define lua_number2int(i,n)	((i)=(int)(n))
+#define lua_number2int(i,n)    ((i)=(int)(n))
 #endif
 
 
@@ -65,16 +65,16 @@
 ** for some types, it is better to avoid modulus by power of 2, as
 ** they tend to have many 2 factors.
 */
-#define hashmod(t,n)	(gnode(t, ((n) % ((sizenode(t)-1)|1))))
+#define hashmod(t,n)    (gnode(t, ((n) % ((sizenode(t)-1)|1))))
 
 
-#define hashpointer(t,p)	hashmod(t, IntPoint(p))
+#define hashpointer(t,p)    hashmod(t, IntPoint(p))
 
 
 /*
 ** number of ints inside a lua_Number
 */
-#define numints		cast(int, sizeof(lua_Number)/sizeof(int))
+#define numints	    cast(int, sizeof(lua_Number)/sizeof(int))
 
 
 /*

@@ -73,9 +73,13 @@ static U32 luaContainerGetElement(LuaManager& man)
     {
         ClassInstanceCollection& collection = CastToCollection(inst);
         I32 index = man.ToInteger(-1);
-        inst = collection.GetValue((U32)index);
-        // tool uses weak references
-        inst.PushScriptRef(man);
+        if(index >= collection.GetSize())
+        {
+            TTE_ASSERT(false, "Cannot access element index %d in container, out of bounds. Is the loop using 0 based indices?", index);
+            man.PushNil();
+            return 1;
+        }
+	    collection.PushTransientScriptRef(man, (U32)index, false, inst.ObtainParentRef());
     }
     else
     {
@@ -95,15 +99,53 @@ static U32 luaContainerClear(LuaManager& man)
     return 0;
 }
 
-LuaFunctionCollection luaGameEngine() {
+static U32 luaContainerReserve(LuaManager& man)
+{
+    TTE_ASSERT(man.GetTop() == 2, "Requires two args");
+    ClassInstance inst = AcquireScriptInstance(man, 1);
+    if(inst && IsCollection(inst))
+    {
+        U32 num = (U32)man.ToInteger(2);
+        TTE_ASSERT(num < 0x10000, "Container too large!");
+        CastToCollection(inst).Reserve(num);
+    }
+    return 0;
+}
+
+// obj emplace(container)
+static U32 luaContainerEmplaceElement(LuaManager& man)
+{
+    TTE_ASSERT(man.GetTop() == 1, "Requires one arg");
+    
+    ClassInstance inst = AcquireScriptInstance(man, -1);
+    
+    if(inst && IsCollection(inst))
+    {
+	    ClassInstanceCollection& collection = CastToCollection(inst);
+	    collection.PushValue({}, false); // move it
+	    collection.PushTransientScriptRef(man, collection.GetSize() - 1, false, inst.ObtainParentRef());
+    }
+    else
+    {
+	    TTE_LOG("At ContainerEmplaceElement: container was null or invalid");
+    }
+    
+    return 1;
+}
+
+LuaFunctionCollection luaGameEngine(Bool bWorker) { // always define all
     LuaFunctionCollection col{};
     
     // 'LuaContainer'
-    col.Functions.push_back({"_ContainerGetNumElements", &luaContainerGetNumElements});
-    col.Functions.push_back({"_ContainerRemoveElement", &luaContainerRemoveElement});
-    col.Functions.push_back({"_ContainerInsertElement", &luaContainerInsertElement});
-    col.Functions.push_back({"_ContainerGetElement", &luaContainerGetElement});
-    col.Functions.push_back({"_ContainerClear", &luaContainerClear});
+    col.Functions.push_back({"ContainerGetNumElements", &luaContainerGetNumElements});
+    col.Functions.push_back({"ContainerRemoveElement", &luaContainerRemoveElement});
+    col.Functions.push_back({"ContainerInsertElement", &luaContainerInsertElement});
+    col.Functions.push_back({"ContainerEmplaceElement", &luaContainerEmplaceElement});
+    col.Functions.push_back({"ContainerGetElement", &luaContainerGetElement});
+    col.Functions.push_back({"ContainerClear", &luaContainerClear});
+    col.Functions.push_back({"ContainerReserve", &luaContainerReserve});
+    
+    InjectResourceAPI(col, bWorker);
     
     return col;
 }

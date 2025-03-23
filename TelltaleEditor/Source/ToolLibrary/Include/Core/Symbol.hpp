@@ -3,6 +3,7 @@
 #include <Core/Config.hpp>
 #include <vector>
 #include <map>
+#include <mutex>
 
 // Perform ECMA-182 Poly CRC64
 U64 CRC64(const U8 *Buffer, U32 BufferLength, U64 InitialCRC64 = 0);
@@ -61,8 +62,8 @@ inline Symbol operator+(const Symbol &sym, const String &value)
     return CRC64LowerCase((const U8 *)value.c_str(), (U32)value.length(), sym.GetCRC64());
 }
 
-// Argument must be 16 characters long and a hex string, in big endian (ie normal reading format).
-Symbol SymbolFromHexString(const String& str);
+// Argument must be 16 characters long and a hex string, in big endian (ie normal reading format). Strict if it HAS to be a hex string. if not a hex string it returns normal symbol.
+Symbol SymbolFromHexString(const String& str, Bool bStrict = false);
 
 // Converts to a 16 byte hex string
 String SymbolToHexString(Symbol sym);
@@ -73,13 +74,27 @@ extern const U64 CRC64_Table[256];
 extern const U32 CRC32_Table[256];
 
 // .SYMTAB FILES. SymbolTable keeps a memory of the strings that symbols represent. Serialised format is just text file of strings one each line.
+// If the line starts with 'CRC32:' then the CRC32 is registered instead (used for some other stuff)
 class SymbolTable {
+    
+    static SymbolTable* _ActiveTables;
+    
 public:
     
-    SymbolTable() = default;
-    ~SymbolTable() = default;
+    inline static String Find(Symbol sym) // global find across all tables
+    {
+        for(SymbolTable* table = _ActiveTables; table; table = table->_Next)
+        {
+            String result = table->_Find(sym);
+            if(result.length())
+                return std::move(result);
+        }
+        return ""; // not found
+    }
     
-    String Find(Symbol); // Finds a symbol
+    // DO NOT CREATE INSTANCES OF THESE UNLESS THEY ARE GLOBALS AND ONLY GET DESTROYED AT PROGRAM END!
+    SymbolTable();
+    ~SymbolTable() = default;
     
     void Register(const String&); // Registers a symbol to the table
     
@@ -91,9 +106,14 @@ public:
     
 private:
     
+    String _Find(Symbol); // Finds a symbol
+    
+    SymbolTable* _Next = nullptr;
+    std::mutex _Lock{};
     std::vector<String> _Table{};
     std::map<U64, U32> _SortedHashed{}; // hash => index into _Table
     
 };
 
 extern SymbolTable RuntimeSymbols; // runtime loaded symbols
+extern SymbolTable GameSymbols; // per game symbols

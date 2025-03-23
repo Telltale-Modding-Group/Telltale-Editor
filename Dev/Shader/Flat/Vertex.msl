@@ -1,0 +1,38 @@
+// UniformBuffers:2 BufferCamera:0 BufferObject:1 Attribs:0
+// line above needed.
+#include <metal_stdlib>
+using namespace metal;
+
+struct VertexIn {
+    float3 position [[attribute(0)]];
+};
+
+struct VertexOut {
+    float4 position [[position]];
+    float3 colour [[user(locn1)]];
+};
+
+struct UniformCamera
+{
+    float4x4 viewProj;
+    float2 fov;
+    float cam_near;
+    float cam_far;
+    float aspect;
+};
+
+struct UniformObject
+{
+    float4x4 worldMatrix;
+    float3 diffuse;
+    float alpha;
+};
+
+vertex VertexOut main0(VertexIn in [[stage_in]], constant UniformCamera& cam [[buffer(0)]], constant UniformObject& obj [[buffer(1)]]) {
+    VertexOut out;
+
+    out.position = cam.viewProj * obj.worldMatrix * float4(in.position, 1.0f);
+    out.colour = obj.diffuse;
+
+    return out;
+}

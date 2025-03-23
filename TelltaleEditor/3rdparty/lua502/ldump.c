@@ -15,8 +15,8 @@
 #include "lstate.h"
 #include "lundump.h"
 
-#define DumpVector(b,n,size,D)	DumpBlock(b,(n)*(size),D)
-#define DumpLiteral(s,D)	DumpBlock("" s,(sizeof(s))-1,D)
+#define DumpVector(b,n,size,D)    DumpBlock(b,(n)*(size),D)
+#define DumpLiteral(s,D)    DumpBlock("" s,(sizeof(s))-1,D)
 
 typedef struct {
  lua_State* L;
@@ -58,7 +58,7 @@ static void DumpString(TString* s, DumpState* D)
   DumpSize(0,D);
  else
  {
-  size_t size=s->tsv.len+1;		/* include trailing '\0' */
+  size_t size=s->tsv.len+1;	    /* include trailing '\0' */
   DumpSize(size,D);
   DumpBlock(getstr(s),size,D);
  }
@@ -108,16 +108,16 @@ static void DumpConstants(const Proto* f, DumpState* D)
   switch (ttype(o))
   {
    case LUA_TNUMBER:
-	DumpNumber(nvalue(o),D);
-	break;
+    DumpNumber(nvalue(o),D);
+    break;
    case LUA_TSTRING:
-	DumpString(tsvalue(o),D);
-	break;
+    DumpString(tsvalue(o),D);
+    break;
    case LUA_TNIL:
-	break;
+    break;
    default:
-	lua_assert(0);			/* cannot happen */
-	break;
+    lua_assert(0);    	    /* cannot happen */
+    break;
   }
  }
  DumpInt(n=f->sizep,D);

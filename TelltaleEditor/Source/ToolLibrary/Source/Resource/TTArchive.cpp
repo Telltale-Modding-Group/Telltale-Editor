@@ -30,6 +30,7 @@ Bool TTArchive::SerialiseIn(DataStreamRef& in)
             FileInfo inf{}; // filled later
             _FileInf bytes{}; // internal
             inf.Name = DataStreamManager::GetInstance()->ReadString(in);
+    	    inf.NameSymbol = Symbol(inf.Name);
             
             SerialiseDataU32(in, 0, &read, false);
             TTE_ASSERT(read == 0, "Archive format needs checking"); // folder index ??
@@ -56,6 +57,9 @@ Bool TTArchive::SerialiseIn(DataStreamRef& in)
                                                                                  (U64)offsets[i].off, (U64)offsets[i].sz);
         }
         offsets.clear();
+	    
+	    // sort files
+	    std::sort(_Files.begin(), _Files.end(), FileInfoSorter{});
         
         return true; // OK
     }

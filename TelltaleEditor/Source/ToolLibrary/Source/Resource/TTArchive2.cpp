@@ -60,7 +60,7 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
     {
         
         InternalFileInfo& info = _inf.emplace_back();
-        SerialiseDataU64(in, 0, &info.Offset, false); // name crc. skip this, we will get these from the filename table.
+        SerialiseDataU64(in, 0, &info.CRC, false); // name crc.
         SerialiseDataU64(in, 0, &info.Offset, false); // file offset
         
         if(_Version == 2) // TTA2
@@ -87,7 +87,6 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
     // all read. now create sub streams
     
     U64 FilenamesOffset = in->GetPosition(); // position for filename table
-    U64 FileDataOffset = FilenamesOffset + filenameBufferSize;
     
     // create temp buffer
     U8* TempFileNames = TTE_ALLOC(filenameBufferSize, MEMORY_TAG_TEMPORARY);
@@ -105,6 +104,7 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
         // read file names
         FileInfo& inf = _Files.emplace_back();
         inf.Name = (CString)(TempFileNames + _inf[i].NameOffset); // these are null terminated, create string memory w/ std string
+	    inf.NameSymbol = _inf[i].CRC;
         
         // create sub stream
         inf.Stream = DataStreamManager::GetInstance()->CreateSubStream(in, _inf[i].Offset, (U64)_inf[i].Size);
@@ -145,7 +145,7 @@ Bool TTArchive2::SerialiseOut(DataStreamRef& o, ContainerParams params, JobHandl
     SerialiseDataU32(headerStream, nullptr, &files, true);
     
     // Write file information for each file
-    std::sort(_Files.begin(), _Files.end(), FileInfoSort{}); // archive hashes need to be sorted for internal binary sorts
+   // std::sort(_Files.begin(), _Files.end(), FileInfoSort{}); // archive hashes need to be sorted for internal binary sorts. already sorted.
     U32 nameTableOffs = 0;
     U64 runningOffset = 0;
     for(auto& file : _Files)
@@ -194,7 +194,7 @@ Bool TTArchive2::SerialiseOut(DataStreamRef& o, ContainerParams params, JobHandl
     
     // ========================== 2: Combine all file streams into sequential stream and write container
     
-    std::shared_ptr<DataStreamSequentialStream> Container = DataStreamManager::GetInstance()->CreateSequentialStream("TTArchive2::Container");
+    Ptr<DataStreamSequentialStream> Container = DataStreamManager::GetInstance()->CreateSequentialStream("TTArchive2::Container");
     
     Container->PushStream(headerStream); // header stream
     Container->PushStream(nameStream); // name table stream

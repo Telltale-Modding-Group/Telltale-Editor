@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.19)
 project(TelltaleEditor VERSION 0.0.1)
 
 set(CMAKE_BUILD_TYPE Debug) # Set the build type to debug by default
-set(CMAKE_CXX_STANDARD 17) # Use C++17
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 set(BUILD_SHARED_LIBS OFF) # Build static libraries
 set(CMAKE_CXX_FLAGS_RELEASE "-O3") # optimization compiler flag
 include(CMakeDependentOption)

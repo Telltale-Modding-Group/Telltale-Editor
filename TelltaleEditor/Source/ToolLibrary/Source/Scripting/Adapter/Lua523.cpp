@@ -126,9 +126,10 @@ void LuaAdapter_523::GC()
     lua_gc(_State, LUA_GCCOLLECT, 0);
 }
 
-Bool LuaAdapter_523::LoadChunk(const String& nm, const U8* buf, U32 sz, Bool cm)
+Bool LuaAdapter_523::LoadChunk(const String& nm, const U8* buf, U32 sz, LoadChunkMode cm)
 {
-    int error = luaL_loadbufferx(_State, (const char*)buf, (size_t)sz, nm.c_str(), cm ? "b" : "t");
+    int error = luaL_loadbufferx(_State, (const char*)buf, (size_t)sz, nm.c_str(), cm == LoadChunkMode::ANY ? "bt"
+	    	    	    	     : LoadChunkMode::BINARY == cm ? "b" : "t");
     if (error == LUA_ERRSYNTAX)
     {
         TTE_LOG("Loading %s: syntax error(s) => %s", nm.c_str(), lua_tostring(_State, -1));

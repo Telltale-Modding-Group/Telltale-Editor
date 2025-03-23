@@ -2,11 +2,16 @@
 
 #include <Resource/DataStream.hpp>
 #include <Scheduler/JobScheduler.hpp>
+
 #include <vector>
+#include <set>
+#include <algorithm>
 
 //.TTARCH2 FILES. CACHES, UNTIL DESTROYED, ANY STREAM(S) PASSED INTO SERIALISE IN.
 class TTArchive2 {
 public:
+    
+    static constexpr CString Extension = ".ttarch2";
     
     inline TTArchive2(U32 version) : _Version(version) {}
     
@@ -16,13 +21,16 @@ public:
     Bool SerialiseOut(DataStreamRef& out, ContainerParams params, JobHandle& handle);
     
     // Returns the binary stream of the given file name symbol in this data archive.
-    inline DataStreamRef Find(const Symbol& fn) const
+    inline DataStreamRef Find(const Symbol& fn, String* outName) const
     {
-        for(auto& file : _Files)
-        {
-            if(Symbol(file.Name) == fn)
-                return file.Stream;
-        }
+	    FileInfo proxy{"", fn, DataStreamRef{}};
+	    auto it = std::lower_bound(_Files.begin(), _Files.end(), proxy);
+        if(it != _Files.end() && it->NameSymbol == fn)
+	    {
+    	    if(outName)
+	    	    *outName = it->Name;
+    	    return it->Stream;
+	    }
         return {};
     }
     
@@ -42,15 +50,20 @@ public:
         }
         
         // Doesn't exist, add new entry
-        _Files.push_back({name, stream});
+	    FileInfo inf{name, Symbol(name), std::move(stream)};
+	    VectorInsertSorted(_Files, std::move(inf));
     }
     
     // Puts all file names inside this archive into the output result array
-    inline void GetFiles(std::vector<String>& result)
+    inline void GetFiles(std::set<String>& result)
     {
-        result.resize(_Files.size());
         for(auto& file : _Files)
-            result.push_back(file.Name);
+            result.insert(file.Name);
+    }
+    
+    inline void Reset()
+    {
+	    _Files.clear();
     }
     
 private:
@@ -59,29 +72,29 @@ private:
     {
         
         String Name;
+	    Symbol NameSymbol;
         DataStreamRef Stream;
-        
-    };
-    
-    // for internal sorting before writes
-    struct FileInfoSort
-    {
-        
-        inline Bool operator()(const FileInfo& lhs, const FileInfo& rhs)
-        {
-            return Symbol(lhs.Name) < Symbol(rhs.Name);
-        }
+	    
+	    inline Bool operator<(const FileInfo& rhs) const
+	    {
+    	    return NameSymbol < rhs.NameSymbol;
+	    }
         
     };
     
     struct InternalFileInfo // internal while reading
     {
+	    
         U64 Offset; // offset in archive
+	    U64 CRC; // fn crc
         U32 Size; // size of file
         U32 NameOffset; // offset in filename buffer
+	    
     };
 
     U32 _Version; // 2 = TTA2, 3 = TTA3, 4 = TTA4.
     std::vector<FileInfo> _Files;
+    
+    friend class RegistryDirectory_TTArchive2;
     
 };

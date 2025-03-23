@@ -77,6 +77,10 @@ static CString TAG_NAMES[]
     "Blowfish",
     "ScriptObj",
     "TemporaryAsync",
+    "Renderer",
+    "LinearHeap",
+    "TransienceFence",
+    "ResourceRegistry",
 };
 
 void DumpTrackedMemory()
@@ -86,6 +90,9 @@ void DumpTrackedMemory()
         std::lock_guard _Lck{_TrackedLock};
         CopyOfAllocs = _TrackedAllocs; // copy it locally in case it gets called in logger.
     }
+    
+    if(CopyOfAllocs.size() == 0)
+	    return;
     
     TTE_LOG("================ UNFREED MEMORY ALLOCATION DUMP ================");
     

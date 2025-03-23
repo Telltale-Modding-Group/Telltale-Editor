@@ -4,9 +4,14 @@
 #include <Scheduler/JobScheduler.hpp>
 #include <Resource/DataStream.hpp>
 #include <Scripting/LuaManager.hpp>
+#include <Core/BitSet.hpp>
+
+#include <climits>
 #include <vector>
 #include <set>
+#include <sstream>
 #include <functional>
+#include <map>
 
 // maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
 #define MAX_VERSION_NUMBER 10
@@ -25,6 +30,28 @@ namespace Meta {
         STREAM_SECTION_COUNT = 3,
     };
     
+    constexpr CString StreamSectionName[] {
+	    "Main",
+	    "Async",
+	    "Debug"
+    };
+    
+    constexpr CString PlatformNames[] {
+        "PC",
+        "MacOS",
+        "PS2",
+        "PS3",
+        "PS4",
+        "XBOne",
+        "XB360",
+        "Linux",
+        "NX", // Switch
+        "WiiU",
+        "iPhone",
+        "Android",
+        "Vita"
+    };
+    
     // Binary stream versions
     enum StreamVersion {
         MBIN = 0, // Meta BINary
@@ -34,6 +61,8 @@ namespace Meta {
         MSV4 = 4, // Meta Stream Version 4 (unused)
         MSV5 = 5, // 5
         MSV6 = 6, // 6
+        BMS3 = 7, // Legacy CSI3/PS2. Binary Meta Stream 3
+        EMS3 = 8, // Legacy CSI3/PS2. Haven't seen any files use it. Encrypted Meta Stream 3
     };
     
     // A binary meta stream. Used internally.
@@ -45,9 +74,17 @@ namespace Meta {
             std::vector<U64> Blocks; // For blocks. In read, stores the sizes, in write stores the block offset initial.
         };
         
+        String Name; // file name
         StreamVersion Version;
         Section Sect[STREAM_SECTION_COUNT];
         std::vector<U32> VersionInf; // vector of class IDs
+	    
+	    // optional debug of reads. when reading if set outputs JSON-like
+	    // IF THESE ARE PRESENT, NO ASYNC STUFF!
+	    DataStreamRef DebugOutputFile;
+	    std::stringstream DebugOutput;
+	    U32 TabDepth = 0; // debug tab depth
+	    U32 MaxInlinableBuffer = UINT32_MAX;
         
         StreamSection CurrentSection = STREAM_SECTION_MAIN;
         
@@ -60,6 +97,12 @@ namespace Meta {
         {
             return Sect[CurrentSection].Data->Read(Buffer, BufferLength);
         }
+	    
+	    inline void WriteTabs()
+	    {
+    	    for(U32 i = 0; i < TabDepth; i++)
+	    	    DebugOutput << "    ";
+	    }
         
     };
     
@@ -80,6 +123,8 @@ namespace Meta {
         CLASS_CONTAINER = 4, // this class is a container type (map/set/array/etc)
         CLASS_ABSTRACT = 8, // this class is abstract (Baseclass_ prefix for ex.) so instances of it cannot be created.
         CLASS_NON_BLOCKED = 16, // this class is not blocked in serialisation
+	    CLASS_ATTACHABLE = 32, // can have children attached to it, used in PropertySet and other big complex types
+        CLASS_PROXY = 64, // proxy type which is used for telltale game errors. disables all block sizes in members of this type.
     };
     
     // Enum / flag descriptor for a member in a class
@@ -105,6 +150,7 @@ namespace Meta {
     };
     
     class ClassInstance;
+    struct RegGame;
     
     // Weak reference to the parent. Deep into member trees, these point to the top level class, eg: array of materials , top level is D3DMesh
     using ParentWeakReference = std::weak_ptr<U8>;
@@ -125,6 +171,7 @@ namespace Meta {
         U32 ClassID;
         U32 VersionCRC;
         U32 VersionNumber; // similar to version crc, but a number (normally 0, 1 etc). Associate a ID for multiple verisons of the same typename.
+        U32 LegacyHash; // (CSI3 PS2) hash. simple loop of bit shifting
         
         // USE FOR CONTAINER TYPES
         U32 ArraySize = 0; // if this is an SArray<T,N>, this is N. Value only set of SArrays
@@ -143,11 +190,14 @@ namespace Meta {
         // OTHER OPERATIONS (MAINLY FOR INTRINSICS)
         Bool (*LessThan)(const void* pLHS, const void* pRHS) = nullptr; // less than operator on two instances
         Bool (*Equals)(const void* pLHS, const void* pRHS) = nullptr; // compare two instances
-        String (*ToString)(const void* pMemory) = nullptr; // converts to string
+        String (*ToString)(Class* pClass, const void* pMemory) = nullptr; // converts to string
         
         // serialiser (needed for intrinsics/containers) function. iswrite if write, else reading.
         Bool (*Serialise)(Stream& stream, ClassInstance& host, Class* clazz, void* pInstance, Bool IsWrite) = nullptr;
         String SerialiseScriptFn = ""; // custom serialise overrider, function name in scripts
+	    
+	    String NormaliserStringFn = ""; // normalisation function
+	    String SpecialiserStringFn = ""; // specialiser function
         
         // MEMBERS ARRAY
         std::vector<Member> Members;
@@ -155,7 +205,7 @@ namespace Meta {
     };
     
     // compilsed serialisation script
-    struct CompiledSerialiserScript
+    struct CompiledScript
     {
         U8* Binary = nullptr;
         U32 Size = 0;
@@ -163,6 +213,16 @@ namespace Meta {
     
     // Internal implementation
     namespace _Impl {
+        
+        String _EnumFlagMemberToString(Member& member, const void* pVal);
+        
+        String _EnumFlagToString(Class* pClass, const void* pVal);
+        
+        Bool _CheckPlatformForGame(RegGame&, const String& platform);
+        
+        Bool _CheckPlatform(const String& platform);
+        
+        U32 _PerformLegacyClassHash(const String& name);
         
         Class* _GetClass(U32 i); // gets class ptr from index. MUST exist.
         
@@ -174,24 +234,28 @@ namespace Meta {
         
         U32 _DoLuaVersionCRC(LuaManager& man, I32 classTableStackIndex); // calculate version crc32
         
-        void _DoConstruct(Class* pClass, U8* pMemory, ParentWeakReference host); // internally construct type into memory
+	    // internally construct type into memory. concrete is actual ref if its a top level so members have it as its parent
+        void _DoConstruct(Class* pClass, U8* pMemory, ParentWeakReference host, ParentWeakReference& concrete);
         
         void _DoDestruct(Class* pClass, U8* pMemory); // internally call destruct
         
-        void _DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc, ParentWeakReference host); // internally copy type
+	    // internally copy type
+        void _DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete);
         
-        void _DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host); // internally move type
+	    // internally move type
+        void _DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete);
         
         String _PerformToString(U8* pMemory, Class* pClass);
         
-        // for c++ controlled: host is empty. if script object: host MUST be a reference to a c++ controlled one.
+        // for c++ controlled: host is empty. if script object: host MUST be a reference to a higher level parent.
+	    // if host argument is attachable, name can be specified and it will be appended to the child list for host
         ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host, Symbol name); // allocates but does not construct anything in the memory
         
         // some serialisers have 'host' argument: top level class object
-        Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
+        Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString memberName, Member* hostMember = nullptr);
         // serialises a given type to the stream
         
-        Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
+        Bool _DefaultSerialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString memberName, Member* hostMember = nullptr);
         // default serialise (member by member)
         
         // internal serialisers
@@ -232,13 +296,27 @@ namespace Meta {
         
         void MoveBinaryBuffer(void* pSrc, void* pDst, ParentWeakReference host);
         
+        void CtorDSCache(void* pMemory, U32 Array, ParentWeakReference host);
+        
+        void DtorDSCache(void* pMemory, U32);
+        
+        void CopyDSCache(const void* pSrc, void* pDst, ParentWeakReference host);
+        
+        void MoveDSCache(void* pSrc, void* pDst, ParentWeakReference host);
+        
     }
     
     // Special type internally used to store binary buffers. No serialiser in this type, but just holds a reference to the memory (frees it)
     struct BinaryBuffer
     {
-        U8* Buffer = nullptr;
+	    Ptr<U8> BufferData;
         U32 BufferSize = 0;
+    };
+    
+    // Special type internal used to store reference to a data stream. This is used mainly for large cached files which we dont want to load into memory which are used in meta streams.
+    struct DataStreamCache
+    {
+        DataStreamRef Stream;
     };
     
     struct BlowfishKey // encryption key
@@ -257,15 +335,50 @@ namespace Meta {
     // Registered game
     struct RegGame {
         
-        String Name, ID;
+        enum GameFlags
+        {
+            MODIFIED_BLOWFISH = 1, // new games use a modified blowfish version
+            ARCHIVE2 = 2,  // if the game uses .ttarch2 instead of .ttarch
+            ENABLE_OODLE = 4, // some games are not shipped with oodle, so keep this safe. If they are, this is true.
+            LEGACY_HASHING = 8, // legacy hashing for select old games
+        };
+        
+        struct FolderAssociateComparator
+        {
+            
+            inline Bool operator()(const String& maskLHS, const String& maskRHS) const
+            {
+                size_t cLeft = std::count(maskLHS.begin(), maskLHS.end(), '/');
+                size_t cRight = std::count(maskRHS.begin(), maskRHS.end(), '/');
+                
+                if (cLeft != cRight)
+                    return cLeft < cRight;
+                
+                if (maskLHS.length() != maskRHS.length())
+                    return maskLHS.length() > maskRHS.length();
+                
+                size_t wildcardsLHS = std::count(maskLHS.begin(), maskLHS.end(), '*') + std::count(maskLHS.begin(), maskLHS.end(), '?');
+                size_t wildcardsRHS = std::count(maskRHS.begin(), maskRHS.end(), '*') + std::count(maskRHS.begin(), maskRHS.end(), '?');
+
+                return wildcardsLHS < wildcardsRHS;
+            }
+            
+        };
+        
+	    String Name, ID, ResourceSetDescMask;
         StreamVersion MetaVersion = MBIN;
         LuaVersion LVersion = LuaVersion::LUA_5_2_3;
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
+        std::multimap<String, String, FolderAssociateComparator> FolderAssociates; // mask to folder name, eg '*.dlg' into Dialogs/, and 'module_*.prop' into Properties/Primitives/, '*.prop' => Properties/
+        std::vector<String> ValidPlatforms; // game platforms
         BlowfishKey MasterKey; // key used for all platforms
-        Bool ModifiedBlowfish = false;
-        Bool UsesArchive2 = false; // if the game uses .ttarch2 instead of .ttarch
-        Bool DisableOodle = true; // some games are not shipped with oodle, so keep this safe as true. If they are, this is true.
+        Flags Fl; // flags
         U32 ArchiveVersion = 0; // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
+        
+        inline Bool UsesArchive2() const
+        {
+            return Fl.Test(ARCHIVE2);
+        }
         
     };
     
@@ -281,11 +394,17 @@ namespace Meta {
         
         friend class ClassInstanceScriptRef;
         
-        friend ClassInstance GetMember(ClassInstance& inst, const String& name);
+        friend ClassInstance GetMember(ClassInstance& inst, const String& name, Bool bInsist);
         
         friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&, Symbol);
         
-        friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite);
+        friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member, Member*);
+	    
+	    friend ClassInstance CreateInstance(U32 ClassID, ClassInstance host, Symbol n);
+	    
+	    friend ClassInstance CopyInstance(ClassInstance instance, ClassInstance host, Symbol n);
+	    
+	    friend ClassInstance MoveInstance(ClassInstance instance, ClassInstance host, Symbol n);
         
     public:
         
@@ -312,10 +431,13 @@ namespace Meta {
             return Dx ? *Dx : nullptr;
         }
         
-        // Pushes a weak reference to this instance to the lua stack. Pass in the host class (owner) of this object.
-        // Weak here means instance is not owned by the script reference. After all C++ instances are destroyed, getting the object returns nil.
-        // Set last argument to make it strong, this makes it so that the lua object will keep it alive. Only use this for high level calls.
-        void PushScriptRef(LuaManager& man, Bool PushStrong = false);
+        // The lua object will keep it alive. Only use this for high level calls.
+        void PushStrongScriptRef(LuaManager& man);
+	    
+	    // Pushes a reference to this instance to the lua stack
+	    // Weak here means instance is not owned by the script reference. After all C++ instances are destroyed, getting the object returns nil.
+	    // Pass in the higher level object which will keep this alive. Keep alive can be empty, meaning it will be equal to this.
+	    void PushWeakScriptRef(LuaManager& man, ParentWeakReference keepAlive);
         
         // returns true if this instance has expired because its parent is no longer alive.
         inline Bool Expired() const
@@ -335,11 +457,11 @@ namespace Meta {
             return _InstanceClassID;
         }
         
-        // obtains a parent weak reference.
+        // obtains a parent weak reference. if we have a parent, gets the top level, else returns this as its top level.
         inline ParentWeakReference ObtainParentRef()
         {
             return _InstanceMemory ? IsWeakPtrUnbound(_ParentAttachMemory) ?
-                ParentWeakReference(_InstanceMemory) : _ParentAttachMemory : ParentWeakReference{};
+	    	    ParentWeakReference{_InstanceMemory} : _ParentAttachMemory : ParentWeakReference{};
         }
         
         // sets the parent. NOTE: must have no parent present! Nothing happens if no instance.
@@ -364,7 +486,7 @@ namespace Meta {
             return lck ? lck.get() == _InstanceMemory.get() : false;
         }
         
-        // after memory and sarray elements, this is stored if we are a top level (ie no parent)
+        // after memory and sarray elements in top level parent
         ClassChildMap* _GetInternalChildrenRefs();
         
     private:
@@ -378,64 +500,99 @@ namespace Meta {
             _InstanceMemory(memoryNoDelete, &NullDeleter), _ParentAttachMemory(std::move(attachTo)) {}
         
         // Use by the script ref to create an acquired reference from a script object
-        inline ClassInstance(U32 storedID, std::shared_ptr<U8> acquired, ParentWeakReference prnt) : _InstanceClassID(storedID),
+        inline ClassInstance(U32 storedID, Ptr<U8> acquired, ParentWeakReference prnt) : _InstanceClassID(storedID),
             _InstanceMemory(std::move(acquired)), _ParentAttachMemory(std::move(prnt)) {}
         
         U32 _InstanceClassID; // class id
-        std::shared_ptr<U8> _InstanceMemory; // memory pointer to instance in memory
+        Ptr<U8> _InstanceMemory; // memory pointer to instance in memory
         ParentWeakReference _ParentAttachMemory; // weak reference to top level parent this instance is controlled by. NO ACCESS is
         // ever given to the parent. this is such that, for example, in async jobs the parent is kept constant and untouched by each child.
         
     };
     
-    // Weak reference to a meta class instance, used internally. Used for letting lua scripts access class instances
+    // Maximum transience value for below. States that the collection has been destroyed.
+#define COLLECTION_TRANSIENCE_MAX 0xFFFF'FFFF
+    
+    // script reference juncture, used in transient references, a point in time when it was acquired.
+    struct TransientJuncture
+    {
+	    U32 JunctureValue; // value when created
+	    Ptr<std::atomic<U32>> CurrentValue; // current changing value
+	    U8* Value = nullptr; // value we cached
+    };
+    
+    /**
+     There are four types of script class instance references:
+     - Strong: held alive as long as the parent C++ instance (shared ptr) is alive
+     - Weak: held alive until the parent instance gets destroyed, at which calls to retrieve it after this will return nil.
+     - Transient: from a collection, accessing an element in a collection. when the collection is operated on (eg pushed, popped, cleared), memory changes, so could invalidate. causes nil return after.
+     - Persistent: persistent and will always return the class instance. used when passing into lua script functions internally where the lifetime is known, eg in serialisers.
+     */
     class ClassInstanceScriptRef
     {
         
         U32 ClassID;
-        std::weak_ptr<U8> InstanceRef;
+	    U8* ConcreteInstanceRef; // actual instance pointer. only accessibe when the parent weak ref is alive
         ParentWeakReference ParentWeakRef; // weak reference to parent
-        std::shared_ptr<U8> StrongRef; // for strong lua managed references
+        Ptr<U8> StrongRef; // for strong lua managed references
+	    TransientJuncture Juncture; // if transient
         
         // internal version returns ref counted pointer, so acquire increases strong ref #
-        inline std::shared_ptr<U8> __GetInternal()
+        inline U8* __GetInternal()
         {
+    	    if(IsTransient())
+    	    {
+	    	    // Check transience state.
+	    	    if(Juncture.CurrentValue->load() > Juncture.JunctureValue)
+	    	    {
+    	    	    // someone has used a ContainerGetElement/Emplace etc to get an element but the collection changed
+    	    	    // and they pushed / poppped / clear etc, now the memory pointer is invalid. only access return values
+    	    	    // temporarily
+    	    	    TTE_ASSERT(false, "Script reference has expired: temporary collection access object still has references");
+    	    	    return nullptr;
+	    	    }
+	    	    return Juncture.Value; // dont delete it
+    	    }
             if(IsWeakPtrUnbound(ParentWeakRef) || !ParentWeakRef.expired())
             {
-                Bool exp = InstanceRef.expired();
-                return exp ? nullptr : InstanceRef.lock();
+	    	    Bool exp = ParentWeakRef.expired();
+	    	    return exp ? nullptr : ConcreteInstanceRef;
             }
             return nullptr;
         }
         
     public:
+	    
+	    // INTERNAL: Create transient
+	    inline ClassInstanceScriptRef(U32 classID, TransientJuncture&& junc, ParentWeakReference&& p) :
+    	    Juncture(std::move(junc)), ClassID(classID), ParentWeakRef(std::move(p)) {}
+	    
+	    // INTERNAL: Create strong ref / persistent
+	    inline ClassInstanceScriptRef(ClassInstance& inst) : ClassID(inst.GetClassID())
+	    {
+    	    StrongRef = inst._InstanceMemory;
+	    }
         
-        inline ClassInstanceScriptRef(ClassInstance& inst)
+	    // INTERNAL: Create weak ref
+        inline ClassInstanceScriptRef(ClassInstance& inst, ParentWeakReference keepAlive)
         {
             if(!inst)
                 ClassID = 0;
             else
             {
                 ClassID = inst.GetClassID();
-                InstanceRef = inst._InstanceMemory; // only accessible through parent check
-                ParentWeakRef = inst.ObtainParentRef();
+                ConcreteInstanceRef = inst._InstanceMemory.get(); // only accessible through parent check
+	    	    ParentWeakRef = std::move(keepAlive);
             }
         }
         
-        // Switches to a strong ref, if we can.
-        inline void SwitchStrongRef()
-        {
-            StrongRef = InstanceRef.lock();
-        }
-        
         ~ClassInstanceScriptRef() = default; // default
-        
-        // gets the reference, or nullptr if is expired because of parent.
-        inline U8* _GetInternal()
-        {
-            auto p = __GetInternal();
-            return p ? p.get() : nullptr;
-        }
+	    
+	    // Returns if this is a transient reference
+	    inline Bool IsTransient()
+	    {
+    	    return Juncture.Value != nullptr;
+	    }
         
         inline U32 GetClassID()
         {
@@ -445,6 +602,10 @@ namespace Meta {
         // acquires to a normal class reference, or nullptr if expired
         inline ClassInstance Acquire()
         {
+    	    if(IsTransient())
+	    	    return ClassInstance(ClassID, __GetInternal(), ParentWeakRef);
+    	    if(StrongRef)
+	    	    return ClassInstance(ClassID, StrongRef, {}); // no parent required as *this* holds a strong reference
             auto pMemory = __GetInternal();
             return pMemory ? ClassInstance{ClassID, pMemory, ParentWeakRef} : ClassInstance{};
         }
@@ -527,6 +688,12 @@ namespace Meta {
         {
             Push(ClassInstance{}, std::move(val), false, bCopyVal);
         }
+	    
+	    // Pushes an object in this collection to the lua stack. If this collection transient state changes, the lua object
+	    // should not be accessed and any accesses will result in a transient test fault.
+	    // Set pushKey to true to push the key instead if this is a keyed collection
+	    // Pass in the parent, as it still required, it may be high level.
+	    void PushTransientScriptRef(LuaManager& L, U32 index, Bool bPushKey, ParentWeakReference parent);
     
     private: // copy stuff is private, only to be done by meta sys
         
@@ -547,6 +714,9 @@ namespace Meta {
         void SetIndexInternal(U32 index, ClassInstance key, ClassInstance value, Bool bCopyKey, Bool bCopyVal);
         
         ClassInstance SubRef(U32 classID, U8* pMemory); // creates ref to memory inside this collection, depends that we are alive.
+	    
+	    // state is updated
+	    void AdvanceTransienceFenceInternal();
         
         U32 _Size; // dynamic size of array
         U32 _Cap; // dynamic capacity of array (if SArray, not dynamic, this value is UINT32_MAX)
@@ -560,6 +730,8 @@ namespace Meta {
         U8* _Memory; // allocated memory
         
         ParentWeakReference _PrntRef; // parent ref for this collection
+	    
+	    Ptr<std::atomic<U32>> _TransienceFence;
         
     };
     
@@ -580,6 +752,9 @@ namespace Meta {
     
     // Same as find class but finds by version CRC instead of version number
     U32 FindClassByCRC(U64 typeHash, U32 versionCRC);
+    
+    // Find a class by its extension eg 'scene' for .scene files
+    U32 FindClassByExtension(const String& ext, U32 versionNumber);
     
     // Same version using the string instead of the hash of the file name (lower case, use symbol)
     inline U32 FindClass(const String& typeName, U32 versionNumber)
@@ -605,8 +780,17 @@ namespace Meta {
     // Pass in the name of the file you are writing, the instance to write to it, the output stream and the version of the meta stream.
     Bool WriteMetaStream(const String& name, ClassInstance instance, DataStreamRef& stream, MetaStreamParams params);
     
-    // Reads a meta stream file from the input stream, into return value. This can kick off async jobs, so could block while waiting to finish.
-    ClassInstance ReadMetaStream(DataStreamRef& stream);
+    /**
+     Reads a meta stream file from the input stream, into return value instance.
+     An optional debug stream can be used when debugging, such that all reads are written output as a string file.
+     Any debug stream present causes any async stuff to not complete.
+     Set last argument to optional maximum number of bytes to inline into the debug output stream when reading binary buffers. Any longer ones are truncated.
+     */
+    ClassInstance ReadMetaStream(const String& fileName, DataStreamRef& stream, DataStreamRef debugOutputStream = {}, U32 debugInlinableBufferSizeCap = 128);
+    
+    // Some older game files are encrypted with MBES headers and similar. This function takes any of those and returns a decrypting stream which
+    // will come out as a normal MBIN file
+    DataStreamRef MapDecryptingStream(DataStreamRef& stream);
     
     // ===== CLASS FUNCTIONALITY FOR SINGLE INSTANCES ======
 
@@ -627,6 +811,9 @@ namespace Meta {
     // Thread safe between game switches.
     ClassInstance AcquireScriptInstance(LuaManager& man, I32 stackIndex);
     
+    // Returns if the given instance can have instances attached to it, using it passed into Create/Copy/Move Instance.
+    Bool IsAttachable(ClassInstance& instance);
+    
     // Returns true if the given instance's type is a collection, ie you can use CastToCollection
     // Thread safe between game switches.
     inline Bool IsCollection(ClassInstance instance)
@@ -642,8 +829,8 @@ namespace Meta {
     }
     
     // Gets a member of a complex type, ie a meta type (type is not intrinsic, can be, but for that prefer GetMember<T>).
-    // Thread safe between game switches.
-    ClassInstance GetMember(ClassInstance& inst, const String& name);
+    // Thread safe between game switches. If last argument is true, will error if not found
+    ClassInstance GetMember(ClassInstance& inst, const String& name, Bool bInsist);
     
     // Performs the less than operator '<' with the left and right hand side arguments (must be same type).
     Bool PerformLessThan(ClassInstance& lhs, ClassInstance& rhs);
@@ -668,12 +855,12 @@ namespace Meta {
             if(member.Name == name) // Find matching member
             {
                 TTE_ASSERT(_Impl::_GetClass(member.ClassID)->Flags & CLASS_INTRINSIC || Is(inst, "class Symbol") || Is(inst, "class Flags")
-                           || Is(inst, "Symbol") || Is(inst, "Flags") || Is(inst, "__INTERNAL_BINARY_BUFFER__"),
+                           || Is(inst, "Symbol") || Is(inst, "Flags") || Is(inst, "__INTERNAL_BINARY_BUFFER__") || Is(inst, "__INTERNAL_DATASTREAM_CACHE__"),
                            "GetMember<T> can only be used on intrinsic types!");
                 return *((T*)(inst._GetInternal() + member.RTOffset)); // Offset in memory, skip header.
             }
         }
-        TTE_ASSERT(false, "Member does not exist. HasMember should always be checked first, abort!");
+        TTE_ASSERT(false, "Member %s::%s does not exist! Abort!!", pClass->Name.c_str(), name.c_str());
         return *((T*)0); // !! abort.
     }
     
@@ -703,6 +890,50 @@ namespace Meta {
     }
     
     // ====================================================================================
+    
+    struct InternalState
+    {
+	    std::vector<RegGame> Games{};
+	    std::map<U32, Class> Classes{};
+	    std::map<Symbol, CompiledScript> Serialisers{}; // map of serialiser name => compiled script binary
+	    std::map<Symbol, CompiledScript> Normalisers{};
+	    std::map<Symbol, CompiledScript> Specialisers{};
+	    I32 GameIndex = -1;
+	    String VersionCalcFun{}; // lua function which calculates version crc for a type.
+        
+        
+        struct DeferredRegister
+        {
+            String KeyType, ValueType;
+            U32 KeyVersion, ValueVersion;
+            U32 CollectionClass;
+        };
+        
+        struct DeferredWarning
+        {
+            String Class;
+            U32 Calculated;
+            U32 Overriden;
+        };
+        
+        struct
+        {
+            
+            std::vector<DeferredRegister> Deferred;
+            std::vector<DeferredWarning> DeferredWarnings;
+            
+        } _Temp; // temporary internal deferred collection registr
+	    
+	    inline const RegGame& GetActiveGame() const
+	    {
+    	    TTE_ASSERT(GameIndex != -1, "No game set!");
+    	    return Games[GameIndex];
+	    }
+	    
+    };
+    
+    // Gets the internal state. Its important that this is constant as it should NOT change between game switches.
+    const InternalState& GetInternalState();
     
 }
 

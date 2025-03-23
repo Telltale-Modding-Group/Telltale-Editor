@@ -58,10 +58,20 @@ U64 FileOpen(CString path)
     return (U64)file;
 }
 
-void FileClose(U64 Handle)
+void FileClose(U64 Handle, U64 truncateOffset) 
 {
-    HANDLE file = (HANDLE)Handle;
-    CloseHandle(file);
+    HANDLE hFile = (HANDLE)(uintptr_t)Handle;
+
+    if (truncateOffset > 0) {
+        LARGE_INTEGER li{};
+        li.QuadPart = truncateOffset;
+        if (SetFilePointerEx(hFile, li, NULL, FILE_BEGIN))
+	{
+            SetEndOfFile(hFile);
+        }
+    }
+
+    CloseHandle(hFile);
 }
 
 Bool FileWrite(U64 Handle, const U8 *Buffer, U64 Nbytes)

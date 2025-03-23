@@ -1,7 +1,8 @@
 #pragma once
 
 #include <Core/Config.hpp>
-#include <Resource/DataStream.hpp>
+
+class DataStream;
 
 // This is the low level LUA API. This deals with calls to the lua library for compilation and running of scripts. Decompilation is also managed here
 // in terms of luadec.
@@ -11,16 +12,23 @@
 // Supported LUA versions which telltale use in release games.
 enum class LuaVersion
 {
-    LUA_NONE,  // No version set
-    LUA_5_2_3, // Lua 5.2.3
-    LUA_5_1_4, // Lua 5.1.4
-    LUA_5_0_2  // Lua 5.0.2
+    LUA_NONE = -1,  // No version set
+    LUA_5_2_3 = 0, // Lua 5.2.3
+    LUA_5_1_4 = 1, // Lua 5.1.4
+    LUA_5_0_2 = 2,  // Lua 5.0.2
 };
 
 enum class LuaOp {
     EQ,//==
     LT,//<
     LE,//<=
+};
+
+enum class LoadChunkMode
+{
+    BINARY,
+    SOURCE,
+    ANY
 };
 
 enum class LuaType {
@@ -58,7 +66,7 @@ class LuaManager
 
     // Runs a chunk of uncompiled lua source. Pass in the C string and its length. Pass in the Name of the lua file as the optional last argument.
     // Set lock context to true such that the context cannot be modified during this call from scripts, ensuring eg TTE_Switch fails.
-    Bool RunText(CString Code, U32 Len, Bool LockContext, CString Name = "defaultrun.lua");
+    Bool RunText(CString Code, U32 Len, Bool LockContext, CString Name);
     
     // Calls the function along with its arguments on the stack. Push the function FIRST, then Nargs arguments. Then call this.
     // Use LUA_MULTRET for Nresults if you want all returned values, else use a lower number to cap the number of return values pushed.
@@ -66,7 +74,7 @@ class LuaManager
     void CallFunction(U32 Nargs, U32 Nresults, Bool LockContext);
     
     // Loads a lua chunk, isCompiled being if its complied else source, into the Lua VM.
-    Bool LoadChunk(const String& nm, const U8* chunk, U32 chunkSizeBytes, Bool isCompiled);
+    Bool LoadChunk(const String& nm, const U8* chunk, U32 chunkSizeBytes, LoadChunkMode);
     
     // Checks if we can add <extra> elements onto the stack without causing a stack overflow.
     Bool CheckStack(U32 extra);
@@ -197,10 +205,15 @@ class LuaManager
     Bool SetMetaTable(I32);
     
     // DOES NOT POP. Compiles the function at the top of the stack and writes the compiled script to the given data stream argument.
-    Bool Compile(DataStreamRef& dst);
+    Bool Compile(DataStream* dst);
 
     // Default constructor.
     LuaManager() = default;
+    
+    LuaManager(LuaManager&&) = default;
+    LuaManager& operator=(LuaManager&&) = default;
+    LuaManager(const LuaManager&) = delete;
+    LuaManager& operator=(const LuaManager&) = delete;
 
     // Releases lua.
     ~LuaManager();
@@ -248,7 +261,7 @@ class LuaAdapterBase
     
     virtual I32 GetTop() = 0;
     
-    virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) = 0;
+    virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) = 0;
     
     virtual void* CreateUserData(U32 size) = 0;
     
@@ -318,7 +331,7 @@ class LuaAdapter_523 : public LuaAdapterBase
 
     virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
-    virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) override;
+    virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) override;
     
     virtual void CallFunction(U32 Nargs, U32 Nresults) override;
     
@@ -397,7 +410,7 @@ class LuaAdapter_514 : public LuaAdapterBase
 
     virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
-    virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) override;
+    virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) override;
     
     virtual void CallFunction(U32 Nargs, U32 Nresults) override;
     
@@ -476,7 +489,7 @@ class LuaAdapter_502 : public LuaAdapterBase
 
     virtual Bool RunChunk(U8 *Chunk, U32 Len, Bool IsCompiled, CString Name) override;
     
-    virtual Bool LoadChunk(const String& nm, const U8*, U32, Bool) override;
+    virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) override;
     
     virtual void CallFunction(U32 Nargs, U32 Nresults) override;
     
