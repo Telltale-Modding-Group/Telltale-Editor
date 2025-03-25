@@ -8,7 +8,6 @@
 #include <Renderer/RenderParameters.hpp>
 #include <Scheduler/JobScheduler.hpp>
 #include <Meta/Meta.hpp>
-#include <Common/Texture.hpp>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_gpu.h>
@@ -112,6 +111,50 @@ enum class RenderPrimitiveType : U32
     UNKNOWN,
     TRIANGLE_LIST,
     LINE_LIST,
+};
+
+// NDC (Normalised device coords) scissor rect. From -1 to 1 in both. By default is whole screen
+struct RenderNDCScissorRect
+{
+    
+    Vector2 Min;
+    Vector2 Max;
+    
+    inline RenderNDCScissorRect() : Min(-1.0f, -1.0f), Max(1.0f, 1.0f) {}
+    
+    // Convert to screen space (0-width/height in x and y)
+    inline void GetScreenSpaceRect(U32& x, U32& y, U32& width, U32& height, U32 screenWidth, U32 screenHeight) const
+    {
+        U32 minX = static_cast<U32>((Min.x + 1.0f) * 0.5f * screenWidth);
+        U32 minY = static_cast<U32>((Min.y + 1.0f) * 0.5f * screenHeight);
+        U32 maxX = static_cast<U32>((Max.x + 1.0f) * 0.5f * screenWidth);
+        U32 maxY = static_cast<U32>((Max.y + 1.0f) * 0.5f * screenHeight);
+        x = minX;
+        y = minY;
+        width = maxX > minX ? (maxX - minX) : 0;
+        height = maxY > minY ? (maxY - minY) : 0;
+    }
+    
+    // sub rect. scales child inside parent one
+    static inline RenderNDCScissorRect SubRect(const RenderNDCScissorRect& parent, const RenderNDCScissorRect& child)
+    {
+        RenderNDCScissorRect result;
+        Float scaleX = (parent.Max.x - parent.Min.x) * 0.5f;
+        Float scaleY = (parent.Max.y - parent.Min.y) * 0.5f;
+        Vector2 center = Vector2{(parent.Max.x + parent.Min.x) * 0.5f, (parent.Max.y + parent.Min.y) * 0.5f };
+        
+        result.Min.x = center.x + (child.Min.x * scaleX);
+        result.Min.y = center.y + (child.Min.y * scaleY);
+        result.Max.x = center.x + (child.Max.x * scaleX);
+        result.Max.y = center.y + (child.Max.y * scaleY);
+        
+        if (result.Min.x > result.Max.x || result.Min.y > result.Max.y)
+        {
+            result = RenderNDCScissorRect();
+        }
+        return result;
+    }
+    
 };
 
 // Returns number of expected vertices for a given primitive type above.
@@ -240,25 +283,6 @@ struct RenderPipelineState
     
 };
 
-struct DefaultRenderTexture
-{
-    
-    DefaultRenderTextureType Type;
-    Ptr<RenderTexture> Texture;
-    
-};
-
-struct DefaultRenderMesh
-{
-    
-    DefaultRenderMeshType Type;
-    Ptr<RenderPipelineState> PipelineState;
-    Ptr<RenderBuffer> IndexBuffer;
-    Ptr<RenderBuffer> VertexBuffer; // only one vertex buffer for default ones, they are simple.
-    U32 NumIndices = 0;
-    
-};
-
 /// A render pass
 struct RenderPass
 {
@@ -337,7 +361,7 @@ struct RenderCommandBuffer
     
     // Perform a texture sub-image upload. Prefer to use render frame update list! This is OK for use in defaults.
     void UploadTextureDataSlow(Ptr<RenderTexture>& texture, DataStreamRef srcStream,
-                               U64 srcOffset, U32 mip, U32 slice, U32 dataSize);
+                               U64 srcOffset, U32 mip, U32 slice, U32 face, U32 dataSize);
     
     // Draws indexed.
     void DrawIndexed(U32 numIndices, U32 numInstances, U32 indexStart, I32 vertexIndexOffset, U32 firstInstanceIndex);
@@ -358,29 +382,6 @@ struct RenderCommandBuffer
     void Wait(); // wait for commands to finish executing, if submitted. use in render thread.
     
     Bool Finished(); // Returns true if finished, or was never submitted.
-    
-};
-
-enum class SceneMessageType : U32
-{
-    START_INTERNAL, // INTERNAL! do not post this externally. internally starts the scene in the next frame.
-    STOP, // stops the scene rendering and removes it from the stack.
-};
-
-// A message that can be sent to a scene. This can be to update one of the agents positions, etc.
-struct SceneMessage
-{
-    
-    String Scene; // scene name
-    Symbol Agent; // scene agent sym, if needed (is a lot)
-    void* Arguments = nullptr; // arguments to this message if needed. Must allocate context.AllocateMessageAruments Freed after use internally.
-    SceneMessageType Type; // messasge type
-    U32 Priority = 0; // priority of the message. higher ones are done first.
-    
-    inline bool operator<(const SceneMessage& rhs) const
-    {
-        return Priority < rhs.Priority;
-    }
     
 };
 
@@ -582,6 +583,21 @@ class RenderFrameUpdateList
         
     };
     
+    struct MetaTextureUpload
+    {
+        
+        MetaTextureUpload* Next = nullptr;
+        
+        Meta::BinaryBuffer Data;
+        
+        Ptr<RenderTexture> Texture;
+        
+        U32 Mip;
+        U32 Slice;
+        U32 Face;
+        
+    };
+    
     struct DataStreamBufferUpload
     {
         
@@ -607,6 +623,7 @@ class RenderFrameUpdateList
     
     MetaBufferUpload* _MetaUploads = nullptr;
     DataStreamBufferUpload* _StreamUploads = nullptr;
+    MetaTextureUpload* _MetaTexUploads = nullptr;
     
     // Begins the render frame internally. This does all uploading updates to GPU.
     void BeginRenderFrame(RenderCommandBuffer* pCopyCommands);
@@ -616,6 +633,8 @@ class RenderFrameUpdateList
     // Remove the buffer from any previous uploads, as a new upload is present which would override it.
     void _DismissBuffer(const Ptr<RenderBuffer>& buf);
     
+    void _DismissTexture(const Ptr<RenderTexture>& tex, U32 mip, U32 slice, U32 face);
+    
 public:
     
     inline RenderFrameUpdateList(RenderContext& context, RenderFrame& frame) : _Frame(frame), _Context(context) {}
@@ -623,6 +642,8 @@ public:
     void UpdateBufferMeta(const Meta::BinaryBuffer& metaBuffer, const Ptr<RenderBuffer>& destBuffer, U64 destOffset);
     
     void UpdateBufferDataStream(const DataStreamRef& srcStream, const Ptr<RenderBuffer>& destBuffer, U64 srcPos, U64 nBytes, U64 destOffset);
+    
+    void UpdateTexture(const Ptr<RenderTexture>& destTexture, U32 mip, U32 slice, U32 face);
     
 };
 

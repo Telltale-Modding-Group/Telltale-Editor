@@ -2,6 +2,7 @@
 
 #include <Common/Scene.hpp> 
 #include <Renderer/RenderContext.hpp>
+#include <Runtime/SceneRuntime.hpp>
 #include <Meta/Meta.hpp>
 
 #include <TelltaleEditor.hpp>
@@ -41,42 +42,40 @@ static void RunRender()
             registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone");
             registry->PrintLocations();
             
-            // Attach registry to context
-            context.AttachResourceRegistry(registry);
+            // Add a scene runtime layer to run the scene
+            auto runtimeLayer = context.PushLayer<SceneRuntime>(registry);
             
-            // preload all textures
-            std::set<String> tex{};
+            // 1. preload all textures
+            /*std::set<String> tex{};
             StringMask m("*.d3dtx");
             registry->GetResourceNames(tex, &m);
             std::vector<HandleBase> handles{};
             for(auto& t: tex)
             {
                 auto& handle = handles.emplace_back();
-                handle.SetObject<RenderTexture>(registry, t, false, false);
+                handle.SetObject<RenderTexture>(registry, t, false, false); // no unload, no ensure load yet as preload will
             }
             U32 preload = registry->Preload(std::move(handles), false);
-            registry->WaitPreload(preload);
+            registry->WaitPreload(preload); // preload and wait for it
+             */
             
-            // 1. load a mesh
-            DataStreamRef stream = registry->FindResource("adv_forestWaterfall.d3dmesh");
-            DataStreamRef debugStream = editor.LoadLibraryResource("TestResources/debug.txt");
-            Meta::ClassInstance inst = Meta::ReadMetaStream("adv_forestWaterfall.d3dmesh", stream, std::move(debugStream));
+            // 2. load a mesh
+            Handle<Mesh::MeshInstance> hMesh{};
+            hMesh.SetObject(registry, "obj_woodsplita.d3dmesh", false, true);
             
-            // 2. create a dummy scene, add an agent, attach a renderable module to it.
+            // 3. create a dummy scene, add an agent, attach a renderable module to it.
             Scene scene{};
             SceneModuleTypes types{};
             types.Set(SceneModuleType::RENDERABLE, true);
             scene.AddAgent("Mesh Test Agent", types);
             
-            // 3. normalise the mesh above in the scene, from telltale specific to the common format
-            editor.EnqueueNormaliseMeshTask(&scene, "Mesh Test Agent", std::move(inst));
-            editor.Wait();
+            // 4. set renderable agent mesh
+            scene.GetAgentModule<SceneModuleType::RENDERABLE>("Mesh Test Agent").Renderable.AddMesh(registry, hMesh);
             
-            // 4. push scene to renderer
+            // 5. push scene to renderer
+            runtimeLayer.lock()->PushScene(std::move(scene)); // push scene to render
             
-            context.PushScene(std::move(scene)); // push scene to render
-            
-            // 5. Run renderer and show the mesh!
+            // 6. Run renderer and show the mesh!
             context.CapFrameRate(40); // 40 FPS cap
             Bool running = true;
             while((running = context.FrameUpdate(!running)))

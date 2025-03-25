@@ -1,24 +1,23 @@
-#include <Renderer/RenderContext.hpp>
-
 #include <Common/Scene.hpp>
+#include <Runtime/SceneRuntime.hpp>
 
 // Called whenever a message for the scene needs to be processed.
-void Scene::AsyncProcessRenderMessage(RenderContext& context, SceneMessage message, const SceneAgent* pAgent)
+void Scene::AsyncProcessRenderMessage(SceneRuntime& context, SceneMessage message, const SceneAgent* pAgent)
 {
     
 }
 
 // Called when the scene is being started. here just push one view camera
-void Scene::OnAsyncRenderAttach(RenderContext& context)
+void Scene::OnAsyncRenderAttach(SceneRuntime& context)
 {
     Camera cam{};
     cam.SetHFOV(45);
     cam.SetNearClip(0.1f);
     cam.SetFarClip(1000.f);
-    SDL_GetWindowSize(context._Window, (int*)&cam._ScreenWidth, (int*)&cam._ScreenHeight);
+    context.GetWindowSize(cam._ScreenWidth, cam._ScreenHeight);
     cam.SetAspectRatio();
     
-    Vector3 cameraPosition = Vector3(0.0f, 0.0f, -90.0f); // Camera position in world space
+    Vector3 cameraPosition = Vector3(0.0f, 0.0f, -10.0f); // Camera position in world space
     
     cam.SetWorldPosition(cameraPosition);
     
@@ -26,7 +25,7 @@ void Scene::OnAsyncRenderAttach(RenderContext& context)
 }
 
 // Called when the scene is being stopped
-void Scene::OnAsyncRenderDetach(RenderContext& context)
+void Scene::OnAsyncRenderDetach(SceneRuntime& context)
 {
     
 }
@@ -34,10 +33,11 @@ void Scene::OnAsyncRenderDetach(RenderContext& context)
 static float angle = 0.0f;
 
 // The role of this function is populate the renderer with draw commands for the scene, ie go through renderables and draw them
-void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float deltaTime)
+void Scene::PerformAsyncRender(SceneRuntime& rtContext, RenderFrame& frame, Float deltaTime)
 {
     
     // CAMERA PARAMETERS (ALL OBJECTS SHARE COMMON CAMERA) AND BASE SETUP
+    RenderContext& context = rtContext.GetRenderContext();
     
     ShaderParametersStack* paramStack = context.AllocateParametersStack(frame);
     
@@ -60,8 +60,11 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
     
     for(auto& renderable: _Renderables)
     {
-        for(auto& meshInstance: renderable.Renderable.MeshList)
+        for(auto& meshInstancePtr: renderable.Renderable.MeshList)
         {
+            if(!context.LockResource(meshInstancePtr))
+                continue;
+            auto& meshInstance = *meshInstancePtr.get();
             
             // TODO move below to setup mesh dirty
             for(auto& vstate: meshInstance.VertexStates)
@@ -81,6 +84,17 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
                 }
             }
             
+            // TODO move to texture setup dirty
+            Ptr<ResourceRegistry> reg = rtContext.GetResourceRegistry();
+            for(auto& material: meshInstance.Materials)
+            {
+                Ptr<RenderTexture> tex = material.DiffuseTexture.GetObject(reg, true);
+                if(tex && context.LockResource(tex))
+                {
+                    tex->EnsureMip(&context, 0);
+                }
+            }
+                
             // For each LOD
             for(auto& lod : meshInstance.LODs)
             {
@@ -109,7 +123,16 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
                         
                         ShaderParametersGroup* objGroup = context.AllocateParameters(frame, required);
                         
-                        context.SetParameterDefaultTexture(frame, objGroup, ShaderParameterType::PARAMETER_SAMPLER_DIFFUSE, DefaultRenderTextureType::WHITE, 0);
+                        // BIND DIFFUSE TEXTURE
+                        Ptr<RenderTexture> diffuseTex = meshInstance.Materials[batch.MaterialIndex].DiffuseTexture.GetObject(reg, true);
+                        if(diffuseTex && context.LockResource(diffuseTex))
+                        {
+                            context.SetParameterTexture(frame, objGroup,ShaderParameterType::PARAMETER_SAMPLER_DIFFUSE,diffuseTex, nullptr);
+                        }
+                        else
+                        { // else default to white tex
+                            context.SetParameterDefaultTexture(frame, objGroup, ShaderParameterType::PARAMETER_SAMPLER_DIFFUSE, DefaultRenderTextureType::WHITE, 0);
+                        }
                         
                         context.SetParameterUniform(frame, objGroup, ShaderParameterType::PARAMETER_OBJECT, obj, sizeof(ShaderParameter_Object));
                         
@@ -128,10 +151,10 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
                         context.PushParameterStack(frame, objStack, paramStack);
                         
                         RenderInst inst{};
-                        inst.SetVertexState(meshInstance.VertexStates[lod.VertexStateIndex].Default);
-                        inst.SetShaderProgram("Mesh");
-                        
-                        inst.DrawPrimitives(RenderPrimitiveType::TRIANGLE_LIST, batch.StartIndex, batch.NumPrimitives, 1, batch.BaseIndex);
+                        //inst.SetVertexState(meshInstance.VertexStates[lod.VertexStateIndex].Default);
+                        //inst.SetShaderProgram("Mesh");
+                        //inst.DrawPrimitives(RenderPrimitiveType::TRIANGLE_LIST, batch.StartIndex, batch.NumPrimitives, 1, batch.BaseIndex);
+                        inst.DrawDefaultMesh(DefaultRenderMeshType::WIREFRAME_CYLINDER);
                         context.PushRenderInst(frame, objStack, std::move(inst));
                     }
                 }

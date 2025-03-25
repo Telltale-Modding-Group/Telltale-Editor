@@ -1490,8 +1490,7 @@ namespace Meta {
         TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
         TTE_ASSERT(GetToolContext(), "Tool context not created");
         
-        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaLibraryAPI(false)); // Register editor library
-        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaGameEngine(false)); // Register telltale engine
+        InjectFullLuaAPI(GetToolContext()->GetLibraryLVM(), false);
         
         // Global LUA flag constants for use in the library init scripts
         

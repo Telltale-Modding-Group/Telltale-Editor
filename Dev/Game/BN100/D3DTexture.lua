@@ -31,7 +31,7 @@ function NormaliseD3DTexture_Bone(instance, state)
     local data = MetaGetMember(instance, "_TextureData")
 
     CommonTextureSetName(state, name)
-    CommonTextureSetDimensions(state, width, height, 1)
+    CommonTextureSetDimensions(state, width, height, numMips, 1, 1) -- 1 depth, 1 array size
 
     local format = MetaGetClassValue(MetaGetMember(instance, "mD3DFormat"))
     local actualFormat = 0
@@ -58,7 +58,7 @@ function NormaliseD3DTexture_Bone(instance, state)
     local slicePitch = MetaGetBufferSize(data)
 
     -- TODO multiple mips. need to push in order.
-    CommonTexturePushOrderedImage(state, width, height, rowPitch, slicePitch, actualFormat, data)
+    CommonTexturePushOrderedImage(state, width, height, rowPitch, slicePitch, data)
 
     return true
 end

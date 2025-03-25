@@ -22,6 +22,8 @@
 #include <algorithm>
 #include <map>
 #include <thread>
+#include <atomic>
+#include <random>
 
 // folders excluded from disk unless explicitly mounted when recursively going through directories
 #define EXCLUDE_SYSTEM_FILTER "!*.DS_Store;!*.app/*"
@@ -32,11 +34,69 @@
 
 class ResourceRegistry;
 
-// All common classes which are normalised into from telltale types (eg meshes, textures, dialogs) inherit from this to be used in Handle. Used in the Editor.
-struct Handleable
+// If you inherit from this you can lock handles to files.
+class HandleLockOwner
 {
     
+    friend class Handleable;
+    
+    U32 _LockOwnerID;
+    
+public:
+    
+    HandleLockOwner(HandleLockOwner&&) = default; // allow moving
+    HandleLockOwner& operator=(HandleLockOwner&&) = default;
+    
+    HandleLockOwner(const HandleLockOwner&) = delete; // copying is NOT allowed. we have locked it, are not sharing it. like me with money.
+    HandleLockOwner& operator=(const HandleLockOwner&) = delete;
+ 
+    HandleLockOwner();
+    
+#ifdef DEBUG
+    virtual ~HandleLockOwner() = default; // to check no derives for specific
+#else
+    ~HandleLockOwner() = default;
+#endif
+    
+};
+
+// All common classes which are normalised into from telltale types (eg meshes, textures, dialogs) inherit from this to be used in Handle.
+class Handleable : public std::enable_shared_from_this<Handleable>
+{
+    
+    mutable std::atomic<U32> _LockKey;
+    
+public:
+    
+    // Returns false if locked already (ie fail)
+    virtual Bool Lock(const HandleLockOwner& lockOwner) final; // locks the resource returning the lock key. this is done to ensure no other accesses
+    
+    virtual void Unlock(const HandleLockOwner& lockOwner) final;
+    
+    Bool IsLocked() const;
+    
+    Bool OwnedBy(const HandleLockOwner& lockOwner, Bool bLockIfAvail) const;
+    
+    inline void ForceLock(const HandleLockOwner& lockOwner)
+    {
+        Bool lock = Lock(lockOwner);
+        TTE_ASSERT(lock, "Lock acquisition failed but was required here");
+        return lock;
+    }
+    
     virtual void FinaliseNormalisationAsync() = 0;
+    
+    Handleable() = default;
+    
+    Handleable(const Handleable&) = delete;
+    Handleable& operator=(const Handleable&) = delete; // no copy allowed. must be done explicitly
+    
+    inline Handleable(Handleable&& rhs)
+    {
+        this->operator=(std::move(rhs));
+    }
+    
+    Handleable& operator=(Handleable&& rhs); // moveable though.
     
     virtual ~Handleable() = default;
     
@@ -126,32 +186,45 @@ public:
         _SetObject(registry, name, bUnloadOld, bEnsureLoaded);
     }
     
+    // Similar but does not load just sets the name, can be loaded later.
+    inline void SetObject(Symbol name)
+    {
+        _ResourceName = name;
+    }
+    
 };
 
-// Handle to a common resource.
+// Handle to a common resource. This is basically a templated version of HandleBase, but caches the loaded handle to the common resource.
 template<typename T>
 class Handle : protected HandleBase
 {
     
+    Ptr<T> _Cached;
+    
     static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
     
-    inline Handle(Symbol rn) : HandleBase(rn, &AllocateCommon<T>)
+    inline Handle(Symbol rn) : HandleBase(rn, &AllocateCommon<T>), _Cached{}
     {
     }
     
 public:
     
-    inline Handle() : Handle(Symbol(), &AllocateCommon<T>) {}
+    inline Handle() : HandleBase(Symbol(), &AllocateCommon<T>) {}
     
     // Gets the underlying resouce. The resource will always be valid but may not be loaded. You can use other functionality to ensure its loaded.
-    inline Ptr<T> GetObject(Ptr<ResourceRegistry>& registry)
+    inline Ptr<T> GetObject(Ptr<ResourceRegistry>& registry, Bool bEnsureLoaded)
     {
+        if(_Cached)
+            return _Cached;
+        if(bEnsureLoaded)
+            HandleBase::EnsureIsLoaded(registry);
         Ptr<Handleable> resource = _GetObject(registry);
         if(!resource)
             return {};
         T* casted = dynamic_cast<T*>(resource.get());
         TTE_ASSERT(casted, "Handle<T> has template parameter which does not match the underlying resource type!");
-        return Ptr<T>(resource);
+        _Cached = std::dynamic_pointer_cast<T>(resource);
+        return _Cached;
     }
     
     inline void SetObject(Ptr<ResourceRegistry>& registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
@@ -164,9 +237,16 @@ public:
         return HandleBase::IsLoaded(registry);
     }
     
+    // Flushes the cached value, meaning if its updated the cached resource here will get updated next GetObject
     inline void EnsureIsLoaded(Ptr<ResourceRegistry>& registry)
     {
         HandleBase::EnsureIsLoaded(registry);
+        _Cached.reset();
+    }
+    
+    inline void SetObject(Symbol name)
+    {
+        HandleBase::SetObject(name);
     }
     
 };
@@ -789,7 +869,7 @@ public:
     }
     
     /**
-     Updates the resource registry. If any resource unloads are deferred they will happen here. Doesn't need to be called if you have not explicitly said to defer anything.
+     Updates the resource registry. If any resource unloads are deferred they will happen here. Doesn't need to be called if you have not explicitly said to defer or preload anything.
      Pass in the time budget you want to maximum spend on this function such that anything not done will get done next call. In seconds.
      */
     void Update(Float timeBudget);
@@ -853,7 +933,7 @@ public:
     void ResourceSetEnable(const Symbol& name, I32 priorityOverride = UINT32_MAX);
     
     /**
-     Disables a resource set. Unloads any of its unlocked resources. Optionally specify to defer any unloads to a later Update call such that work is spread out.
+     Disables a resource set. Unloads its resources, releasing the references. Optionally specify to defer any unloads to a later Update call such that work is spread out.
      */
     void ResourceSetDisable(const Symbol& name, Bool bDeferUnloads);
     

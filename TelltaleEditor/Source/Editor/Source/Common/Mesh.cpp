@@ -2,8 +2,9 @@
 #include <EditorTasks.hpp>
 
 // NORMALISATION AND SPECIALISATION OF MESH INTO COMMON FORMAT AND BACK
-namespace MeshAPI
+class MeshAPI
 {
+public:
     
     static inline Mesh::MeshInstance* Task(LuaManager& man)
     {
@@ -285,10 +286,10 @@ namespace MeshAPI
     }
     
     // base index?
-    // params(inst, bShadow, min vert, max vert, start index buffer index, num primitives, num indices, baseindex ???)
+    // params(inst, bShadow, min vert, max vert, start index buffer index, num primitives, num indices, baseindex, materialIndex)
     static U32 luaSetBatchParameters(LuaManager& man)
     {
-        TTE_ASSERT(man.GetTop() == 8, "Required 8 arguments");
+        TTE_ASSERT(man.GetTop() == 9, "Required 9 arguments");
         
         Mesh::MeshInstance* t = Task(man);
         
@@ -299,6 +300,7 @@ namespace MeshAPI
         U32 numPrim = (U32)man.ToInteger(6);
         U32 numInd = (U32)man.ToInteger(7);
         U32 baseInd = (U32)man.ToInteger(8);
+        U32 matInd = (U32)man.ToInteger(8);
         
         TTE_ASSERT(baseInd == 0, "Base index implementation needed!"); // wtf is this
         
@@ -311,6 +313,7 @@ namespace MeshAPI
         batch.NumPrimitives = numPrim;
         batch.StartIndex = startInd;
         batch.BaseIndex = baseInd;
+        batch.MaterialIndex = matInd;
         
         return 0;
     }
@@ -331,7 +334,19 @@ namespace MeshAPI
         return 0;
     }
     
-}
+    // push mat(diffuse texture symbol)
+    static U32 luaPushMaterial(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 2, "Requires 2 arguments");
+        Mesh::MeshInstance* t = Task(man);
+        Symbol diffuse = ScriptManager::ToSymbol(man, 2);
+        Mesh::MeshMaterial material{};
+        material.DiffuseTexture.SetObject(diffuse);
+        t->Materials.push_back(std::move(material));
+        return 0;
+    }
+    
+};
 
 Sphere Mesh::CreateSphereForBox(BoundingBox bb)
 {
@@ -355,6 +370,7 @@ void Mesh::RegisterScriptAPI(LuaFunctionCollection &Col)
     PUSH_FUNC(Col, "CommonMeshSetBatchBounds", &MeshAPI::luaBatchSetBounds);
     PUSH_FUNC(Col, "CommonMeshSetBatchParameters", &MeshAPI::luaSetBatchParameters);
     PUSH_FUNC(Col, "CommonMeshAddVertexAttribute", &MeshAPI::luaAddVertexAttrib);
+    PUSH_FUNC(Col, "CommonMeshPushMaterial", &MeshAPI::luaPushMaterial);
     
     // U16 => two Unorm floats. x and y 8 bits each normalised to 0.0 to 1.0
     PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatUNormUV", 0);
@@ -363,6 +379,11 @@ void Mesh::RegisterScriptAPI(LuaFunctionCollection &Col)
     // U16 => three Unorm floats, third determined by 1 - x - y (no square, approx). x and y 8 bits each. normalised to 0.0 to 1.0
     PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatUNormNormalAprox", 2);
     
+}
+
+void Mesh::AddMesh(Ptr<ResourceRegistry>& registry, Handle<Mesh::MeshInstance> handle)
+{
+    MeshList.push_back(handle.GetObject(registry, true));
 }
 
 // finish async normalisation, doing any stuff which wasnt set from lua

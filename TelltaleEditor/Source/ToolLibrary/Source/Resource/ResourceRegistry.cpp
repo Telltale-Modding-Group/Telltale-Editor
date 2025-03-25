@@ -1934,12 +1934,19 @@ void ResourceRegistry::_ProcessDirtyHandle(HandleObjectInfo&& handle, std::uniqu
     String name = {};
     if(handle._Flags.Test(HandleFlags::NEEDS_SERIALISE_IN))
     {
-        TTE_ASSERT(handle._OpenStream, "Cannot serialise in handle as no data stream was assigned");
-        name = SymbolTable::Find(handle._ResourceName);
-        if(name.length() == 0)
-            name = SymbolToHexString(handle._ResourceName);
-        handle._Instance = Meta::ReadMetaStream(name, handle._OpenStream); // dont want to lock, as resource is not findable at the moment (until pushed into alive)
-        handle._OpenStream.reset(); // release stream
+        if(handle._OpenStream)
+        {
+            name = SymbolTable::Find(handle._ResourceName);
+            if(name.length() == 0)
+                name = SymbolToHexString(handle._ResourceName);
+            handle._Instance = Meta::ReadMetaStream(name, handle._OpenStream); // dont want to lock, as resource is not findable at the moment (until pushed into alive)
+            handle._OpenStream.reset(); // release stream
+        }
+        else
+        {
+            // Was not found, ignore
+            handle._Flags.Remove(HandleFlags::NEEDS_NORMALISATION);
+        }
         handle._Flags.Remove(HandleFlags::NEEDS_SERIALISE_IN);
     }
     if(handle._Flags.Test(HandleFlags::NEEDS_NORMALISATION))
@@ -2061,7 +2068,7 @@ Bool ResourceRegistry::_SetupHandleResourceLoad(HandleObjectInfo &hoi, std::uniq
             String name = SymbolTable::Find(hoi._ResourceName);
             if(name.length() == 0)
                 name = SymbolToHexString(hoi._ResourceName);
-            TTE_LOG("WARNING: The resource %s was not found in the resource registry so cannot be loaded!", name.c_str());
+            TTE_LOG("WARNING: The resource %s was not found in the resource registry so cannot be loaded! Empty placeholder will be used.", name.c_str());
             return false;
         }
     }
@@ -2086,10 +2093,7 @@ Bool ResourceRegistry::_EnsureHandleLoadedLocked(const HandleBase& handle, Bool 
             
             HandleObjectInfo&& handle = std::move(_AliveHandles.extract(it).value());
             Bool bResult = _SetupHandleResourceLoad(handle, lck);
-            if(bResult)
-                _ProcessDirtyHandle(std::move(handle), lck);
-            else
-                _AliveHandles.insert(std::move(handle));
+            _ProcessDirtyHandle(std::move(handle), lck);
             return bResult;
         }
     }
@@ -2104,26 +2108,21 @@ Bool ResourceRegistry::_EnsureHandleLoadedLocked(const HandleBase& handle, Bool 
             
             // load now, ensuring we normalise and serialise
             Bool bResult = _SetupHandleResourceLoad(*it, lck);
-            if(bResult)
-                _ProcessDirtyHandle(std::move(*it), lck);
-            else
-                _AliveHandles.insert(std::move(*it));
+            _ProcessDirtyHandle(std::move(*it), lck);
             _DirtyHandles.erase(it);
             return bResult;
         }
     }
     if(bOnlyQuery)
         return false; // not loaded
+    // CREATE NEW HOI, LOAD IT.
     HandleObjectInfo hoi{};
     hoi._ResourceName = handle._ResourceName;
     TTE_ASSERT(handle._AllocatorFn, "Allocate function for common class was not set. Handle<T> should be used!");
     hoi._Handle = handle._AllocatorFn();
     TTE_ASSERT(hoi._Handle.get(), "Could not allocate underlying common class instance for Handle<T>!");
     Bool bResult = _SetupHandleResourceLoad(hoi, lck);
-    if(bResult)
-        _ProcessDirtyHandle(std::move(hoi), lck);
-    else
-        _AliveHandles.insert(std::move(hoi));
+     _ProcessDirtyHandle(std::move(hoi), lck);
     return bResult;
 }
 
@@ -2589,4 +2588,40 @@ void ResourceRegistry::GetResourceNames(std::set<String>& outNames, const String
     Ptr<ResourceLocation> masterLocation = _Locate("<>");
     TTE_ASSERT(masterLocation, "No master location found!!");
     masterLocation->GetResourceNames(outNames, optionalMask);
+}
+
+// HANDLEABLE BASE
+
+Bool Handleable::Lock(const HandleLockOwner& owner)
+{
+    U32 expected = 0;
+    return _LockKey.compare_exchange_strong(expected, owner._LockOwnerID);
+}
+
+void Handleable::Unlock(const HandleLockOwner& owner)
+{
+    TTE_ASSERT(owner._LockOwnerID, "Invalid handle lock, it was not constructed.");
+    U32 expected = owner._LockOwnerID;
+    TTE_ASSERT(_LockKey.compare_exchange_strong(expected, 0), "Cannot unlock handle as the key was wrong!");
+}
+
+HandleLockOwner::HandleLockOwner() : _LockOwnerID((U32)rand() | 0x100) {}
+
+Handleable& Handleable::operator=(Handleable&& rhs)
+{
+    _LockKey.store(rhs._LockKey.exchange(0));
+    return *this;
+}
+
+Bool Handleable::IsLocked() const
+{
+    return _LockKey.load() != 0;
+}
+
+Bool Handleable::OwnedBy(const HandleLockOwner& lockOwner, Bool bLock) const
+{
+    U32 expected = 0;
+    if (_LockKey.load() == lockOwner._LockOwnerID)
+        return true;
+    return bLock ? _LockKey.compare_exchange_strong(expected, lockOwner._LockOwnerID) : false;
 }

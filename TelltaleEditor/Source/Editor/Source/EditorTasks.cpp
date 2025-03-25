@@ -58,7 +58,8 @@ void MeshNormalisationTask::Finalise(TelltaleEditor& editor)
     TTE_ASSERT(Output->ExistsAgent(Agent), "Agent does not exist anymore for output mesh normalisation");
     
     // move processed new mesh renderable instance to array, ready to be used
-    Output->GetAgentModule<SceneModuleType::RENDERABLE>(Agent).Renderable.MeshList.push_back(std::move(Renderable));
+    Ptr<Mesh::MeshInstance> localHandle = TTE_NEW_PTR(Mesh::MeshInstance, MEMORY_TAG_COMMON_INSTANCE, std::move(Renderable));
+    Output->GetAgentModule<SceneModuleType::RENDERABLE>(Agent).Renderable.MeshList.push_back(std::move(localHandle));
 }
 
 // TEXTURE NORMALISATION
@@ -95,11 +96,11 @@ void TextureNormalisationTask::Finalise(TelltaleEditor& editor)
     RenderTexture* pTexture = const_cast<RenderTexture*>(Output.get());
     RenderContext* pContext = pTexture->_Context;
     SDL_GPUTexture* pTextureH = pTexture->_Handle;
-    U32 flags = pTexture->TextureFlags;
+    U32 flags = pTexture->_TextureFlags;
     *pTexture = std::move(Local);
     pTexture->_Context = pContext;
     pTexture->_Handle = pTextureH;
-    pTexture->TextureFlags += flags; // concat flags
+    pTexture->_TextureFlags += flags; // concat flags
 }
 
 // RESOURCE SYSTEM EXTRACTION

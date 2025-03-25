@@ -9,9 +9,9 @@
 #include <Resource/ResourceRegistry.hpp>
 
 /**
- The common mesh format which we normalise and specialise telltale classes to.
+ Group of meshes. The actual common mesh handleable format is MeshInstance, see below.
  */
-struct Mesh
+struct Mesh : HandleLockOwner
 {
     
     // separate triangle sets for default and shadow parts
@@ -85,8 +85,14 @@ struct Mesh
     };
     
     // Renderable objects are a list of meshes (in props it has the 'D3D Mesh List' key or 'D3D Mesh'. base mesh + list
-    struct MeshInstance : Handleable
+    // The common mesh format which we normalise and specialise telltale classes to.
+    class MeshInstance : public Handleable
     {
+        
+        friend class RenderContext;
+        friend class Scene;
+        friend class MeshAPI;
+        friend struct MeshNormalisationTask;
         
         String Name;
         Flags MeshFlags;
@@ -98,11 +104,16 @@ struct Mesh
         std::vector<VertexState> VertexStates; // vertex states (draw call bind sets), containing verts/inds/etc.
         std::vector<MeshMaterial> Materials;
         
+    public:
+        
         virtual void FinaliseNormalisationAsync() override;
         
     };
     
-    std::vector<MeshInstance> MeshList; // list of meshes
+    // adds a mesh instance, which should have been previously normalised into.
+    void AddMesh(Ptr<ResourceRegistry>& registry, Handle<Mesh::MeshInstance> handle);
+    
+    std::vector<Ptr<MeshInstance>> MeshList; // list of meshes
     
     // Registers mesh normalisers and specialisers
     static void RegisterScriptAPI(LuaFunctionCollection& Col);

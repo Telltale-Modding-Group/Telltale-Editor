@@ -139,7 +139,8 @@ function NormaliseBoneD3DMesh(inst, state)
         local numPrim = MetaGetClassValue(MetaGetMember(triangleSet, "mNumPrimitives"))
         local numInd = MetaGetClassValue(MetaGetMember(triangleSet, "mNumTotalIndices"))
 
-        CommonMeshSetBatchParameters(state, false, minVert, maxVert, startIndex, numPrim, numInd, 0) -- base index not exist
+        CommonMeshPushMaterial(state, MetaGetClassValue(MetaGetMember(MetaGetMember(triangleSet, "mhDiffuseMap"), "mHandle")))
+        CommonMeshSetBatchParameters(state, false, minVert, maxVert, startIndex, numPrim, numInd, 0, i - 1) -- base index not exist
 
     end
 

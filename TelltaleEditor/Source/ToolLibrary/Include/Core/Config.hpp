@@ -233,12 +233,24 @@ inline Bool StringEndsWith(const String& str, const String& suffix, Bool bCaseSe
     }
 }
 
+class ToolContext; // forward declaration. used a lot. see context.hpp
+
+class DataStream; // See DataStream.hpp
+
+template<typename T>
+using Ptr = std::shared_ptr<T>; // Easier to write than std::shared_ptr.
+
+template<typename T>
+using WeakPtr = std::weak_ptr<T>;
+
+// Useful alias for data stream pointer, which deallocates automagically when finished with.
+using DataStreamRef = Ptr<DataStream>;
 
 template <typename T> // checks if the weak ptr has no reference at all, even to an Ptr that has been reset.
-inline bool IsWeakPtrUnbound(const std::weak_ptr<T>& weak)
+inline bool IsWeakPtrUnbound(const WeakPtr<T>& weak)
 {
     // Compare the weak pointer to a default-constructed weak pointer
-    return !(weak.owner_before(std::weak_ptr<T>()) || std::weak_ptr<T>().owner_before(weak));
+    return !(weak.owner_before(WeakPtr<T>()) || WeakPtr<T>().owner_before(weak));
 }
 
 template< typename T >
@@ -282,16 +294,6 @@ inline String GetFormatedTime(Float secs) {
     return stream.str();
 }
 
-class ToolContext; // forward declaration. used a lot. see context.hpp
-
-class DataStream; // See DataStream.hpp
-
-template<typename T>
-using Ptr = std::shared_ptr<T>; // Easier to write than std::shared_ptr.
-
-// Useful alias for data stream pointer, which deallocates automagically when finished with.
-using DataStreamRef = Ptr<DataStream>;
-
 // Lots of classes which can only exist between game switches use this. Such that if they exist outside, we catch the error.
 struct GameDependentObject
 {
@@ -324,6 +326,7 @@ enum MemoryTag
     MEMORY_TAG_TRANSIENT_FENCE, // small U32 allocation. could be optimised in the future
     MEMORY_TAG_RESOURCE_REGISTRY, // resource registry
     MEMORY_TAG_COMMON_INSTANCE, // common editor type instance, eg Mesh,Texture,Dialog,Chore,etc
+    MEMORY_TAG_RENDER_LAYER,
 };
 
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.

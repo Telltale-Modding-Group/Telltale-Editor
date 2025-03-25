@@ -64,7 +64,7 @@ struct MeshNormalisationTask : EditorTask
     
     Symbol Agent; // agent name
     
-    Mesh::MeshInstance Renderable; // output object.
+    Mesh::MeshInstance Renderable; // internal object.
     
     Meta::ClassInstance Instance; // D3DMesh instance in the meta system
     

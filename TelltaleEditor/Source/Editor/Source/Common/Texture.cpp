@@ -1,8 +1,9 @@
 #include <Common/Texture.hpp>
 #include <TelltaleEditor.hpp>
 
-namespace TextureAPI
+class TextureAPI
 {
+public:
     
     static inline RenderTexture* Task(LuaManager& man)
     {
@@ -16,7 +17,7 @@ namespace TextureAPI
         RenderTexture* task = Task(man);
         String name = man.ToString(2);
         
-        task->Name = std::move(name);
+        task->_Name = std::move(name);
         
         return 0;
     }
@@ -26,26 +27,28 @@ namespace TextureAPI
         TTE_ASSERT(man.GetTop() == 2, "Incorrect usage");
         
         RenderTexture* task = Task(man);
-        task->Format = (RenderSurfaceFormat)man.ToInteger(2);
+        task->_Format = (RenderSurfaceFormat)man.ToInteger(2);
         
         return 0;
     }
     
     static U32 luaTextureSetDimensions(LuaManager& man)
     {
-        TTE_ASSERT(man.GetTop() == 4, "Incorrect usage");
+        TTE_ASSERT(man.GetTop() == 6, "Incorrect usage");
         
         RenderTexture* task = Task(man);
-        task->Width = (U32)man.ToInteger(2);
-        task->Height = (U32)man.ToInteger(3);
-        task->Depth = (U32)man.ToInteger(4);
+        task->_Width = (U32)man.ToInteger(2);
+        task->_Height = (U32)man.ToInteger(3);
+        task->_NumMips = (U32)man.ToInteger(4);
+        task->_Depth = (U32)man.ToInteger(5);
+        task->_ArraySize = (U32)man.ToInteger(6);
         
         return 0;
     }
     
     static U32 luaTexturePushImage(LuaManager& man)
     {
-        TTE_ASSERT(man.GetTop() == 7, "Incorrect usage");
+        TTE_ASSERT(man.GetTop() == 6, "Incorrect usage");
         
         RenderTexture* task = Task(man);
         
@@ -54,15 +57,15 @@ namespace TextureAPI
         img.Height = (U32)man.ToInteger(3);
         img.RowPitch = (U32)man.ToInteger(4);
         img.SlicePitch = (U32)man.ToInteger(5);
-        img.Format = (RenderSurfaceFormat)man.ToInteger(6);
         
-        Meta::ClassInstance buf = Meta::AcquireScriptInstance(man, 7);
+        Meta::ClassInstance buf = Meta::AcquireScriptInstance(man, 6);
         TTE_ASSERT(buf, "Texture data buffer invalid");
         
         Meta::BinaryBuffer* pBuffer = (Meta::BinaryBuffer*)buf._GetInternal();
         img.Data = *pBuffer;
         
-        task->Images.push_back(std::move(img));
+        task->_Images.push_back(std::move(img));
+        task->_TextureFlags.Add(RenderTexture::TEXTURE_DIRTY);
         
         return 0;
     }
@@ -106,7 +109,7 @@ namespace TextureAPI
         return 0;
     }
     
-}
+};
 
 void RenderTexture::RegisterScriptAPI(LuaFunctionCollection &Col)
 {

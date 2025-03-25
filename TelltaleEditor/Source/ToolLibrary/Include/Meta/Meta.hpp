@@ -153,7 +153,7 @@ namespace Meta {
     struct RegGame;
     
     // Weak reference to the parent. Deep into member trees, these point to the top level class, eg: array of materials , top level is D3DMesh
-    using ParentWeakReference = std::weak_ptr<U8>;
+    using ParentWeakReference = WeakPtr<U8>;
     
     // A type class. This as well as Member are used internally. Refer to classes using the index (U32 - internal version CRC).
     // Refer to members by name string

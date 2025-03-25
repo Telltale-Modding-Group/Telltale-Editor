@@ -20,7 +20,7 @@ void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* upload
     tex.Texture->Create2D(&context, 1, 1, RenderSurfaceFormat::RGBA8, 1);
     DataStreamRef texStream = Stream(4);
     texStream->Write((const U8*)"\x00\x00\x00\xFF", 4);
-    upload->UploadTextureDataSlow(tex.Texture, std::move(texStream), 0, 0, 0, 4);
+    upload->UploadTextureDataSlow(tex.Texture, std::move(texStream), 0, 0, 0, 0, 4);
     textures.push_back(std::move(tex));
     
     // WHITE TEXTURE
@@ -29,7 +29,7 @@ void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* upload
     tex.Texture->Create2D(&context, 1, 1, RenderSurfaceFormat::RGBA8, 1);
     texStream = Stream(4);
     texStream->Write((const U8*)"\xFF\xFF\xFF\xFF", 4);
-    upload->UploadTextureDataSlow(tex.Texture, std::move(texStream), 0, 0, 0, 4);
+    upload->UploadTextureDataSlow(tex.Texture, std::move(texStream), 0, 0, 0, 0, 4);
     textures.push_back(std::move(tex));
     
     upload->EndPass();
