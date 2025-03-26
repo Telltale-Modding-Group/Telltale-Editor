@@ -8,22 +8,6 @@ Bool AsyncTTETaskDelegate(const JobThread& thread, void* argA, void* argB)
     return pTask->PerformAsync(thread, (ToolContext*)argB);
 }
 
-// SCENE NORMALISATION
-
-Bool SceneNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* pLockedContext)
-{
-    
-    // ... (push working scene ptr)
-    
-    Working.FinaliseNormalisationAsync();
-    return true;
-}
-
-void SceneNormalisationTask::Finalise(TelltaleEditor& editor)
-{
-    *OutputUnsafe = std::move(Working);
-}
-
 // MESH NORMALISATION
 
 Bool MeshNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* pLockedContext)
@@ -32,7 +16,13 @@ Bool MeshNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* p
     auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
     TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found for mesh instance: '%s'", fn.c_str());
     
-    TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, LoadChunkMode::BINARY), "Could not load chunk for %s", fn.c_str());
+    ScriptManager::GetGlobal(thread.L, fn, true);
+    if(thread.L.Type(-1) != LuaType::FUNCTION)
+    {
+        thread.L.Pop(1);
+        TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary,
+                                      normaliser->second.Size, LoadChunkMode::BINARY), "Could not load normaliser chunk for %s", fn.c_str());
+    }
     
     Instance.PushWeakScriptRef(thread.L, Instance.ObtainParentRef());
     thread.L.PushOpaque(&Renderable);
@@ -70,7 +60,13 @@ Bool TextureNormalisationTask::PerformAsync(const JobThread& thread, ToolContext
     auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
     TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found for texture instance: '%s'", fn.c_str());
     
-    TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, LoadChunkMode::BINARY), "Could not load chunk for %s", fn.c_str());
+    ScriptManager::GetGlobal(thread.L, fn, true);
+    if(thread.L.Type(-1) != LuaType::FUNCTION)
+    {
+        thread.L.Pop(1);
+        TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary,
+                                      normaliser->second.Size, LoadChunkMode::BINARY), "Could not load normaliser chunk for %s", fn.c_str());
+    }
     
     Instance.PushWeakScriptRef(thread.L, Instance.ObtainParentRef());
     thread.L.PushOpaque(&Local);

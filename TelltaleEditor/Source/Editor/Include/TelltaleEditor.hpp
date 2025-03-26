@@ -51,7 +51,13 @@ public:
      Please note that for any of the results of this task to take effect, you must call Wait or QueryTask.
      Returns the task handle which you can query the completion with.
      */
-    U32 EnqueueNormaliseSceneTask(Scene* pScene, Meta::ClassInstance sceneInstance);
+    U32 EnqueueNormaliseSceneTask(Ptr<Scene> pScene, Meta::ClassInstance sceneInstance);
+    
+    /**
+     Enqueues a task which normalises the given IMAP instance for the current game snapshot.
+     See EnqueueMeshNormaliseTask.
+     */
+    U32 EnqueueNormaliseInputMapperTask(Ptr<InputMapper> imap, Meta::ClassInstance metaInstance);
     
     /**
      Enqueues a task which normalises the given D3D mesh instance for the current game snapshot.

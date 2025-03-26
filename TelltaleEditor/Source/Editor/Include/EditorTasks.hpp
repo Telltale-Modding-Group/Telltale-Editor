@@ -8,6 +8,7 @@
 #include <Resource/TTArchive2.hpp>
 #include <Resource/ResourceRegistry.hpp>
 
+#include <type_traits>
 #include <vector>
 
 class TelltaleEditor;
@@ -28,25 +29,7 @@ struct EditorTask
     // finalise it: eg moving async finished work into main thread object. always main thread call
     virtual void Finalise(TelltaleEditor&) = 0;
     
-    inline virtual ~EditorTask() {}
-    
-};
-
-// Normalises a scene from high level snapshot dependent lua into the common Scene format (Scene.hpp)
-struct SceneNormalisationTask : EditorTask
-{
-    
-    inline SceneNormalisationTask(U32 id) : EditorTask(false, id) {}
-    
-    virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override;
-    
-    virtual void Finalise(TelltaleEditor&) override;
-    
-    Scene* OutputUnsafe; // output scene
-    
-    Scene Working; // working scene to normalise to. in finalise this is moved to output
-    
-    Meta::ClassInstance Instance; // instance in the meta system
+    virtual ~EditorTask() = default;
     
 };
 
@@ -85,6 +68,60 @@ struct TextureNormalisationTask : EditorTask
     RenderTexture Local; // local object
     
     Meta::ClassInstance Instance; // D3DTexture/T3Texture meta instance
+    
+};
+
+// Normalises any other common type
+template<typename T>
+struct CommonNormalisationTask : EditorTask
+{
+    
+    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
+    
+    inline CommonNormalisationTask(U32 id) : EditorTask(false, id) {}
+    
+    virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override
+    {
+        String fn = Meta::GetInternalState().Classes.find(Instance.GetClassID())->second.NormaliserStringFn;
+        auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
+        TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found: '%s'", fn.c_str());
+        
+        ScriptManager::GetGlobal(thread.L, fn, true);
+        if(thread.L.Type(-1) != LuaType::FUNCTION)
+        {
+            thread.L.Pop(1);
+            TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary,
+                                          normaliser->second.Size, LoadChunkMode::BINARY), "Could not load normaliser chunk for %s", fn.c_str());
+        }
+        
+        Instance.PushWeakScriptRef(thread.L, Instance.ObtainParentRef());
+        thread.L.PushOpaque(&Local);
+        
+        thread.L.CallFunction(2, 1, false);
+        
+        Bool result;
+        
+        if(!(result=ScriptManager::PopBool(thread.L)))
+        {
+            TTE_LOG("Normalise failed for %s", fn.c_str());
+        }
+        else
+        {
+            Local.FinaliseNormalisationAsync();
+        }
+        return true;
+    }
+    
+    virtual void Finalise(TelltaleEditor&) override
+    {
+        *Output.get() = std::move(Local);
+    }
+    
+    Ptr<Handleable> Output; // output object. Do not access while normalisation. Use Local object.
+    
+    T Local; // local object
+    
+    Meta::ClassInstance Instance; // meta instance
     
 };
 
