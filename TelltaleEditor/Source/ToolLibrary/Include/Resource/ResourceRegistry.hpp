@@ -77,7 +77,7 @@ public:
     
     Bool OwnedBy(const HandleLockOwner& lockOwner, Bool bLockIfAvail) const;
     
-    inline void ForceLock(const HandleLockOwner& lockOwner)
+    inline Bool ForceLock(const HandleLockOwner& lockOwner)
     {
         Bool lock = Lock(lockOwner);
         TTE_ASSERT(lock, "Lock acquisition failed but was required here");
