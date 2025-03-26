@@ -41,8 +41,7 @@ void JobScheduler::_JobThreadFn(JobScheduler &scheduler, U32 threadIndex)
     myself.L.Initialise(LuaVersion::LUA_5_2_3); // latest
     MyLocalThread = &myself;
     
-    ScriptManager::RegisterCollection(myself.L, luaLibraryAPI(false)); // Register editor library
-    ScriptManager::RegisterCollection(myself.L, luaGameEngine(false)); // Register telltale engine
+    InjectFullLuaAPI(myself.L, true);
     ScriptManager::RegisterCollection(myself.L, scheduler._workerScriptCollection); // register anything eles
     
     SetThreadName(myself.ThreadName); // Set name in debugger for future use

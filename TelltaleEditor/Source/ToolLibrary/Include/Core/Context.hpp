@@ -103,7 +103,7 @@ private:
     LuaFunctionCollection _PerStateCollection; // functions to register for each worker thread lua state.
     
     std::mutex _DependentsLock;
-    std::vector<std::weak_ptr<GameDependentObject>> _SwitchDependents{}; // see game dependent object
+    std::vector<WeakPtr<GameDependentObject>> _SwitchDependents{}; // see game dependent object
     
     friend ToolContext* CreateToolContext(LuaFunctionCollection);
     

@@ -9,8 +9,6 @@
 #include <iostream>
 #include <algorithm>
 
-#define INTERNAL_START_PRIORITY 0x0F0C70FF
-
 // ============================ ENUM MAPPINGS
 
 TextureFormatInfo GetSDLFormatInfo(RenderSurfaceFormat format)
@@ -220,6 +218,18 @@ RenderContext::RenderContext(String wName, U32 cap)
     
 }
 
+RenderLayer::RenderLayer(String name, RenderContext& context) : _Context(context), _Name(std::move(name))
+{
+#ifdef DEBUG
+    TTE_ASSERT(dynamic_cast<HandleLockOwner*>(this) == nullptr, "Render layers cannot derive from handle lock owners. The owner must be the render context.");
+#endif
+}
+
+void RenderLayer::GetWindowSize(U32& width, U32& height)
+{
+    SDL_GetWindowSize(_Context._Window, (int*)&width, (int*)&height);
+}
+
 RenderContext::~RenderContext()
 {
     
@@ -232,24 +242,23 @@ RenderContext::~RenderContext()
         _PopulateJob.Reset();
     }
     
-    for(auto& scene: _AsyncScenes)
-    {
-        scene.OnAsyncRenderDetach(*this);
-    }
-    
-    _AsyncScenes.clear();
+    for(auto& locked: _LockedResources)
+        locked->Unlock(*this);
     
     // CLEANUP
     
     for(auto& transfer: _AvailTransferBuffers)
         SDL_ReleaseGPUTransferBuffer(_Device, transfer.Handle);
     
+    _LockedResources.clear();
     _DefaultMeshes.clear();
     _DefaultTextures.clear();
     _Samplers.clear();
     _Pipelines.clear();
     _LoadedShaders.clear();
     _AvailTransferBuffers.clear();
+    _LayerStack.clear();
+    _DeltaLayers.clear();
     
     _Frame[0].Reset(*this, UINT64_MAX);
     _Frame[1].Reset(*this, UINT64_MAX);
@@ -264,10 +273,21 @@ RenderContext::~RenderContext()
 
 // ============================ HIGH LEVEL RENDER FUNCTIONS
 
+void RenderContext::PopLayer()
+{
+    std::lock_guard<std::mutex> G{_Lock};
+    _DeltaLayers.push_back(Ptr<RenderLayer>(nullptr));
+}
+
+void RenderContext::_PushLayer(Ptr<RenderLayer> pLayer)
+{
+    std::lock_guard<std::mutex> G{_Lock};
+    _DeltaLayers.push_back(std::move(pLayer));
+}
+
 // USER CALL: called every frame by user to render the previous frame
 Bool RenderContext::FrameUpdate(Bool isLastFrame)
 {
-    TTE_ASSERT(_AttachedRegistry, "No attached resource registry! Please attach one into the render context before rendering.");
     
     // 1. locals
     Bool bUserWantsQuit = false;
@@ -315,12 +335,12 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
             
             // setup swapchain tex
             pFrame->BackBuffer = pFrame->Heap.New<RenderTexture>();
-            pFrame->BackBuffer->TextureFlags += RenderTexture::TEXTURE_FLAG_DELEGATED;
+            pFrame->BackBuffer->_TextureFlags += RenderTexture::TEXTURE_FLAG_DELEGATED;
             pFrame->BackBuffer->_Context = this;
-            pFrame->BackBuffer->Format = FromSDLFormat(SDL_GetGPUSwapchainTextureFormat(_Device, _Window));
+            pFrame->BackBuffer->_Format = FromSDLFormat(SDL_GetGPUSwapchainTextureFormat(_Device, _Window));
             TTE_ASSERT(SDL_WaitAndAcquireGPUSwapchainTexture(pMainCommandBuffer->_Handle,
                                                              _Window, &pFrame->BackBuffer->_Handle,
-                                                             &pFrame->BackBuffer->Width,  &pFrame->BackBuffer->Height),
+                                                             &pFrame->BackBuffer->_Width,  &pFrame->BackBuffer->_Height),
                        "Failed to acquire backend swapchain texture at frame %lld: %s", pFrame->FrameNumber, SDL_GetError());
             
             if(pFrame->FrameNumber == 1)
@@ -438,16 +458,69 @@ void RenderFrame::Reset(RenderContext& context, U64 newFrameNumber)
 
 // ============================ TEXTURES & RENDER TARGET
 
+void RenderTexture::EnsureMip(RenderContext* c, U32 mipIndex)
+{
+    _Context = c;
+    if(GetHandle(_Context))
+    {
+        if(!_UploadedMips.Test(1u << mipIndex))
+        {
+            Ptr<RenderTexture> myself = std::dynamic_pointer_cast<RenderTexture>(shared_from_this());
+            for(U32 slice = 0; slice < _Depth; slice++)
+            {
+                for(U32 face = 0; face < _ArraySize; face++)
+                {
+                    _Context->GetFrame(true).UpdateList->UpdateTexture(myself, mipIndex, slice, face);
+                }
+            }
+            _UploadedMips.Add(1u << mipIndex);
+        }
+    }
+}
+
+SDL_GPUTexture* RenderTexture::GetHandle(RenderContext* context)
+{
+    _Context = context;
+    if(_TextureFlags.Test(TEXTURE_DIRTY) || _Handle == nullptr)
+    {
+        
+        if(_Handle != nullptr && !_TextureFlags.Test(TEXTURE_FLAG_DELEGATED))
+            SDL_ReleaseGPUTexture(context->_Device, _Handle);
+        _Handle = nullptr;
+        
+        SDL_GPUTextureCreateInfo info{};
+        info.width = _Width;
+        info.height = _Height;
+        info.format = GetSDLFormatInfo(_Format).SDLFormat;
+        info.num_levels = _NumMips;
+        info.layer_count_or_depth = _Depth * _ArraySize;
+        info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+        info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        _Handle = SDL_CreateGPUTexture(context->_Device, &info);
+        
+    }
+    return _Handle;
+}
+
 void RenderTexture::Create2D(RenderContext* pContext, U32 width, U32 height, RenderSurfaceFormat format, U32 nMips)
 {
     _Context = pContext;
     if(_Context && !_Handle)
     {
-        Width = width;
-        Height = height;
-        Format = format;
+        _Width = width;
+        _Height = height;
+        _Format = format;
+        _Depth = _ArraySize = 1;
+        _NumMips = nMips;
         
-        // TODO mip maps.
+        TTE_ASSERT(_NumMips == 1, "TODO");
+        _Images.clear();
+        Image img{};
+        img.Width = width;
+        img.Height = height;
+        img.RowPitch = (U32)(GetSDLFormatInfo(format).BytesPerPixel * img.Width);
+        img.SlicePitch = img.RowPitch * height;
+        _Images.push_back(std::move(img));
         
         SDL_GPUTextureCreateInfo info{};
         info.width = width;
@@ -455,6 +528,7 @@ void RenderTexture::Create2D(RenderContext* pContext, U32 width, U32 height, Ren
         info.format = GetSDLFormatInfo(format).SDLFormat;
         info.num_levels = nMips;
         info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+        info.layer_count_or_depth = 1;
         info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
         _Handle = SDL_CreateGPUTexture(pContext->_Device, &info);
     }
@@ -493,7 +567,7 @@ Ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
 
 RenderTexture::~RenderTexture()
 {
-    if(_Handle && _Context && !TextureFlags.Test(TEXTURE_FLAG_DELEGATED))
+    if(_Handle && _Context && !_TextureFlags.Test(TEXTURE_FLAG_DELEGATED))
         SDL_ReleaseGPUTexture(_Context->_Device, _Handle);
     _Handle = nullptr;
 }
@@ -517,12 +591,13 @@ void RenderContext::_FreePendingDeletions(U64 frame)
 }
 
 void RenderCommandBuffer::UploadTextureDataSlow(Ptr<RenderTexture> &texture,
-                                                DataStreamRef src, U64 srcOffset, U32 mip, U32 slice, U32 dataZ)
+                                                DataStreamRef src, U64 srcOffset, U32 mip, U32 slice, U32 face, U32 dataZ)
 {
     if(_CurrentPass)
         TTE_ASSERT(_CurrentPass->_CopyHandle != nullptr, "A render pass cannot be active unless its a copy pass if uploading textures.");
+    texture->_Context = _Context;
     
-    texture->LastUsedFrame = _Context->GetFrame(false).FrameNumber;
+    texture->_LastUsedFrame = _Context->GetFrame(false).FrameNumber;
     
     _RenderTransferBuffer tBuffer = _Context->_AcquireTransferBuffer(dataZ, *this);
     
@@ -536,19 +611,22 @@ void RenderCommandBuffer::UploadTextureDataSlow(Ptr<RenderTexture> &texture,
     if(bStartPass)
         StartCopyPass();
     
+    U32 w,h,r,s{};
+    texture->GetImageInfo(mip, slice, face, w, h, r, s);
+    
     SDL_GPUTextureTransferInfo srcinf{};
     SDL_GPUTextureRegion dst{};
     srcinf.offset = 0;
-    srcinf.rows_per_layer = texture->Height; // 3D textures this will change
-    srcinf.pixels_per_row = texture->Width; // assume width tight packing no padding.
+    srcinf.rows_per_layer = h;
+    srcinf.pixels_per_row = w;
     srcinf.transfer_buffer = tBuffer.Handle;
-    dst.texture = texture->_Handle;
+    dst.texture = texture->GetHandle(_Context);
     dst.mip_level = mip;
-    dst.layer = slice;
-    dst.x = dst.y = dst.z = 0; // upload whole subimage for any slice/mip for now.
-    dst.w = texture->Width;
-    dst.h = texture->Height;
-    dst.d = 1; // depth count one for now.
+    dst.layer = (slice * texture->_ArraySize) + face;
+    dst.x = dst.y = dst.z = 0;
+    dst.w = w;
+    dst.h = h;
+    dst.d = 1;
     
     SDL_UploadToGPUTexture(_CurrentPass->_CopyHandle, &srcinf, &dst, false);
     
@@ -1157,7 +1235,7 @@ void RenderCommandBuffer::BindTextures(U32 slot, U32 num, RenderShaderType shade
     {
         binds[i].sampler = pSamplers[i]->_Handle;
         binds[i].texture = pTextures[i]->_Handle;
-        pTextures[i]->LastUsedFrame = frame;
+        pTextures[i]->_LastUsedFrame = frame;
         pSamplers[i]->LastUsedFrame = frame;
     }
     
@@ -1552,6 +1630,8 @@ void RenderContext::SetParameterDefaultTexture(RenderFrame& frame, ShaderParamet
 void RenderContext::SetParameterTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
                                         Ptr<RenderTexture> tex, RenderSampler* sampler)
 {
+    if(!DbgCheckOwned(tex))
+        return;
     U32 ind = (U32)-1;
     for(U32 i = 0; i < group->NumParameters; i++)
     {
@@ -1650,30 +1730,7 @@ void RenderContext::SetParameterIndexBuffer(RenderFrame& frame, ShaderParameters
     group->GetParameter(ind).GenericValue.Offset = (U32)startIndex;
 }
 
-// ================================== SCENE MANAGEMENT & RENDERING BULK
-
-void* RenderContext::AllocateMessageArguments(U32 sz)
-{
-    return TTE_ALLOC(sz, MEMORY_TAG_TEMPORARY);
-}
-
-void RenderContext::SendMessage(SceneMessage message)
-{
-    if(message.Type == SceneMessageType::START_INTERNAL)
-        TTE_ASSERT(message.Priority == INTERNAL_START_PRIORITY, "Cannot post a start scene message"); // priority set internally
-    std::lock_guard<std::mutex> _L{_MessagesLock};
-    _AsyncMessages.push(std::move(message));
-}
-
-void RenderContext::PushScene(Scene&& scene)
-{
-    Scene* pTemporary = TTE_NEW(Scene, MEMORY_TAG_TEMPORARY, std::move(scene)); // should be TTE_ALLOC, but handled separately.
-    SceneMessage msg{};
-    msg.Arguments = pTemporary;
-    msg.Priority = INTERNAL_START_PRIORITY;
-    msg.Type = SceneMessageType::START_INTERNAL;
-    SendMessage(msg);
-}
+// ================================== RENDERING BULK
 
 void RenderContext::PurgeResources()
 {
@@ -1694,6 +1751,28 @@ void RenderContext::PurgeResources()
         _Flags |= RENDER_CONTEXT_NEEDS_PURGE;
 }
 
+Bool RenderContext::DbgCheckOwned(const Ptr<Handleable> handle) const
+{
+    Bool bOwned = handle->OwnedBy(*this, false); // dont lock, it should have been. important!!
+#if DEBUG
+    TTE_ASSERT(bOwned, "Common resource used in render context was not locked before use."); // c++ error
+#endif
+    return bOwned;
+}
+
+Bool RenderContext::LockResource(const Ptr<Handleable> handle)
+{
+    if(handle->OwnedBy(*this, false))
+        return true; // ideal case
+    Bool bResult = handle->Lock(*this);
+    if(bResult)
+    {
+        std::lock_guard<std::mutex> G{_Lock};
+        _LockedResources.push_back(handle);
+    }
+    return bResult;
+}
+
 ShaderParametersStack* RenderContext::AllocateParametersStack(RenderFrame& frame)
 {
     return frame.Heap.NewNoDestruct<ShaderParametersStack>(); // on heap no destruct needed its very lightweight
@@ -1703,72 +1782,31 @@ ShaderParametersStack* RenderContext::AllocateParametersStack(RenderFrame& frame
 Bool RenderContext::_Populate(const JobThread& jobThread, void* pRenderCtx, void* pDT)
 {
     
-    // LOCALS
-    
     Float dt = *((Float*)&pDT);
     RenderContext* pContext = static_cast<RenderContext*>(pRenderCtx);
     RenderFrame& frame = pContext->GetFrame(true);
     
-    // PERFORM SCENE MESSAGES
-    
-    pContext->_MessagesLock.lock();
-    std::priority_queue<SceneMessage> messages = std::move(pContext->_AsyncMessages);
-    pContext->_MessagesLock.unlock();
-    
-    while(!messages.empty())
     {
-        SceneMessage msg = messages.top(); messages.pop();
-        if(msg.Type == SceneMessageType::START_INTERNAL)
+        // update delta layers
+        std::lock_guard<std::mutex> G{pContext->_Lock};
+        for(auto& dl: pContext->_DeltaLayers)
         {
-            // Start a scene
-            pContext->_AsyncScenes.emplace_back(std::move(*((Scene*)msg.Arguments)));
-            pContext->_AsyncScenes.back().OnAsyncRenderAttach(*pContext); // on attach. ready to prepare this frame.
-            TTE_DEL((Scene*)msg.Arguments); // delete the temp alloc
-            continue;
-        }
-        for(auto sceneit = pContext->_AsyncScenes.begin(); sceneit != pContext->_AsyncScenes.end(); sceneit++)
-        {
-            Scene& scene = *sceneit;
-            if(CompareCaseInsensitive(scene.GetName(), msg.Scene))
+            if(dl)
             {
-                const SceneAgent* pAgent = nullptr;
-                if(msg.Agent)
-                {
-                    auto it = scene._Agents.find(msg.Agent);
-                    if(it != scene._Agents.end())
-                    {
-                        pAgent = &(*it);
-                    }
-                    else
-                    {
-                        String sym = SymbolTable::Find(msg.Agent);
-                        TTE_LOG("WARN: cannot execute render scene message as agent %s was not found", sym.c_str());
-                    }
-                }
-                if(msg.Agent.GetCRC64() == 0 || pAgent != nullptr)
-                {
-                    if(msg.Type == SceneMessageType::STOP)
-                    {
-                        scene.OnAsyncRenderDetach(*pContext);
-                        pContext->_AsyncScenes.erase(sceneit); // remove the scene. done.
-                    }
-                    else
-                    {
-                        scene.AsyncProcessRenderMessage(*pContext, msg, pAgent);
-                        if(msg.Arguments)
-                        {
-                            TTE_FREE(msg.Arguments); // free any arguments
-                        }
-                    }
-                }
-                break;
+                pContext->_LayerStack.push_back(std::move(dl));
+            }
+            else
+            {
+                TTE_ASSERT(pContext->_LayerStack.size(), "Trying to pop layer but stack is empty");
+                pContext->_LayerStack.pop_back();
             }
         }
+        pContext->_DeltaLayers.clear();
     }
     
-    // HIGH LEVEL RENDER (ASYNC)
-    for(auto& scene : pContext->_AsyncScenes)
-        scene.PerformAsyncRender(*pContext, frame, dt);
+    RenderNDCScissorRect rect{}; // full screen for now
+    for(auto& layer: pContext->_LayerStack)
+        rect = layer->AsyncUpdate(frame, rect, dt);
     
     return true;
 }
@@ -1953,7 +1991,7 @@ void RenderFrameUpdateList::BeginRenderFrame(RenderCommandBuffer *pCopyCommands)
             
             SDL_GPUTransferBufferLocation src{};
             src.offset = (U32)offset;
-            src.transfer_buffer = local.Handle;
+            src.transfer_buffer = myBuffer->Handle;
             SDL_GPUBufferRegion dst{};
             dst.size = upload->Data.BufferSize;
             dst.offset = (U32)upload->DestPosition;
@@ -2002,7 +2040,7 @@ void RenderFrameUpdateList::BeginRenderFrame(RenderCommandBuffer *pCopyCommands)
             
             SDL_GPUTransferBufferLocation src{};
             src.offset = (U32)offset;
-            src.transfer_buffer = local.Handle;
+            src.transfer_buffer = myBuffer->Handle;
             SDL_GPUBufferRegion dst{};
             dst.size = (U32)upload->UploadSize;
             dst.offset = (U32)upload->DestPosition;
@@ -2022,6 +2060,40 @@ void RenderFrameUpdateList::BeginRenderFrame(RenderCommandBuffer *pCopyCommands)
             }
         }
         
+        // TEXTURES
+        for(MetaTextureUpload* upload = _MetaTexUploads; upload; upload = upload->Next)
+        {
+            _RenderTransferBuffer local = _Context._AcquireTransferBuffer((U32)upload->Data.BufferSize, *pCopyCommands);
+            
+            U8* staging = (U8*)SDL_MapGPUTransferBuffer(_Context._Device, local.Handle, false);
+            
+            //memcpy(staging, upload->Data.BufferData.get(), upload->Data.BufferSize);
+            memset(staging, 0xff, upload->Data.BufferSize);
+            
+            SDL_UnmapGPUTransferBuffer(_Context._Device, local.Handle);
+            
+            SDL_GPUTextureTransferInfo srcinf{};
+            SDL_GPUTextureRegion dst{};
+            srcinf.offset = 0;
+            U32 w,h,r,s{};
+            U32 totalw,totalh,depth,arrz{};
+            upload->Texture->GetImageInfo(upload->Mip, upload->Slice, upload->Face, w, h, r, s);
+            srcinf.rows_per_layer = h;
+            srcinf.pixels_per_row = w; // assume width tight packing no padding.
+            srcinf.transfer_buffer = local.Handle;
+            dst.texture = upload->Texture->GetHandle(&_Context);
+            dst.mip_level = upload->Mip;
+            upload->Texture->GetDimensions(totalw, totalh, depth, arrz);
+            dst.layer = (upload->Slice * arrz) + upload->Face;
+            dst.x = dst.y = dst.z = 0; // upload whole subimage for any slice/mip for now.
+            dst.w = w;
+            dst.h = h;
+            dst.d = 1; // upload one depth
+            
+            SDL_UploadToGPUTexture(pCopyCommands->_CurrentPass->_CopyHandle, &srcinf, &dst, false);
+            
+        }
+        
         if(groupStaging.Handle)
         {
             SDL_UnmapGPUTransferBuffer(_Context._Device, groupStaging.Handle);
@@ -2039,6 +2111,27 @@ void RenderFrameUpdateList::BeginRenderFrame(RenderCommandBuffer *pCopyCommands)
 void RenderFrameUpdateList::EndRenderFrame()
 {
     
+}
+void RenderFrameUpdateList::_DismissTexture(const Ptr<RenderTexture>& tex, U32 mip, U32 slice, U32 face)
+{
+    {
+        MetaTextureUpload* uploadPrev = nullptr;
+        for(MetaTextureUpload* upload = _MetaTexUploads; upload; upload = upload->Next)
+        {
+            if(upload->Texture == tex && upload->Mip == mip && upload->Slice == slice && upload->Face == face)
+            {
+                _TotalBufferUploadSize -= upload->Data.BufferSize;
+                _TotalNumUploads--;
+                if(uploadPrev)
+                    uploadPrev->Next = upload->Next;
+                else
+                    _MetaTexUploads = upload->Next;
+                *upload = MetaTextureUpload{}; // reset
+                break;
+            }
+            uploadPrev = upload;
+        }
+    }
 }
 
 void RenderFrameUpdateList::_DismissBuffer(const Ptr<RenderBuffer> &buf)
@@ -2117,4 +2210,27 @@ void RenderFrameUpdateList::UpdateBufferDataStream(const DataStreamRef &srcStrea
     _StreamUploads = upload;
     _TotalBufferUploadSize += nBytes;
     _TotalNumUploads++;
+}
+
+void RenderFrameUpdateList::UpdateTexture(const Ptr<RenderTexture>& destTexture, U32 mip, U32 slice, U32 face)
+{
+    if(!_Context.DbgCheckOwned(destTexture))
+        return;
+    destTexture->_Context = &_Context;
+    if(destTexture->_LastUpdatedFrame == _Frame.FrameNumber)
+    {
+        _DismissTexture(destTexture, mip, slice, face);
+    }
+    else
+    {
+        destTexture->_LastUpdatedFrame = _Frame.FrameNumber;
+    }
+    MetaTextureUpload* upload = _Frame.Heap.New<MetaTextureUpload>();
+    upload->Data = destTexture->_Images[destTexture->GetImageIndex(mip, slice, face)].Data;
+    upload->Mip = mip;
+    upload->Texture = destTexture;
+    upload->Next = _MetaTexUploads;
+    _MetaTexUploads = upload;
+    _TotalNumUploads++;
+    _TotalBufferUploadSize += upload->Data.BufferSize;
 }

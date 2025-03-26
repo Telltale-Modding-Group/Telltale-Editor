@@ -21,11 +21,237 @@
 #include <filesystem>
 #include <algorithm>
 #include <map>
+#include <thread>
+#include <atomic>
+#include <random>
 
 // folders excluded from disk unless explicitly mounted when recursively going through directories
 #define EXCLUDE_SYSTEM_FILTER "!*.DS_Store;!*.app/*"
 
 // HIGH LEVEL TELLTALE RESOURCE SYSTEM
+
+// ================================================== RESOURCE LIFETIME MANAGEMENT ==================================================
+
+class ResourceRegistry;
+
+// If you inherit from this you can lock handles to files.
+class HandleLockOwner
+{
+    
+    friend class Handleable;
+    
+    U32 _LockOwnerID;
+    
+public:
+    
+    HandleLockOwner(HandleLockOwner&&) = default; // allow moving
+    HandleLockOwner& operator=(HandleLockOwner&&) = default;
+    
+    HandleLockOwner(const HandleLockOwner&) = delete; // copying is NOT allowed. we have locked it, are not sharing it. like me with money.
+    HandleLockOwner& operator=(const HandleLockOwner&) = delete;
+ 
+    HandleLockOwner();
+    
+#ifdef DEBUG
+    virtual ~HandleLockOwner() = default; // to check no derives for specific
+#else
+    ~HandleLockOwner() = default;
+#endif
+    
+};
+
+// All common classes which are normalised into from telltale types (eg meshes, textures, dialogs) inherit from this to be used in Handle.
+class Handleable : public std::enable_shared_from_this<Handleable>
+{
+    
+    mutable std::atomic<U32> _LockKey;
+    
+public:
+    
+    // Returns false if locked already (ie fail)
+    virtual Bool Lock(const HandleLockOwner& lockOwner) final; // locks the resource returning the lock key. this is done to ensure no other accesses
+    
+    virtual void Unlock(const HandleLockOwner& lockOwner) final;
+    
+    Bool IsLocked() const;
+    
+    Bool OwnedBy(const HandleLockOwner& lockOwner, Bool bLockIfAvail) const;
+    
+    inline Bool ForceLock(const HandleLockOwner& lockOwner)
+    {
+        Bool lock = Lock(lockOwner);
+        TTE_ASSERT(lock, "Lock acquisition failed but was required here");
+        return lock;
+    }
+    
+    virtual void FinaliseNormalisationAsync() = 0;
+    
+    Handleable() = default;
+    
+    Handleable(const Handleable&) = delete;
+    Handleable& operator=(const Handleable&) = delete; // no copy allowed. must be done explicitly
+    
+    inline Handleable(Handleable&& rhs)
+    {
+        this->operator=(std::move(rhs));
+    }
+    
+    Handleable& operator=(Handleable&& rhs); // moveable though.
+    
+    virtual ~Handleable() = default;
+    
+};
+
+enum class HandleFlags
+{
+    NEEDS_NORMALISATION = 1, // needs to be normalised
+    NEEDS_SERIALISE_IN = 2, // needs to be serialised in from the stream
+    NEEDS_DESTROY = 4, // needs to be destroyed
+    LOADED = 8, // has been normalised into, so is loaded.
+    
+    // other flags in future, serialise out needed, load dependent resources (eg textures in a mesh, non embeds in chore etc)
+};
+
+// Internal handle object info used by registry. Handles refer to these under the hood.
+struct HandleObjectInfo
+{
+    
+    Symbol _ResourceName; // name of this resource
+    Meta::ClassInstance _Instance; // instance in the meta system
+    Ptr<Handleable> _Handle; // pointer to actual alive common instance
+    DataStreamRef _OpenStream; // if it needs to be serialised in or out this is the stream to/from
+    Flags _Flags; // any flags
+    
+    void _OnUnload(ResourceRegistry& registry, std::unique_lock<std::mutex>& lck); // called when unloading, may be async
+    
+    inline Bool operator<(const HandleObjectInfo& rhs) const
+    {
+        return _ResourceName < rhs._ResourceName;
+    }
+    
+    inline Bool operator==(const HandleObjectInfo& rhs) const
+    {
+        return _ResourceName == rhs._ResourceName;
+    }
+    
+};
+
+// Function proto for common instance allocator
+using CommonInstanceAllocator = Ptr<Handleable> ();
+
+template<typename T> Ptr<Handleable> AllocateCommon()
+{
+    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
+    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE);
+}
+
+// Non-templated version for below
+class HandleBase
+{
+    
+    friend class ResourceRegistry;
+    
+protected:
+    
+    Ptr<Handleable> _GetObject(Ptr<ResourceRegistry>& registry);
+    
+    Symbol _ResourceName;
+    CommonInstanceAllocator* _AllocatorFn; // for creating the common class
+    
+    inline HandleBase(Symbol rn, CommonInstanceAllocator* alloc) : _ResourceName(rn), _AllocatorFn(alloc) {}
+    
+    inline void _Validate()
+    {
+        TTE_ASSERT(_AllocatorFn, "HandleBase calls must be done via a Handle<T> class, as the type of common class must be known!");
+    }
+    
+    void _SetObject(Ptr<ResourceRegistry>& registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded);
+    
+public:
+    
+    HandleBase() = default;
+    
+    Bool IsLoaded(Ptr<ResourceRegistry>& registry); // return if its currently loaded. Will return false if there is a future load in progress which hasn't been progressed
+    
+    void EnsureIsLoaded(Ptr<ResourceRegistry>& registry); // ensure this handle is currently loaded, the latest load
+    
+    // sets object file (eg a .d3dmesh). Specify to unload old resource, and if you want to ensure its loaded.
+    template<typename T>
+    inline void SetObject(Ptr<ResourceRegistry>& registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
+    {
+        if(!_AllocatorFn)
+        {
+            _AllocatorFn = &AllocateCommon<T>;
+        }else TTE_ASSERT(_AllocatorFn == &AllocateCommon<T>, "Cannot switch between handle underlying type! It must stay the same");
+        _SetObject(registry, name, bUnloadOld, bEnsureLoaded);
+    }
+    
+    // Similar but does not load just sets the name, can be loaded later.
+    inline void SetObject(Symbol name)
+    {
+        _ResourceName = name;
+    }
+    
+};
+
+// Handle to a common resource. This is basically a templated version of HandleBase, but caches the loaded handle to the common resource.
+template<typename T>
+class Handle : protected HandleBase
+{
+    
+    Ptr<T> _Cached;
+    
+    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
+    
+    inline Handle(Symbol rn) : HandleBase(rn, &AllocateCommon<T>), _Cached{}
+    {
+    }
+    
+public:
+    
+    inline Handle() : HandleBase(Symbol(), &AllocateCommon<T>) {}
+    
+    // Gets the underlying resouce. The resource will always be valid but may not be loaded. You can use other functionality to ensure its loaded.
+    inline Ptr<T> GetObject(Ptr<ResourceRegistry>& registry, Bool bEnsureLoaded)
+    {
+        if(_Cached)
+            return _Cached;
+        if(bEnsureLoaded)
+            HandleBase::EnsureIsLoaded(registry);
+        Ptr<Handleable> resource = _GetObject(registry);
+        if(!resource)
+            return {};
+        T* casted = dynamic_cast<T*>(resource.get());
+        TTE_ASSERT(casted, "Handle<T> has template parameter which does not match the underlying resource type!");
+        _Cached = std::dynamic_pointer_cast<T>(resource);
+        return _Cached;
+    }
+    
+    inline void SetObject(Ptr<ResourceRegistry>& registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
+    {
+        return HandleBase::SetObject<T>(registry, name, bUnloadOld, bEnsureLoaded);
+    }
+    
+    inline Bool IsLoaded(Ptr<ResourceRegistry>& registry)
+    {
+        return HandleBase::IsLoaded(registry);
+    }
+    
+    // Flushes the cached value, meaning if its updated the cached resource here will get updated next GetObject
+    inline void EnsureIsLoaded(Ptr<ResourceRegistry>& registry)
+    {
+        HandleBase::EnsureIsLoaded(registry);
+        _Cached.reset();
+    }
+    
+    inline void SetObject(Symbol name)
+    {
+        HandleBase::SetObject(name);
+    }
+    
+};
+
+// ================================================== RESOURCE PATCH SETS ==================================================
 
 enum class ResourceSetVersion
 {
@@ -53,6 +279,8 @@ struct ResourceSet
     std::map<String, String> Mappings; // logical mappings
     
 };
+
+// ================================================== STRING MASK HELPER ==================================================
 
 /// A string mask to help find resources.
 class StringMask : public String {
@@ -124,6 +352,8 @@ inline Bool operator==(const String& lhs, const StringMask& mask) // otherway ro
 static_assert(sizeof(String) == sizeof(StringMask), "String and StringMask must have same size and be castable.");
 
 struct ResourceLocation;
+
+// ================================================== RESOURCE DIRECTORIES ==================================================
 
 /**
  A source for resources. This is a virtual class and specific children specify different locations where resources are searched for DataStreams.
@@ -371,7 +601,9 @@ public:
     
 };
 
-// TODO other directory types: PS3 encrypted ISOs (AES 128), STFS (?). store enc keys within meta state.
+// TODO other directory types: encrypted stuff, STFS saves..
+
+// ================================================== RESOURCE HIGH LEVEL LOCATIONS ==================================================
 
 /**
  Base class for resource locations. These are generated from resource sets.
@@ -481,6 +713,38 @@ struct ResourceConcreteLocation : ResourceLocation
     
 };
 
+// ======================== RESOURCE PRELOADING (INTERNAL) | USE API FROM RESOURCE REGISTRY ================================
+
+// Number of preload batches
+#define STATIC_PRELOAD_BATCH_SIZE 32
+
+struct AsyncResourcePreloadBatchJob // async serialise and normalises
+{
+    
+    enum Flag
+    {
+        BATCH_HIGH_PRIORITY = 1, // overwrite existing resources
+    };
+    
+    Ptr<ResourceRegistry> Registry;
+    U32 NumResources = 0; // 0 to 32 below
+    Flags BatchFlags;
+    HandleObjectInfo HOI[STATIC_PRELOAD_BATCH_SIZE];
+    CommonInstanceAllocator* Allocators[STATIC_PRELOAD_BATCH_SIZE];
+    
+};
+
+struct PreloadBatchJobRef // internal waitable batch job ref
+{
+    
+    U32 PreloadOffset;
+    JobHandle Handle;
+    
+};
+
+Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* job, void*);
+
+// ================================================== RESOURCE REGISTRY MAIN CLASS ==================================================
 
 /**
  A resource registry. There can be multiple instances of these. These manage finding resources, preloading batches of resources and resource sets.
@@ -491,7 +755,7 @@ struct ResourceConcreteLocation : ResourceLocation
  Ensure that these only exist BETWEEN game switches!
  Concrete locations have a trailing slash, while logical locators do not!
  */
-class ResourceRegistry : public GameDependentObject
+class ResourceRegistry : public GameDependentObject, public std::enable_shared_from_this<ResourceRegistry>
 {
     
     LuaManager& _LVM; // local LVM used for this registry. Must be alive and acts as a parent!
@@ -506,7 +770,21 @@ class ResourceRegistry : public GameDependentObject
     
     std::vector<String> _DeferredApplications; // to be applied resource sets. will be done in mount when available, not in update.
     
+    std::set<HandleObjectInfo> _AliveHandles; // alive handles
+    
+    std::vector<HandleObjectInfo> _DirtyHandles; // handles requiring any updates
+    
+    U32 _PreloadOffset; // current number of files preloaded. can wait until this number reaches a given number or force it to be one to ensure loads completed.
+    
+    U32 _PreloadSize; // total number of preload batches
+    
+    std::vector<PreloadBatchJobRef> _PreloadJobs;
+    
     Ptr<ResourceLocation> _Locate(const String& logicalName); // locate internal no lock
+    
+    void _ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::mutex>& lck);
+    
+    void _ProcessDirtyHandles(Float budget, U64 startStamp, std::unique_lock<std::mutex>& lck);
     
     void _CheckLogical(const String& name); // checks asserts its OK.
     
@@ -524,7 +802,7 @@ class ResourceRegistry : public GameDependentObject
     // configure sets and unload resources if needed. can defer until
     void _ReconfigureSets(const std::set<ResourceSet*>& turnOff, const std::set<ResourceSet*>& turnOn, std::unique_lock<std::mutex>& lck, Bool bDefer);
     
-    void _UnloadResources(const std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
+    void _UnloadResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
                           std::unique_lock<std::mutex>& lck, U32 maxNumUnloads); // perform resource unload
     
     // gather resources to unload for this resource set
@@ -551,12 +829,19 @@ class ResourceRegistry : public GameDependentObject
     Bool _ImportAllocateArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
                                     Ptr<ResourceLocation>& parent, std::unique_lock<std::mutex>& lck);
     
+    Bool _EnsureHandleLoadedLocked(const HandleBase& handle, Bool bOnlyQuery); // locks
+    
+    Bool _SetupHandleResourceLoad(HandleObjectInfo& hoi, std::unique_lock<std::mutex>& lck); // performs a resource load. finds and opens stream and sets serialise and normalise flags
+    
     static StringMask _ArchivesMask(Bool bLegacy);
     
     friend U32 luaResourceSetRegister(LuaManager& man); // access allowed
     
     friend struct ToolContext;
     friend struct ResourcesExtractionTask;
+    friend class HandleBase;
+    
+    friend Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*);
     
     /**
      Constructor. The lua manager version passed in MUST match any game scripts lua versions being run! This is because this will run any resource sets, which may use an older version!
@@ -584,7 +869,7 @@ public:
     }
     
     /**
-     Updates the resource registry. If any resource unloads are deferred they will happen here. Doesn't need to be called if you have not explicitly said to defer anything.
+     Updates the resource registry. If any resource unloads are deferred they will happen here. Doesn't need to be called if you have not explicitly said to defer or preload anything.
      Pass in the time budget you want to maximum spend on this function such that anything not done will get done next call. In seconds.
      */
     void Update(Float timeBudget);
@@ -648,7 +933,7 @@ public:
     void ResourceSetEnable(const Symbol& name, I32 priorityOverride = UINT32_MAX);
     
     /**
-     Disables a resource set. Unloads any of its unlocked resources. Optionally specify to defer any unloads to a later Update call such that work is spread out.
+     Disables a resource set. Unloads its resources, releasing the references. Optionally specify to defer any unloads to a later Update call such that work is spread out.
      */
     void ResourceSetDisable(const Symbol& name, Bool bDeferUnloads);
     
@@ -716,5 +1001,16 @@ public:
     
     // Gets all resource names which match the optional mask, else all, in all currently resource sets.
     void GetResourceNames(std::set<String>& outNames, const StringMask* optionalMask);
+    
+    // Sets a set of resources to be loaded, which will be loaded async.
+    // The handles should have been set with the resource names but not loaded, ie SetObject with the booleans all false.
+    // Set overwrite to true to overwrite any existing resources which may be loaded when inserting.
+    U32 Preload(std::vector<HandleBase>&& resourceHandles, Bool bOverwrite);
+    
+    // Preload offset. If bigger or equal to a return value of a previous Preload(), you can ensure all of those handles have loaded.
+    U32 GetPreloadOffset();
+    
+    // Wait until preload offset finishes. Must be a return value from Preload
+    void WaitPreload(U32 preloadOffset);
     
 };

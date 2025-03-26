@@ -4,19 +4,36 @@
 
 #include <Core/Context.hpp>
 #include <Renderer/RenderAPI.hpp>
-
-#include <Resource/ResourceRegistry.hpp>
-
-#include <Common/Scene.hpp>
+#include <Common/Texture.hpp>
 
 #include <vector>
 #include <set>
+#include <type_traits>
 
 // Default capped frame rate to stop CPU usage going through the roof. Between 1 and 120.
 #define DEFAULT_FRAME_RATE_CAP 60
 
 // Threshold on the number of frames between last use and current frame at which a resource will be freed due to not being hot in use.
 #define DEFAULT_HOT_RESOURCE_THRESHOLD 256
+
+struct DefaultRenderTexture
+{
+    
+    DefaultRenderTextureType Type;
+    Ptr<RenderTexture> Texture;
+    
+};
+
+struct DefaultRenderMesh
+{
+    
+    DefaultRenderMeshType Type;
+    Ptr<RenderPipelineState> PipelineState;
+    Ptr<RenderBuffer> IndexBuffer;
+    Ptr<RenderBuffer> VertexBuffer; // only one vertex buffer for default ones, they are simple.
+    U32 NumIndices = 0;
+    
+};
 
 struct PendingDeletion
 {
@@ -26,11 +43,44 @@ struct PendingDeletion
 
 enum RenderContextFlags
 {
-    RENDER_CONTEXT_NEEDS_PURGE,
+    RENDER_CONTEXT_NEEDS_PURGE = 1,
+};
+
+class RenderContext;
+
+// Layer inside the renderer. Layers are like abstractions to what is rendered. OnAttach & Detach not defined, use constructor / dtor for this.
+class RenderLayer
+{
+    
+    friend class RenderContext;
+    
+public:
+    
+    virtual ~RenderLayer() = default;
+    
+    inline String GetName() const { return _Name; } // layer name
+    
+    inline RenderContext& GetRenderContext() { return _Context; } // render context
+    
+    explicit RenderLayer(String name, RenderContext& context);
+    
+    void GetWindowSize(U32& width, U32& height); // get the current window size
+    
+private:
+    
+    RenderContext& _Context;
+    
+    const String _Name;
+    
+protected:
+    
+    // Render & update the layer. Make sure to apply scissor argument before rendering. Return the scissor to pass down to subsequent layers.
+    virtual RenderNDCScissorRect AsyncUpdate(RenderFrame& frame, RenderNDCScissorRect parentScissor, Float deltaTime) = 0; // perform rendering
+    
 };
 
 /// Represents an execution environment for running scenes, which holds a window.
-class RenderContext
+class RenderContext : public HandleLockOwner
 {
 public:
     
@@ -45,6 +95,13 @@ public:
     // Returns if the current API uses a row major matrix ordering
     Bool IsRowMajor();
     
+    // Pops a layer. This could stop a current scene rendering for example. Will update next frame. If you previously called push, this reverts this.
+    void PopLayer();
+    
+    // Pushes a layer. T must derive from RenderLayer. Include extra arguments in args, not the render context as all require that as the first arg.
+    template<typename T, typename... Args>
+    inline WeakPtr<T> PushLayer(Args&&... args);
+    
     // Current frame index.
     inline U64 GetCurrentFrameNumber()
     {
@@ -55,13 +112,6 @@ public:
     inline U64 GetRenderFrameNumber()
     {
         return _Frame[_MainFrameIndex ^ 1].FrameNumber;
-    }
-    
-    // Attach the resource registry. Must be assigned before frame updates.
-    inline void AttachResourceRegistry(const Ptr<ResourceRegistry>& pResourceSystem)
-    {
-        std::lock_guard<std::mutex> G{_Lock};
-        _AttachedRegistry = pResourceSystem;
     }
     
     // Call these before and after any instance is created. Initialises SDL for multiple contexts
@@ -85,14 +135,6 @@ public:
     {
         return TTE_NEW_PTR(RenderTexture, MEMORY_TAG_RENDERER);
     }
-    
-    // Pushes a scene to the currently rendering scene stack. No accesses to this can be made directly after this (internally held).
-    // Stop the scene using a stop message
-    void PushScene(Scene&&);
-    
-    void* AllocateMessageArguments(U32 size); // freed automatically when executing the message (temp aloc)
-    
-    void SendMessage(SceneMessage message); // send a message to a scene to do something
     
     // Purge unused transfer buffers and other GPU resources to free up memory
     void PurgeResources();
@@ -178,6 +220,10 @@ public:
         _HotResourceThresh = newValue;
     }
     
+    Bool DbgCheckOwned(const Ptr<Handleable> handle) const; // thread safe to check if we own this resource. if not it was not locked and should have been
+    
+    Bool LockResource(const Ptr<Handleable> handle); // thread safe
+    
 private:
     
     // Checks and ensures are being called from the main thread.
@@ -199,6 +245,8 @@ private:
     }
     
     // =========== INTERNAL RENDERING FUNCTIONALITY
+    
+    void _PushLayer(Ptr<RenderLayer> pLayer);
     
     ShaderParametersGroup* _CreateParameterGroup(RenderFrame&, ShaderParameterTypes);
     
@@ -258,18 +306,15 @@ private:
     std::set<_RenderTransferBuffer> _AvailTransferBuffers;
     std::vector<Ptr<RenderSampler>> _Samplers;
     std::vector<PendingDeletion> _PendingSDLResourceDeletions{};
+    std::vector<Ptr<Handleable>> _LockedResources; // locked resources which we use (eg textures, meshes etc). common to all layers.
+    std::vector<Ptr<RenderLayer>> _DeltaLayers; // if nullptr means a pop. locked
     U32 _Flags = 0;
+    
+    std::vector<Ptr<RenderLayer>> _LayerStack; // NOT THREAD SAFE. ONLY ACCESS
     
     // ACCESS ONLY THROUGH _GETDEFAULTTEXTURE AND _GETDEFAULTMESH
     std::vector<DefaultRenderMesh> _DefaultMeshes;
     std::vector<DefaultRenderTexture> _DefaultTextures;
-    
-    std::vector<Scene> _AsyncScenes; // populator job access ONLY (ensure one thread access at a time). list of active rendering scenes.
-    
-    std::mutex _MessagesLock; // for below
-    std::priority_queue<SceneMessage> _AsyncMessages; // messages stack
-    
-    Ptr<ResourceRegistry> _AttachedRegistry; // attached resource registry
     
     friend struct RenderPipelineState;
     friend struct RenderShader;
@@ -279,7 +324,7 @@ private:
     friend struct RenderVertexState;
     friend struct RenderBuffer;
     friend class RenderFrameUpdateList;
-    friend class Scene;
+    friend class RenderLayer;
     
     // Both defined in render defaults source.
     friend void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* cmds, std::vector<DefaultRenderTexture>& textures);
@@ -306,4 +351,13 @@ inline void FinalisePlatformMatrix(RenderContext& context, Vector4 (&out)[4], co
         out[2] = in.GetColumn(2);
         out[3] = in.GetColumn(3);
     }
+}
+
+template<typename T, typename... Args> // note we must have 1 or more arguments but they should require that (comma in macro)
+inline WeakPtr<T> RenderContext::PushLayer(Args&&... args)
+{
+    static_assert(std::is_base_of<RenderLayer, T>::value, "T is not a render layer!");
+    Ptr<T> pLayer = TTE_NEW_PTR(T, MEMORY_TAG_RENDER_LAYER, *this, std::forward<Args>(args)...);
+    _PushLayer(pLayer);
+    return pLayer; // as weak
 }

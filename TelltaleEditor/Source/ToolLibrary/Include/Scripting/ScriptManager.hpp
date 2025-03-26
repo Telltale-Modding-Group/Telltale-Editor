@@ -42,11 +42,6 @@ struct LuaFunctionCollection
 
 #define PUSH_GLOBAL_I(Col, Name, Val) Col.IntegerGlobals[Name] = Val
 
-LuaFunctionCollection luaGameEngine(Bool bWorker); // actual engine game api in EngineLUAApi.cpp
-LuaFunctionCollection luaLibraryAPI(Bool bWorker); // actual api in LibraryLUAApi.cpp
-
-void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker); // actual game engine resource API into luaGameEngine function collection (Internal)
-
 // Provides high level scripting access. Most of the functions are the same as Telltales actual ScriptManager API.
 namespace ScriptManager
 {
@@ -264,7 +259,7 @@ namespace ScriptManager
     inline Symbol ToSymbol(LuaManager& man, I32 i)
     {
         String v = man.ToString(i);
-        Symbol sym = SymbolFromHexString(v);
+        Symbol sym = SymbolFromHexString(v, true);
         return sym.GetCRC64() == 0 ? Symbol(v) : sym;
     }
     
@@ -275,4 +270,17 @@ namespace ScriptManager
         man.PushLString(val.length() == 0 ? SymbolToHexString(value) : val);
     }
     
+}
+
+LuaFunctionCollection luaGameEngine(Bool bWorker); // actual engine game api in EngineLUAApi.cpp
+LuaFunctionCollection luaLibraryAPI(Bool bWorker); // actual api in LibraryLUAApi.cpp
+
+void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker); // actual game engine resource API into luaGameEngine function collection (Internal)
+
+inline void InjectFullLuaAPI(LuaManager& man, Bool bWorker)
+{
+    LuaFunctionCollection Col = luaGameEngine(bWorker); // adds resource api
+    ScriptManager::RegisterCollection(man, Col);
+    Col = luaLibraryAPI(bWorker);
+    ScriptManager::RegisterCollection(man, Col);
 }

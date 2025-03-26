@@ -170,6 +170,27 @@ namespace Meta
                 return 0;
             }
             
+            ScriptManager::TableGet(man, "Vendors");
+            if(man.Type(-1) == LuaType::STRING)
+            {
+                String val = ScriptManager::PopString(man);
+                if(val.length() > 1) // at least 2
+                {
+                    std::stringstream ss(val);
+                    String token{};
+                    while (std::getline(ss, token, ';'))
+                    {
+                        reg.ValidVendors.push_back(token);
+                    }
+                }
+            }
+            else
+            {
+                TTE_ASSERT(false, "Game table must specify Vendors as a string");
+                man.Pop(1);
+                return 0;
+            }
+            
             ScriptManager::TableGet(man, "LuaVersion");
             String v = ScriptManager::PopString(man);
             reg.LVersion = v == "5.0.2" ? LuaVersion::LUA_5_0_2 : v == "5.1.4" ? LuaVersion::LUA_5_1_4 : LuaVersion::LUA_5_2_3;
