@@ -188,6 +188,8 @@ void FreeAnonymousMemory(U8*, U64); // free memory associated with allocate anon
 #define TTE_ROUND_UPOW2_U32(dstVar, srcVar) { dstVar = srcVar - 1; dstVar |= dstVar >> 1; dstVar |= dstVar >> 2; \
 dstVar |= dstVar >> 4; dstVar |= dstVar >> 8; dstVar |= dstVar >> 16; dstVar++; }
 
+#define ENDIAN_SWAP_U32(_data) ((((_data ^ (_data >> 16 | (_data << 16))) & 0xFF00FFFF) >> 8) ^ (_data >> 8 | _data << 24))
+
 inline void NullDeleter(void*) {} // Useful in shared pointer, in which nothing happens on the final deletion.
 
 // Helper class. std::priority_queue normally does not let us access by finding elements. Little hack to bypass and get internal vector container.
@@ -200,6 +202,13 @@ public:
     
     auto get_cmp() { return this->comp; }
 };
+
+inline String StringTrim(const String& str) {
+    size_t first = str.find_first_not_of(" \t\n\r\f\v");
+    if (first == std::string::npos) return "";
+    size_t last = str.find_last_not_of(" \t\n\r\f\v");
+    return str.substr(first, last - first + 1);
+}
 
 // Checks if a string starts with the other string prefix
 inline Bool StringStartsWith(const String& str, const String& prefix)
@@ -326,7 +335,7 @@ enum MemoryTag
     MEMORY_TAG_TRANSIENT_FENCE, // small U32 allocation. could be optimised in the future
     MEMORY_TAG_RESOURCE_REGISTRY, // resource registry
     MEMORY_TAG_COMMON_INSTANCE, // common editor type instance, eg Mesh,Texture,Dialog,Chore,etc
-    MEMORY_TAG_RENDER_LAYER,
+    MEMORY_TAG_RENDER_LAYER, // render layers, editor layer, scene runtime etc
 };
 
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.

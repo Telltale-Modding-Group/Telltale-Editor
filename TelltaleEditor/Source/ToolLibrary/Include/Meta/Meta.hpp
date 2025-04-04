@@ -864,7 +864,7 @@ namespace Meta {
             }
         }
         TTE_ASSERT(false, "Member %s::%s does not exist! Abort!!", pClass->Name.c_str(), name.c_str());
-        return *((T*)0); // !! abort.
+        return *((T*)FileNull()); // !! abort.
     }
     
     // Returns if the given instance has a member of the given name

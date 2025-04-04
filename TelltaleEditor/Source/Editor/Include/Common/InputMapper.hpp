@@ -3,6 +3,8 @@
 #include <Core/Config.hpp>
 #include <Resource/ResourceRegistry.hpp>
 #include <Scripting/ScriptManager.hpp>
+#include <Core/BitSet.hpp>
+#include <Core/Math.hpp>
 
 #include <vector>
 
@@ -13,9 +15,13 @@
 
 // IMAP codes. Thank god telltale didn't change these once from texas holem all up to sam and max remaster.
 // Some codes are more specific than others but still work
-enum class InputCode {
+enum class InputCode : U32 {
     
-    NONE,
+    // T3 COMMON INPUT CODES. (PLATFORM SPECIFIC BELOW, WHICH MAP TO THESE)
+    
+    COMMON_MAPPINGS_START = 0x0,
+    
+    NONE = 0x0,
     
     BACKSPACE = 0x8,
     TAB = 0x9,
@@ -121,8 +127,8 @@ enum class InputCode {
     GAMEPAD_DPAD_RIGHT = 0x20E,
     GAMEPAD_DPAD_LEFT = 0x20F,
     
-    ABSTRACT_CONFIRM = 0x300, // any enter, yes, etc action
-    ABTRACT_CANCEL = 0x301, // cancel buttons etc
+    ABSTRACT_CONFIRM = 0x300, // any enter, yes, etc action (left mouse mapped to this)
+    ABSTRACT_CANCEL = 0x301, // cancel buttons etc (right mouse mapped to this)
     MOUSE_MIDDLE = 0x302,
     MOUSE_X = 0x303,
     MOUSE_DOUBLE_LEFT = 0x304,
@@ -152,8 +158,14 @@ enum class InputCode {
     GESTURE_2TOUCHES_DOWN = 0x518,
     GESTURE_3TOUCHES_DOWN = 0x519,
     
+    COMMON_MAPPINGS_END = 0x1000,
+    PLATFORM_MAPPINGS_START = 0x1000,
+    
     // PLATFORM SPECIFICS. byte 2: 0x11 => XB360, 0x12 => WIIU, 0x13 => PS3, 0x14 => iPhone, 0x15 => Vita, 0x16 => Apple: Gamepads, tvOS
     // 0x17 => PS4, 0x18 => XBOne, 0x19 => Switch
+    
+    PC_MOUSE_LEFT = 0x1080, // left click. PC / mac / linux
+    PC_MOUSE_RIGHT = 0x1081,
     
     XB360_A = 0x1100,
     XB360_B = 0x1101,
@@ -291,6 +303,8 @@ enum class InputCode {
     NX_RIGHT_SL = 0x1912,
     NX_RIGHT_SR = 0x1913,
     
+    PLATFORM_MAPPINGS_END = 0x2000,
+    
 };
 
 struct InputCodeDesc
@@ -305,6 +319,8 @@ struct InputCodeDesc
 };
 
 extern const InputCodeDesc InputCodeDescs[];
+
+class RuntimeInputEvent;
 
 class InputMapper : public Handleable
 {
@@ -330,7 +346,18 @@ public:
     // Registers scene normalisers and specialisers
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
     
+    // Parses the given SDL event. If its a runtime input event, puts into output event and returns true. May create multiple for multiple mappings
+    static void ConvertRuntimeEvents(const SDL_Event& sdlEvent, std::vector<RuntimeInputEvent>& events, Bool bInPrimaryWindow, Vector2 windowSize);
+    
     virtual void FinaliseNormalisationAsync() override;
+    
+    static constexpr Bool IsCommonInputCode(InputCode code) { return ((U32)code & 0x1000) == 0 && (((U32)code & 0xFFF) != 0); }
+    
+    static constexpr Bool IsPlatformInputCode(InputCode code) { return ((U32)code & 0x1000) != 0; }
+    
+    static String GetInputCodeName(InputCode key);
+    
+    static InputCode GetInputCode(String name);
     
 private:
     
@@ -339,5 +366,65 @@ private:
     std::vector<Mapping> _EventMappings;
     
     String _Name;
+    
+};
+
+// Setup by the Lua for game switches, this is the platform input mapper which maps platform codes to common input codes. These then get processed by IMAPS.
+class PlatformInputMapper
+{
+    
+    String _Platform;
+    
+    BitSetRanged<InputCode, InputCode::COMMON_MAPPINGS_START, InputCode::COMMON_MAPPINGS_END> _CommonKeyFlags; // for fast map. if key is 1, then has a mapping
+    BitSetRanged<InputCode, InputCode::PLATFORM_MAPPINGS_START, InputCode::PLATFORM_MAPPINGS_END> _PlatformKeyFlags; // for fast map. if key is 1, then has a mapping
+    
+    struct EventMapping
+    {
+        U32 PlatformInputCode;
+        U32 CommonInputCode;
+    };
+    
+    std::vector<EventMapping> _MappedEvents;
+    
+    std::mutex _Lock;
+    
+    void _AddEvent(U32 platformKey, U32 key); // not thread safe done in init
+    
+public:
+    
+    // queues a platform event. if its a platform key with no mapping, its ignored. all common ones go through always.
+    // result is always a common key or is none if it should be ignored
+    static void QueuePlatformEvent(RuntimeInputEvent event, std::vector<RuntimeInputEvent>& outEvents);
+    
+    static void GetMappingForInput(InputCode key, std::vector<InputCode>& outPlatformKeys); // safely gets mappings a common key
+    
+    static void Initialise(String platformName);
+    static void Shutdown();
+    
+};
+
+// ============================================= RUNTIME EVENT INPUT MAPPINGS =============================================
+
+// Runtime event for input. In terms of the layer stack, these get passed *DOWN*
+class RuntimeInputEvent
+{
+public:
+    
+    enum Flag
+    {
+        EVENT_HANDLED = 1, // already handled by a higher level. You can still process it.
+        EVENT_PRIMARY_WINDOW = 2, // primary window is currently focused. may be ignored for multiple windows.
+    };
+    
+    mutable Flags EventFlags;
+    InputCode Code; // Mouse L, etc
+    InputMapper::EventType Type; // Begin, End, etc
+    Float X, Y; // if a pressure value etc, then stored in X. secondary values in Y.
+    
+    // THINK about using this event if its been handled already. In editor, if it has, tend to ignore. Unless trying to quit scene runtime for example.
+    inline Bool BeenHandled() const { return EventFlags.Test(EVENT_HANDLED); }
+    
+    // Note this can be done even in const!
+    inline void SetHandled() const { EventFlags.Add(EVENT_HANDLED); }
     
 };

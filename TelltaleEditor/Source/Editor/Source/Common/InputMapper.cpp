@@ -1,5 +1,9 @@
 #include <Common/InputMapper.hpp>
 
+#include <sstream>
+
+// =========================== INPUT MAPPER (IMAP)
+
 class InputMapperAPI
 {
 public:
@@ -21,12 +25,6 @@ public:
         mapping.Type = (InputMapper::EventType)man.ToInteger(3);
         mapping.ScriptFunction = man.ToString(4);
         mapping.ControllerIndexOverride = man.ToInteger(5);
-        
-        // patch for platform mouse L&R copies
-        if(mapping.Code == (InputCode)0x1080)
-            mapping.Code = InputCode::MOUSE_LEFT_BUTTON;
-        if(mapping.Code == (InputCode)0x1081)
-            mapping.Code = InputCode::MOUSE_RIGHT_BUTTON;
         
         imap->_EventMappings.push_back(mapping);
         return 0;
@@ -50,10 +48,290 @@ void InputMapper::RegisterScriptAPI(LuaFunctionCollection& Col)
     PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeBeginOrEnd", (U32)InputMapper::EventType::BEGIN_OR_END);
 }
 
+// =========================== PLATFORM INPUT MAPPER
+
+static PlatformInputMapper* _ActiveMapper = nullptr;
+
+void PlatformInputMapper::_AddEvent(U32 platformKey, U32 key)
+{
+    TTE_ASSERT(InputMapper::IsCommonInputCode((InputCode)key) && InputMapper::IsPlatformInputCode((InputCode)platformKey), "Invalid code");
+    EventMapping mapping{};
+    mapping.PlatformInputCode = platformKey;
+    mapping.CommonInputCode = key;
+    for(auto& m: _MappedEvents)
+    {
+        if(m.CommonInputCode == key && m.PlatformInputCode == platformKey)
+            return; // quietly ignore duplicate
+    }
+    _MappedEvents.push_back(std::move(mapping));
+    _CommonKeyFlags.Set((InputCode)key, true);
+    _PlatformKeyFlags.Set((InputCode)platformKey, true);
+}
+
+void PlatformInputMapper::Initialise(String platform)
+{
+    if(!_ActiveMapper)
+    {
+        _ActiveMapper = TTE_NEW(PlatformInputMapper, MEMORY_TAG_COMMON_INSTANCE);
+        _ActiveMapper->_Platform = std::move(platform);
+        
+        LuaManager& L = GetThreadLVM();
+        // Register platform mappings from lua
+        ScriptManager::GetGlobal(L, "RegisterPlatformMappings", true);
+        if(L.Type(-1) == LuaType::FUNCTION)
+        {
+            L.PushLString(_ActiveMapper->_Platform);
+            L.CallFunction(1, 1, true);
+            TTE_ASSERT(L.Type(-1) == LuaType::TABLE, "Incorrect return value");
+            L.PushNil();
+            while (L.TableNext(-2) != 0) // table of key to platform key
+            {
+                String commonKeys = ScriptManager::PopString(L); // pop value
+                String platformKey = L.ToString(-1); // get table key
+                InputCode pkey = InputMapper::GetInputCode(platformKey);
+                if (pkey == InputCode::NONE)
+                {
+                    TTE_LOG("WARNING: Unknown platform input mappings: platform '%s' is invalid", platformKey.c_str());
+                    continue;
+                }
+                else if (!InputMapper::IsPlatformInputCode(pkey))
+                {
+                    TTE_LOG("WARNING: The platform input code '%s' is incorrect.", platformKey.c_str());
+                    continue;
+                }
+                
+                std::stringstream ss(commonKeys);
+                String segment;
+                while (std::getline(ss, segment, ';'))
+                {
+                    segment = StringTrim(segment);
+                    
+                    InputCode ikey = InputMapper::GetInputCode(segment);
+                    
+                    if (ikey == InputCode::NONE)
+                    {
+                        TTE_LOG("WARNING: Unknown platform input mappings: common key '%s' is invalid", segment.c_str());
+                        continue;
+                    }
+                    else if (!InputMapper::IsCommonInputCode(ikey))
+                    {
+                        TTE_LOG("WARNING: The common input code '%s' is incorrect.", platformKey.c_str());
+                        continue;
+                    }
+                    
+                    _ActiveMapper->_AddEvent((U32)pkey, (U32)ikey);
+                }
+            }
+
+        }
+        else
+        {
+            L.Pop(1);
+            TTE_ASSERT(false, "The platform input mapper script registration function was not found!");
+        }
+        
+    }
+}
+
+void PlatformInputMapper::Shutdown()
+{
+    if(_ActiveMapper)
+        TTE_DEL(_ActiveMapper);
+    _ActiveMapper = nullptr;
+}
+
+void PlatformInputMapper::GetMappingForInput(InputCode key, std::vector<InputCode> &outPlatformKeys)
+{
+    TTE_ASSERT(_ActiveMapper, "No mapper");
+    std::lock_guard<std::mutex> G(_ActiveMapper->_Lock);
+    if(InputMapper::IsCommonInputCode(key) && _ActiveMapper->_MappedEvents.size() && _ActiveMapper->_CommonKeyFlags[key])
+    {
+        for(auto& mapping: _ActiveMapper->_MappedEvents)
+        {
+            if(mapping.CommonInputCode == (U32)key)
+                outPlatformKeys.push_back((InputCode)mapping.PlatformInputCode);
+        }
+    }
+}
+
+void PlatformInputMapper::QueuePlatformEvent(RuntimeInputEvent event, std::vector<RuntimeInputEvent>& outEvents)
+{
+    if(InputMapper::IsCommonInputCode(event.Code))
+    {
+        // Good already
+        outEvents.push_back(std::move(event));
+    }
+    else
+    {
+        std::lock_guard<std::mutex> G(_ActiveMapper->_Lock);
+        if(_ActiveMapper->_PlatformKeyFlags[event.Code])
+        {
+            for(auto& evnt: _ActiveMapper->_MappedEvents)
+            {
+                if(evnt.PlatformInputCode == (U32)event.Code)
+                {
+                    RuntimeInputEvent copy = event;
+                    copy.Code = (InputCode)evnt.CommonInputCode;
+                    outEvents.push_back(std::move(copy));
+                }
+            }
+        } // else ignore the event
+    }
+}
+
+// =========================== SDL EVENT CONVERSION
+
+static Bool MapSDLEvent(RuntimeInputEvent& out, const SDL_Event& in, Vector2 windowSize)
+{
+    // This function can be widely extended to handle loads of other input types like touch screen gestures and controllers
+    if(in.type == SDL_EVENT_KEY_UP || in.type == SDL_EVENT_KEY_DOWN)
+    {
+        out.Code = InputCode::NONE;
+        const InputCodeDesc* pDesc = InputCodeDescs;
+        while(pDesc->T3InputCode != InputCode::NONE)
+        {
+            if(pDesc->SDLCode == in.key.key)
+            {
+                out.Code = pDesc->T3InputCode;
+                break;
+            }
+            pDesc++;
+        }
+        if(out.Code != InputCode::NONE)
+        {
+            out.Type = in.type == SDL_EVENT_KEY_UP ? InputMapper::EventType::END : InputMapper::EventType::BEGIN;
+        }
+        else return false; // other character we are not interested in
+    }
+    else if(in.type == SDL_EVENT_MOUSE_MOTION)
+    {
+        out.Code = InputCode::MOUSE_MOVE;
+        out.Type = InputMapper::EventType::BEGIN;
+        out.X = in.motion.x / windowSize.x; // position of mouse
+        out.Y = in.motion.y / windowSize.y;
+    }
+    else if(in.type == SDL_EVENT_MOUSE_BUTTON_UP || in.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+    {
+        out.Type = in.type == SDL_EVENT_MOUSE_BUTTON_UP ? InputMapper::EventType::END : InputMapper::EventType::BEGIN;
+        if(in.button.button == SDL_BUTTON_LEFT)
+            out.Code = in.button.clicks == 2 ? InputCode::MOUSE_DOUBLE_LEFT : InputCode::PC_MOUSE_LEFT;
+        else if(in.button.button == SDL_BUTTON_RIGHT)
+            out.Code = InputCode::PC_MOUSE_RIGHT;
+        else if(in.button.button == SDL_BUTTON_MIDDLE)
+            out.Code = InputCode::MOUSE_MIDDLE;
+        else if(in.button.button == SDL_BUTTON_X1 || in.button.button == SDL_BUTTON_X2)
+            out.Code = InputCode::MOUSE_X;
+        else return false; // unknown one
+        out.X = in.motion.x / windowSize.x; // position of mouse
+        out.Y = in.motion.y / windowSize.y;
+    }
+    else if(in.type == SDL_EVENT_MOUSE_WHEEL)
+    {
+        out.Type = InputMapper::EventType::BEGIN;
+        out.Code = in.wheel.y >= 0.0f ? InputCode::MOUSE_WHEEL_UP : InputCode::MOUSE_WHEEL_DOWN;
+        out.Y = 0.0f; // use X as primary argument
+        out.X = fabsf(in.wheel.y);
+    }
+    else if(in.type == SDL_EVENT_GAMEPAD_BUTTON_UP || in.type == SDL_EVENT_GAMEPAD_BUTTON_DOWN)
+    {
+        const InputCodeDesc* pDesc = InputCodeDescs;
+        while(pDesc->T3InputCode != InputCode::NONE)
+        {
+            if(pDesc->Controller == in.gbutton.button)
+            {
+                out.Code = pDesc->T3InputCode;
+                break;
+            }
+            pDesc++;
+        }
+        if(out.Code != InputCode::NONE)
+        {
+            out.Type = in.type == SDL_EVENT_GAMEPAD_BUTTON_UP ? InputMapper::EventType::END : InputMapper::EventType::BEGIN;
+        }
+        else return false; // other button
+    }
+    else if(in.type == SDL_EVENT_GAMEPAD_AXIS_MOTION)
+    {
+        const InputCodeDesc* pDesc = InputCodeDescs;
+        while(pDesc->T3InputCode != InputCode::NONE)
+        {
+            if(pDesc->ControllerAxis == in.gaxis.axis)
+            {
+                out.Code = pDesc->T3InputCode;
+                break;
+            }
+            pDesc++;
+        }
+        out.Type = InputMapper::EventType::BEGIN;
+        out.X = out.Y = 0.0f;
+        if(out.Code == InputCode::NONE)
+        {
+            if(in.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTX)
+            {
+                out.Code = InputCode::LEFT_STICK_MOVE;
+                out.X = fminf(in.gaxis.value / 32767.f, 1.0f);
+            }
+            else if(in.gaxis.axis == SDL_GAMEPAD_AXIS_LEFTY)
+            {
+                out.Code = InputCode::LEFT_STICK_MOVE;
+                out.Y = fminf(in.gaxis.value / 32767.f, 1.0f);
+            }
+            else if(in.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHTX)
+            {
+                out.Code = InputCode::RIGHT_STICK_MOVE;
+                out.X = fminf(in.gaxis.value / 32767.f, 1.0f);
+            }
+            else if(in.gaxis.axis == SDL_GAMEPAD_AXIS_RIGHTY)
+            {
+                out.Code = InputCode::RIGHT_STICK_MOVE;
+                out.Y = fminf(in.gaxis.value / 32767.f, 1.0f);
+            } else return false;
+        }
+        else out.X = fminf(in.gaxis.value / 32767.f, 1.0f);
+    } else return false;
+    return true;
+}
+
+void InputMapper::ConvertRuntimeEvents(const SDL_Event &sdlEvent, std::vector<RuntimeInputEvent> &events, Bool bPrimaryWindowFocused, Vector2 windowSize)
+{
+    RuntimeInputEvent event{};
+    if(bPrimaryWindowFocused)
+        event.EventFlags.Add(RuntimeInputEvent::EVENT_PRIMARY_WINDOW);
+    if(MapSDLEvent(event, sdlEvent, windowSize))
+    {
+        PlatformInputMapper::QueuePlatformEvent(event, events);
+    }
+}
+
+// =========================== ALL ENUM DESCRIPTORS
+
+String InputMapper::GetInputCodeName(InputCode key)
+{
+    const InputCodeDesc* pDesc = InputCodeDescs;
+    while(pDesc->T3InputCode != InputCode::NONE)
+    {
+        if(pDesc->T3InputCode == key)
+            return pDesc->Name;
+        pDesc++;
+    }
+    return "- UNKNOWN -";
+}
+
+InputCode InputMapper::GetInputCode(String name)
+{
+    const InputCodeDesc* pDesc = InputCodeDescs;
+    while(pDesc->T3InputCode != InputCode::NONE)
+    {
+        if(CompareCaseInsensitive(pDesc->Name, name))
+            return pDesc->T3InputCode;
+        pDesc++;
+    }
+    return InputCode::NONE;
+}
+
 // This took me way too long
 const InputCodeDesc InputCodeDescs[] =
 {
-    {InputCode::NONE, 0, "None"},
     {InputCode::BACKSPACE, SDLK_BACKSPACE, "Backspace"},
     {InputCode::TAB, SDLK_TAB, "Tab"},
     {InputCode::CLEAR, SDLK_CLEAR, "Clear"},
@@ -181,7 +459,7 @@ const InputCodeDesc InputCodeDescs[] =
     {InputCode::GAMEPAD_DPAD_RIGHT, 0, "Gamepad DPad Right", SDL_GAMEPAD_BUTTON_DPAD_RIGHT},
     {InputCode::GAMEPAD_DPAD_LEFT, 0, "Gamepad DPad Left", SDL_GAMEPAD_BUTTON_DPAD_LEFT},
     {InputCode::ABSTRACT_CONFIRM, 0, "Abstract Confirm"},
-    {InputCode::ABTRACT_CANCEL, 0, "Abstact Cancel"},
+    {InputCode::ABSTRACT_CANCEL, 0, "Abstract Cancel"},
     {InputCode::MOUSE_MIDDLE, 0, "Mouse Middle Button"}, // Mouse stuff handled separately
     {InputCode::MOUSE_X, 0, "Mouse X Button"},
     {InputCode::MOUSE_DOUBLE_LEFT, 0, "Mouse Double Left Button"},
@@ -193,9 +471,9 @@ const InputCodeDesc InputCodeDescs[] =
     {InputCode::MOUSE_RIGHT_BUTTON, 0, "Mouse Right Button"},
     {InputCode::LEFT_STICK_MOVE, 0, "Left stick move"}, // On move handled separately
     {InputCode::RIGHT_STICK_MOVE, 0, "Right stick move"},
-    {InputCode::TRIGGER_MOVE, 0, "Trigger move"},
-    {InputCode::LEFT_TRIGGER_MOVE, 0, "Left trigger move"},
-    {InputCode::RIGHT_TRIGGER_MOVE, 0, "Right trigger move"},
+    {InputCode::TRIGGER_MOVE, 0, "Trigger move"}, // not sure how this one is used
+    {InputCode::LEFT_TRIGGER_MOVE, 0, "Left trigger move", SDL_GAMEPAD_BUTTON_INVALID, SDL_GAMEPAD_AXIS_LEFT_TRIGGER},
+    {InputCode::RIGHT_TRIGGER_MOVE, 0, "Right trigger move", SDL_GAMEPAD_BUTTON_INVALID, SDL_GAMEPAD_AXIS_RIGHT_TRIGGER},
     {InputCode::GESTURE_2TOUCH_SINGLE_TAP, 0, "Gesture 2-Touch Single Tap"}, // Specific gestures handled separately but not needed as only PC app (TTE)
     {InputCode::GESTURE_2TOUCH_DOUBLE_TAP, 0, "Gesture 2-Touch Double Tap"},
     {InputCode::GESTURE_1TOUCH_SWIPE_LEFT, 0, "Gesture 1-Touch Swipe Left"},
@@ -208,6 +486,8 @@ const InputCodeDesc InputCodeDescs[] =
     {InputCode::GESTURE_2TOUCHES_SWITCH_DOWN, 0, "Gesture 2-Touches Swipe Down"},
     {InputCode::GESTURE_2TOUCHES_DOWN, 0, "2-Touches Down"},
     {InputCode::GESTURE_3TOUCHES_DOWN, 0, "3-Touches Down"},
+    {InputCode::PC_MOUSE_LEFT, 0, "Left Click"},
+    {InputCode::PC_MOUSE_RIGHT, 0, "Right Click"},
     {InputCode::XB360_A, 0, "Xbox A", SDL_GAMEPAD_BUTTON_SOUTH},
     {InputCode::XB360_B, 0, "Xbox B", SDL_GAMEPAD_BUTTON_EAST},
     {InputCode::XB360_X, 0, "Xbox X", SDL_GAMEPAD_BUTTON_WEST},
@@ -334,5 +614,6 @@ const InputCodeDesc InputCodeDescs[] =
     {InputCode::NX_LEFT_SL, 0, "NX Left SL"},
     {InputCode::NX_LEFT_SR, 0, "NX Left SR"},
     {InputCode::NX_RIGHT_SL, 0, "NX Right SL"},
-    {InputCode::NX_RIGHT_SR, 0, "NX Right SR"}
+    {InputCode::NX_RIGHT_SR, 0, "NX Right SR"},
+    {InputCode::NONE, 0, "None"}, // dont add below, add above
 };

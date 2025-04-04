@@ -2,10 +2,10 @@
 
 #include <Core/Config.hpp>
 #include <Core/Context.hpp>
-
 #include <Core/BitSet.hpp>
 #include <Meta/Meta.hpp>
 
+#include <Common/InputMapper.hpp>
 #include <Common/Mesh.hpp>
 
 #include <vector>
@@ -168,6 +168,8 @@ private:
     
     // Called each frame async. To ensure speed this is async and should be performed isolated. Issue render instructions here.
     void PerformAsyncRender(SceneRuntime& context, RenderFrame& frame, Float deltaTime);
+    
+    void AsyncProcessEvents(SceneRuntime& context, const std::vector<RuntimeInputEvent>& events);
     
     // =====
     

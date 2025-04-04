@@ -1798,7 +1798,7 @@ void ResourceRegistry::ResourceSetDisable(const Symbol& name, Bool defer)
 {
     SCOPE_LOCK();
     ResourceSet* pSet = _FindSet(name);
-    if(pSet && pSet->SetFlags.Test(ResourceSetFlags::APPLIED))
+    if(pSet && pSet->SetFlags.Test(ResourceSetFlags::APPLIED) && pSet->SetFlags.Test(ResourceSetFlags::DYNAMIC))
     {
         std::set<ResourceSet*> turnOn, turnOff{};
         turnOff.insert(pSet);
@@ -2096,6 +2096,7 @@ Bool ResourceRegistry::_EnsureHandleLoadedLocked(const HandleBase& handle, Bool 
             _ProcessDirtyHandle(std::move(handle), lck);
             return bResult;
         }
+        return true;
     }
     
     // test currently dirty
@@ -2595,13 +2596,17 @@ void ResourceRegistry::GetResourceNames(std::set<String>& outNames, const String
 Bool Handleable::Lock(const HandleLockOwner& owner)
 {
     U32 expected = 0;
-    return _LockKey.compare_exchange_strong(expected, owner._LockOwnerID);
+    Bool locked = false;
+    if((locked = _LockKey.compare_exchange_strong(expected, owner._LockOwnerID)))
+        _LockTimeStamp.store(GetTimeStamp());
+    return locked;
 }
 
 void Handleable::Unlock(const HandleLockOwner& owner)
 {
     TTE_ASSERT(owner._LockOwnerID, "Invalid handle lock, it was not constructed.");
     U32 expected = owner._LockOwnerID;
+    _LockTimeStamp.store(0, std::memory_order_relaxed); // should defintely be locked anyway (Will assert). if not, terminate as should NOT happen
     TTE_ASSERT(_LockKey.compare_exchange_strong(expected, 0), "Cannot unlock handle as the key was wrong!");
 }
 
@@ -2624,4 +2629,16 @@ Bool Handleable::OwnedBy(const HandleLockOwner& lockOwner, Bool bLock) const
     if (_LockKey.load() == lockOwner._LockOwnerID)
         return true;
     return bLock ? _LockKey.compare_exchange_strong(expected, lockOwner._LockOwnerID) : false;
+}
+
+U64 Handleable::GetLockedTimeStamp(const HandleLockOwner& owner, Bool bRelaxed)
+{
+    TTE_ASSERT(OwnedBy(owner, false), "Lock is not owned");
+    return _LockTimeStamp.load(bRelaxed ? std::memory_order_relaxed : std::memory_order_acquire);
+}
+
+void Handleable::OverrideLockedTimeStamp(const HandleLockOwner &owner, Bool bRelaxed, U64 value)
+{
+    TTE_ASSERT(OwnedBy(owner, false), "Lock is not owned");
+    _LockTimeStamp.store(value, bRelaxed ? std::memory_order_relaxed : std::memory_order_release);
 }

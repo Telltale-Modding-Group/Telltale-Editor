@@ -2,7 +2,7 @@
 
 #include <Core/Config.hpp>
 #include <Renderer/RenderContext.hpp>
-#include <Common/Scene.hpp>
+#include <Common/Common.hpp>
 
 #include <queue>
 
@@ -62,6 +62,10 @@ protected:
     
     virtual RenderNDCScissorRect AsyncUpdate(RenderFrame& frame, RenderNDCScissorRect scissor, Float deltaTime) override; // render
     
+    virtual void AsyncProcessEvents(const std::vector<RuntimeInputEvent>& events) override;
+    
+    Bool IsKeyDown(InputCode key);
+    
 private:
     
     friend class Scene;
@@ -69,9 +73,10 @@ private:
     LuaManager _ScriptManager;
     
     std::vector<Scene> _AsyncScenes; // populator job access ONLY (ensure one thread access at a time). list of active rendering scenes.
-    
     std::mutex _MessagesLock; // for below
     std::priority_queue<SceneMessage> _AsyncMessages; // messages stack
+    
+    BitSetRanged<InputCode, InputCode::COMMON_MAPPINGS_START, InputCode::COMMON_MAPPINGS_END> _KeysDown;
     
     Ptr<ResourceRegistry> _AttachedRegistry; // attached resource registry
 

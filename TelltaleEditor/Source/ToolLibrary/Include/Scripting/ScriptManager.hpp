@@ -3,6 +3,7 @@
 #include <Scripting/LuaManager.hpp>
 #include <vector>
 #include <unordered_map>
+#include <iostream>
 #include <Core/Symbol.hpp>
 
 // High level LUA scripting API. This builds upon the Lua Manager which leads with the
@@ -283,4 +284,20 @@ inline void InjectFullLuaAPI(LuaManager& man, Bool bWorker)
     ScriptManager::RegisterCollection(man, Col);
     Col = luaLibraryAPI(bWorker);
     ScriptManager::RegisterCollection(man, Col);
+    CString dumpTable =
+    R"(
+    function DumpTable(o)
+       if type(o) == 'table' then
+          local s = '{ '
+          for k,v in pairs(o) do
+             if type(k) ~= 'number' then k = '"'..k..'"' end
+             s = s .. '['..k..'] = ' .. DumpTable(v) .. ','
+          end
+          return s .. '} '
+       else
+          return tostring(o)
+       end
+    end
+    )";
+    man.RunText(dumpTable, (U32)strlen(dumpTable), false, "DumpTable.lua");
 }

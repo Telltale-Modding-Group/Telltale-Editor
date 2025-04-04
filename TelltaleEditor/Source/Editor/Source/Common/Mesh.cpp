@@ -300,7 +300,7 @@ public:
         U32 numPrim = (U32)man.ToInteger(6);
         U32 numInd = (U32)man.ToInteger(7);
         U32 baseInd = (U32)man.ToInteger(8);
-        U32 matInd = (U32)man.ToInteger(8);
+        U32 matInd = (U32)man.ToInteger(9);
         
         TTE_ASSERT(baseInd == 0, "Base index implementation needed!"); // wtf is this
         

@@ -2139,6 +2139,261 @@ namespace MS
         return 2;
     }
     
+    static U32 luaMetaStreamDDSSize(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 1, "Invalid usage");
+        ScriptManager::TableGet(man, "Format CC");
+        String fourCC = ScriptManager::PopString(man);
+        man.PushUnsignedInteger(fourCC == "DX10" ? 0x94 : 0x80);
+        return 1;
+    }
+    
+    static U32 luaMetaStreamReadDDS(LuaManager& man)
+    {
+        Meta::ClassInstance _{};
+        TTE_ASSERT(man.GetTop() == 1, "Invalid use of read DDS");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(1));
+        man.PushTable();
+        
+        U32 value{};
+        U32 unused[32]{};
+        SerialiseU32(stream, _, nullptr, &value, false);
+        TTE_ASSERT(value == 0x20534444, "Invalid DDS header magic");
+        SerialiseU32(stream, _, nullptr, &value, false);
+        TTE_ASSERT(value == 0x7C, "Invalid DDS header size");
+        
+        // flags
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Flags");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        // height
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Height");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        // width
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Width");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        // pitch
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Pitch");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        // depth
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Depth");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        // mips
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Mip Count");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        stream.Read((U8*)unused, 12 * 4); // 11 reserved + size of format struct
+        
+        // flags
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Format Flags");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        // format
+        U8 str[5]{0,0,0,0,0};
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Format CC");
+        memcpy(str, &value, 4);
+        man.PushLString(value == 0 ? "" : (CString)str);
+        man.SetTable(2, true);
+        
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Format Bit Count");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Format Red Mask");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Format Green Mask");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Format Blue Mask");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Format Alpha Mask");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        SerialiseU32(stream, _, nullptr, &value, false); // caps.
+        man.PushLString("Caps");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        SerialiseU32(stream, _, nullptr, &value, false);
+        man.PushLString("Additional Caps");
+        man.PushUnsignedInteger(value);
+        man.SetTable(2, true);
+        
+        stream.Read((U8*)unused, 3 * 4); // reserved
+        
+        if(!memcmp(str, "DX10", 4))
+        {
+            SerialiseU32(stream, _, nullptr, &value, false);
+            man.PushLString("DXGI Format");
+            man.PushUnsignedInteger(value);
+            man.SetTable(2, true);
+            
+            SerialiseU32(stream, _, nullptr, &value, false);
+            man.PushLString("Resource Dimension");
+            man.PushUnsignedInteger(value);
+            man.SetTable(2, true);
+            
+            SerialiseU32(stream, _, nullptr, &value, false);
+            man.PushLString("Misc Flags 1");
+            man.PushUnsignedInteger(value);
+            man.SetTable(2, true);
+            
+            SerialiseU32(stream, _, nullptr, &value, false);
+            man.PushLString("Array Size");
+            man.PushUnsignedInteger(value);
+            man.SetTable(2, true);
+            
+            SerialiseU32(stream, _, nullptr, &value, false);
+            man.PushLString("Misc Flags 2");
+            man.PushUnsignedInteger(value);
+            man.SetTable(2, true);
+        }
+        
+        return 1;
+    }
+    
+    static U32 luaMetaStreamWriteDDS(LuaManager& man)
+    {
+        Meta::ClassInstance _{};
+        TTE_ASSERT(man.GetTop() == 2, "Invalid use of write DDS");
+        
+        Meta::Stream& stream = *((Meta::Stream*)man.ToPointer(1));
+        
+        U32 value = 0x7C;
+        SerialiseU32(stream, _, nullptr, &value, true);
+        value = 0x20534444;
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Flags");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Height");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Width");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Pitch");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Depth");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Mip Count");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        DataStreamManager::GetInstance()->WriteZeros(stream.Sect[stream.CurrentSection].Data, 44); // reserved
+        value = 0x20;
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Format Flags");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Format CC");
+        String ccvalue = ScriptManager::PopString(man);
+        if(ccvalue.length() == 0)
+            value = 0;
+        else if(ccvalue.length() == 4)
+        {
+            memcpy(&value, ccvalue.c_str(), 4);
+        }
+        else TTE_ASSERT(false, "Invalid Four CC");
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Format Bit Count");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Format Red Mask");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Format Green Mask");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Format Blue Mask");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Format Alpha Mask");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Caps");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        ScriptManager::TableGet(man, "Additional Caps");
+        value = ScriptManager::PopUnsignedInteger(man);
+        SerialiseU32(stream, _, nullptr, &value, true);
+        
+        DataStreamManager::GetInstance()->WriteZeros(stream.Sect[stream.CurrentSection].Data, 12); // reserved
+        
+        if(ccvalue == "DX10")
+        {
+            ScriptManager::TableGet(man, "DXGI Format");
+            value = ScriptManager::PopUnsignedInteger(man);
+            SerialiseU32(stream, _, nullptr, &value, true);
+            
+            ScriptManager::TableGet(man, "Resource Dimension");
+            value = ScriptManager::PopUnsignedInteger(man);
+            SerialiseU32(stream, _, nullptr, &value, true);
+            
+            ScriptManager::TableGet(man, "Misc Flags 1");
+            value = ScriptManager::PopUnsignedInteger(man);
+            SerialiseU32(stream, _, nullptr, &value, true);
+            
+            ScriptManager::TableGet(man, "Array Size");
+            value = ScriptManager::PopUnsignedInteger(man);
+            SerialiseU32(stream, _, nullptr, &value, true);
+            
+            ScriptManager::TableGet(man, "Misc Flags 2");
+            value = ScriptManager::PopUnsignedInteger(man);
+            SerialiseU32(stream, _, nullptr, &value, true);
+        }
+        
+        return 0;
+    }
+    
 }
 
 namespace LuaMisc
@@ -2671,6 +2926,9 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(MS, "MetaStreamWriteBuffer", luaMetaStreamWriteBuffer);
     ADD_FN(MS, "MetaStreamReadCache", luaMetaStreamReadCache);
     ADD_FN(MS, "MetaStreamWriteCached", luaMetaStreamWriteCached);
+    ADD_FN(MS, "MetaStreamWriteDDS", luaMetaStreamWriteDDS);
+    ADD_FN(MS, "MetaStreamGetDDSHeaderSize", luaMetaStreamDDSSize);
+    ADD_FN(MS, "MetaStreamReadDDS", luaMetaStreamReadDDS);
     ADD_FN(MS, "MetaGetCachedSize", luaMetaStreamCachedSize);
     ADD_FN(MS, "MetaStreamFindClass", luaMetaStreamFindClass);
     ADD_FN(Meta::L, "MetaSerialiseDefault", luaMetaSerialiseDefault); // serialise related

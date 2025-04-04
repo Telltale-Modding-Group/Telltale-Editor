@@ -19,10 +19,15 @@
 /// in the resource registry where when you load a resoure it serialises and normalises for you.
 class TelltaleEditor
 {
+    
+    void _PostSwitch(GameSnapshot snap);
+    
 public:
     
     TelltaleEditor(GameSnapshot snapshot, Bool ui);
     ~TelltaleEditor();
+    
+    void Switch(GameSnapshot snapshot); // switch to new snapshot
     
     // Main thread update. Executes render commands and may be slow. Returns TRUE if we can call update again (ie not quitting)
     // Pass in if you want to force it to quit (ie make user click window X)

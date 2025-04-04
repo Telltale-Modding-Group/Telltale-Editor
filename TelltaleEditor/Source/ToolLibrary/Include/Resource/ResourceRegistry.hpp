@@ -49,7 +49,7 @@ public:
     
     HandleLockOwner(const HandleLockOwner&) = delete; // copying is NOT allowed. we have locked it, are not sharing it. like me with money.
     HandleLockOwner& operator=(const HandleLockOwner&) = delete;
- 
+    
     HandleLockOwner();
     
 #ifdef DEBUG
@@ -64,14 +64,21 @@ public:
 class Handleable : public std::enable_shared_from_this<Handleable>
 {
     
+    mutable std::atomic<U64> _LockTimeStamp;
     mutable std::atomic<U32> _LockKey;
     
 public:
     
     // Returns false if locked already (ie fail)
-    virtual Bool Lock(const HandleLockOwner& lockOwner) final; // locks the resource returning the lock key. this is done to ensure no other accesses
+    // locks the resource returning the lock key. this is done to ensure no other accesses
+    virtual Bool Lock(const HandleLockOwner& lockOwner) final;
     
     virtual void Unlock(const HandleLockOwner& lockOwner) final;
+    
+    virtual U64 GetLockedTimeStamp(const HandleLockOwner& owner, Bool bRelaxed) final; // pass in if you know you already have the lock (eg cached etc)
+    
+    // Overrides the internal locked time stamp. Do it relaxed if you *know* you have locked this resource (Will be asserted)
+    virtual void OverrideLockedTimeStamp(const HandleLockOwner& owner, Bool bRelaxed, U64 value) final;
     
     Bool IsLocked() const;
     
@@ -757,107 +764,6 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* job, void*);
  */
 class ResourceRegistry : public GameDependentObject, public std::enable_shared_from_this<ResourceRegistry>
 {
-    
-    LuaManager& _LVM; // local LVM used for this registry. Must be alive and acts as a parent!
-    
-    std::vector<ResourceSet> _ResourceSets; // available high level resource groups
-    
-    std::vector<Ptr<ResourceLocation>> _Locations; // applied resource sets
-    
-    std::mutex _Guard; // this is a thread safe class, all calls are safe with this guard.
-    
-    std::vector<std::pair<Symbol, Ptr<ResourceLocation>>> _DeferredUnloads; // deferred resource unloads
-    
-    std::vector<String> _DeferredApplications; // to be applied resource sets. will be done in mount when available, not in update.
-    
-    std::set<HandleObjectInfo> _AliveHandles; // alive handles
-    
-    std::vector<HandleObjectInfo> _DirtyHandles; // handles requiring any updates
-    
-    U32 _PreloadOffset; // current number of files preloaded. can wait until this number reaches a given number or force it to be one to ensure loads completed.
-    
-    U32 _PreloadSize; // total number of preload batches
-    
-    std::vector<PreloadBatchJobRef> _PreloadJobs;
-    
-    Ptr<ResourceLocation> _Locate(const String& logicalName); // locate internal no lock
-    
-    void _ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::mutex>& lck);
-    
-    void _ProcessDirtyHandles(Float budget, U64 startStamp, std::unique_lock<std::mutex>& lck);
-    
-    void _CheckLogical(const String& name); // checks asserts its OK.
-    
-    void _CheckConcrete(const String& name); // checks asserts its OK.
-    
-    // searches and loads any resource sets (_resdesc_).
-    void _ApplyMountDirectory(RegistryDirectory* pMountPoint, std::unique_lock<std::mutex>& lck);
-    
-    void _BindVM(); // bind to current VM
-    
-    void _UnbindVM(); // unbind from current VM
-    
-    ResourceSet* _FindSet(const Symbol& name); // find a resource set
-    
-    // configure sets and unload resources if needed. can defer until
-    void _ReconfigureSets(const std::set<ResourceSet*>& turnOff, const std::set<ResourceSet*>& turnOn, std::unique_lock<std::mutex>& lck, Bool bDefer);
-    
-    void _UnloadResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-                          std::unique_lock<std::mutex>& lck, U32 maxNumUnloads); // perform resource unload
-    
-    // gather resources to unload for this resource set
-    void _GetResourcesToUnload(ResourceSet* pSet, std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& outResources);
-    
-    // gather mappings
-    void _PrepareResourceSet(ResourceSet* pSet, std::map<Ptr<ResourceLocation>,Ptr<ResourceLocation>>& patches);
-    
-    // unapply it
-    void _UnapplyResourceSet(ResourceSet* pSet);
-    
-    void _DestroyResourceSet(ResourceSet* pSet);
-    
-    void _DoApplyResourceSet(ResourceSet* pSet, const std::map<Ptr<ResourceLocation>,Ptr<ResourceLocation>>& patches); // apply resource set
-    
-    void _LocateResourceInternal(Symbol name, String* outName, DataStreamRef* outStream); // find resource
-    
-    void _LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
-                           const String& folderID, const String& physicalPath, std::unique_lock<std::mutex>& lck); // open .ttarch, legacy resource system
-    
-    Bool _ImportArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
-                            DataStreamRef& archiveStream, std::unique_lock<std::mutex>& lck); // import ttarch/ttarch2/pk2 into parent as sub
-    
-    Bool _ImportAllocateArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
-                                    Ptr<ResourceLocation>& parent, std::unique_lock<std::mutex>& lck);
-    
-    Bool _EnsureHandleLoadedLocked(const HandleBase& handle, Bool bOnlyQuery); // locks
-    
-    Bool _SetupHandleResourceLoad(HandleObjectInfo& hoi, std::unique_lock<std::mutex>& lck); // performs a resource load. finds and opens stream and sets serialise and normalise flags
-    
-    static StringMask _ArchivesMask(Bool bLegacy);
-    
-    friend U32 luaResourceSetRegister(LuaManager& man); // access allowed
-    
-    friend struct ToolContext;
-    friend struct ResourcesExtractionTask;
-    friend class HandleBase;
-    
-    friend Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*);
-    
-    /**
-     Constructor. The lua manager version passed in MUST match any game scripts lua versions being run! This is because this will run any resource sets, which may use an older version!
-     The lua manager must have the game engine API registered to it!
-     By default, the master location is registered ("<>") here. This is a logical location so has no physical path.
-     ONLY ACCESSIBLE via use of the ToolContext.
-     */
-    inline ResourceRegistry(LuaManager& man) : GameDependentObject("ResourceRegistry"), _LVM(man)
-    {
-        TTE_ASSERT(Meta::GetInternalState().GameIndex != -1, "Resource registries can only be when a game is set!");
-        TTE_ASSERT(man.GetVersion() == Meta::GetInternalState().Games[Meta::GetInternalState().GameIndex].LVersion,
-                   "The lua manager used for the current game must match the version being used for this resource registry");
-        
-        CreateLogicalLocation("<>");
-    }
-    
 public:
     
     /**
@@ -1013,4 +919,105 @@ public:
     // Wait until preload offset finishes. Must be a return value from Preload
     void WaitPreload(U32 preloadOffset);
     
+private:
+    
+    LuaManager& _LVM; // local LVM used for this registry. Must be alive and acts as a parent!
+    
+    std::vector<ResourceSet> _ResourceSets; // available high level resource groups
+    
+    std::vector<Ptr<ResourceLocation>> _Locations; // applied resource sets
+    
+    std::mutex _Guard; // this is a thread safe class, all calls are safe with this guard.
+    
+    std::vector<std::pair<Symbol, Ptr<ResourceLocation>>> _DeferredUnloads; // deferred resource unloads
+    
+    std::vector<String> _DeferredApplications; // to be applied resource sets. will be done in mount when available, not in update.
+    
+    std::set<HandleObjectInfo> _AliveHandles; // alive handles
+    
+    std::vector<HandleObjectInfo> _DirtyHandles; // handles requiring any updates
+    
+    U32 _PreloadOffset; // current number of files preloaded. can wait until this number reaches a given number or force it to be one to ensure loads completed.
+    
+    U32 _PreloadSize; // total number of preload batches
+    
+    std::vector<PreloadBatchJobRef> _PreloadJobs;
+    
+    Ptr<ResourceLocation> _Locate(const String& logicalName); // locate internal no lock
+    
+    void _ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::mutex>& lck);
+    
+    void _ProcessDirtyHandles(Float budget, U64 startStamp, std::unique_lock<std::mutex>& lck);
+    
+    void _CheckLogical(const String& name); // checks asserts its OK.
+    
+    void _CheckConcrete(const String& name); // checks asserts its OK.
+    
+    // searches and loads any resource sets (_resdesc_).
+    void _ApplyMountDirectory(RegistryDirectory* pMountPoint, std::unique_lock<std::mutex>& lck);
+    
+    void _BindVM(); // bind to current VM
+    
+    void _UnbindVM(); // unbind from current VM
+    
+    ResourceSet* _FindSet(const Symbol& name); // find a resource set
+    
+    // configure sets and unload resources if needed. can defer until
+    void _ReconfigureSets(const std::set<ResourceSet*>& turnOff, const std::set<ResourceSet*>& turnOn, std::unique_lock<std::mutex>& lck, Bool bDefer);
+    
+    void _UnloadResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
+                          std::unique_lock<std::mutex>& lck, U32 maxNumUnloads); // perform resource unload
+    
+    // gather resources to unload for this resource set
+    void _GetResourcesToUnload(ResourceSet* pSet, std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& outResources);
+    
+    // gather mappings
+    void _PrepareResourceSet(ResourceSet* pSet, std::map<Ptr<ResourceLocation>,Ptr<ResourceLocation>>& patches);
+    
+    // unapply it
+    void _UnapplyResourceSet(ResourceSet* pSet);
+    
+    void _DestroyResourceSet(ResourceSet* pSet);
+    
+    void _DoApplyResourceSet(ResourceSet* pSet, const std::map<Ptr<ResourceLocation>,Ptr<ResourceLocation>>& patches); // apply resource set
+    
+    void _LocateResourceInternal(Symbol name, String* outName, DataStreamRef* outStream); // find resource
+    
+    void _LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
+                           const String& folderID, const String& physicalPath, std::unique_lock<std::mutex>& lck); // open .ttarch, legacy resource system
+    
+    Bool _ImportArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
+                            DataStreamRef& archiveStream, std::unique_lock<std::mutex>& lck); // import ttarch/ttarch2/pk2 into parent as sub
+    
+    Bool _ImportAllocateArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
+                                    Ptr<ResourceLocation>& parent, std::unique_lock<std::mutex>& lck);
+    
+    Bool _EnsureHandleLoadedLocked(const HandleBase& handle, Bool bOnlyQuery); // locks
+    
+    Bool _SetupHandleResourceLoad(HandleObjectInfo& hoi, std::unique_lock<std::mutex>& lck); // performs a resource load. finds and opens stream and sets serialise and normalise flags
+    
+    static StringMask _ArchivesMask(Bool bLegacy);
+    
+    friend U32 luaResourceSetRegister(LuaManager& man); // access allowed
+    
+    friend struct ToolContext;
+    friend struct ResourcesExtractionTask;
+    friend class HandleBase;
+    
+    friend Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*);
+    
+    /**
+     Constructor. The lua manager version passed in MUST match any game scripts lua versions being run! This is because this will run any resource sets, which may use an older version!
+     The lua manager must have the game engine API registered to it!
+     By default, the master location is registered ("<>") here. This is a logical location so has no physical path.
+     ONLY ACCESSIBLE via use of the ToolContext.
+     */
+    inline ResourceRegistry(LuaManager& man) : GameDependentObject("ResourceRegistry"), _LVM(man)
+    {
+        TTE_ASSERT(Meta::GetInternalState().GameIndex != -1, "Resource registries can only be when a game is set!");
+        TTE_ASSERT(man.GetVersion() == Meta::GetInternalState().Games[Meta::GetInternalState().GameIndex].LVersion,
+                   "The lua manager used for the current game must match the version being used for this resource registry");
+        
+        CreateLogicalLocation("<>");
+    }
 };

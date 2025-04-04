@@ -163,6 +163,9 @@ public:
     
 };
 
+template<typename EnumClass, EnumClass FirstValue, EnumClass EndValue>
+using BitSetRanged = BitSet<EnumClass, (U32)EndValue - (U32)FirstValue, FirstValue>;
+
 /**
  Simple type to help with flags.
  */

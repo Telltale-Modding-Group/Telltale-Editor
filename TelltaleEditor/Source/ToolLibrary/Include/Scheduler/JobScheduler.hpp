@@ -269,7 +269,7 @@ struct JobList
 
 /// <summary>
 /// JobScheduler. This is very similar to Telltale Games' JobScheduler.
-/// Written by Lucas
+/// Written by Lucas (did I put that there?)
 /// </summary>
 class JobScheduler
 {

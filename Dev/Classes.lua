@@ -1,5 +1,7 @@
 -- This is the bulk of the library. This registers all the meta classes.
 
+require("ToolLibrary/PlatformInputMappings.lua")
+
 -- Helper function to create a new class table
 function NewClass(name, index)
     local clazz = {} -- initialise defaults

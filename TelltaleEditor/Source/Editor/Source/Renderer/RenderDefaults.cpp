@@ -17,6 +17,7 @@ void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* upload
     DefaultRenderTexture tex{};
     tex.Type = DefaultRenderTextureType::BLACK;
     tex.Texture = context.AllocateTexture();
+    tex.Texture->SetName("Default TTE Black Texture");
     tex.Texture->Create2D(&context, 1, 1, RenderSurfaceFormat::RGBA8, 1);
     DataStreamRef texStream = Stream(4);
     texStream->Write((const U8*)"\x00\x00\x00\xFF", 4);
@@ -26,6 +27,7 @@ void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* upload
     // WHITE TEXTURE
     tex.Type = DefaultRenderTextureType::WHITE;
     tex.Texture = context.AllocateTexture();
+    tex.Texture->SetName("Default TTE White Texture");
     tex.Texture->Create2D(&context, 1, 1, RenderSurfaceFormat::RGBA8, 1);
     texStream = Stream(4);
     texStream->Write((const U8*)"\xFF\xFF\xFF\xFF", 4);
@@ -48,14 +50,12 @@ struct ColouredVertex
 static void _ColouredMesh(RenderContext& context, DefaultRenderMesh& mesh, DefaultRenderMeshType type, Bool bLines = false)
 {
     mesh.Type = type;
-    mesh.PipelineState = context._AllocatePipelineState();
-    mesh.PipelineState->PrimitiveType = bLines ? RenderPrimitiveType::LINE_LIST : RenderPrimitiveType::TRIANGLE_LIST;
-    mesh.PipelineState->ShaderProgram = "Flat";
-    mesh.PipelineState->VertexState.BufferPitches[0] = sizeof(ColouredVertex);
-    mesh.PipelineState->VertexState.NumVertexBuffers = 1;
-    mesh.PipelineState->VertexState.NumVertexAttribs = 1;
-    mesh.PipelineState->VertexState.Attribs[0] = {RenderAttributeType::POSITION, RenderBufferAttributeFormat::F32x3, 0};
-    mesh.PipelineState->Create();
+    mesh.PipelineDesc.PrimitiveType = bLines ? RenderPrimitiveType::LINE_LIST : RenderPrimitiveType::TRIANGLE_LIST;
+    mesh.PipelineDesc.ShaderProgram = "Flat";
+    mesh.PipelineDesc.VertexState.BufferPitches[0] = sizeof(ColouredVertex);
+    mesh.PipelineDesc.VertexState.NumVertexBuffers = 1;
+    mesh.PipelineDesc.VertexState.NumVertexAttribs = 1;
+    mesh.PipelineDesc.VertexState.Attribs[0] = {RenderAttributeType::POSITION, RenderBufferAttributeFormat::F32x3, 0};
 }
 
 static void _GenerateSemicircle(Vector3 p1, Vector3 p2, Vector3 normal, U32 steps, std::vector<Vector3>& result) {
@@ -93,14 +93,12 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
     
     {
         mesh.Type = DefaultRenderMeshType::QUAD;
-        mesh.PipelineState = context._AllocatePipelineState();
-        mesh.PipelineState->ShaderProgram = "Simple"; // sampled vertex shader (ie xyz and uv with camera simple)
-        mesh.PipelineState->VertexState.BufferPitches[0] = sizeof(SampledVertex);
-        mesh.PipelineState->VertexState.NumVertexBuffers = 1;
-        mesh.PipelineState->VertexState.NumVertexAttribs = 2;
-        mesh.PipelineState->VertexState.Attribs[0] = {RenderAttributeType::POSITION, RenderBufferAttributeFormat::F32x3, 0};
-        mesh.PipelineState->VertexState.Attribs[1] = {RenderAttributeType::UV_DIFFUSE, RenderBufferAttributeFormat::F32x2, 0};
-        mesh.PipelineState->Create();
+        mesh.PipelineDesc.ShaderProgram = "Simple"; // sampled vertex shader (ie xyz and uv with camera simple)
+        mesh.PipelineDesc.VertexState.BufferPitches[0] = sizeof(SampledVertex);
+        mesh.PipelineDesc.VertexState.NumVertexBuffers = 1;
+        mesh.PipelineDesc.VertexState.NumVertexAttribs = 2;
+        mesh.PipelineDesc.VertexState.Attribs[0] = {RenderAttributeType::POSITION, RenderBufferAttributeFormat::F32x3, 0};
+        mesh.PipelineDesc.VertexState.Attribs[1] = {RenderAttributeType::UV_DIFFUSE, RenderBufferAttributeFormat::F32x2, 0};
         mesh.NumIndices = 6;
         mesh.VertexBuffer = context.CreateVertexBuffer(sizeof(SampledVertex) * 4);
         mesh.IndexBuffer = context.CreateIndexBuffer(sizeof(U16) * 6);

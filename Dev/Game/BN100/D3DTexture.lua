@@ -31,31 +31,27 @@ function NormaliseD3DTexture_Bone(instance, state)
     local data = MetaGetMember(instance, "_TextureData")
 
     CommonTextureSetName(state, name)
-    CommonTextureSetDimensions(state, width, height, numMips, 1, 1) -- 1 depth, 1 array size
+    CommonTextureSetDimensions(state, width, height, 1, 1, 1) -- 1 depth, 1 array size
 
     local format = MetaGetClassValue(MetaGetMember(instance, "mD3DFormat"))
     local actualFormat = 0
-    local rowPitch = 0
     if format == 22 then -- DXT9 B8G8R8X8
         actualFormat = kCommonTextureFormatRGBA8
         CommonTextureResolveRGBA(state, data, kCommonTextureResolvableFormatBGRX, width, height) -- sets alpha to 0xff (BGR + extra byte => RGBA opaque)
-        rowPitch = 4 * width
     elseif format == 894720068 then -- 'DXT5' ASCII
         actualFormat = kCommonTextureFormatDXT5
-        rowPitch = math.max(1, math.floor(width / 4)) * 8
     elseif format == 861165636 then -- 'DXT3' ASCII
         actualFormat = kCommonTextureFormatDXT3
-        rowPitch = math.max(1, math.floor(width / 4)) * 16
     elseif format == 827611204 then -- 'DXT1' ASCII (LE)
         actualFormat = kCommonTextureFormatDXT1
-        rowPitch = math.max(1, math.floor(width / 4)) * 16
     else
         TTE_Assert(false, "Texture " .. name .. " format is unknown: " .. tostring(format))
-    end
+    end -- any updates must update serialiser
 
     CommonTextureSetFormat(state, actualFormat)
 
-    local slicePitch = MetaGetBufferSize(data)
+    local rowPitch = CommonTextureCalculatePitch(actualFormat, width, height)
+    local slicePitch = CommonTextureCalculateSlicePitch(actualFormat, width, height)
 
     -- TODO multiple mips. need to push in order.
     CommonTexturePushOrderedImage(state, width, height, rowPitch, slicePitch, data)
@@ -70,14 +66,22 @@ function SerialiseD3DTexture_Bone(stream, instance, write)
     if not MetaGetClassValue(MetaGetMember(instance, "mbHasTextureData")) then
         return true -- if we don't have any texture data, don't read into buffer
     end
-    bufferInst = MetaGetMember(instance, "_TextureData")
+    local bufferInst = MetaGetMember(instance, "_TextureData")
+    local format = MetaGetClassValue(MetaGetMember(instance, "mD3DFormat"))
     if write then
         ddsTexSize = MetaGetBufferSize(bufferInst) -- write buffer size
-        MetaStreamWriteInt(stream, ddsTexSize)
+
+        local dds = {} -- TODO
+
+        MetaStreamWriteInt(stream, ddsTexSize + MetaStreamGetDDSHeaderSize(dds))
+        MetaStreamWriteDDS(strema, dds)
         MetaStreamWriteBuffer(stream, bufferInst) -- write buffer
     else
         ddsTexSize = MetaStreamReadInt(stream) -- read buffer size
-        MetaStreamReadBuffer(stream, bufferInst, ddsTexSize)
+        headerInfo = MetaStreamReadDDS(stream) -- as far as we know, bone has nothing from this DDS header that isn't inferred from d3dtx header
+        TTE_Assert(headerInfo["Format CC"] ~= "DX10", "DDS in DX9 contains DX10 information") -- should not, we are in DX9
+        MetaStreamReadBuffer(stream, bufferInst, ddsTexSize - MetaStreamGetDDSHeaderSize(headerInfo))
+        print(DumpTable(headerInfo))
     end
     return true
 end

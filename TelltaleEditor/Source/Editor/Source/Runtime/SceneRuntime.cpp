@@ -29,6 +29,19 @@ SceneRuntime::~SceneRuntime()
     _AttachedRegistry.reset();
 }
 
+void SceneRuntime::AsyncProcessEvents(const std::vector<RuntimeInputEvent> &events)
+{
+    for(auto& event: events)
+    {
+        if(event.Type == InputMapper::EventType::BEGIN)
+            _KeysDown.Set(event.Code, true);
+        else if(event.Type == InputMapper::EventType::END)
+            _KeysDown.Set(event.Code, false);
+    }
+    for(auto it = _AsyncScenes.rbegin(); it != _AsyncScenes.rend(); it++)
+        it->AsyncProcessEvents(*this, events);
+}
+
 RenderNDCScissorRect SceneRuntime::AsyncUpdate(RenderFrame &frame, RenderNDCScissorRect scissor, Float deltaTime)
 {
     // PERFORM SCENE MESSAGES
@@ -116,4 +129,11 @@ void SceneRuntime::PushScene(Scene&& scene)
     msg.Priority = INTERNAL_START_PRIORITY;
     msg.Type = SceneMessageType::START_INTERNAL;
     SendMessage(msg);
+}
+
+
+Bool SceneRuntime::IsKeyDown(InputCode key)
+{
+    TTE_ASSERT(InputMapper::IsCommonInputCode(key), "Invalid key code"); // ONLY ACCEPT COMMON CODES. Platform ones are mapped.
+    return _KeysDown[key];
 }

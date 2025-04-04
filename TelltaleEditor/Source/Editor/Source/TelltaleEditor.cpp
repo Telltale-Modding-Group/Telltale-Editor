@@ -26,8 +26,22 @@ TelltaleEditor::TelltaleEditor(GameSnapshot s, Bool ui)
     _ModdingContext = CreateToolContext(std::move(commonAPI));
     
     _ModdingContext->Switch(s); // create context loads the symbols. in the editor lets resave them in close
+    _PostSwitch(s);
     
     RenderContext::Initialise();
+    RenderStateBlob::Initialise();
+}
+
+void TelltaleEditor::_PostSwitch(GameSnapshot snap)
+{
+    PlatformInputMapper::Shutdown();
+    PlatformInputMapper::Initialise(snap.Platform);
+}
+
+void TelltaleEditor::Switch(GameSnapshot s)
+{
+    _ModdingContext->Switch(s);
+    _PostSwitch(s);
 }
 
 TelltaleEditor::~TelltaleEditor()
@@ -43,6 +57,7 @@ TelltaleEditor::~TelltaleEditor()
     
     DestroyToolContext();
     _ModdingContext = nullptr;
+    PlatformInputMapper::Shutdown();
 }
 
 Bool TelltaleEditor::Update(Bool forceQuit)

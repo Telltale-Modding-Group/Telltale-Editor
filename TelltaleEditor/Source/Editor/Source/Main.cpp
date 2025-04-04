@@ -61,7 +61,7 @@ static void RunRender()
             
             // 2. load a mesh
             Handle<Mesh::MeshInstance> hMesh{};
-            hMesh.SetObject(registry, "obj_woodsplita.d3dmesh", false, true);
+            hMesh.SetObject(registry, "ui_scroll.d3dmesh", false, true);
             
             // 3. create a dummy scene, add an agent, attach a renderable module to it.
             Scene scene{};
@@ -83,6 +83,23 @@ static void RunRender()
         }
     }
     DumpTrackedMemory();
+}
+
+// TESTS: extract archive
+static void Extract()
+{
+    {
+        TelltaleEditor editor{{"BN100","MacOS",""}, false}; // editor. dont run UI yet (doesn't exist)
+        
+        Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
+        registry->MountArchive("<Data>/", "/Users/lucassaragosa/Desktop/Game/bone/bn100_data.ttarch");
+        
+        editor.EnqueueResourceLocationExtractTask(registry, "<Data>/", "/users/lucassaragosa/desktop/extract/bone", "", true);
+        editor.Wait();
+        
+        registry->PrintLocations();
+        
+    }
 }
 
 // TESTS: load all of given type mask in archive
@@ -147,6 +164,7 @@ static void GenerateFilesSymMap(CString mount, GameSnapshot snapshot)
 
 int main()
 {
+    //Extract();
     //LoadAll("!*.lenc");
     RunRender();
     //GenerateFilesSymMap("/users/lucassaragosa/desktop/game/bone", {"BN100","MacOS", ""});

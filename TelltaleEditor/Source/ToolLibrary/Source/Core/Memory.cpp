@@ -81,6 +81,8 @@ static CString TAG_NAMES[]
     "LinearHeap",
     "TransienceFence",
     "ResourceRegistry",
+    "CommonInstance",
+    "RenderLayer"
 };
 
 void DumpTrackedMemory()

@@ -65,7 +65,6 @@ public:
         img.Data = *pBuffer;
         
         task->_Images.push_back(std::move(img));
-        task->_TextureFlags.Add(RenderTexture::TEXTURE_DIRTY);
         
         return 0;
     }
@@ -109,7 +108,87 @@ public:
         return 0;
     }
     
+    static U32 luaTextureCalculatePitch(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 3, "Incorrect usage");
+        RenderSurfaceFormat format = (RenderSurfaceFormat)man.ToInteger(1);
+        U32 w = (U32)man.ToInteger(2);
+        U32 h = (U32)man.ToInteger(3);
+        man.PushUnsignedInteger(RenderTexture::CalculatePitch(format, w, h));
+        return 1;
+    }
+    
+    
+    static U32 luaTextureCalculateSlicePitch(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 3, "Incorrect usage");
+        RenderSurfaceFormat format = (RenderSurfaceFormat)man.ToInteger(1);
+        U32 w = (U32)man.ToInteger(2);
+        U32 h = (U32)man.ToInteger(3);
+        man.PushUnsignedInteger(RenderTexture::CalculateSlicePitch(format, w, h));
+        return 1;
+    }
+    
 };
+
+U32 RenderTexture::CalculatePitch(RenderSurfaceFormat format, U32 mipWidth, U32) {
+    U32 rowPitch = 0;
+    U32 blockWidth = 0;
+    
+    switch (format) {
+        case RenderSurfaceFormat::RGBA8:
+        case RenderSurfaceFormat::BGRA8:
+        {
+            rowPitch = (4 * mipWidth + 7) / 8;
+            break;
+        }
+        case RenderSurfaceFormat::DXT1:
+        {
+            blockWidth = MAX(1, (mipWidth + 3) / 4);
+            rowPitch = 8 * blockWidth;
+            break;
+        }
+        case RenderSurfaceFormat::DXT3:
+        case RenderSurfaceFormat::DXT5:
+        {
+            blockWidth = MAX(1, (mipWidth + 3) / 4);
+            rowPitch = 16 * blockWidth;
+            break;
+        }
+        default:
+            TTE_ASSERT(false, "Unknown or invalid format");
+            return 0;
+    }
+    
+    return rowPitch;
+}
+
+U32 RenderTexture::CalculateSlicePitch(RenderSurfaceFormat format, U32 mipWidth, U32 mipHeight)
+{
+    U32 slicePitch = 0;
+    
+    switch (format) {
+        case RenderSurfaceFormat::RGBA8:
+        case RenderSurfaceFormat::BGRA8:
+        {
+            slicePitch = CalculatePitch(format, mipWidth, 0) * mipHeight;
+            break;
+        }
+        case RenderSurfaceFormat::DXT1:
+        case RenderSurfaceFormat::DXT3:
+        case RenderSurfaceFormat::DXT5:
+        {
+            U32 blockHeight = MAX(1, (mipHeight + 3) / 4);
+            slicePitch = RenderTexture::CalculatePitch(format, mipWidth, 0) * blockHeight;
+            break;
+        }
+        default:
+            TTE_ASSERT(false, "Unknown or invalid format");
+            return 0;
+    }
+    
+    return slicePitch;
+}
 
 void RenderTexture::RegisterScriptAPI(LuaFunctionCollection &Col)
 {
@@ -119,9 +198,11 @@ void RenderTexture::RegisterScriptAPI(LuaFunctionCollection &Col)
     PUSH_FUNC(Col, "CommonTextureSetDimensions", &TextureAPI::luaTextureSetDimensions);
     PUSH_FUNC(Col, "CommonTexturePushOrderedImage", &TextureAPI::luaTexturePushImage);
     PUSH_FUNC(Col, "CommonTextureResolveRGBA", &TextureAPI::luaTextureResolve); // resolve image to RGBA
+    PUSH_FUNC(Col, "CommonTextureCalculatePitch", &TextureAPI::luaTextureCalculatePitch);
+    PUSH_FUNC(Col, "CommonTextureCalculateSlicePitch", &TextureAPI::luaTextureCalculateSlicePitch);
     
     PUSH_GLOBAL_I(Col, "kCommonTextureResolvableFormatBGRX", 0);
-    PUSH_GLOBAL_I(Col, "kCommonTextureDDSHeaderSize", 0x7C);
+    //PUSH_GLOBAL_I(Col, "kCommonTextureDDSHeaderSize", 0x7C); different versions
     
 }
 

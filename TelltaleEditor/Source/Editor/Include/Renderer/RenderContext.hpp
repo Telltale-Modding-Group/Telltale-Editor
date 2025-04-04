@@ -4,17 +4,23 @@
 
 #include <Core/Context.hpp>
 #include <Renderer/RenderAPI.hpp>
-#include <Common/Texture.hpp>
+#include <Common/Common.hpp>
 
 #include <vector>
 #include <set>
 #include <type_traits>
+
+// ============================================= MISC =============================================
 
 // Default capped frame rate to stop CPU usage going through the roof. Between 1 and 120.
 #define DEFAULT_FRAME_RATE_CAP 60
 
 // Threshold on the number of frames between last use and current frame at which a resource will be freed due to not being hot in use.
 #define DEFAULT_HOT_RESOURCE_THRESHOLD 256
+
+// Threshold on the number of frames where a locked resource is not used and can now be unlocked. Larger as only useful for scene unloads (uncommon)
+// At 512 / 30fps => every 15 ish seconds to check them
+#define DEFAULT_LOCKED_HANDLE_THRESHOLD 512
 
 struct DefaultRenderTexture
 {
@@ -28,7 +34,7 @@ struct DefaultRenderMesh
 {
     
     DefaultRenderMeshType Type;
-    Ptr<RenderPipelineState> PipelineState;
+    RenderPipelineState PipelineDesc;
     Ptr<RenderBuffer> IndexBuffer;
     Ptr<RenderBuffer> VertexBuffer; // only one vertex buffer for default ones, they are simple.
     U32 NumIndices = 0;
@@ -47,6 +53,134 @@ enum RenderContextFlags
 };
 
 class RenderContext;
+
+// ============================================= RENDER FRAME =============================================
+
+class RenderFrameUpdateList;
+class RenderSceneView;
+struct RenderSceneViewParams;
+
+/// A render frame. Two are active at one time, one is filled up my the main thread and then executed and run on the GPU in the render job which is done async.
+struct RenderFrame
+{
+    
+    U64 FrameNumber = 0; // this frame number
+    RenderTexture* BackBuffer = nullptr; // set at begin render frame internally
+    
+    std::vector<RenderCommandBuffer*> CommandBuffers; // command buffers which will be destroyed at frame end (render execution)
+    
+    RenderSceneView* Views = nullptr;
+    
+    RenderFrameUpdateList* UpdateList; // list of updates for frame.
+    
+    LinearHeap Heap; // frame heap memory
+    
+    // Reset and clear the frame to new frame number
+    void Reset(RenderContext& context, U64 newFrameNumber);
+    
+    // Shared pointer will be released at end of frame after render. Use to keep pointers alive for duration of frame
+    template<typename T>
+    inline void PushAutorelease(Ptr<T> val)
+    {
+        auto it = _Autorelease.find((U64)val.get());
+        if(it == _Autorelease.end())
+            _Autorelease[(U64)val.get()] = std::move(val);
+    }
+    
+    RenderSceneView* PushView(RenderSceneViewParams parameters, Bool bPushFront);
+    
+    std::unordered_map<U64, Ptr<void>> _Autorelease; // released at end of frame.
+    
+    std::vector<RuntimeInputEvent> _Events;
+    
+};
+
+/**
+ This class is a per-frame managed state which takes care of handling copy pass information.
+ This gets executed before any draw calls such that all updates complete before the renderfer needs them.
+ */
+class RenderFrameUpdateList
+{
+    
+    // No staging buffer. Static data.
+    struct MetaBufferUpload
+    {
+        
+        MetaBufferUpload* Next = nullptr;
+        
+        Meta::BinaryBuffer Data;
+        
+        Ptr<RenderBuffer> Buffer;
+        
+        U64 DestPosition = 0; // dest position in Buffer
+        
+    };
+    
+    struct MetaTextureUpload
+    {
+        
+        MetaTextureUpload* Next = nullptr;
+        
+        Meta::BinaryBuffer Data;
+        
+        Ptr<RenderTexture> Texture;
+        
+        U32 Mip;
+        U32 Slice;
+        U32 Face;
+        
+    };
+    
+    struct DataStreamBufferUpload
+    {
+        
+        DataStreamBufferUpload* Next = nullptr;
+        
+        DataStreamRef Src;
+        Ptr<RenderBuffer> Buffer;
+        
+        U64 Position = 0; // start pos
+        U64 UploadSize = 0;
+        
+        U64 DestPosition = 0; // dest position Buffer
+        
+    };
+    
+    friend class RenderContext;
+    
+    RenderContext& _Context;
+    RenderFrame& _Frame;
+    
+    U64 _TotalBufferUploadSize = 0; // total bytes this frame so far being uploaded to GPU
+    U32 _TotalNumUploads = 0; // number of uploads to process this frame
+    
+    MetaBufferUpload* _MetaUploads = nullptr;
+    DataStreamBufferUpload* _StreamUploads = nullptr;
+    MetaTextureUpload* _MetaTexUploads = nullptr;
+    
+    // Begins the render frame internally. This does all uploading updates to GPU.
+    void BeginRenderFrame(RenderCommandBuffer* pCopyCommands);
+    
+    void EndRenderFrame();
+    
+    // Remove the buffer from any previous uploads, as a new upload is present which would override it.
+    void _DismissBuffer(const Ptr<RenderBuffer>& buf);
+    
+    void _DismissTexture(const Ptr<RenderTexture>& tex, U32 mip, U32 slice, U32 face);
+    
+public:
+    
+    inline RenderFrameUpdateList(RenderContext& context, RenderFrame& frame) : _Frame(frame), _Context(context) {}
+    
+    void UpdateBufferMeta(const Meta::BinaryBuffer& metaBuffer, const Ptr<RenderBuffer>& destBuffer, U64 destOffset);
+    
+    void UpdateBufferDataStream(const DataStreamRef& srcStream, const Ptr<RenderBuffer>& destBuffer, U64 srcPos, U64 nBytes, U64 destOffset);
+    
+    void UpdateTexture(const Ptr<RenderTexture>& destTexture, U32 mip, U32 slice, U32 face);
+    
+};
+
+// ============================================= RENDER LAYER =============================================
 
 // Layer inside the renderer. Layers are like abstractions to what is rendered. OnAttach & Detach not defined, use constructor / dtor for this.
 class RenderLayer
@@ -77,7 +211,123 @@ protected:
     // Render & update the layer. Make sure to apply scissor argument before rendering. Return the scissor to pass down to subsequent layers.
     virtual RenderNDCScissorRect AsyncUpdate(RenderFrame& frame, RenderNDCScissorRect parentScissor, Float deltaTime) = 0; // perform rendering
     
+    // Events passed downwards to layers. This is executed *before* the update, every frame, if any events are polled.
+    virtual void AsyncProcessEvents(const std::vector<RuntimeInputEvent>& events) = 0;
+    
 };
+
+// ========================================== HIGH LEVEL RENDER VIEW & PASS ==========================================
+
+// Code in this section is related to rendering instructions at a higher level which is passed down to the main thread renderer next frame.
+// These don't explicitly reference render API structures but define what needs to be done by the renderer this frame, such as being able
+// to resolve correct binds, render targets and draw calls for each pass.
+
+// Render scene view type
+enum class RenderViewType : U32
+{
+    MAIN,
+    NUM,
+};
+
+struct RenderViewPassParams
+{
+    
+    enum PassFl
+    {
+        DO_CLEAR_COLOUR = 1,
+        DO_CLEAR_STENCIL = 2,
+        DO_CLEAR_DEPTH = 4,
+    };
+    
+    Colour ClearColour = Colour::Black;
+    U32 ClearStencil = 0; // bottom 8 bits used
+    Float ClearDepth = 1.0f; // assuming less than. set yourself
+    Flags PassFlags{};
+    
+};
+
+/*
+ A high level render pass. Multiple inside a scene view. Treated as POD with no dependencies so no destructor, as this is created and destroyed lots each frame.
+ This eventually will translate into a render pipeline state.
+ */
+class RenderViewPass
+{
+    
+    friend class RenderContext;
+    friend class RenderFrame;
+    friend class RenderSceneView;
+    
+    RenderSceneView* SceneView;
+    RenderViewPass* Next = nullptr, *Prev = nullptr;
+    
+    RenderViewPassParams Params;
+    
+    CString Name = "";
+    
+    PagedList<RenderInst, 32> DrawCalls;
+    
+    RenderTargetIDSet TargetRefs{};
+    
+    ShaderParametersStack Parameters; // base params
+    
+public:
+    
+    void PushRenderInst(RenderContext& context, RenderInst &&inst);
+    void PushRenderInst(RenderContext& context, RenderInst &&inst, ShaderParametersGroup* params);
+    
+    void PushPassParameters(RenderContext& context, ShaderParametersGroup* pGroup); // push base parameters for all draws in this pass
+    
+    void SetName(CString format, ...);
+    
+    void SetRenderTarget(U32 index, RenderTargetID id, U32 mip, U32 slice);
+    void SetDepthTarget(RenderTargetID id, U32 mip, U32 slice);
+    
+};
+
+struct RenderSceneViewParams
+{
+    RenderViewType ViewType;
+};
+
+/*
+ High level scene view. This could be default, light assigments or light baking.
+ */
+class RenderSceneView
+{
+    
+    friend class RenderContext;
+    friend class RenderFrame;
+    friend class RenderViewPass;
+    
+    RenderFrame* Frame;
+    RenderSceneView* Next, *Prev;
+    
+    CString Name;
+    
+    RenderSceneViewParams Params;
+    
+    ShaderParametersStack Parameters; // base params
+    
+    RenderViewPass* PassList, *PassListTail; // list of passes
+    
+public:
+    
+    RenderViewPass* PushPass(RenderViewPassParams params); // push a pass
+    
+    void PushViewParameters(RenderContext& context, ShaderParametersGroup* pGroup); // push base parameters for all passes and draws in this view.
+    
+    void SetName(CString format, ...);
+    
+};
+
+// Internal scene drawing context
+struct RenderSceneContext
+{
+    Float DeltaTime;
+    RenderCommandBuffer* CommandBuf;
+};
+
+// ============================================= RENDER HIGH LEVEL CONTEXT =============================================
 
 /// Represents an execution environment for running scenes, which holds a window.
 class RenderContext : public HandleLockOwner
@@ -143,11 +393,6 @@ public:
      Allocates a useable parameter stack for the current given frame
      */
     ShaderParametersStack* AllocateParametersStack(RenderFrame& frame);
-    
-    // Pushes a render instance (call in populater) and executes it next render frame.
-    // If a default mesh, param stack can be null (if it requires no other inputs). alloc param stack from the alloc function, not on stack!
-    // But 9/10 a vertex buffer and index buffer are needed (not in defaults they are bound automatically) so parameters are needed.
-    void PushRenderInst(RenderFrame& frame, ShaderParametersStack* paramStack, RenderInst&& inst);
     
     /**
      Pushes another parameter stack to the given parameter stack, leaving 'stack' (being pushed) unaffected.
@@ -217,12 +462,20 @@ public:
     // Call from the main thread. See the default macro
     inline void AdjustHotResourceThreshold(U32 newValue)
     {
+        TTE_ASSERT(IsCallingFromMain(), "Main thread call");
         _HotResourceThresh = newValue;
+    }
+    
+    // Call from the main thread. See the default macro
+    inline void AdjustHotLockedHandleThreshold(U32 newValue)
+    {
+        TTE_ASSERT(IsCallingFromMain(), "Main thread call");
+        _HotLockThresh = newValue;
     }
     
     Bool DbgCheckOwned(const Ptr<Handleable> handle) const; // thread safe to check if we own this resource. if not it was not locked and should have been
     
-    Bool LockResource(const Ptr<Handleable> handle); // thread safe
+    Bool TouchResource(const Ptr<Handleable> handle); // thread safe. locks resource. MUST! be called if using a handle in the thread frame.
     
 private:
     
@@ -273,6 +526,8 @@ private:
     
     void _PurgeColdResources(RenderFrame*); // free resources kept for too long
     
+    std::vector<Ptr<Handleable>> _PurgeColdLocks(); // main thread call. unlocks returned ones, and removes from locked array into return
+    
     // Draws a render command
     void _Draw(RenderFrame& frame, RenderInst inst, RenderCommandBuffer& cmds);
     
@@ -283,6 +538,14 @@ private:
     U64 _HashPipelineState(RenderPipelineState& state);
     
     void _FreePendingDeletions(U64 currentFrameNumber); // main thread call
+    
+    void _ExecuteFrame(RenderFrame& frame, RenderSceneContext& context); // execute render scene views
+    void _ExecutePass(RenderFrame& frame, RenderSceneContext& context, RenderViewPass* pass);
+    
+    void _PrepareRenderPass(RenderFrame& frame, RenderPass& pass, const RenderViewPass& viewInfo);
+    void _ResolveTargets(RenderFrame& frame, const RenderTargetIDSet& ids, RenderTargetSet& set);
+    void _ResolveTarget(RenderFrame& frame, const RenderTargetIDSurface& surface, RenderTargetResolvedSurface& resolved, U32 screenW, U32 screenH);
+    void _ResolveBackBuffers(RenderCommandBuffer& buf);
     
     // =========== GENERIC FUNCTIONALITY
     
@@ -295,6 +558,7 @@ private:
     U64 _StartTimeMicros = 0; // start time of current mt frame
     U32 _MinFrameTimeMS; // min frame time (ie max frame rate)
     U32 _HotResourceThresh; // hot resource threshold
+    U32 _HotLockThresh;
     
     SDL_Window* _Window; // SDL3 window handle
     SDL_GPUDevice* _Device; // SDL3 graphics device (vulkan,d3d,metal)
@@ -310,11 +574,15 @@ private:
     std::vector<Ptr<RenderLayer>> _DeltaLayers; // if nullptr means a pop. locked
     U32 _Flags = 0;
     
-    std::vector<Ptr<RenderLayer>> _LayerStack; // NOT THREAD SAFE. ONLY ACCESS
+    std::vector<Ptr<RenderLayer>> _LayerStack; // NOT THREAD SAFE.
     
     // ACCESS ONLY THROUGH _GETDEFAULTTEXTURE AND _GETDEFAULTMESH
     std::vector<DefaultRenderMesh> _DefaultMeshes;
     std::vector<DefaultRenderTexture> _DefaultTextures;
+    
+    // ACCESS ONLY BY RENDER
+    Ptr<RenderTexture> _ConstantTargets[(U32)RenderTargetConstantID::NUM];
+    // Dynamic targets?
     
     friend struct RenderPipelineState;
     friend struct RenderShader;

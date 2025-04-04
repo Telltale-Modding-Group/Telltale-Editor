@@ -133,6 +133,7 @@ static Bool _DoResourcesExtract(Ptr<ResourceRegistry>& reg, const String& output
                 sfs::create_directories(p);
             
             src->SetPosition(0);
+            src = Meta::MapDecryptingStream(src);
             DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(fileName);
             DataStreamManager::GetInstance()->Transfer(src, out, src->GetSize());
         } // quietly ignore for now

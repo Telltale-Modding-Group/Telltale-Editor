@@ -164,6 +164,7 @@ function NormaliseBoneD3DMesh(inst, state)
 
             -- decompress if needed
             type = MetaGetClassValue(MetaGetMember(vertexBuffer, "mType"))
+            print(tostring(bufferNum) .. " BUFFER INFO " .. MetaToString(vertexBuffer))
             if MetaGetClassValue(MetaGetMember(vertexBuffer, "mbStoreCompressed")) and (type == 2 or type == 4) then
                 compressedFmt = kCommonMeshCompressedFormatSNormNormal
                 if type == 4 then
@@ -190,11 +191,11 @@ function NormaliseBoneD3DMesh(inst, state)
     -- BUFFER 1: NORMAL
     pushedVertexBufferIndex = processBoneBuffer(state, 1, pushedVertexBufferIndex, 12, kCommonMeshAttributeNormal, kCommonMeshFloat3, false)
 
-    -- BUFFER 2: ??
-    pushedVertexBufferIndex = processBoneBuffer(state, 2, pushedVertexBufferIndex, 0, kCommonMeshAttributeUnknown, kCommonMeshFormatUnknown, false)
+    -- BUFFER 2: BONE WEIGHTS as F3
+    pushedVertexBufferIndex = processBoneBuffer(state, 2, pushedVertexBufferIndex, 12, kCommonMeshAttributeBlendWeight, kCommonMeshFloat3, false)
 
-    -- BUFFER 3: ?? ENDIAN FLIPPED ON MACOS. CHECK. (4 bytes)
-    pushedVertexBufferIndex = processBoneBuffer(state, 3, pushedVertexBufferIndex, 0, kCommonMeshAttributeUnknown, kCommonMeshFormatUnknown, true)
+    -- BUFFER 3: BONE INDICES. ENDIAN FLIPPED ON MACOS - CHECK. (4 bytes)
+    pushedVertexBufferIndex = processBoneBuffer(state, 3, pushedVertexBufferIndex, 4, kCommonMeshAttributeBlendIndex, kCommonMeshUInt1, true)
 
     -- BUFFER 4: DIFFUSE UV (UV0).
     pushedVertexBufferIndex = processBoneBuffer(state, 4, pushedVertexBufferIndex, 8, kCommonMeshAttributeUVDiffuse, kCommonMeshFloat2, false)

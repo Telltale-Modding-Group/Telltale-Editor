@@ -5,6 +5,7 @@
 #include <Scripting/ScriptManager.hpp>
 #include <Meta/Meta.hpp>
 #include <Resource/ResourceRegistry.hpp>
+#include <Renderer/RenderAPI.hpp>
 
 #include <vector>
 #include <memory>
@@ -14,20 +15,9 @@ class RenderContext;
 
 // =========================== COMMON SURFACE FORMATS
 
-enum class RenderSurfaceFormat
-{
-    UNKNOWN,
-    RGBA8,
-    BGRA8,
-    DXT1,
-    DXT3,
-    DXT5,
-};
-
 enum class RenderTextureType
 {
     DIFFUSE,
-    
 };
 
 static struct TextureFormatInfo {
@@ -43,6 +33,7 @@ constexpr SDL_FormatMappings[]
     {RenderSurfaceFormat::DXT1, SDL_GPU_TEXTUREFORMAT_BC1_RGBA_UNORM, "kCommonTextureFormatDXT1", 0.5f},
     {RenderSurfaceFormat::DXT3, SDL_GPU_TEXTUREFORMAT_BC2_RGBA_UNORM, "kCommonTextureFormatDXT3", 1.0f},
     {RenderSurfaceFormat::DXT5, SDL_GPU_TEXTUREFORMAT_BC3_RGBA_UNORM, "kCommonTextureFormatDXT5", 1.0f},
+    {RenderSurfaceFormat::DEPTH32FSTENCIL8, SDL_GPU_TEXTUREFORMAT_D32_FLOAT_S8_UINT, "kCommonTextureFormatDepth32FStencil8", 8.0f},
     {RenderSurfaceFormat::UNKNOWN, SDL_GPU_TEXTUREFORMAT_INVALID}, // do not add below this, add above
 };
 
@@ -77,7 +68,6 @@ private:
     enum TextureFlag
     {
         TEXTURE_FLAG_DELEGATED = 1, // dont release texture.
-        TEXTURE_DIRTY = 2, // images have pushed and ready to be created
     };
     
     // ======= RENDER CONTEXT INTERNAL (NO LOCK NEEDED, NO RESOURCE SHARING WITH OTHER CONTEXTS)
@@ -104,17 +94,28 @@ private:
     
     std::vector<Image> _Images; // sub images
     
+    void _Release();
+    
 public:
+    
+    static U32 CalculatePitch(RenderSurfaceFormat format, U32 mipWidth, U32 mipHeight);
+    static U32 CalculateSlicePitch(RenderSurfaceFormat format, U32 mipWidth, U32 mipHeight);
     
     // ================================
     
     // If not created, creates the texture to a 2D texture all black.
     void Create2D(RenderContext*, U32 width, U32 height, RenderSurfaceFormat format, U32 nMips);
     
+    // Create render target optionally pre-allocated
+    void CreateTarget(RenderContext& context, Flags flags, RenderSurfaceFormat format, U32 width,
+                      U32 height, U32 nMips, U32 nSlices, U32 array, Bool bDepthTarget, SDL_GPUTexture* handle = nullptr);
+    
     SDL_GPUTexture* GetHandle(RenderContext* context); // creates if needed
     
     // ensure the given mip is on the GPU when drawing
     void EnsureMip(RenderContext*, U32 mipIndex);
+    
+    void SetName(CString name);
     
     RenderTexture() = default;
     ~RenderTexture(); // RenderContext specific.
