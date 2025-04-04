@@ -153,7 +153,7 @@ namespace Meta {
     struct RegGame;
     
     // Weak reference to the parent. Deep into member trees, these point to the top level class, eg: array of materials , top level is D3DMesh
-    using ParentWeakReference = std::weak_ptr<U8>;
+    using ParentWeakReference = WeakPtr<U8>;
     
     // A type class. This as well as Member are used internally. Refer to classes using the index (U32 - internal version CRC).
     // Refer to members by name string
@@ -219,6 +219,8 @@ namespace Meta {
         String _EnumFlagToString(Class* pClass, const void* pVal);
         
         Bool _CheckPlatformForGame(RegGame&, const String& platform);
+        
+        Bool _CheckVendorForGame(RegGame&, const String& platform);
         
         Bool _CheckPlatform(const String& platform);
         
@@ -371,6 +373,7 @@ namespace Meta {
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
         std::multimap<String, String, FolderAssociateComparator> FolderAssociates; // mask to folder name, eg '*.dlg' into Dialogs/, and 'module_*.prop' into Properties/Primitives/, '*.prop' => Properties/
         std::vector<String> ValidPlatforms; // game platforms
+        std::vector<String> ValidVendors; // if non zero it must be specified. eg 'DevBuild' for early dev releases etc. see script
         BlowfishKey MasterKey; // key used for all platforms
         Flags Fl; // flags
         U32 ArchiveVersion = 0; // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
@@ -861,7 +864,7 @@ namespace Meta {
             }
         }
         TTE_ASSERT(false, "Member %s::%s does not exist! Abort!!", pClass->Name.c_str(), name.c_str());
-        return *((T*)0); // !! abort.
+        return *((T*)FileNull()); // !! abort.
     }
     
     // Returns if the given instance has a member of the given name

@@ -20,9 +20,9 @@ namespace RenderUtility
         cam->CameraFar = ac->_FarClip;
     }
     
-    void _DrawInternal(RenderContext& context, Camera* ac, Matrix4 model, Colour col, DefaultRenderMeshType primitive, ShaderParametersStack* paramStack)
+    void _DrawInternal(RenderContext& context, Camera* ac, Matrix4 model, Colour col, DefaultRenderMeshType primitive, RenderViewPass* pass)
     {
-        TTE_ASSERT(paramStack, "Parameter stack is not specified!");
+        TTE_ASSERT(pass, "Pass is not specified!");
         RenderFrame& frame = context.GetFrame(true);
         
         // SETUP CAMERA UNIFORM
@@ -54,13 +54,10 @@ namespace RenderUtility
             context.SetParameterUniform(frame, group, PARAMETER_CAMERA, cam, sizeof(ShaderParameter_Camera));
         context.SetParameterUniform(frame, group, PARAMETER_OBJECT, &obj, sizeof(ShaderParameter_Object));
         
-        // Push the group to the stack
-        context.PushParameterGroup(frame, paramStack, group); // push the group to this param stack
-        
         // Queue the draw command
         RenderInst draw {};
         draw.DrawDefaultMesh(primitive);
-        context.PushRenderInst(frame, paramStack, std::move(draw)); // push draw command
+        pass->PushRenderInst(context, std::move(draw), group);
         
     }
     

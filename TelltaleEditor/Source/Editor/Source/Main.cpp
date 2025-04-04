@@ -2,6 +2,7 @@
 
 #include <Common/Scene.hpp> 
 #include <Renderer/RenderContext.hpp>
+#include <Runtime/SceneRuntime.hpp>
 #include <Meta/Meta.hpp>
 
 #include <TelltaleEditor.hpp>
@@ -41,48 +42,40 @@ static void RunRender()
             registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone");
             registry->PrintLocations();
             
-            context.AttachResourceRegistry(registry);
+            // Add a scene runtime layer to run the scene
+            auto runtimeLayer = context.PushLayer<SceneRuntime>(registry);
             
-            // Loading and previewing a mesh example
-            
-            // load all textures.
+            // 1. preload all textures
             /*std::set<String> tex{};
-             StringMask m("*.d3dtx");
-             registry->GetResourceNames(tex, &m);
-             std::vector<Ptr<RenderTexture>> loadedTextures{};
-             for(auto& t: tex)
-             {
-             auto s = registry->FindResource(t);
-             Meta::ClassInstance textureInstance{};
-             if( (textureInstance = Meta::ReadMetaStream(t, s)) )
-             {
-             Ptr<RenderTexture> tex = TTE_NEW_PTR(RenderTexture, MEMORY_TAG_TEMPORARY);
-             loadedTextures.push_back(tex);
-             editor.EnqueueNormaliseTextureTask(textureInstance, tex);
-             }
-             else TTE_LOG("Failed %s", t.c_str());
-             }*/
+            StringMask m("*.d3dtx");
+            registry->GetResourceNames(tex, &m);
+            std::vector<HandleBase> handles{};
+            for(auto& t: tex)
+            {
+                auto& handle = handles.emplace_back();
+                handle.SetObject<RenderTexture>(registry, t, false, false); // no unload, no ensure load yet as preload will
+            }
+            U32 preload = registry->Preload(std::move(handles), false);
+            registry->WaitPreload(preload); // preload and wait for it
+             */
             
-            // 1. load a mesh
-            DataStreamRef stream = registry->FindResource("adv_forestWaterfall.d3dmesh");
-            DataStreamRef debugStream = editor.LoadLibraryResource("TestResources/debug.txt");
-            Meta::ClassInstance inst = Meta::ReadMetaStream("adv_forestWaterfall.d3dmesh", stream, std::move(debugStream));
+            // 2. load a mesh
+            Handle<Mesh::MeshInstance> hMesh{};
+            hMesh.SetObject(registry, "ui_scroll.d3dmesh", false, true);
             
-            // 2. create a dummy scene, add an agent, attach a renderable module to it.
+            // 3. create a dummy scene, add an agent, attach a renderable module to it.
             Scene scene{};
             SceneModuleTypes types{};
             types.Set(SceneModuleType::RENDERABLE, true);
             scene.AddAgent("Mesh Test Agent", types);
             
-            // 3. normalise the mesh above into the scene agent 'Icon' in the scene, from telltale specific to the common format
-            editor.EnqueueNormaliseMeshTask(&scene, "Mesh Test Agent", std::move(inst));
-            editor.Wait();
+            // 4. set renderable agent mesh
+            scene.GetAgentModule<SceneModuleType::RENDERABLE>("Mesh Test Agent").Renderable.AddMesh(registry, hMesh);
             
-            // 4. push scene to renderer
+            // 5. push scene to renderer
+            runtimeLayer.lock()->PushScene(std::move(scene)); // push scene to render
             
-            context.PushScene(std::move(scene)); // push scene to render
-            
-            // 5. Run renderer and show the mesh!
+            // 6. Run renderer and show the mesh!
             context.CapFrameRate(40); // 40 FPS cap
             Bool running = true;
             while((running = context.FrameUpdate(!running)))
@@ -90,6 +83,23 @@ static void RunRender()
         }
     }
     DumpTrackedMemory();
+}
+
+// TESTS: extract archive
+static void Extract()
+{
+    {
+        TelltaleEditor editor{{"BN100","MacOS",""}, false}; // editor. dont run UI yet (doesn't exist)
+        
+        Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
+        registry->MountArchive("<Data>/", "/Users/lucassaragosa/Desktop/Game/bone/bn100_data.ttarch");
+        
+        editor.EnqueueResourceLocationExtractTask(registry, "<Data>/", "/users/lucassaragosa/desktop/extract/bone", "", true);
+        editor.Wait();
+        
+        registry->PrintLocations();
+        
+    }
 }
 
 // TESTS: load all of given type mask in archive
@@ -130,9 +140,33 @@ static void LoadAll(CString mask)
     }
 }
 
+static void GenerateFilesSymMap(CString mount, GameSnapshot snapshot)
+{
+    {
+        TelltaleEditor editor{snapshot, false}; // editor. dont run UI yet (doesn't exist)
+        
+        Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
+        registry->MountSystem("<Data>/", mount);
+        
+        std::set<String> all{};
+        registry->GetResourceNames(all, nullptr);
+        
+        DataStreamRef out = editor.LoadLibraryResource("Dump.symmap");
+        SymbolTable t(true);
+        for(auto& f: all)
+            t.Register(f);
+        t.SerialiseOut(out);
+        
+        TTE_LOG("Done");
+        
+    }
+}
+
 int main()
 {
+    //Extract();
     //LoadAll("!*.lenc");
     RunRender();
+    //GenerateFilesSymMap("/users/lucassaragosa/desktop/game/bone", {"BN100","MacOS", ""});
     return 0;
 }

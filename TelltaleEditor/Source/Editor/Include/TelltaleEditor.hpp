@@ -15,13 +15,19 @@
 /// This represents the application state if using the editor and not the tool library - which this uses internally privately.
 /// VERY IMPORTANT: If you are using this API and no the tool context (you should always use this API) then do not access the ToolContext directly, interact through this.
 /// See EditorTasks.h for information on about the tasks you can post.
-///
+/// Here API is provided which doesn't need the resource registry, such as all normalisation. This allows for quick normalisation in tools. The usual way is that its done automatically
+/// in the resource registry where when you load a resoure it serialises and normalises for you.
 class TelltaleEditor
 {
+    
+    void _PostSwitch(GameSnapshot snap);
+    
 public:
     
     TelltaleEditor(GameSnapshot snapshot, Bool ui);
     ~TelltaleEditor();
+    
+    void Switch(GameSnapshot snapshot); // switch to new snapshot
     
     // Main thread update. Executes render commands and may be slow. Returns TRUE if we can call update again (ie not quitting)
     // Pass in if you want to force it to quit (ie make user click window X)
@@ -50,7 +56,13 @@ public:
      Please note that for any of the results of this task to take effect, you must call Wait or QueryTask.
      Returns the task handle which you can query the completion with.
      */
-    U32 EnqueueNormaliseSceneTask(Scene* pScene, Meta::ClassInstance sceneInstance);
+    U32 EnqueueNormaliseSceneTask(Ptr<Scene> pScene, Meta::ClassInstance sceneInstance);
+    
+    /**
+     Enqueues a task which normalises the given IMAP instance for the current game snapshot.
+     See EnqueueMeshNormaliseTask.
+     */
+    U32 EnqueueNormaliseInputMapperTask(Ptr<InputMapper> imap, Meta::ClassInstance metaInstance);
     
     /**
      Enqueues a task which normalises the given D3D mesh instance for the current game snapshot.
