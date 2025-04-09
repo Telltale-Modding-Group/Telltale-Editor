@@ -26,8 +26,22 @@ TelltaleEditor::TelltaleEditor(GameSnapshot s, Bool ui)
     _ModdingContext = CreateToolContext(std::move(commonAPI));
     
     _ModdingContext->Switch(s); // create context loads the symbols. in the editor lets resave them in close
+    _PostSwitch(s);
     
     RenderContext::Initialise();
+    RenderStateBlob::Initialise();
+}
+
+void TelltaleEditor::_PostSwitch(GameSnapshot snap)
+{
+    PlatformInputMapper::Shutdown();
+    PlatformInputMapper::Initialise(snap.Platform);
+}
+
+void TelltaleEditor::Switch(GameSnapshot s)
+{
+    _ModdingContext->Switch(s);
+    _PostSwitch(s);
 }
 
 TelltaleEditor::~TelltaleEditor()
@@ -43,6 +57,7 @@ TelltaleEditor::~TelltaleEditor()
     
     DestroyToolContext();
     _ModdingContext = nullptr;
+    PlatformInputMapper::Shutdown();
 }
 
 Bool TelltaleEditor::Update(Bool forceQuit)
@@ -169,11 +184,21 @@ U32 TelltaleEditor::EnqueueNormaliseMeshTask(Scene *pScene, Symbol agent, Meta::
     return _TaskFence++;
 }
 
-U32 TelltaleEditor::EnqueueNormaliseSceneTask(Scene *pScene, Meta::ClassInstance sceneInstance)
+U32 TelltaleEditor::EnqueueNormaliseInputMapperTask(Ptr<InputMapper> imap, Meta::ClassInstance instance)
 {
     TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
-    SceneNormalisationTask* task = TTE_NEW(SceneNormalisationTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
-    task->OutputUnsafe = pScene;
+    CommonNormalisationTask<InputMapper>* task = TTE_NEW(CommonNormalisationTask<InputMapper>, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
+    task->Output = imap;
+    task->Instance = std::move(instance);
+    _EnqueueTask(task);
+    return _TaskFence++;
+}
+
+U32 TelltaleEditor::EnqueueNormaliseSceneTask(Ptr<Scene> pScene, Meta::ClassInstance sceneInstance)
+{
+    TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
+    CommonNormalisationTask<Scene>* task = TTE_NEW(CommonNormalisationTask<Scene>, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
+    task->Output = pScene;
     task->Instance = std::move(sceneInstance);
     _EnqueueTask(task);
     return _TaskFence++;

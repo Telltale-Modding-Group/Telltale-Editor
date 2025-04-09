@@ -1,24 +1,87 @@
-#include <Renderer/RenderContext.hpp>
-
 #include <Common/Scene.hpp>
+#include <Runtime/SceneRuntime.hpp>
 
 // Called whenever a message for the scene needs to be processed.
-void Scene::AsyncProcessRenderMessage(RenderContext& context, SceneMessage message, const SceneAgent* pAgent)
+void Scene::AsyncProcessRenderMessage(SceneRuntime& context, SceneMessage message, const SceneAgent* pAgent)
 {
     
 }
 
+static Vector3 cameraPosition = Vector3(0.0f, 0.0f, -3.0f); // Camera position in world space
+static Vector3 cameraRot{};
+static Float dt = 0.0f;
+static Vector2 lastMouse{};
+static Vector2 mouseAmount{};
+// hmm
+
+void Scene::AsyncProcessEvents(SceneRuntime& context, const std::vector<RuntimeInputEvent>& events)
+{
+    for(auto& event: events)
+    {
+        if(event.Code == InputCode::MOUSE_MOVE)
+        {
+            // Only move the camera if the left mouse button is held down
+            if(context.IsKeyDown(InputCode::MOUSE_LEFT_BUTTON))
+            {
+                // Mouse look adjustments
+                Float xCursorDifference = event.X - lastMouse.x;
+                Float yCursorDifference = event.Y - lastMouse.y;
+                
+                // Apply mouse movement to yaw and pitch
+                mouseAmount.x -= (PI_F * xCursorDifference * 0.6f); // Sensitivity factor
+                mouseAmount.y -= (PI_F * yCursorDifference * 0.6f); // Fix y difference usage
+                
+                // Clamping the pitch to prevent flipping
+                mouseAmount.y = fmaxf(-PI_F * 0.5f, fminf(mouseAmount.y, PI_F * 0.5f));
+                
+                // Update camera rotation
+                Vector3 newRotation = Vector3(mouseAmount.y, mouseAmount.x, 0.0f);
+                cameraRot = newRotation;
+            }
+            lastMouse = Vector2(event.X, event.Y);
+        }
+        else if(event.Code == InputCode::A && event.Type == InputMapper::EventType::BEGIN)
+        {
+            event.SetHandled();
+            Vector3 forward = Vector3(cosf(cameraRot.y), 0.0f, sinf(cameraRot.y));
+            cameraPosition += forward * 0.5f;
+            _ViewStack[0].SetWorldPosition(cameraPosition);
+        }
+        else if(event.Code == InputCode::W && event.Type == InputMapper::EventType::BEGIN)
+        {
+            event.SetHandled();
+            Vector3 right = Vector3(-sinf(cameraRot.y), 0.0f, cosf(cameraRot.y));
+            cameraPosition += right * 0.5f;
+            _ViewStack[0].SetWorldPosition(cameraPosition);
+        }
+        else if(event.Code == InputCode::D && event.Type == InputMapper::EventType::BEGIN)
+        {
+            event.SetHandled();
+            Vector3 forward = Vector3(cosf(cameraRot.y), 0.0f, sinf(cameraRot.y));
+            cameraPosition -= forward * 0.5f;
+            _ViewStack[0].SetWorldPosition(cameraPosition);
+        }
+        else if(event.Code == InputCode::S && event.Type == InputMapper::EventType::BEGIN)
+        {
+            event.SetHandled();
+            Vector3 right = Vector3(-sinf(cameraRot.y), 0.0f, cosf(cameraRot.y));
+            cameraPosition -= right * 0.5f;
+            _ViewStack[0].SetWorldPosition(cameraPosition);
+        }
+
+        
+    }
+}
+
 // Called when the scene is being started. here just push one view camera
-void Scene::OnAsyncRenderAttach(RenderContext& context)
+void Scene::OnAsyncRenderAttach(SceneRuntime& context)
 {
     Camera cam{};
-    cam.SetHFOV(45);
-    cam.SetNearClip(0.1f);
+    cam.SetHFOV(50.f);
+    cam.SetNearClip(1.f);
     cam.SetFarClip(1000.f);
-    SDL_GetWindowSize(context._Window, (int*)&cam._ScreenWidth, (int*)&cam._ScreenHeight);
+    context.GetWindowSize(cam._ScreenWidth, cam._ScreenHeight);
     cam.SetAspectRatio();
-    
-    Vector3 cameraPosition = Vector3(0.0f, 0.0f, -90.0f); // Camera position in world space
     
     cam.SetWorldPosition(cameraPosition);
     
@@ -26,20 +89,18 @@ void Scene::OnAsyncRenderAttach(RenderContext& context)
 }
 
 // Called when the scene is being stopped
-void Scene::OnAsyncRenderDetach(RenderContext& context)
+void Scene::OnAsyncRenderDetach(SceneRuntime& context)
 {
     
 }
 
-static float angle = 0.0f;
-
 // The role of this function is populate the renderer with draw commands for the scene, ie go through renderables and draw them
-void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float deltaTime)
+void Scene::PerformAsyncRender(SceneRuntime& rtContext, RenderFrame& frame, Float deltaTime)
 {
+    dt = deltaTime;
     
     // CAMERA PARAMETERS (ALL OBJECTS SHARE COMMON CAMERA) AND BASE SETUP
-    
-    ShaderParametersStack* paramStack = context.AllocateParametersStack(frame);
+    RenderContext& context = rtContext.GetRenderContext();
     
     ShaderParameter_Camera* cam = frame.Heap.NewNoDestruct<ShaderParameter_Camera>();
     RenderUtility::SetCameraParameters(context, cam, &_ViewStack.front());
@@ -47,21 +108,38 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
     ShaderParametersGroup* camGroup = context.AllocateParameter(frame, ShaderParameterType::PARAMETER_CAMERA);
     context.SetParameterUniform(frame, camGroup, ShaderParameterType::PARAMETER_CAMERA, cam, sizeof(ShaderParameter_Camera));
     
-    context.PushParameterGroup(frame, paramStack, camGroup);
+    // SCENE MAIN VIEW
+    RenderSceneViewParams viewParams{};
+    viewParams.ViewType = RenderViewType::MAIN;
+    RenderSceneView* pMainView = frame.PushView(viewParams, false);
+    pMainView->PushViewParameters(context, camGroup); // attach camera parameters
     
-    // test rotating sphere
+    // MAIN DIFFUSE PASS
+    RenderViewPassParams diffuseParams{};
+    diffuseParams.PassFlags.Add(RenderViewPassParams::DO_CLEAR_COLOUR);
+    diffuseParams.PassFlags.Add(RenderViewPassParams::DO_CLEAR_DEPTH);
+    diffuseParams.PassFlags.Add(RenderViewPassParams::DO_CLEAR_STENCIL);
+    diffuseParams.ClearDepth = 1.0f;
+    diffuseParams.ClearStencil = 0;
+    diffuseParams.ClearColour = Colour::Black;
+    RenderViewPass* pDiffusePass = pMainView->PushPass(diffuseParams);
+    pDiffusePass->SetRenderTarget(0, RenderTargetID(RenderTargetConstantID::BACKBUFFER), 0, 0);
+    pDiffusePass->SetDepthTarget(RenderTargetID(RenderTargetConstantID::DEPTH), 0, 0);
+    pDiffusePass->SetName("Diffuse");
     
-    Colour sphereColour {255.f/255.f, 218.0f/255.f, 115.f/255.f, 1.0f};
+    // this can be different per material but for now use constant
+    RenderStateBlob globalRenderState{};
+    globalRenderState.SetValue(RenderStateType::Z_ENABLE, true);
+    globalRenderState.SetValue(RenderStateType::Z_WRITE_ENABLE, true);
+    globalRenderState.SetValue(RenderStateType::Z_COMPARE_FUNC, SDL_GPU_COMPAREOP_LESS_OR_EQUAL);
     
-    // rotating
-    angle += deltaTime * 2 * PI_F * 0.1f; // speed 0.1rads-1
-    
-    Quaternion rotAxis{Vector3::Normalize({1.0f, 1.0f, 0.0f}), angle};
-    
-    for(auto& renderable: _Renderables)
+    for(auto& renderable: _Renderables) // push draw for each material simple
     {
-        for(auto& meshInstance: renderable.Renderable.MeshList)
+        for(auto& meshInstancePtr: renderable.Renderable.MeshList)
         {
+            if(!context.TouchResource(meshInstancePtr))
+                continue;
+            auto& meshInstance = *meshInstancePtr.get();
             
             // TODO move below to setup mesh dirty
             for(auto& vstate: meshInstance.VertexStates)
@@ -81,6 +159,17 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
                 }
             }
             
+            // TODO move to texture setup dirty
+            Ptr<ResourceRegistry> reg = rtContext.GetResourceRegistry();
+            for(auto& material: meshInstance.Materials)
+            {
+                Ptr<RenderTexture> tex = material.DiffuseTexture.GetObject(reg, true);
+                if(tex && context.TouchResource(tex))
+                {
+                    tex->EnsureMip(&context, 0);
+                }
+            }
+                
             // For each LOD
             for(auto& lod : meshInstance.LODs)
             {
@@ -93,10 +182,10 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
                         
                         // EACH OBJECT PARAMETERS
                         
-                        ShaderParametersStack* objStack = context.AllocateParametersStack(frame);
-                        
                         ShaderParameter_Object* obj = frame.Heap.NewNoDestruct<ShaderParameter_Object>();
-                        RenderUtility::SetObjectParameters(context, obj, MatrixRotation(rotAxis), Colour::DarkCyan);
+                        Quaternion rot{};
+                        rot.SetEuler(cameraRot.x, cameraRot.y, cameraRot.z);
+                        RenderUtility::SetObjectParameters(context, obj, MatrixRotation(rot), Colour::White);
                         
                         ShaderParameterTypes required{};
                         required.Set(ShaderParameterType::PARAMETER_OBJECT, true);
@@ -109,8 +198,17 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
                         
                         ShaderParametersGroup* objGroup = context.AllocateParameters(frame, required);
                         
-                        context.SetParameterDefaultTexture(frame, objGroup, ShaderParameterType::PARAMETER_SAMPLER_DIFFUSE, DefaultRenderTextureType::WHITE, 0);
+                        Ptr<RenderTexture> diffuseTex = meshInstance.Materials[batch.MaterialIndex].DiffuseTexture.GetObject(reg, true);
+                        if(diffuseTex && context.TouchResource(diffuseTex))
+                        {
+                            context.SetParameterTexture(frame, objGroup,ShaderParameterType::PARAMETER_SAMPLER_DIFFUSE,diffuseTex, nullptr);
+                        }
+                        else
+                        { // else default to white tex
+                            context.SetParameterDefaultTexture(frame, objGroup, ShaderParameterType::PARAMETER_SAMPLER_DIFFUSE, DefaultRenderTextureType::WHITE, 0);
+                        }
                         
+                        // BIND BUFFERS AND CAMERA OBJECT UNIFORM
                         context.SetParameterUniform(frame, objGroup, ShaderParameterType::PARAMETER_OBJECT, obj, sizeof(ShaderParameter_Object));
                         
                         for(U32 buf = 0; buf < meshInstance.VertexStates[lod.VertexStateIndex].Default.NumVertexBuffers; buf++)
@@ -123,16 +221,13 @@ void Scene::PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float
                         context.SetParameterIndexBuffer(frame, objGroup, ShaderParameterType::PARAMETER_INDEX0IN,
                                                         meshInstance.VertexStates[lod.VertexStateIndex].RuntimeData.GPUIndexBuffer, 0);
                         
-                        context.PushParameterGroup(frame, objStack, objGroup);
-                        // add camera parameters to obj parameters
-                        context.PushParameterStack(frame, objStack, paramStack);
-                        
+                        // DRAW
                         RenderInst inst{};
                         inst.SetVertexState(meshInstance.VertexStates[lod.VertexStateIndex].Default);
                         inst.SetShaderProgram("Mesh");
-                        
                         inst.DrawPrimitives(RenderPrimitiveType::TRIANGLE_LIST, batch.StartIndex, batch.NumPrimitives, 1, batch.BaseIndex);
-                        context.PushRenderInst(frame, objStack, std::move(inst));
+                        inst.GetRenderState() = globalRenderState;
+                        pDiffusePass->PushRenderInst(context, std::move(inst), objGroup);
                     }
                 }
             }

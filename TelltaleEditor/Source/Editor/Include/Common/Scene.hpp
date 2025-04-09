@@ -2,10 +2,10 @@
 
 #include <Core/Config.hpp>
 #include <Core/Context.hpp>
-
 #include <Core/BitSet.hpp>
 #include <Meta/Meta.hpp>
 
+#include <Common/InputMapper.hpp>
 #include <Common/Mesh.hpp>
 
 #include <vector>
@@ -25,6 +25,7 @@ using SceneModuleTypes = BitSet<SceneModuleType, (U32)SceneModuleType::NUM, (Sce
 template<SceneModuleType> struct SceneModule;
 class Scene;
 struct SceneAgent;
+class SceneRuntime;
 
 // Renderable scene component (RenderObject_Mesh* obj). Any actual render types (eg RenderVertexState) can be filled up, but not created
 // As in the actual buffers should only be in data streams on CPU side.
@@ -33,7 +34,7 @@ template<> struct SceneModule<SceneModuleType::RENDERABLE>
     
     static constexpr SceneModuleType ModuleType = SceneModuleType::RENDERABLE;
     
-    Mesh Renderable; // the renderable mesh
+    Mesh Renderable; // group of meshes
     
     // Gets this module for the scene
     static inline SceneModule<SceneModuleType::RENDERABLE>& GetForScene(Scene& scene, const SceneAgent& agent);
@@ -74,17 +75,21 @@ struct SceneAgentComparator {
     
     using is_transparent = void; // Enables lookup by U64
     
-    inline Bool operator()(const SceneAgent& lhs, const SceneAgent& rhs) const {
+    inline Bool operator()(const SceneAgent& lhs, const SceneAgent& rhs) const
+    {
         return lhs.NameSymbol < rhs.NameSymbol;
     }
     
-    inline Bool operator()(const SceneAgent& lhs, Symbol rhs) const {
+    inline Bool operator()(const SceneAgent& lhs, Symbol rhs) const
+    {
         return lhs.NameSymbol < rhs;
     }
     
-    inline Bool operator()(Symbol lhs, const SceneAgent& rhs) const {
+    inline Bool operator()(Symbol lhs, const SceneAgent& rhs) const
+    {
         return lhs < rhs.NameSymbol;
     }
+    
 };
 
 enum class SceneMessageType : U32;
@@ -95,7 +100,7 @@ class RenderContext;
 
 /// A collection of agents. This is the common scene class for all games by telltale. This does not have any of the code for serialistion, that is done when lua injects scene information
 /// from its scene meta class into this. This is a common class to all games and represents a common telltale scene.
-class Scene
+class Scene : public Handleable
 {
 public:
     
@@ -146,21 +151,25 @@ public:
     // Registers scene normalisers and specialisers
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
     
+    virtual void FinaliseNormalisationAsync() override;
+    
 private:
     
     // ==== RENDER CONTEXT USE ONLY. THESE FUNCTIONS ARE DEFINED IN RENDERSCENE.CPP, SEPARATE TO REST DEFINED IN COMMON/SCENE.CPP
     
     // Internal call. Called by render context in async to process scene messages
-    void AsyncProcessRenderMessage(RenderContext& context, SceneMessage message, const SceneAgent* pAgent);
+    void AsyncProcessRenderMessage(SceneRuntime& context, SceneMessage message, const SceneAgent* pAgent);
     
     // Async so only access this scene. Setup render information. Thread safe with perform render, detach and async process messages.
-    void OnAsyncRenderAttach(RenderContext& context);
+    void OnAsyncRenderAttach(SceneRuntime& context);
     
     // When the scene needs to stop. Free anything needed.
-    void OnAsyncRenderDetach(RenderContext& context);
+    void OnAsyncRenderDetach(SceneRuntime& context);
     
     // Called each frame async. To ensure speed this is async and should be performed isolated. Issue render instructions here.
-    void PerformAsyncRender(RenderContext& context, RenderFrame& frame, Float deltaTime);
+    void PerformAsyncRender(SceneRuntime& context, RenderFrame& frame, Float deltaTime);
+    
+    void AsyncProcessEvents(SceneRuntime& context, const std::vector<RuntimeInputEvent>& events);
     
     // =====
     
@@ -172,7 +181,7 @@ private:
     
     std::vector<SceneModule<SceneModuleType::RENDERABLE>> _Renderables;
     
-    friend class RenderContext;
+    friend class SceneRuntime;
     friend struct SceneAgent;
     
     friend struct SceneModule<SceneModuleType::RENDERABLE>;

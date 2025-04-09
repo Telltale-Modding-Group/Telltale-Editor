@@ -30,6 +30,18 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
         _Version = 0;
         return false;
     }
+
+    if (_Version < 4)
+    {
+        int unknown = 0; 
+        SerialiseDataU32(in, 0, &unknown, false); // Skip unknown variable.
+        if (unknown > 15)
+        {
+            TTE_LOG("Error opening archive 2: unsupported version.");
+            _Version = 0;
+            return false;
+        }
+    }
     
     U32 filenameBufferSize = {};
     SerialiseDataU32(in, 0, &filenameBufferSize, false);
@@ -88,7 +100,7 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
     
     U64 FilenamesOffset = in->GetPosition(); // position for filename table
     
-    // create temp buffer
+    // create temp buffer to store all file names from the filename table
     U8* TempFileNames = TTE_ALLOC(filenameBufferSize, MEMORY_TAG_TEMPORARY);
     if(!in->Read(TempFileNames, filenameBufferSize))
     {

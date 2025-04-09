@@ -30,6 +30,16 @@ namespace Meta {
             return false;
         }
         
+        Bool _CheckVendorForGame(RegGame& game, const String& vendor)
+        {
+            if(game.ValidVendors.size() == 0)
+                return true; // most have only 1 branch/vendor
+            for(auto& p: game.ValidVendors)
+                if(CompareCaseInsensitive(p, vendor))
+                    return true;
+            return false;
+        }
+        
         Bool _CheckPlatform(const String& name)
         {
             constexpr U32 platforms = sizeof(PlatformNames) / sizeof(CString);
@@ -358,7 +368,7 @@ namespace Meta {
             else if(clazz->SerialiseScriptFn.length() > 0) // RUN LUA SERIALISER FUNCTION
             {
                 
-                LuaManager& man = JobScheduler::IsRunningFromWorker() ? JobScheduler::GetCurrentThread().L : GetToolContext()->GetLibraryLVM();
+                LuaManager& man = GetThreadLVM();
                 
                 if(stream.DebugOutputFile)
                 {
@@ -416,7 +426,7 @@ namespace Meta {
                 
                 man.CallFunction(3, 1, true); // call, locked.
                 
-                result = ScriptManager::PopBool(GetToolContext()->GetLibraryLVM()); // check result
+                result = ScriptManager::PopBool(man); // check result
                 
                 if(!result)
                 {
@@ -1359,6 +1369,11 @@ namespace Meta {
                     TTE_ASSERT(false, "The platform '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
                     return;
                 }
+                if(!_Impl::_CheckVendorForGame(game, snap.Vendor))
+                {
+                    TTE_ASSERT(false, "The vendor '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
+                    return;
+                }
                 break;
             }
             i++;
@@ -1475,8 +1490,7 @@ namespace Meta {
         TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
         TTE_ASSERT(GetToolContext(), "Tool context not created");
         
-        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaLibraryAPI(false)); // Register editor library
-        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaGameEngine(false)); // Register telltale engine
+        InjectFullLuaAPI(GetToolContext()->GetLibraryLVM(), false);
         
         // Global LUA flag constants for use in the library init scripts
         

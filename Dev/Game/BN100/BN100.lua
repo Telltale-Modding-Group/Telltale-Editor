@@ -9,6 +9,7 @@ require("ToolLibrary/Game/BN100/Rules.lua")
 require("ToolLibrary/Game/BN100/Audio.lua")
 require("ToolLibrary/Game/BN100/Animation.lua")
 require("ToolLibrary/Game/BN100/Chore.lua")
+require("ToolLibrary/Game/BN100/Misc.lua")
 
 -- registers two types: one with baseclass_containerinterface and one without (vers exists for both). pass in k and v table (or k being SArray N)
 function DoRegisterBoneCollection(containerInterfaceTbl, name, k, v, fl)
@@ -262,6 +263,17 @@ function RegisterBone100(vendor, platform)
 	imapMapping.Members[3] = NewMember("mScriptFunction", kMetaClassString, 0)
 	MetaRegisterClass(imapMapping)
 
+	imapMappingArray, _ = RegisterBoneCollection(MetaCI, "class DCArray<class InputMapper::EventMapping>", nil, imapMapping)
+
+	-- .IMAP FILES
+	local imap = NewClass("class InputMapper", 0)
+	imap.Extension = "imap"
+	imap.Normaliser = "NormaliseInputMapperBone1"
+	imap.Members[1] = NewMember("mName", kMetaClassString)
+	imap.Members[2] = NewMember("mMappedEvents", imapMappingArray)
+	MetaRegisterClass(imap)
+	MetaAssociateFolderExtension("BN100", "*.imap", "InputMappers/")
+
 	local lightType = NewClass("class LightType", 0)
 	lightType.Members[1] = NewMember("mLightType", kMetaInt, 0)
 	MetaRegisterClass(lightType)
@@ -456,16 +468,6 @@ function RegisterBone100(vendor, platform)
 	vecKeys.Members[9] = NewMember("_mV2Z", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	vecKeys.Members[10] = NewMember("_mTypeUnk", kMetaInt, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	MetaRegisterClass(vecKeys)
-
-	imapMappingArray, _ = RegisterBoneCollection(MetaCI, "class DCArray<class InputMapper::EventMapping>", nil, imapMapping)
-
-	-- .IMAP FILES
-	local imap = NewClass("class InputMapper", 0)
-	imap.Extension = "imap"
-	imap.Members[1] = NewMember("mName", kMetaClassString)
-	imap.Members[2] = NewMember("mMappedEvents", imapMappingArray)
-	MetaRegisterClass(imap)
-	MetaAssociateFolderExtension("BN100", "*.imap", "InputMappers/")
 
 	-- .LANGRES FILES
 	local langr = NewClass("class LanguageResource", 0)

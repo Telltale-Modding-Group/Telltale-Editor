@@ -12,6 +12,7 @@
 #include <iomanip>
 #include <algorithm>
 #include <filesystem>
+#include <mutex>
 
 // =================================================================== LIBRARY CONFIGURATION
 // ===================================================================
@@ -34,6 +35,8 @@
 inline void LogConsole() {}
 
 inline void LogConsole(const char* Msg, ...) {
+    static std::mutex _Guard{}; // used for \n not coming up because of interleaved calls multithreaded
+    _Guard.lock();
     va_list va{};
     va_start(va, Msg);
     vprintf(Msg, va);
@@ -43,6 +46,7 @@ inline void LogConsole(const char* Msg, ...) {
     size_t len = strlen(Msg);
     if(len && Msg[len-1] != '\n')
         printf("\n");
+    _Guard.unlock();
 }
 
 // In DEBUG, simply log any messages simply to the console. Adds a newline character. This is a workaround so empty VA_ARGS works ok. If changing
@@ -184,6 +188,8 @@ void FreeAnonymousMemory(U8*, U64); // free memory associated with allocate anon
 #define TTE_ROUND_UPOW2_U32(dstVar, srcVar) { dstVar = srcVar - 1; dstVar |= dstVar >> 1; dstVar |= dstVar >> 2; \
 dstVar |= dstVar >> 4; dstVar |= dstVar >> 8; dstVar |= dstVar >> 16; dstVar++; }
 
+#define ENDIAN_SWAP_U32(_data) ((((_data ^ (_data >> 16 | (_data << 16))) & 0xFF00FFFF) >> 8) ^ (_data >> 8 | _data << 24))
+
 inline void NullDeleter(void*) {} // Useful in shared pointer, in which nothing happens on the final deletion.
 
 // Helper class. std::priority_queue normally does not let us access by finding elements. Little hack to bypass and get internal vector container.
@@ -196,6 +202,13 @@ public:
     
     auto get_cmp() { return this->comp; }
 };
+
+inline String StringTrim(const String& str) {
+    size_t first = str.find_first_not_of(" \t\n\r\f\v");
+    if (first == std::string::npos) return "";
+    size_t last = str.find_last_not_of(" \t\n\r\f\v");
+    return str.substr(first, last - first + 1);
+}
 
 // Checks if a string starts with the other string prefix
 inline Bool StringStartsWith(const String& str, const String& prefix)
@@ -229,12 +242,24 @@ inline Bool StringEndsWith(const String& str, const String& suffix, Bool bCaseSe
     }
 }
 
+class ToolContext; // forward declaration. used a lot. see context.hpp
+
+class DataStream; // See DataStream.hpp
+
+template<typename T>
+using Ptr = std::shared_ptr<T>; // Easier to write than std::shared_ptr.
+
+template<typename T>
+using WeakPtr = std::weak_ptr<T>;
+
+// Useful alias for data stream pointer, which deallocates automagically when finished with.
+using DataStreamRef = Ptr<DataStream>;
 
 template <typename T> // checks if the weak ptr has no reference at all, even to an Ptr that has been reset.
-inline bool IsWeakPtrUnbound(const std::weak_ptr<T>& weak)
+inline bool IsWeakPtrUnbound(const WeakPtr<T>& weak)
 {
     // Compare the weak pointer to a default-constructed weak pointer
-    return !(weak.owner_before(std::weak_ptr<T>()) || std::weak_ptr<T>().owner_before(weak));
+    return !(weak.owner_before(WeakPtr<T>()) || WeakPtr<T>().owner_before(weak));
 }
 
 template< typename T >
@@ -278,16 +303,6 @@ inline String GetFormatedTime(Float secs) {
     return stream.str();
 }
 
-class ToolContext; // forward declaration. used a lot. see context.hpp
-
-class DataStream; // See DataStream.hpp
-
-template<typename T>
-using Ptr = std::shared_ptr<T>; // Easier to write than std::shared_ptr.
-
-// Useful alias for data stream pointer, which deallocates automagically when finished with.
-using DataStreamRef = Ptr<DataStream>;
-
 // Lots of classes which can only exist between game switches use this. Such that if they exist outside, we catch the error.
 struct GameDependentObject
 {
@@ -319,6 +334,8 @@ enum MemoryTag
     MEMORY_TAG_LINEAR_HEAP, // linear heap pages
     MEMORY_TAG_TRANSIENT_FENCE, // small U32 allocation. could be optimised in the future
     MEMORY_TAG_RESOURCE_REGISTRY, // resource registry
+    MEMORY_TAG_COMMON_INSTANCE, // common editor type instance, eg Mesh,Texture,Dialog,Chore,etc
+    MEMORY_TAG_RENDER_LAYER, // render layers, editor layer, scene runtime etc
 };
 
 // each object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.
