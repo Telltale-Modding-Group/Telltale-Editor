@@ -119,6 +119,6 @@ template<typename T> struct _TemplArgFnWrapper;
 template<typename T, typename U> struct _TemplArgFnWrapper<T(U)> { typedef U _FTy; };
 
 #define ALLOCATE_METHOD_CALLBACK(PtrObj, MemFn, MethodClass, ArgType) \
- TTE_NEW_PTR(_TemplArgFnWrapper<void((Method<MethodClass, ArgType>))>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+ TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA ArgType>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
 
 #define ALLOCATE_FUNCTION_CALLBACK(Fn, ArgType) TTE_NEW_PTR(FunctionMethod<ArgType>, MEMORY_TAG_CALLBACK, Fn)
