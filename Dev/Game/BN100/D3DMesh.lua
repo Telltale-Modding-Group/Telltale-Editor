@@ -106,6 +106,16 @@ function SerialiseBoneD3DMesh(stream, inst, write)
                 return false
             end
         end
+        local bonePalettes = MetaGetMember(inst, "mBonePalettes")
+        local numPalettes = ContainerGetNumElements(bonePalettes)
+        for i=1,numPalettes do
+            local palette = ContainerGetElement(bonePalettes, i-1)
+            local numb = ContainerGetNumElements(palette)
+            for j=1,numb do
+                -- Never not -1, unused
+                TTE_Assert(MetaGetClassValue(MetaGetMember(ContainerGetElement(palette, j - 1), "mSkeletonIndex")) == -1, "Skeleton index not -1!")
+            end   
+        end    
     end
     return true
 end
@@ -113,7 +123,8 @@ end
 -- Bone D3DMesh => common mesh. any accesses outside this functiom will return nil!
 function NormaliseBoneD3DMesh(inst, state)
 
-    CommonMeshSetName(state, MetaGetClassValue(MetaGetMember(inst, "mName")))
+    local meshName = MetaGetClassValue(MetaGetMember(inst, "mName"))
+    CommonMeshSetName(state, meshName)
 
     if MetaGetClassValue(MetaGetMember(inst, "mbDeformable")) then
         CommonMeshSetDeformable(state)
@@ -125,6 +136,9 @@ function NormaliseBoneD3DMesh(inst, state)
 
     local triangleSets = MetaGetMember(inst, "mTriangleSets")
     local numTriangleSets = ContainerGetNumElements(triangleSets)
+    local bonePalettes = MetaGetMember(inst, "mBonePalettes")
+    local resolveBoneTable = {} -- NOTE the max size is 18! only 18*4 vec4s extra could fit into the shaders.
+    local boneIndexTable = {}
 
     for i=1,numTriangleSets do
 
@@ -133,13 +147,24 @@ function NormaliseBoneD3DMesh(inst, state)
         CommonMeshPushBatch(state, false) -- not a shadow batch (False)
         CommonMeshSetBatchBounds(state, false, MetaGetMember(triangleSet, "mBoundingBox"))
 
+        local paletteIndex = MetaGetClassValue(MetaGetMember(triangleSet, "mBonePaletteIndex"))
         local minVert = MetaGetClassValue(MetaGetMember(triangleSet, "mMinVertIndex"))
         local maxVert = MetaGetClassValue(MetaGetMember(triangleSet, "mMaxVertIndex"))
         local startIndex = MetaGetClassValue(MetaGetMember(triangleSet, "mStartIndex"))
         local numPrim = MetaGetClassValue(MetaGetMember(triangleSet, "mNumPrimitives"))
         local numInd = MetaGetClassValue(MetaGetMember(triangleSet, "mNumTotalIndices"))
 
-        CommonMeshPushMaterial(state, MetaGetClassValue(MetaGetMember(MetaGetMember(triangleSet, "mhDiffuseMap"), "mHandle")))
+        local diffuseMaterial = MetaGetClassValue(MetaGetMember(MetaGetMember(triangleSet, "mhDiffuseMap"), "mHandle"))
+
+        local bonePalette = ContainerGetElement(bonePalettes, paletteIndex)
+        local numBoneMaps = ContainerGetNumElements(bonePalette)
+        resolveBoneTable[i] = {}
+        for j=1,numBoneMaps do -- j-1 below as 0 based in actual buffer
+            resolveBoneTable[i][j-1] = MetaGetClassValue(MetaGetMember(ContainerGetElement(bonePalette, j - 1), "mBoneName"))
+        end
+        boneIndexTable[i] = {Min = minVert, Max = maxVert}
+
+        CommonMeshPushMaterial(state, diffuseMaterial)
         CommonMeshSetBatchParameters(state, false, minVert, maxVert, startIndex, numPrim, numInd, 0, i - 1) -- base index not exist
 
     end
@@ -151,22 +176,21 @@ function NormaliseBoneD3DMesh(inst, state)
 
     -- In this game, they store the vertex information for each attrib in its own buffer, ie no interleaving.
 
-    function processBoneBuffer(state, bufferNum, index, expectedStride, attrib, format, endianFlip)
+    function processBoneBuffer(state, bufferNum, index, expectedStride, attrib, format, isBoneIndices)
         local vertexBuffer = MetaGetMember(inst, "_VertexBuffer" .. tostring(bufferNum))
         local nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
         if nVerts > 0 then
-            stride = MetaGetClassValue(MetaGetMember(vertexBuffer, "mVertSize"))
+            local stride = MetaGetClassValue(MetaGetMember(vertexBuffer, "mVertSize"))
 
             TTE_Assert(stride == expectedStride, "Vertex buffer " .. tostring(bufferNum) .. " stride is not "
-            .. tostring(expectedStride) .. ": its " .. tostring(stride) .. "!")
+            .. tostring(expectedStride) .. ": it's " .. tostring(stride) .. "!")
 
-            bufferCache = MetaGetMember(vertexBuffer, "_VertexBufferData")
+            local bufferCache = MetaGetMember(vertexBuffer, "_VertexBufferData")
 
             -- decompress if needed
-            type = MetaGetClassValue(MetaGetMember(vertexBuffer, "mType"))
-            print(tostring(bufferNum) .. " BUFFER INFO " .. MetaToString(vertexBuffer))
+            local type = MetaGetClassValue(MetaGetMember(vertexBuffer, "mType"))
             if MetaGetClassValue(MetaGetMember(vertexBuffer, "mbStoreCompressed")) and (type == 2 or type == 4) then
-                compressedFmt = kCommonMeshCompressedFormatSNormNormal
+                local compressedFmt = kCommonMeshCompressedFormatSNormNormal
                 if type == 4 then
                     compressedFmt = stride == 12 and kCommonMeshCompressedFormatSNormNormal or kCommonMeshCompressedFormatUNormUV
                     MetaSetClassValue(MetaGetMember(vertexBuffer, "mType"), stride == 12 and 1 or 3) -- decompressed, set to normal vec3s/vec2s
@@ -175,7 +199,9 @@ function NormaliseBoneD3DMesh(inst, state)
                 end
                 CommonMeshDecompressVertices(state, bufferCache, nVerts, compressedFmt)
             end
-
+            if isBoneIndices then
+                CommonMeshResolveBonePalettes(state, bufferCache, resolveBoneTable, boneIndexTable, false, 4, meshName)
+            end
             CommonMeshPushVertexBuffer(state, nVerts, stride, bufferCache)
             CommonMeshAddVertexAttribute(state, attrib, index, format)
             return index + 1
@@ -195,7 +221,7 @@ function NormaliseBoneD3DMesh(inst, state)
     pushedVertexBufferIndex = processBoneBuffer(state, 2, pushedVertexBufferIndex, 12, kCommonMeshAttributeBlendWeight, kCommonMeshFloat3, false)
 
     -- BUFFER 3: BONE INDICES. ENDIAN FLIPPED ON MACOS - CHECK. (4 bytes)
-    pushedVertexBufferIndex = processBoneBuffer(state, 3, pushedVertexBufferIndex, 4, kCommonMeshAttributeBlendIndex, kCommonMeshUInt1, true)
+    pushedVertexBufferIndex = processBoneBuffer(state, 3, pushedVertexBufferIndex, 4, kCommonMeshAttributeBlendIndex, kCommonMeshUByte4, true)
 
     -- BUFFER 4: DIFFUSE UV (UV0).
     pushedVertexBufferIndex = processBoneBuffer(state, 4, pushedVertexBufferIndex, 8, kCommonMeshAttributeUVDiffuse, kCommonMeshFloat2, false)
@@ -203,13 +229,13 @@ function NormaliseBoneD3DMesh(inst, state)
     -- BUFFER 5: LIGHTMAP UV (UV1)
     pushedVertexBufferIndex = processBoneBuffer(state, 5, pushedVertexBufferIndex, 8, kCommonMeshAttributeUVLightMap, kCommonMeshFloat2, false)
 
-    -- BUFFER 6: ??
+    -- BUFFER 6: ?? UV2
     pushedVertexBufferIndex = processBoneBuffer(state, 6, pushedVertexBufferIndex, 0, kCommonMeshAttributeUnknown, kCommonMeshFormatUnknown, false)
 
-    -- BUFFER 7: ??
+    -- BUFFER 7: ?? UV3
     pushedVertexBufferIndex = processBoneBuffer(state, 7, pushedVertexBufferIndex, 0, kCommonMeshAttributeUnknown, kCommonMeshFormatUnknown, false)
 
-    -- BUFFER 8: ?? BINORMALS????
+    -- BUFFER 8: ?? TANGENT????
     pushedVertexBufferIndex = processBoneBuffer(state, 8, pushedVertexBufferIndex, 12, kCommonMeshAttributeTangent, kCommonMeshFloat3, false)
 
     return true

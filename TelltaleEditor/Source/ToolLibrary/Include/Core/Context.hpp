@@ -42,13 +42,7 @@ private:
     
 public:
     
-    inline ~ToolContext()
-    {
-        Release();
-        Meta::Shutdown();
-        DataStreamManager::Shutdown();
-        // Lua shuts down automatically in dtor
-    }
+    ~ToolContext();
     
     // Meta.cpp. This gets the active game currently Switched to. Returns nullptr if no game is currently set.
     const Meta::RegGame* GetActiveGame();

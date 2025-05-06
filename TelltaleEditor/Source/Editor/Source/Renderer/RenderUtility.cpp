@@ -12,7 +12,12 @@ namespace RenderUtility
     
     void SetCameraParameters(RenderContext& context, ShaderParameter_Camera* cam, Camera* ac)
     {
-        FinalisePlatformMatrix(context, cam->ViewProj, (ac->GetProjectionMatrix() * ac->GetViewMatrix()));
+        Matrix4 vp = (ac->GetProjectionMatrix() * ac->GetViewMatrix());
+        if(context.IsLeftHanded())
+        {
+            vp.SetRow(2, -vp.GetRow(2));
+        }
+        FinalisePlatformMatrix(context, cam->ViewProj, vp); // swap rows/cols if needed
         cam->HFOVParam = ac->_HFOV * ac->_HFOVScale;
         cam->VFOVParam = 2.0f * atanf(ac->GetAspectRatio() * tanf(ac->_HFOV * ac->_HFOVScale * 0.5f));
         cam->Aspect = ac->GetAspectRatio();
@@ -58,7 +63,6 @@ namespace RenderUtility
         RenderInst draw {};
         draw.DrawDefaultMesh(primitive);
         pass->PushRenderInst(context, std::move(draw), group);
-        
     }
     
 }

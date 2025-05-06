@@ -1,0 +1,2335 @@
+Meta Stream [NIBM] debug output from the Telltale Editor v1.0.0
+
+_metaVersionInfo:
+{
+-	class D3DMesh: Version 0xAABC259D[0]
+-	class D3DMesh::TriangleSet: Version 0xBFACCBC7[0]
+-	class BoundingBox: Version 0xC1415525[0]
+-	class Vector3: Version 0xA9505579[0]
+-	class Color: Version 0x8A3B8409[0]
+-	struct D3DMesh::PaletteEntry: Version 0xF020AC1C[0]
+-	class D3DIndexBuffer: Version 0x5D06BCA4[0]
+-	class D3DVertexBuffer: Version 0xF19C43B0[0]
+}
+
+:Lua Serialiser: SerialiseBoneD3DMesh
+class D3DMesh :
+{
+    class String mName: sk02_phoney.d3dmesh
+    bool mbDeformable: 1
+    class DCArray<class D3DMesh::TriangleSet> mTriangleSets:
+    {
+        :Lua Serialiser for [Value 0]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 0
+            int mMaxVertIndex: 93
+            int mStartIndex: 0
+            int mNumPrimitives: 64
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0373473
+                    float y: 0.593369
+                    float z: -0.0323521
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.0372461
+                    float y: 0.689572
+                    float z: 0.0665267
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 192
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 1]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 94
+            int mMaxVertIndex: 181
+            int mStartIndex: 192
+            int mNumPrimitives: 64
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0373473
+                    float y: 0.567446
+                    float z: -0.0252262
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.0372461
+                    float y: 0.59254
+                    float z: 0.0665267
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 192
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 2]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 182
+            int mMaxVertIndex: 233
+            int mStartIndex: 384
+            int mNumPrimitives: 72
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0244905
+                    float y: 0.577905
+                    float z: -0.000286936
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.0244905
+                    float y: 0.599334
+                    float z: 0.0487477
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 216
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 3]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 234
+            int mMaxVertIndex: 395
+            int mStartIndex: 600
+            int mNumPrimitives: 280
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0457101
+                    float y: 0.751501
+                    float z: 0.0963948
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.0457101
+                    float y: 0.817344
+                    float z: 0.122437
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 840
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 4]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 396
+            int mMaxVertIndex: 460
+            int mStartIndex: 1440
+            int mNumPrimitives: 99
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: 0.000225518
+                    float y: 0.795616
+                    float z: 0.0817756
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.133234
+                    float y: 0.843673
+                    float z: 0.104223
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 297
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 5]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 1
+            int mGeometryFormat: 0
+            int mMinVertIndex: 461
+            int mMaxVertIndex: 525
+            int mStartIndex: 1737
+            int mNumPrimitives: 99
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.133234
+                    float y: 0.795616
+                    float z: 0.0817756
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.000392378
+                    float y: 0.843673
+                    float z: 0.104223
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 297
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 6]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 1
+            int mGeometryFormat: 0
+            int mMinVertIndex: 526
+            int mMaxVertIndex: 764
+            int mStartIndex: 2034
+            int mNumPrimitives: 381
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.130763
+                    float y: 0.330655
+                    float z: -0.130353
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.278834
+                    float y: 0.614815
+                    float z: 0.128594
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_phoney.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 1143
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 7]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 2
+            int mGeometryFormat: 0
+            int mMinVertIndex: 765
+            int mMaxVertIndex: 909
+            int mStartIndex: 3177
+            int mNumPrimitives: 249
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.278834
+                    float y: 0.392374
+                    float z: -0.100239
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0
+                    float y: 0.614815
+                    float z: 0.107966
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_phoney.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 747
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 8]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 910
+            int mMaxVertIndex: 1078
+            int mStartIndex: 3924
+            int mNumPrimitives: 285
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.158351
+                    float y: 0.576163
+                    float z: -0.190602
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.158351
+                    float y: 0.892022
+                    float z: 0.114864
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 855
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 9]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 1
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1079
+            int mMaxVertIndex: 1134
+            int mStartIndex: 4779
+            int mNumPrimitives: 62
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.108536
+                    float y: 0.321689
+                    float z: -0.105512
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.281964
+                    float y: 0.588586
+                    float z: 0.0995083
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 186
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 10]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 2
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1135
+            int mMaxVertIndex: 1435
+            int mStartIndex: 4965
+            int mNumPrimitives: 516
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.281964
+                    float y: -0.000488912
+                    float z: -0.104575
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0
+                    float y: 0.588586
+                    float z: 0.243425
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 1548
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 11]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 3
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1436
+            int mMaxVertIndex: 1961
+            int mStartIndex: 6513
+            int mNumPrimitives: 873
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.428531
+                    float y: 0.520994
+                    float z: -0.108935
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.113495
+                    float y: 0.813467
+                    float z: 0.286792
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 2619
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 12]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 4
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1962
+            int mMaxVertIndex: 2192
+            int mStartIndex: 9132
+            int mNumPrimitives: 429
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.445296
+                    float y: 0.520994
+                    float z: -0.0712501
+                }
+                class Vector3 mMax:
+                {
+                    float x: -0.033934
+                    float y: 0.589924
+                    float z: 0.0999426
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 1287
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 13]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 5
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2193
+            int mMaxVertIndex: 2375
+            int mStartIndex: 10419
+            int mNumPrimitives: 251
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.302985
+                    float y: 0.534608
+                    float z: -0.108935
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.158351
+                    float y: 0.757396
+                    float z: 0.109697
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 753
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 14]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 6
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2376
+            int mMaxVertIndex: 2615
+            int mStartIndex: 11172
+            int mNumPrimitives: 396
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -6.68867e-06
+                    float y: 0.520994
+                    float z: -0.0712501
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.445296
+                    float y: 0.632288
+                    float z: 0.109768
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 1188
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 15]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 7
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2616
+            int mMaxVertIndex: 2729
+            int mStartIndex: 12360
+            int mNumPrimitives: 167
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: 0
+                    float y: 0.261333
+                    float z: -0.0967411
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.419997
+                    float y: 0.589924
+                    float z: 0.084527
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 501
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 16]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 8
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2730
+            int mMaxVertIndex: 2998
+            int mStartIndex: 12861
+            int mNumPrimitives: 458
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: 0.0425145
+                    float y: -0.000512262
+                    float z: -0.104575
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.302985
+                    float y: 0.603267
+                    float z: 0.243425
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 1374
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 17]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 9
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2999
+            int mMaxVertIndex: 3020
+            int mStartIndex: 14235
+            int mNumPrimitives: 13
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -1.40086e-09
+                    float y: 0.533214
+                    float z: -0.0499161
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.37154
+                    float y: 0.593241
+                    float z: 0.0824887
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk02_fone.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 39
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+    }
+    class DCArray<class DCArray<struct D3DMesh::PaletteEntry> > mBonePalettes:
+    {
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 0]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: phoney_teethUpper_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: phoney_teethUpper_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: phoney_teethLower
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: phoney_tongue
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: phoney_eyeUpper_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: phoney_eyeOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: phoney_eyeInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: phoney_eyeLower_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: phoney_eyeUpper_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: phoney_eyeOuter_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: phoney_eyeInner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: phoney_eyeLower_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: phoney_browOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: phoney_browMiddle_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: phoney_browInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: phoney_browInner_R
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 1]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: phoney_browOuter_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: phoney_browMiddle_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: phoney_browInner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: phoney_browInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: phoney_browMiddle_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: shoulder_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: shoulderPad_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: arm_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: elbow_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: spine1
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: pelvis
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: spine2
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: phoney_neckline
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: wrist_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: shoulder_R
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 2]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: shoulder_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: shoulderPad_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: arm_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: elbow_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: spine2
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: spine1
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: phoney_neckline
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: wrist_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: leg_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: pelvis
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: heel_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: ball_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: ankle_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: knee_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: toe_R
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 3]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: phoney_nose
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: phoney_mouthUpperOuter_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: phoney_noseLower
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: phoney_mouthCorner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: phoney_mouthUpperInner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: phoney_cheek_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: phoney_mouthLowerInner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: phoney_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: phoney_mouthLowerInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: phoney_mouthLowerOuter_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: shoulder_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: phoney_mouthUpperOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: phoney_mouthUpperInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: indexF2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: thumb3_R
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 4]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: wrist_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: thumb1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: thumb2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: pinkyF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: middleF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: middleF2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: pinkyF2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: indexF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: indexF2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: thumb3_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: shoulderPad_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: shoulder_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: phoney_mouthLowerOuter_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: phoney_mouthLowerInner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: arm_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: phoney_mouthCorner_R
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 5]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: wrist_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: elbow_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: thumb1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: phoney_mouthLowerOuter_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: phoney_mouthLowerInner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: shoulder_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: arm_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: phoney_mouthLowerInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: phoney_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: shoulderPad_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: thumb2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: phoney_mouthUpperOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: phoney_mouthCorner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: phoney_cheek_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: phoney_mouthLowerOuter_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 6]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: phoney_mouthUpperOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: phoney_noseLower
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: phoney_mouthCorner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: shoulder_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: phoney_mouthUpperInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: phoney_mouthLowerOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: wrist_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: thumb1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: thumb2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: indexF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: pinkyF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: middleF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: thumb3_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: middleF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: pinkyF2_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 7]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: wrist_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: indexF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: middleF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: thumb1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: thumb2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: indexF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: phoney_mouthLowerOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: shoulderPad_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: phoney_mouthCorner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: shoulder_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: phoney_mouthLowerInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: arm_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: pelvis
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: spine1
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: leg_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 8]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: wrist_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: elbow_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: thumb1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: heel_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: ball_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: ankle_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: knee_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: toe_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: leg_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: pelvis
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: phoney_mouthUpperOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: phoney_mouthCorner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: phoney_cheek_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: phoney_mouthUpperInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: phoney_mouthLowerOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: thumb2_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 9]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: phoney_mouthCorner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: phoney_cheek_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: phoney_mouthLowerOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: shoulder_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: wrist_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: thumb1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: pinkyF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: middleF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: indexF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: phoney_mouthLowerInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: phoney_mouthLowerInner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: arm_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: phoney_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: shoulderPad_L
+                int mSkeletonIndex: -1
+            }
+        }
+    }
+    bool mbLightmaps: 0
+}
+:Lua Serialiser for Index Buffer: SerialiseBoneD3DIndexBuffer
+class D3DIndexBuffer :
+{
+    bool mbLocked: 0
+    int mFormat: 101
+    int mNumIndicies: 14274
+    int mIndexByteSize: 2
+}
+[BufferData Base64] >> "AAABAAIAAQADAAIABAAFAAYABQAHAAYABQAIAAcACAAJAAcACAAKAAkACgALAAkACgAMAAsADAANAAsADAAOAA0ADgAPAA0AEAARABIAEQATABIAFAAVABYAFQAXABYAFQAYABcAGAAZABcAGAAaABkAGgAbABkAGgAcABsAHAA=..."
+:Lua Serialiser for VertexBuffer0: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 3021
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "gChUuALnFz8gP4g9gChUuALnFz9wyVg9HFNpPAHnFz9ARX49yJ4MPAHnFz9QwE89gChUuALnFz8gP4g9HFNpPAHnFz9ARX49gChUuM+HMD8IP4g9IFNpPM6HMD8gRX49PA/VPALnFz+QOEM9PA/VPM+HMD9gOEM9JkgLPQHnFz8=..."
+:Lua Serialiser for VertexBuffer1: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 3021
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "UbWjtgAAgL/+e6s1UbWjtgAAgL/+e6s1UbWjtgAAgL/+e6s1UbWjtgAAgL/+e6s1xi2YPkjPxTVHbnQ/qUcPP/pUqzXxJVQ/xi2YPkjPxTVHbnQ/qUcPP/pUqzXxJVQ/68FhP8ziRDWqaPE+68FhP8ziRDWqaPE+KTd6P/cKqTQ=..."
+:Lua Serialiser for VertexBuffer2: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 3021
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "zczMPpqZmT6amZk+zczMPpqZmT6amZk+x08LPzMzsz79tNg9x08LPzMzsz79tNg9zczMPpqZmT6amZk+x08LPzMzsz79tNg9zczMPpqZmT6amZk+x08LPzMzsz79tNg94noUPz0K1z4AAAAA4noUPz0K1z4AAAAAFK4HP9ej8D4=..."
+:Lua Serialiser for VertexBuffer3: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 3021
+    int mVertSize: 4
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "AAQIAAAECAAABAgAAAQIAAAECAAABAgAAAQIAAAECAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAAAAQAAAQAAAAABAAAAAQAAAAEAAAABAAAAAQAAAAECAAABAgAAAQIAAAECAA=..."
+:Lua Serialiser for VertexBuffer4: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 3021
+    int mVertSize: 8
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "D+jtPlMebz8P6O0+Ux5vP/kwAz9THm8/88EAP1Mebz8P6O0+Ux5vP/kwAz9THm8/D+jtPhuUfD//MAM/G5R8P73gEj9THm8/wuASPxuUfD8ePDA/Ux5vPyo8MD8blHw/d8tLP1Mebz9+y0s/G5R8P2SCYT9THm8/ZoJhPxuUfD8=..."
+:Lua Serialiser for VertexBuffer8: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 3021
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPW50PzmehbYELpi+xWJhPx3D5LVFy/K+SG50P0pMiLbGLZi+G8tEP85xXjWNuyO/5ioHP+3kxTUmaFm/dHTTPvzAzLS7JWm/gZd0Pu8EyLU=..."

@@ -1,0 +1,187 @@
+Meta Stream [NIBM] debug output from the Telltale Editor v1.0.0
+
+_metaVersionInfo:
+{
+-	class D3DMesh: Version 0xAABC259D[0]
+-	class D3DMesh::TriangleSet: Version 0xBFACCBC7[0]
+-	class BoundingBox: Version 0xC1415525[0]
+-	class Vector3: Version 0xA9505579[0]
+-	class Color: Version 0x8A3B8409[0]
+-	struct D3DMesh::PaletteEntry: Version 0xF020AC1C[0]
+-	class D3DIndexBuffer: Version 0x5D06BCA4[0]
+-	class D3DVertexBuffer: Version 0xF19C43B0[0]
+}
+
+:Lua Serialiser: SerialiseBoneD3DMesh
+class D3DMesh :
+{
+    class String mName: obj_mapValley.d3dmesh
+    bool mbDeformable: 1
+    class DCArray<class D3DMesh::TriangleSet> mTriangleSets:
+    {
+        :Lua Serialiser for [Value 0]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 0
+            int mMaxVertIndex: 195
+            int mStartIndex: 0
+            int mNumPrimitives: 224
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.216277
+                    float y: -0.289434
+                    float z: 0.000268877
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.223126
+                    float y: 0.287018
+                    float z: 0.00115877
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: obj_mapvalley.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 672
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+    }
+    class DCArray<class DCArray<struct D3DMesh::PaletteEntry> > mBonePalettes:
+    {
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 0]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: lower
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: upper
+                int mSkeletonIndex: -1
+            }
+        }
+    }
+    bool mbLightmaps: 0
+}
+:Lua Serialiser for Index Buffer: SerialiseBoneD3DIndexBuffer
+class D3DIndexBuffer :
+{
+    bool mbLocked: 0
+    int mFormat: 101
+    int mNumIndicies: 672
+    int mIndexByteSize: 2
+}
+[BufferData Base64] >> "AAABAAIAAQADAAIAAQAEAAMABAAFAAMABgAHAAQABAAHAAUACAAJAAoACwAMAAoADQAOAA8ADgADABAAAwAFABAABwARAAUABQARABAACgASAAcABwASABEAEwASABQACgAUABIADwAOABUADgAWABUADgAQABYAEAAXABYAEAA=..."
+:Lua Serialiser for VertexBuffer0: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 196
+    int mVertSize: 12
+    int mType: 1
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "VFtTvmNIkb4AsJc6Ufn4vYZ/jL4AsZc6WERJvqL2Mb4Aupc6/Pj4vbhQLL4Aupc64oQnvZV/jL4AsZc6QIQnvddQLL4Au5c6GBF9PYcwlL4AsJc6dKhaPftQLL4Au5c6Sn3/Penkjr4Aspc6tN8RPpYwlL4AsJc64NwCPhhRLL4=..."
+:Lua Serialiser for VertexBuffer1: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 196
+    int mVertSize: 12
+    int mType: 2
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "vx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fvx+/H78fv1+/X79fv1+/X79fv18=..."
+:Lua Serialiser for VertexBuffer2: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 196
+    int mVertSize: 12
+    int mType: 4
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "8wvUKv8A/wDZJf8A2SX/ANkl2SX/AOYY7w+YZsk1yTXJNck1yTXJNf8AyTXJNck1yTXJNck10iyTa8wyk2uTa8wyyTWyTKFdr0+eYJ5gr0+tUdMr7w/yDN4gvkDcItwit0fjG9kl2SXZJfwCyTXSLNok8wv/ANQq/wDZJf8A2SU=..."
+:Lua Serialiser for VertexBuffer3: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 196
+    int mVertSize: 4
+    int mType: 5
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "AAQAAAAEAAAAAAAAAAAAAAAEAAAAAAAAAAQAAAAAAAAABAAAAAQAAAAAAAAABAAAAAQAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAAAAAABAgAAAQIAAAECAAABAgAAAQIAAAEAAAABAgAAAgEAAAIBAAACAQAAAgEAAA=..."
+:Lua Serialiser for VertexBuffer4: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 196
+    int mVertSize: 8
+    int mType: 3
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "A0ILPt7hhD9qhJg+BpyCP+6CHj5zJ08/aoSYPpd4TD+UVuc+BpyCP5RW5z6XeEw/KNUlP1xyiz90uiE/l3hMPw+YRD/R3Ig/PT5NPxWdiz/9FEI/l3hMP744VT+KX4g/JThoP7EehD/rhDI+wwMpPyMmlT7v2Bg/nIjsPfHYGD8=..."
+:Lua Serialiser for VertexBuffer8: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 196
+    int mVertSize: 12
+    int mType: 2
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "fiD+X/5f/h/+IP8ffiD+IH5e/l/+HX0Yflr/H/8f/x//H/8f/x//H/9f/x//H/8f/x//H/8f/x/+If8f/x/+Hv5e/x//X3UweS1+Hf5dflr+Xv9ffmL+Yn4efFf/H/8f/1//X34hfmD+ZP9f/x//H/9f/x//H/8f/x//H/8f/18=..."

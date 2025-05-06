@@ -183,6 +183,9 @@ struct JobThread
     // Current job being executed.
     Job CurrentJob;
     
+    U8* FastBuffer;
+    U32 FastBufferSize, FastBufferOffset;
+    
     // Lua state for this thread.
     mutable LuaManager L;
     

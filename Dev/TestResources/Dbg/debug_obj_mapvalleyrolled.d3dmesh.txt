@@ -1,0 +1,177 @@
+Meta Stream [NIBM] debug output from the Telltale Editor v1.0.0
+
+_metaVersionInfo:
+{
+-	class D3DMesh: Version 0xAABC259D[0]
+-	class D3DMesh::TriangleSet: Version 0xBFACCBC7[0]
+-	class BoundingBox: Version 0xC1415525[0]
+-	class Vector3: Version 0xA9505579[0]
+-	class Color: Version 0x8A3B8409[0]
+-	struct D3DMesh::PaletteEntry: Version 0xF020AC1C[0]
+-	class D3DIndexBuffer: Version 0x5D06BCA4[0]
+-	class D3DVertexBuffer: Version 0xF19C43B0[0]
+}
+
+:Lua Serialiser: SerialiseBoneD3DMesh
+class D3DMesh :
+{
+    class String mName: obj_mapValleyRolled.d3dmesh
+    bool mbDeformable: 1
+    class DCArray<class D3DMesh::TriangleSet> mTriangleSets:
+    {
+        :Lua Serialiser for [Value 0]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 0
+            int mMaxVertIndex: 183
+            int mStartIndex: 0
+            int mNumPrimitives: 280
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.115986
+                    float y: -0.0379399
+                    float z: -0.269345
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.115987
+                    float y: 0.117258
+                    float z: 0.269344
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: obj_mapvalley.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 840
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 0
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+    }
+    class DCArray<class DCArray<struct D3DMesh::PaletteEntry> > mBonePalettes:
+    {
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 0]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: upper
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: lower
+                int mSkeletonIndex: -1
+            }
+        }
+    }
+    bool mbLightmaps: 0
+}
+:Lua Serialiser for Index Buffer: SerialiseBoneD3DIndexBuffer
+class D3DIndexBuffer :
+{
+    bool mbLocked: 0
+    int mFormat: 101
+    int mNumIndicies: 840
+    int mIndexByteSize: 2
+}
+[BufferData Base64] >> "AAABAAIAAgADAAQABAADAAUABQADAAYAAwAHAAYACAAJAAcABgAHAAkACgALAAEAAQALAAIACgAMAAsADAANAAsADgAPABAAEAAPAA0ADgARAA8AEQASAA8AEgATABQAEwAVABQAFgAXABUAFQAXABQAGAAZABYAFgAZABcAGAA=..."
+:Lua Serialiser for VertexBuffer0: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 184
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "AIjWvC6gHz1MyIE+ABkYPcT/bD0B9Hg+aP4DPdo4JD09Ag0+dy7nPFgUbDzmhQU9qMxUvaZ9hjwN/Q0+3DdOvcBXHDpIfQc9EGdSvSxuCLwif9W90GvsPADoMTloENa9YAQJPQhiDrxmo4m+QGpcvVAaOryAm4m++BW7PYQ4YT0=..."
+:Lua Serialiser for VertexBuffer1: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 184
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "UCKOvlANZT/GHbM+GCRUvTxRXT+x9f8+ypcRvkppeT/yHTO+L+GJvW9afD880x2+RGJMvzN0Fz8ix+W9PqZ2v0tUhD5KoY+95G91vxn5kD6EQ9C8Nu0CvSBHfz9GFou9Q2xgvFAIXj/Owf6+g4kKv5dXFD+zARy/cdTMPodcSD8=..."
+:Lua Serialiser for VertexBuffer2: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 184
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "z0B1PxDzKz0AAAAAz0B1PxDzKz0AAAAAzcxMP8vMTD4AAAAAAAAAP////z4AAAAAzcxMP8zMTD4AAAAAAAAAPwAAAD8AAAAAsRsmP57Isz4AAAAAwQ0oP37krz4AAAAAzcxMP8zMTD4AAAAAzsxMP8zMTD4AAAAAz0B1PxDzKz0=..."
+:Lua Serialiser for VertexBuffer3: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 184
+    int mVertSize: 4
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "AAQAAAAEAAAABAAAAAQAAAAEAAAEAAAACAQAAAgEAAAIBAAACAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAAABAAAAAQAAAAEAAA=..."
+:Lua Serialiser for VertexBuffer4: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 184
+    int mVertSize: 8
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "aFbSPYh9Fz8A4n48UicaP8AprDw87TE/gAzbPIypST/EYxM+tDMxPwqyFD4S+Eg/QmQWPmrWZz8on+g8a4poP4x/0DzZSoI/Me4XPs/rgT8AMXK9ficbP/BnT73RYDI/eBoAvrgcGz/Yd+y9tcgyP1Dso711mxU/WOeRvQKDMj8=..."

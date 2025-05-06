@@ -1,0 +1,1822 @@
+Meta Stream [NIBM] debug output from the Telltale Editor v1.0.0
+
+_metaVersionInfo:
+{
+-	class D3DMesh: Version 0xAABC259D[0]
+-	class D3DMesh::TriangleSet: Version 0xBFACCBC7[0]
+-	class BoundingBox: Version 0xC1415525[0]
+-	class Vector3: Version 0xA9505579[0]
+-	class Color: Version 0x8A3B8409[0]
+-	struct D3DMesh::PaletteEntry: Version 0xF020AC1C[0]
+-	class D3DIndexBuffer: Version 0x5D06BCA4[0]
+-	class D3DVertexBuffer: Version 0xF19C43B0[0]
+}
+
+:Lua Serialiser: SerialiseBoneD3DMesh
+class D3DMesh :
+{
+    class String mName: sk11_possumKid.d3dmesh
+    bool mbDeformable: 1
+    class DCArray<class D3DMesh::TriangleSet> mTriangleSets:
+    {
+        :Lua Serialiser for [Value 0]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 0
+            int mMaxVertIndex: 27
+            int mStartIndex: 0
+            int mNumPrimitives: 40
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0323228
+                    float y: 0.171494
+                    float z: 0.206598
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.0323228
+                    float y: 0.183459
+                    float z: 0.219849
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 120
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 1]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 28
+            int mMaxVertIndex: 67
+            int mStartIndex: 120
+            int mNumPrimitives: 80
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0128741
+                    float y: 0.174605
+                    float z: 0.182822
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.0128741
+                    float y: 0.18774
+                    float z: 0.215485
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 240
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 2]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 68
+            int mMaxVertIndex: 99
+            int mStartIndex: 360
+            int mNumPrimitives: 80
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0327523
+                    float y: 0.175195
+                    float z: 0.210419
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.0327521
+                    float y: 0.191066
+                    float z: 0.223431
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 240
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 3]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 100
+            int mMaxVertIndex: 151
+            int mStartIndex: 600
+            int mNumPrimitives: 96
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.030496
+                    float y: 0.20458
+                    float z: 0.234113
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.030496
+                    float y: 0.222649
+                    float z: 0.240231
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 288
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 4]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 152
+            int mMaxVertIndex: 274
+            int mStartIndex: 888
+            int mNumPrimitives: 147
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0752224
+                    float y: 0.114752
+                    float z: 0.0838673
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.1487
+                    float y: 0.286448
+                    float z: 0.222317
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 441
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 5]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 1
+            int mGeometryFormat: 0
+            int mMinVertIndex: 275
+            int mMaxVertIndex: 486
+            int mStartIndex: 1329
+            int mNumPrimitives: 279
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0748192
+                    float y: -0.055223
+                    float z: -0.255502
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.0910921
+                    float y: 0.198183
+                    float z: 0.158151
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 837
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 6]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 2
+            int mGeometryFormat: 0
+            int mMinVertIndex: 487
+            int mMaxVertIndex: 723
+            int mStartIndex: 2166
+            int mNumPrimitives: 299
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0499819
+                    float y: 0.129419
+                    float z: 0.118591
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.157715
+                    float y: 0.273426
+                    float z: 0.273617
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 897
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 7]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 3
+            int mGeometryFormat: 0
+            int mMinVertIndex: 724
+            int mMaxVertIndex: 830
+            int mStartIndex: 3063
+            int mNumPrimitives: 106
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.1487
+                    float y: 0.128816
+                    float z: 0.147467
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.160174
+                    float y: 0.187188
+                    float z: 0.233181
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 318
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 8]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 4
+            int mGeometryFormat: 0
+            int mMinVertIndex: 831
+            int mMaxVertIndex: 967
+            int mStartIndex: 3381
+            int mNumPrimitives: 172
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.121884
+                    float y: 0.00159615
+                    float z: -0.180527
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.0290932
+                    float y: 0.201649
+                    float z: 0.176398
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 516
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 9]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 5
+            int mGeometryFormat: 0
+            int mMinVertIndex: 968
+            int mMaxVertIndex: 1102
+            int mStartIndex: 3897
+            int mNumPrimitives: 142
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.142334
+                    float y: 0
+                    float z: -0.0418272
+                }
+                class Vector3 mMax:
+                {
+                    float x: -0.0137597
+                    float y: 0.273426
+                    float z: 0.233063
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 426
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 10]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 6
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1103
+            int mMaxVertIndex: 1217
+            int mStartIndex: 4323
+            int mNumPrimitives: 123
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.157715
+                    float y: 0
+                    float z: -0.000733796
+                }
+                class Vector3 mMax:
+                {
+                    float x: 1.118e-06
+                    float y: 0.209801
+                    float z: 0.246925
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 369
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 11]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 7
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1218
+            int mMaxVertIndex: 1316
+            int mStartIndex: 4692
+            int mNumPrimitives: 98
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.160174
+                    float y: 0.128816
+                    float z: 0.147467
+                }
+                class Vector3 mMax:
+                {
+                    float x: 8.85051e-07
+                    float y: 0.262343
+                    float z: 0.244816
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 294
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+        :Lua Serialiser for [Value 12]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 8
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1317
+            int mMaxVertIndex: 1347
+            int mStartIndex: 4986
+            int mNumPrimitives: 28
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.1487
+                    float y: 0.133007
+                    float z: 0.156763
+                }
+                class Vector3 mMax:
+                {
+                    float x: -0.127621
+                    float y: 0.150115
+                    float z: 0.186288
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk11_possumkid.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 84
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0
+        }
+    }
+    class DCArray<class DCArray<struct D3DMesh::PaletteEntry> > mBonePalettes:
+    {
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 0]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: possumKid_teethLower
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: possumKid_tongue
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: possumKid_eyeUpper_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: possumKid_eyeLower_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: possumKid_eyeInner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: possumKid_eyeOuter_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: possumKid_eyeUpper_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: possumKid_eyeLower_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: possumKid_eyeOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: possumKid_eyeInner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: spine2
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: shoulder_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: shoulderPad_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: indexF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: arm_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 1]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: spine2
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: spine1
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: shoulder_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: shoulderPad_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: arm_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: pelvis
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: leg_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: heel_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: ankle_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: ball_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: knee_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: leg_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: tail4
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: tail3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: elbow_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: toe_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 2]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: arm_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: elbow_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: wrist_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: middleF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: pinkyF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: possumKid_ear_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: possumKid_browOuter_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: possumKid_cheek_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: possumKid_mouthCorner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: possumKid_nose
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: possumKid_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: shoulder_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: thumb1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: thumb2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: middleF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: possumKid_browInner_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 3]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: possumKid_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: possumKid_mouthCorner_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: possumKid_mouthLower_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: possumKid_mouthUpper_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: possumKid_mouthUpper_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: possumKid_nose
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: possumKid_mouthLower_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: wrist_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: indexF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: pinkyF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: middleF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: thumb1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: thumb2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: pinkyF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: indexF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: middleF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: indexF2_R
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 4]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: pelvis
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: spine1
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: tail1
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: tail2
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: tail3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: tail4
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: spine2
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: shoulder_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: shoulderPad_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: arm_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: shoulder_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: elbow_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: wrist_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: middleF1_R
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 5]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: heel_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: ankle_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: ball_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: knee_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: pelvis
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: leg_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: leg_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: elbow_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: arm_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: wrist_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: pinkyF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: middleF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: possumKid_browOuter_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: possumKid_ear_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: possumKid_cheek_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: possumKid_mouthCorner_R
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 6]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: shoulder_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: possumKid_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: toe_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: ankle_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: knee_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: heel_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: ball_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: wrist_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: middleF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: thumb1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: thumb2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: elbow_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: middleF2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: possumKid_mouthCorner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: possumKid_cheek_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: possumKid_nose
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 7]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: possumKid_browOuter_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: possumKid_browInner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: possumKid_ear_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: possumKid_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: possumKid_mouthCorner_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: possumKid_mouthLower_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: possumKid_nose
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: possumKid_mouthUpper_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: possumKid_mouthUpper_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: possumKid_mouthLower_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: wrist_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: indexF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: pinkyF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: thumb1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: thumb2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: middleF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: pinkyF2_R
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 8]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: indexF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: wrist_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: pinkyF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: indexF2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: middleF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: middleF2_R
+                int mSkeletonIndex: -1
+            }
+        }
+    }
+    bool mbLightmaps: 0
+}
+:Lua Serialiser for Index Buffer: SerialiseBoneD3DIndexBuffer
+class D3DIndexBuffer :
+{
+    bool mbLocked: 0
+    int mFormat: 101
+    int mNumIndicies: 5070
+    int mIndexByteSize: 2
+}
+[BufferData Base64] >> "AAABAAIAAQADAAIAAgAEAAAABAAFAAAABgAFAAcABQAEAAcACAABAAkAAQAAAAkACgAJAAUACQAAAAUABQAGAAoACgAGAAsADAALAAcACwAGAAcABwAEAAwADAAEAA0ADQAEAA4ABAACAA4ADgACAA8AAgADAA8AEAARAAEAAQA=..."
+:Lua Serialiser for VertexBuffer0: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 1348
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "ABRAvI46ND45f2A+qljPLoGiMj6YuWA+AHUqvJPJND7kLV0+j+3QLnWAMj7tU10+a86wvND4OD7A3Fk+662yvBTyNz5kyV4+C8P/vKZuOz7ueFs+/o75vLHcOz69rFQ+rnv6Lj2cLz4bIGE+Af5OvK8iMT4f32A+62TEvAsqNT4=..."
+:Lua Serialiser for VertexBuffer1: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 1348
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "dhjlPXKKMD8kKjc/cGjUNnSnNj+jXjM/iSOPPisLQz90khW/xVLENmuUST9rzR2/ylH9PsRzMT/XLQa/QJFXPZyIND/FADU/LgXvvmKYPj+3WfQ+K8HAvUrPVz8wlAe/TDTHNTs3AT4j9H0/QyQ5van7HD6HtXw/5r9AvvAQTD4=..."
+:Lua Serialiser for VertexBuffer2: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 1348
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "AAAAPwAAAD8AAAAACtcjP+xRuD4AAAAAzcwMP2Zm5j4AAAAACtcjP+xRuD4AAAAAmpkZP83MzD4AAAAAmpkZP83MzD4AAAAAMzMzP5qZmT4AAAAAMzMzP5qZmT4AAAAACtcjP+xRuD4AAAAAFK4HP9ej8D4AAAAAmpkZP83MzD4=..."
+:Lua Serialiser for VertexBuffer3: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 1348
+    int mVertSize: 4
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "AAQAAAQAAAAEAAAABAAAAAAEAAAABAAAAAQAAAAEAAAEAAAABAAAAAAEAAAABAAAAAQAAAAEAAAEAAAABAAAAAAEAAAEAAAAAAQAAAAEAAAABAAAAAQAAAQAAAAABAAAAAQAAAAEAAAABAAABAAAAAAIAAAIAAAAAAgAAAgAAAA=..."
+:Lua Serialiser for VertexBuffer4: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 1348
+    int mVertSize: 8
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "DDORPhqNcT9c1H8+BLtzP8SHkD7QG3Q/MrKAPj7xdT+oxqQ+Fnd0P3pOoz5VBHE/MMi2PllCcD+sh7c++vB0P4zvfD6Ti3E/4uyPPqELbz/c/6M+5BNuP0wfuD7lfW0/eEu6Po8odz/0s6Q+9BN3P+ZokD6QS3c/pNWAPqjoeD8=..."
+:Lua Serialiser for VertexBuffer8: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 1348
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "Bchtv7N7pD7O/Ty+ismMNjDjXT+8W/++3iF3v5yrPD5lLj2+F68wN30NID86zEe/dP1hv7Whoz6OTbC+Mv9jv6istj6xX5C+r0JLv3zeOj5NdBS/cOxUv3BND74miQm/di0oN7JtfT+DxhC+vWBrv5d3wj5/cdC9z+1dvyJZ0D4=..."

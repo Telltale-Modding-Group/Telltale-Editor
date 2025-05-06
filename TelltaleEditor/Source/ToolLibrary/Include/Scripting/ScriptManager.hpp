@@ -24,6 +24,7 @@ struct LuaFunctionRegObject
 {
     String Name;
     LuaCFunction Function = nullptr;
+    String Declaration, Description;
 };
 
 // Collection of registerable C functions providing C API.
@@ -35,13 +36,17 @@ struct LuaFunctionCollection
     std::unordered_map<String, String> StringGlobals; // global name to value to reg
     std::unordered_map<String, U32> IntegerGlobals; // global name to value to reg
     
+    std::unordered_map<String, String> GlobalDescriptions; // global name to description
+    
 };
 
-#define PUSH_FUNC(Col, Name, Fn) Col.Functions.push_back({Name, Fn})
+#define PUSH_FUNC(Col, Name, Fn, Decl, Desc) Col.Functions.push_back({Name, Fn, Decl, Desc})
 
-#define PUSH_GLOBAL_S(Col, Name, Str) Col.StringGlobals[Name] = Str
+#define PUSH_GLOBAL_S(Col, Name, Str, Desc) Col.StringGlobals[Name] = Str; Col.GlobalDescriptions[Name] = Desc
 
-#define PUSH_GLOBAL_I(Col, Name, Val) Col.IntegerGlobals[Name] = Val
+#define PUSH_GLOBAL_I(Col, Name, Val, Desc) Col.IntegerGlobals[Name] = Val; Col.GlobalDescriptions[Name] = Desc
+
+#define PUSH_GLOBAL_DESC(Col, Name, Desc) Col.GlobalDescriptions[Name] = Desc
 
 // Provides high level scripting access. Most of the functions are the same as Telltales actual ScriptManager API.
 namespace ScriptManager

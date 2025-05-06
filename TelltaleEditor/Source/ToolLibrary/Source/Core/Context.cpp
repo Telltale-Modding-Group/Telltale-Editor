@@ -91,8 +91,18 @@ void ToolContext::Switch(GameSnapshot snapshot)
     _Setup = true;
 }
 
+ToolContext::~ToolContext()
+{
+    Release();
+    Meta::Shutdown();
+    DataStreamManager::Shutdown();
+    Memory::Shutdown();
+    // Lua shuts down automatically in dtor
+}
+
 ToolContext::ToolContext(LuaFunctionCollection PerState)
 {
+    Memory::Initialise();
     DataStreamManager::Initialise();
     Compression::Initialise();
     _L[0].Initialise(LuaVersion::LUA_5_2_3);

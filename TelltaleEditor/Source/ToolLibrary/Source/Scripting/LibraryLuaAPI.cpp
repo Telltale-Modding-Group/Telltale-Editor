@@ -77,6 +77,47 @@ namespace Meta
             return 0;
         }
         
+        U32 luaMetaPushGameCap(LuaManager& man)
+        {
+            TTE_ASSERT(_IsMain, "Can only be called in initialisation on the main thread");
+            if(!GetToolContext() || GetToolContext()->GetActiveGame()) // no active game can be set here
+            {
+                TTE_ASSERT(false, "This function can only be called during initialisation of a game");
+                return 0;
+            }
+            man.PushLString("Caps");
+            man.GetTable(1);
+            if(man.Type(-1) != LuaType::TABLE)
+            {
+                man.Pop(1);
+                man.PushLString("Caps");
+                man.PushTable();
+                man.SetTable(1);
+                man.PushLString("Caps");
+                man.GetTable(1);
+            }
+            
+            // gametab, one, .., N, capstab
+            I32 tryIndex = 1;
+            for(I32 arg = 2; arg < man.GetTop(); arg++)
+            {
+                for(;;)
+                {
+                    man.PushInteger(tryIndex);
+                    man.GetTable(-2);
+                    LuaType ty = man.Type(-1);
+                    man.Pop(1);
+                    if(ty == LuaType::NIL)
+                        break;
+                    tryIndex++;
+                }
+                man.PushInteger(tryIndex);
+                man.PushCopy(arg);
+                man.SetTable(-3);
+            }
+            return 0;
+        }
+        
         // MetaRegisterGame(gameInfoTable)
         U32 luaMetaRegisterGame(LuaManager& man)
         {
@@ -89,6 +130,8 @@ namespace Meta
             RegGame reg{};
             
             // pop stuff into reg game struct
+            ScriptManager::TableGet(man, "PropertySetClassName");
+            reg.PropsClassName = ScriptManager::PopString(man);
             ScriptManager::TableGet(man, "Name");
             reg.Name = ScriptManager::PopString(man);
             ScriptManager::TableGet(man, "ID");
@@ -113,6 +156,26 @@ namespace Meta
             {
                 man.Pop(1);
             }
+            
+            ScriptManager::TableGet(man, "Caps");
+            if(man.Type(-1) == LuaType::TABLE)
+            {
+                I32 index = 1;
+                for(;;)
+                {
+                    man.PushInteger(index);
+                    man.GetTable(-2);
+                    if(man.Type(-1) != LuaType::NUMBER)
+                    {
+                        man.Pop(1);
+                        break;
+                    }
+                    reg.Caps.Set((GameCapability)man.ToInteger(-1), true);
+                    man.Pop(1);
+                    index++;
+                }
+            }
+            man.Pop(1);
             
             ScriptManager::TableGet(man, "AllowOodle");
             if(man.Type(-1) == LuaType::BOOL)
@@ -1413,7 +1476,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.PushNil();
                 return 1;
             }
-            man.PushNil();
+            man.PushTable();
             I32 i = 0;
             auto refs = inst._GetInternalChildrenRefs();
             for(auto pair = refs->begin(); pair != refs->end(); pair++)
@@ -2283,6 +2346,33 @@ namespace MS
         return 1;
     }
     
+    // dump buffer(buf mem, offset, size, outfilename)
+    static U32 luaMetaStreamDumpBuffer(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 4, "Invalid use of dump buffer");
+        Meta::ClassInstance inst = Meta::AcquireScriptInstance(man, 1);
+        U32 off = (U32)man.ToInteger(2), size = (U32)man.ToInteger(3);
+        String out = man.ToString(4);
+        DataStreamRef outStream = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(out));
+        if(outStream)
+        {
+            Meta::BinaryBuffer& buf = *((Meta::BinaryBuffer*)inst._GetInternal());
+            if(off + size >= buf.BufferSize)
+            {
+                outStream->Write(buf.BufferData.get() + off, size);
+            }
+            else
+            {
+                TTE_LOG("Can not dump to %s: offset + size > buffer size.", out.c_str());
+            }
+        }
+        else
+        {
+            TTE_LOG("Could not open stream dump %s", out.c_str());
+        }
+        return 0;
+    }
+    
     static U32 luaMetaStreamWriteDDS(LuaManager& man)
     {
         Meta::ClassInstance _{};
@@ -2713,7 +2803,7 @@ namespace TTE
     
     static U32 luaDumpMemLeaks(LuaManager& man)
     {
-        DumpTrackedMemory();
+        Memory::DumpTrackedMemory();
         return 0;
     }
     
@@ -2821,7 +2911,7 @@ static U32 luaMetaIsIsolated(LuaManager& man)
 // ===================================================================         REGISTER OBJECT
 // ===================================================================
 
-#define ADD_FN(namespace, name, fun) Col.Functions.push_back({name, &namespace :: fun})
+#define ADD_FN(namespace, name, fun, decl, desc) Col.Functions.push_back({name, &namespace :: fun, decl, desc})
 
 LuaFunctionCollection luaLibraryAPI(Bool bWorker)
 {
@@ -2829,118 +2919,394 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     
     // REGISTER TTE API
     
-    Col.Functions.push_back({"IsIsolated", &luaMetaIsIsolated});
+    Col.Functions.push_back({"IsIsolated", &luaMetaIsIsolated, "bool IsIsolated()", "Returns if currently being called from a worker thread."});
     
     if(!bWorker)
     {
-        Col.Functions.push_back({"TTE_Switch", &TTE::luaSwitch});
-        Col.Functions.push_back({"TTE_OpenMetaStream", &TTE::luaOpenMetaStream});
-        Col.Functions.push_back({"TTE_SaveMetaStream", &TTE::luaSaveMetaStream});
-        Col.Functions.push_back({"TTE_OpenTTArchive", &TTE::luaOpenTTArch});
-        Col.Functions.push_back({"TTE_OpenTTArchive2", &TTE::luaOpenTTArch2});
-        Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles});
-        Col.Functions.push_back({"TTE_Blowfish", &TTE::luaBlowfish});
+        Col.Functions.push_back({"TTE_Switch", &TTE::luaSwitch, "nil TTE_Switch(gameID, platformName, vendorName)",
+            "Switches the editor context to a new game snapshot. Note that this can only be called from a mod "
+            "script at startup or when no files are being read or processed. If it is called at one of those"
+            " times, an error is thrown to the log and it does nothing."});
+        Col.Functions.push_back({"TTE_OpenMetaStream", &TTE::luaOpenMetaStream, "instance TTE_OpenMetaStream(filename, optional archive)",
+            "Opens and reads a meta stream, returning the base class instance that the file contains. "
+            "This returns a strong reference to the instance. If one argument is passed in, filename is "
+            "the path on your computer where the file is (or relative to the executable). If two are "
+            "passed in, the first must be the file name string and the second is the archive (any version) which the file is located in."
+        });
+        Col.Functions.push_back({"TTE_SaveMetaStream", &TTE::luaSaveMetaStream, "bool TTE_SaveMetaStream(filename, instance)",
+            "Writes the given instance to the file located at the filename argument. Returns if it was successfully written."
+        });
+        Col.Functions.push_back({"TTE_OpenTTArchive", &TTE::luaOpenTTArch,
+            "arc TTE_OpenTTArchive(filepath)",
+            "Opens a TTARCH file which is located at the given file path on your computer (or relative, like all file paths, to the executable)."
+            " Returns the archive instance, a strong reference although this is not a class instance. "
+            "You can then use this to list files and open files from it. Note that this archive MUST match the version of the currently selected game,"
+            "ie the archive must be from the game that the editor context is currently working with."
+        });
+        Col.Functions.push_back({"TTE_OpenTTArchive2", &TTE::luaOpenTTArch2, "arc TTE_OpenTTArchive2(filepath)",
+            "Opens a TTARCH2 file which is located at the given file path on your computer (or relative). "
+            "Returns the archive instance, a strong reference. This archive, like others, must be from the currently"
+            " active game such that the encryption key matches."
+        });
+        Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles, "table TTE_ArchiveListFiles(archive)",
+            "Returns a table (indices 1 to N) of all the file names in the given archive, which was previously opened with open TTArchive or TTArchive2."
+        });
+        Col.Functions.push_back({"TTE_Blowfish", &TTE::luaBlowfish,
+            "nil TTE_Blowfish(bufferMetaInstance, size, isEncrypt)",
+            "Performs a blowfish encryption on the given buffer class instance (must be kMetaClassInternalBinaryBuffer class). "
+            "The second argument must be less than or equal to the size of the buffer, how many bytes are to be encrypted or decrypted. "
+            "The last argument is if we want to encrypt (true) or decrypt (false). The key used is the current game key. "
+            "Note that blowfish encrypts in blocks of eight, ie the last remaining bytes aren't encrypted. All blowfish is like this, however, so don't worry."
+        });
     }
     
     // part of the TTE but can be called async
-    Col.Functions.push_back({"TTE_DumpMemoryLeaks", &TTE::luaDumpMemLeaks});
-    Col.Functions.push_back({"TTE_GetActiveGame", &TTE::luaActiveGame});
-    Col.Functions.push_back({"TTE_Assert", &TTE::luaAssert});
-    Col.Functions.push_back({"TTE_Log", &TTE::luaLog});
+    Col.Functions.push_back({"TTE_DumpMemoryLeaks", &TTE::luaDumpMemLeaks, "nil TTE_DumpMemoryLeaks()",
+        "Dumps to the logger all memory which has not been freed yet. This will contain a lot of script stuff which won't "
+        "matter as the script engine requires memory which s tracked, however can be useful for tracking specific script object allocations."
+    });
+    Col.Functions.push_back({"TTE_GetActiveGame", &TTE::luaActiveGame, "table TTE_GetActiveGame()",
+        "Returns the information about the currently active game. The returned table contains keys string "
+        "'Name', string 'ID',  integer 'ArchiveVersion' and bool 'IsArchive2'."
+    });
+    Col.Functions.push_back({"TTE_Assert", &TTE::luaAssert, "nil TTE_Assert(bool, errorMessage)", "If the first parameter is false, debug builds "
+        "will throw an assert and break in the debugger"
+    });
+    Col.Functions.push_back({"TTE_Log", &TTE::luaLog, "nil TTE_Log(valueStr)", "Logs to the editor logger, the string argument."});
     
     // REGISTER META API
     
     if(!bWorker)
     {
-        Col.Functions.push_back({"MetaRegisterGame",&Meta::L::luaMetaRegisterGame});
-        Col.Functions.push_back({"MetaAssociateFolderExtension",&Meta::L::luaAssignFolderExt});
-        Col.Functions.push_back({"MetaRegisterIntrinsics", &Meta::L::luaMetaRegisterIntrinsics});
-        Col.Functions.push_back({"MetaRegisterClass", &Meta::L::luaMetaRegisterClass});
-        Col.Functions.push_back({"MetaRegisterCollection", &Meta::L::luaRegisterCollection}); // used in Meta::Initialise4 in engine
+        Col.Functions.push_back({"MetaRegisterGame",&Meta::L::luaMetaRegisterGame, "nil MetaRegisterGame(gameInfoTable)",
+            "This is used in the Games.lua script to register a game to the Meta system on initialisation. "
+            "It takes in a table which must have keys string Name, string ID, bool ModifiedEncryption, table Key[string platform]"
+            " to string hex key, etc. You could add your own game if you want to create one!"
+        });
+        Col.Functions.push_back({"MetaPushGameCapability",&Meta::L::luaMetaPushGameCap, "nil MetaPushGameCapability(gameTable, cap)","Push a game capability to the "
+            "game table. Call before registering the game table."
+        });
+        Col.Functions.push_back({"MetaAssociateFolderExtension",&Meta::L::luaAssignFolderExt,
+            "nil MetaAssociateFolderExtension(gameID, mask, folder)", "This associates file name masks to folders. When extracting "
+            "files in the Telltale Editor sometimes the user can select to extract to sub-folders. This function associates masks to "
+            "sub-folders which the game engines. For example, a typical mapping is any files matching 'module_*.prop' should go into "
+            "'Properties/Primitives/'. You should use forward slashes and end with one, although if not it will be changed for you. "
+            "This should only be called during initialisation."
+        });
+        Col.Functions.push_back({"MetaRegisterIntrinsics", &Meta::L::luaMetaRegisterIntrinsics, "nil MetaRegisterIntrinsics()",
+            "This registers intrinsic types required for the meta system for the current game."
+            " This should only be called a game meta classes registration script (eg WD100.lua)."
+        });
+        Col.Functions.push_back({"MetaRegisterClass", &Meta::L::luaMetaRegisterClass, "nil MetaRegisterClass(table)",
+            "This registers a class to the meta system, passing in the information table. "
+            "This must only be called in the initialisation. Table must contain the Name string, VersionIndex number, "
+            "optional flags number, optional serialiser script name and optional members table. See example "
+            "scripts from games for more information on its use with examples. You can register multiple classes "
+            "with the same name as long as they are not exactly the same, ie the version hashes are different."
+        });
+        Col.Functions.push_back({"MetaRegisterCollection", &Meta::L::luaRegisterCollection, "nil MetaRegisterCollection(table, keyTypeTable, valueTypeTable)",
+            "This registers a collection class to the meta system, only to be used in initialisation. "
+            "Pass in the same table information as would be used in the normal register class. The table is the information about the collection class. "
+            "The second argument is the key type value table, (previously defined and must have been passed into register class). This can be nil for non keyed "
+            "collections, such as most arrays, but must be a previoulsy registered table otherwise (eg for Map classes). If this is a static array (SArray) class, "
+            "then this should be an integer being the number of elements. The third argument must always be non nil and a table, which is the previously "
+            "registered value type in the collection. There is a special case where key or value type table can be strings. "
+            "If you pass them as a string, this means they will be resolved once all classes have been registered. This allows forward declaration of "
+            "a class inside a collection before its fully defined. Instead of padding in the type table you pass in the string name of the class it "
+            "should be. Optionally you can end the string with a semicolon followed by the version index, eg 'class Hello;1', such that version index "
+            "1 is used in this example. By default version index 0 is used."
+        }); // used in Meta::Initialise4 in engine
     }
     
-    Col.Functions.push_back({"MetaGetClassID", &Meta::L::luaMetaGetId});
-    Col.Functions.push_back({"MetaGetVersionCRC", &Meta::L::luaMetaGetVersion});
-    Col.Functions.push_back({"MetaGetClassHash", &Meta::L::luaMetaGetClassHash});
-    Col.Functions.push_back({"MetaFlagQuery", &Meta::L::luaMetaFlagQuery});
-    Col.Functions.push_back({"MetaHashByte", &Meta::L::luaMetaHashByte});
-    Col.Functions.push_back({"MetaHashInt", &Meta::L::luaMetaHashInt});
-    Col.Functions.push_back({"MetaHashLong", &Meta::L::luaMetaHashLong});
-    Col.Functions.push_back({"MetaHashHexString", &Meta::L::luaMetaHashHexString});
-    Col.Functions.push_back({"MetaHashString", &Meta::L::luaMetaHashString});
-    Col.Functions.push_back({"MetaSetVersionFn", &Meta::L::luaMetaSetVersionCalc});
-    Col.Functions.push_back({"MetaDumpVersions", &Meta::L::luaMetaDumpVersions});
-    Col.Functions.push_back({"MetaRegisterDuplicate", &Meta::L::luaMetaRegisterDuplicate});
+    Col.Functions.push_back({"MetaGetClassID", &Meta::L::luaMetaGetId, "number MetaGetClassID(table)",
+        "Gets the unique class ID for that table. Must be previously registered using the collection or class register function."});
+    Col.Functions.push_back({"MetaGetVersionCRC", &Meta::L::luaMetaGetVersion,"number MetaGetVersionCRC(table)",
+        "Gets the version hash for that class table. Must be previously registered using the collection or class register function."
+    });
+    Col.Functions.push_back({"MetaGetClassHash", &Meta::L::luaMetaGetClassHash, "string MetaGetClassHash(table)",
+        "Gets the hexadecimal string hash of the given class table. Must be previously registered using the collection or class register "
+        "function. Returned as a string as Lua numbers internally are floating points which cannot represent the 64 bit hash properly."
+    });
+    Col.Functions.push_back({"MetaFlagQuery", &Meta::L::luaMetaFlagQuery, "bool MetaFlagsQuery(flags, flagToTest)",
+        "This queries if the given flagToTest exists in the the first flags argument."
+    });
+    Col.Functions.push_back({"MetaHashByte", &Meta::L::luaMetaHashByte, "number MetaHashByte(initialHash, byte)",
+        "CRC32 hashes the given byte and returns the 32 bit hash. Pass in an optional initial hash (else zero). "
+        "The byte is a number, in which the bottom 8 bits are hashed, so make sure its in the range of 0 to 255 inclusive. Used for version hashing."
+    });
+    Col.Functions.push_back({"MetaHashInt", &Meta::L::luaMetaHashInt, "number MetaHashInt(initialHash, int)",
+        "CRC32 hashes the given number and returns the 32 bit hash. Pass in an optional initial hash (else zero). "
+        "Only the bottom 32 bits are hashed, ie the value of the number, which must be from 0 to about 4 billion. Used for version hashing."
+    });
+    Col.Functions.push_back({"MetaHashLong", &Meta::L::luaMetaHashLong, "number MetaHashLong(initialHash, valuestring)",
+        "Very similar to MetaHashHexString, however the value string must be of length 16 and the value is endian flipped such that it works for little endian machines."
+    });
+    Col.Functions.push_back({"MetaHashHexString", &Meta::L::luaMetaHashHexString, "number MetaHashHexString(initialHash, valuestring)",
+        "CRC32 hashes the given hexadecimal string buffer and returns the 32 bit hash. Pass in an optional initial hash (else zero). "
+        "The string must be a set of adjacent hexadecimal digits (padded), and its length must be a multiple of 2. For example '00' "
+        "is valid but '0' is not. '00010203' hashes the buffer with bytes 0, 1, 2 and 3 in that order. Used for version hashing."
+    });
+    Col.Functions.push_back({"MetaHashString", &Meta::L::luaMetaHashString, "number MetaHashString(initialHash, value)",
+        "This hashes the given string, CRC32, with an optional initial hash (else set to 0)."
+    });
+    Col.Functions.push_back({"MetaSetVersionFn", &Meta::L::luaMetaSetVersionCalc, "nil MetaSetVersionFn(functionName)",
+        "Sets the function (pass the name not the function) which generates the version hash for the given class table "
+        "(the function should return a number, see hashing functions below, and take in the class table). This should be set first, "
+        "then call register intrinsics, then the rest of the classes. See existing game scripts for examples."
+    });
+    Col.Functions.push_back({"MetaDumpVersions", &Meta::L::luaMetaDumpVersions, "nil MetaDumpVersions()",
+        "This function simply dumps all of the currently registered meta types to the log, along with their version CRC hashes and version numbers."
+    });
+    Col.Functions.push_back({"MetaRegisterDuplicate", &Meta::L::luaMetaRegisterDuplicate, "table MetaRegisterDuplicate(source, typename, versionNumber)",
+        "Registers a duplicate of the pre-registered class, source. "
+        "The only difference is the new name and version number as specified by the last two arguments. Returns the table of the type."
+    });
     
     // RUNTIME META API
     
-    ADD_FN(Meta::L, "MetaGetClassFlags", luaMetaGetClassFlags);
-    ADD_FN(Meta::L, "MetaGetMemberFlags", luaMetaGetMemberFlags);
-    ADD_FN(Meta::L, "MetaGetClass", luaMetaGetClass);
-    ADD_FN(Meta::L, "MetaGetMemberClass", luaMetaGetMemberClass);
-    ADD_FN(Meta::L, "MetaGetMember", luaMetaGetMember);
-    ADD_FN(Meta::L, "MetaSetClassValue", luaMetaSetClassValue);
-    ADD_FN(Meta::L, "MetaGetClassValue", luaMetaGetClassValue);
-    ADD_FN(Meta::L, "MetaGetEnumFlags", luaMetaGetEnumFlags);
-    ADD_FN(Meta::L, "MetaGetMemberNames", luaMetaGetMemberNames);
-    ADD_FN(Meta::L, "MetaCreateInstance", luaMetaCreateInstance);
-    ADD_FN(Meta::L, "MetaCopyInstance", luaMetaCopyInstance);
-    ADD_FN(Meta::L, "MetaMoveInstance", luaMetaMoveInstance);
-    ADD_FN(Meta::L, "MetaIsCollection", luaMetaIsCollection);
-    ADD_FN(Meta::L, "MetaToString", luaMetaToString);
-    ADD_FN(Meta::L, "MetaEquals", luaMetaEquals);
-    ADD_FN(Meta::L, "MetaLessThan", luaMetaLessThan);
-    ADD_FN(Meta::L, "MetaGetChild", luaMetaGetChild);
-    ADD_FN(Meta::L, "MetaGetNumChildren", luaMetaGetChildrenCount);
-    ADD_FN(Meta::L, "MetaGetChildNames", luaMetaGetChildrenNames);
-    ADD_FN(Meta::L, "MetaReleaseChild", luaMetaReleaseChild);
-    ADD_FN(Meta::L, "MetaInstanceAlive", luaMetaInstanceAlive);
+    ADD_FN(Meta::L, "MetaGetClassFlags", luaMetaGetClassFlags, "number MetaGetClassFlags(typename, versionNumber)", "Returns the flags of a given class.");
+    ADD_FN(Meta::L, "MetaGetMemberFlags", luaMetaGetMemberFlags, "number MetaGetMemberFlags(typename, versionNumber, memberName)",
+           "Returns the flags of the given member of the given class.");
+    ADD_FN(Meta::L, "MetaGetClass", luaMetaGetClass, "typename, versionNumber MetaGetClass(instance)",
+           "Returns the class information of a given class instance. For a similar function to find the class "
+           "information about a class serialised inside a meta stream, use MetaStreamFindClass.");
+    ADD_FN(Meta::L, "MetaGetMemberClass", luaMetaGetMemberClass, "typename, versionNumber MetaGetMemberClass(typename, versionNumber, member)",
+           "Returns the class name and version number of the member specified of the class specified.");
+    ADD_FN(Meta::L, "MetaGetMember", luaMetaGetMember,"instance MetaGetMember(instance, member)",
+           "Obtains a weak reference (instance) to the given member variable in the given class instance in passed."
+           " Pass in the name of the member variable as the second argument. ");
+    ADD_FN(Meta::L, "MetaSetClassValue", luaMetaSetClassValue, "nil MetaSetClassValue(instance, value)",
+           "Similar to the get class function. Sets the value argument. Ensure that the type matches what you are setting it to, as it won't be casted.");
+    ADD_FN(Meta::L, "MetaGetClassValue", luaMetaGetClassValue, "value MetaGetClassValue(instance)",
+           "If the instance is an intrinsic type, it is converted to the equivalent Lua type. Strings, booleans, "
+           "floats and doubles translate as normal. Integers, unsigned or signed, casted all to the same internal Lua number type, "
+           "so this can be used for all integer types. Symbols are converted to symbol strings. Integers of width 64, signed and "
+           "unsigned, are always converted to symbol strings as well, as the Lua number type cannot hold them to the correct value. "
+           "If it is not one of those types, a normal weak reference is returned as it is a compound, normal class type.");
+    ADD_FN(Meta::L, "MetaGetEnumFlags", luaMetaGetEnumFlags, "table MetaGetEnumFlags(typename, versionNumber, member)",
+           "Given the member in the given class, this function returns a table of string enum or flag name to enum or flag "
+           "integer value. The returned table is not a table of tables like when registering enums or flags, however is a "
+           "table where the keys are the enum or flag names and the values are the integer values. Note that this works if "
+           "the member is an enum or a flag. Returns nil if the member is not an enum or flag member.");
+    ADD_FN(Meta::L, "MetaGetMemberNames", luaMetaGetMemberNames, "table MetaGetMemberNames(typename, versionNumber)",
+           "Returns a table of the member variable names in the given class. Indexed from 1 to N.");
+    ADD_FN(Meta::L, "MetaCreateInstance", luaMetaCreateInstance, "instance MetaCreateInstance(typename, versionNumber, name, parent)",
+           "Creates an instance of the class specified by the first two arguments. The third argument is the name you want to "
+           "give to the returned child instance. You can then access this returned instance later by finding the child instance "
+           "by this unique name. Pass in a valid instance as the parent instance, which the returned instance's lifetime depends totally on.");
+    ADD_FN(Meta::L, "MetaCopyInstance", luaMetaCopyInstance,"instance MetaCopyInstance(instance, name, parent)"
+           , "Creates a new instance, copying everything from the 1st argument into the returned instance, "
+           "leaving the first one unchanged. Rest of arguments are the same as CreateInstance. Parent and instance cannot be the same.");
+    ADD_FN(Meta::L, "MetaMoveInstance", luaMetaMoveInstance, "instane MetaMoveInstance(instance, name, parent)",
+           "Creates a new instance, moving everything from the 1st argument into the returned instance, leaving "
+           "the first one alive but empty like it was just created. Rest of arguments are the same as CreateInstance. Parent and instance cannot be the same.");
+    ADD_FN(Meta::L, "MetaIsCollection", luaMetaIsCollection, "bool MetaIsCollection(instance/typename, optional versionNumber)",
+           "Returns true if the given instance (1 argument) else is a collection class. If two arguments, pass in the typename and version number to test.");
+    ADD_FN(Meta::L, "MetaToString", luaMetaToString, "string MetaToString(instance)",
+           "Converts the given instance to a string. If the class of the instance has a defined to string meta operation, "
+           "then that is called. All intrinsic types such as integer are converted to string by default. "
+           "Higher level typed, is used defined typed, return a list of the member names and the instance values formatted nicely in a string.");
+    ADD_FN(Meta::L, "MetaEquals", luaMetaEquals, "bool MetaEquals(instance1, instance2)",
+           "Same as less than but returns true only if they are equal using the comparison meta operation.");
+    ADD_FN(Meta::L, "MetaLessThan", luaMetaLessThan, "bool MetaLessThan(instanceL, instanceR)",
+           "Compares the two instances, using their less than meta operation. For intrinsic types such as floats and integers, "
+           "this does the usual. Else this will return false for other types without a defined comparison operation.");
+    ADD_FN(Meta::L, "MetaGetChild", luaMetaGetChild, "instance MetaGetChild(instance, name)",
+           "Returns a weak reference to the child instance associated with the given parent under the given name.");
+    ADD_FN(Meta::L, "MetaGetNumChildren", luaMetaGetChildrenCount, "number MetaGetNumChildren(instance)",
+           "Returns the number of named children that the given instance holds. "
+           "This does not include any instances returned with GetMember, but only MetaCreateInstance.");
+    ADD_FN(Meta::L, "MetaGetChildrenNames", luaMetaGetChildrenNames, "table MetaGetChildrenNames(instance)",
+           "Returns a table (indexed from 1 to N)  of all of the children names in the given instance. Each value "
+           "in the table is a string. Some children names may be hash strings (length 16, upper case hex) if the "
+           "symbol could not be resolved. Internally child names are stored as symbols. Try to use global symbols,"
+           " and use SymbolCompare to compare, so reduce this risk.");
+    ADD_FN(Meta::L, "MetaReleaseChild", luaMetaReleaseChild, "nil MetaReleaseChild(instance, name)",
+           "Releases the given child (identified by name) of the given instance. Use this to remove it from the internal map such "
+           "that it will get destroyed after (unless a lower level C++ object still obtains a reference to it). Calls to get child after this will return nil.");
+    ADD_FN(Meta::L, "MetaInstanceAlive", luaMetaInstanceAlive, "bool MetaInstanceAlive(instance)",
+           "Returns true if the given instance of a class is alive. Returns false if the instance is "
+           "invalid or the parent of the instance is no longer alive - meaning you cannot access the instance anymore as it does not exist.");
     
     // META STREAM API
     
-    ADD_FN(MS, "MetaStreamAsyncSerialiseEnabled", luaMetaStreamAsyncSerialiseEnabled);
-    ADD_FN(MS, "MetaStreamReadInt", luaMetaStreamReadInt);
-    ADD_FN(MS, "MetaStreamReadByte", luaMetaStreamReadByte);
-    ADD_FN(MS, "MetaStreamReadBool", luaMetaStreamReadBool);
-    ADD_FN(MS, "MetaStreamReadShort", luaMetaStreamReadShort);
-    ADD_FN(MS, "MetaStreamReadString", luaMetaStreamReadString);
-    ADD_FN(MS, "MetaStreamReadSymbol", luaMetaStreamReadSymbol);
-    ADD_FN(MS, "MetaStreamAdvance", luaMetaStreamAdvance);
-    ADD_FN(MS, "MetaStreamWriteZeros", luaMetaStreamWriteZeros);
-    ADD_FN(MS, "MetaStreamWriteInt", luaMetaStreamWriteInt);
-    ADD_FN(MS, "MetaStreamWriteFloat", luaMetaStreamWriteFloat);
-    ADD_FN(MS, "MetaStreamReadFloat", luaMetaStreamReadFloat);
-    ADD_FN(MS, "MetaStreamWriteByte", luaMetaStreamWriteByte);
-    ADD_FN(MS, "MetaStreamWriteShort", luaMetaStreamWriteShort);
-    ADD_FN(MS, "MetaStreamGetFileName", luaMetaStreamGetFileName);
-    ADD_FN(MS, "MetaStreamWriteString", luaMetaStreamWriteString);
-    ADD_FN(MS, "MetaStreamWriteBool", luaMetaStreamWriteBool);
-    ADD_FN(MS, "MetaStreamWriteSymbol", luaMetaStreamWriteSymbol);
-    ADD_FN(MS, "MetaStreamSetMainSection", luaMetaStreamSetMainSection);
-    ADD_FN(MS, "MetaStreamSetAsyncSection", luaMetaStreamSetAsyncSection);
-    ADD_FN(MS, "MetaStreamSetDebugSection", luaMetaStreamSetDebugSection);
-    ADD_FN(MS, "MetaStreamBeginBlock", luaMetaStreamBeginBlock);
-    ADD_FN(MS, "MetaStreamEndBlock", luaMetaStreamEndBlock);
-    ADD_FN(MS, "MetaGetBufferSize", luaMetaBufferSize);
-    ADD_FN(MS, "MetaStreamReadBuffer", luaMetaStreamReadBuffer);
-    ADD_FN(MS, "MetaStreamWriteBuffer", luaMetaStreamWriteBuffer);
-    ADD_FN(MS, "MetaStreamReadCache", luaMetaStreamReadCache);
-    ADD_FN(MS, "MetaStreamWriteCached", luaMetaStreamWriteCached);
-    ADD_FN(MS, "MetaStreamWriteDDS", luaMetaStreamWriteDDS);
-    ADD_FN(MS, "MetaStreamGetDDSHeaderSize", luaMetaStreamDDSSize);
-    ADD_FN(MS, "MetaStreamReadDDS", luaMetaStreamReadDDS);
-    ADD_FN(MS, "MetaGetCachedSize", luaMetaStreamCachedSize);
-    ADD_FN(MS, "MetaStreamFindClass", luaMetaStreamFindClass);
-    ADD_FN(Meta::L, "MetaSerialiseDefault", luaMetaSerialiseDefault); // serialise related
-    ADD_FN(Meta::L, "MetaSerialise", luaMetaSerialise);
+    ADD_FN(MS, "MetaStreamAsyncSerialiseEnabled", luaMetaStreamAsyncSerialiseEnabled, "bool MetaStreamAsyncSerialiseEnabled(stream)",
+           "Returns if asynchronous serialisation is possible for the current serialisation");
+    ADD_FN(MS, "MetaStreamReadInt", luaMetaStreamReadInt, "number MetaStreamReadInt(stream)",
+           "Reads a signed 4 byte integer from the given meta stream and returns it.");
+    ADD_FN(MS, "MetaStreamReadByte", luaMetaStreamReadByte, "number MetaStreamReadByte(stream)",
+           "Reads a signed 1 byte integer from the given meta stream and returns it.");
+    ADD_FN(MS, "MetaStreamReadBool", luaMetaStreamReadBool, "bool MetaStreamReadBool(stream)", "Reads a boolean from the meta stream.");
+    ADD_FN(MS, "MetaStreamReadShort", luaMetaStreamReadShort, "number MetaStreamReadShort(stream)",
+           "Reads a signed 2 byte integer from the given meta stream and returns it.");
+    ADD_FN(MS, "MetaStreamReadString", luaMetaStreamReadString, "string MetaStreamReadString(stream)",
+           "Reads a string, reading 4 bytes as the length and then that many bytes as the ASCII string data.");
+    ADD_FN(MS, "MetaStreamReadSymbol", luaMetaStreamReadSymbol, "string MetaStreamReadSymbol(stream)",
+           "Reads an unsigned 64 bit integer as a symbol, returning it as a hexadecimal string of length 16.");
+    ADD_FN(MS, "MetaStreamAdvance", luaMetaStreamAdvance, "nil MetaStreamAdvance(stream, nBytes)",
+           "Advances by the given number of bytes in the current meta stream. Used in read mode to skip over data which we don't need or know the correct value already.");
+    ADD_FN(MS, "MetaStreamWriteZeros", luaMetaStreamWriteZeros, "nil MetaStreamWriteZeros(stream, N)", "Writes zeros to the meta stream in the current section.");
+    ADD_FN(MS, "MetaStreamWriteInt", luaMetaStreamWriteInt, "nil MetaStreamWriteInt(stream, value)",
+           "Writes the argument to the stream argument as a 4 byte signed integer.");
+    ADD_FN(MS, "MetaStreamWriteFloat", luaMetaStreamWriteFloat, "nil MetaStreamWriteFloat(stream, value)",
+           "Writes the float argument to the stream argument.");
+    ADD_FN(MS, "MetaStreamReadFloat", luaMetaStreamReadFloat, "float MetaStreamReadFloat(stream, value)",
+           "Reads a float from the meta stream");
+    ADD_FN(MS, "MetaStreamWriteByte", luaMetaStreamWriteByte, "nil MetaStreamWriteByte(stream, value)",
+           "Writes the argument to the stream argument as a 1 byte signed integer.");
+    ADD_FN(MS, "MetaStreamWriteShort", luaMetaStreamWriteShort, "nil MetaStreamWriteShort(stream, value)",
+           "Writes the argument to the stream argument as a 2 byte signed integer.");
+    ADD_FN(MS, "MetaStreamGetFileName", luaMetaStreamGetFileName, "str MetaStreamGetFileName(stream)",
+           "Returns the name of the currently processing file. Pass in the meta stream.");
+    ADD_FN(MS, "MetaStreamWriteString", luaMetaStreamWriteString,
+           "nil MetaStreamWriteString(stream, value)", "Writes the length of the stream as a 4 byte signed integer followed by the string ASCII data.");
+    ADD_FN(MS, "MetaStreamWriteBool", luaMetaStreamWriteBool, "nil MetaStreamWriteBool(stream, value)", "Writes a boolean to the meta stream given.");
+    ADD_FN(MS, "MetaStreamWriteSymbol", luaMetaStreamWriteSymbol, "nil MetaStreamWriteSymbol(stream, value)",
+           "Writes the symbol argument. If it is a 16 byte hex string hash, the value is represents is written, else the string"
+           " is hashed on the lower case version. Note that SymbolXXX can be used to create and manage symbols.");
+    ADD_FN(MS, "MetaStreamSetMainSection", luaMetaStreamSetMainSection, "nil MetaStreamSetMainSection(stream)",
+           "Sets the current section to write to in stream as the main one, this is the default one and is by default where all "
+           "writes go to. When calling any of the SetXXXSection functions, note that block sizes are restricted to their section that "
+           "they are called in. If you call start block in the main section and then an end block call in the async section, "
+           "it will error as the main block is waiting for to call end block, not the async one.");
+    ADD_FN(MS, "MetaStreamSetAsyncSection", luaMetaStreamSetAsyncSection, "nil MetaStreamSetAsyncSection(stream)",
+           "Sets the current section in the stream as the async section. This is where buffers in meshes and textures "
+           "normally store their data. Do not use this in games which don't use meta stream versions of MSV5 or 6.");
+    ADD_FN(MS, "MetaStreamSetDebugSection", luaMetaStreamSetDebugSection,"nil MetaStreamSetDebugSection(stream)",
+           "Sets the current section in the stream as the debug section. This is where buffers in meshes and textures normally "
+           "store their data. Do not use this in games which don't use meta stream versions of MSV5 or 6.");
+    ADD_FN(MS, "MetaStreamBeginBlock", luaMetaStreamBeginBlock, "nil MetaStreamBeginBlock(stream, isWrite)",
+           "Starts a block size in the stream, in the current section. Pass in if you are writing or reading to the stream currently. You must have a call "
+           "to end block some time after this call to write the size as the difference between the offsets in the file when begin and end offset are called.");
+    ADD_FN(MS, "MetaStreamEndBlock", luaMetaStreamEndBlock, "nil MetaStreamEndBlock(stream, isWrite)",
+           "Ends a block in the stream in the current section. BeginBlock must have previously been called in the "
+           "current section in the meta stream. Pass in if you are reading or writing to the meta stream currently.");
+    ADD_FN(MS, "MetaGetBufferSize", luaMetaBufferSize, "number MetaGetBufferSize(bufferInstance)",
+           "Returns the size of the buffer instance (kMetaClassInternalBinaryBuffer class). "
+           "This size is set when you read a buffer from a meta stream - the argument is saved along side the buffer internal.");
+    ADD_FN(MS, "MetaStreamReadBuffer", luaMetaStreamReadBuffer, "nil MetaStreamReadBuffer(stream, bufferInstance, size)",
+           "Reads size bytes from the stream into the buffer instance. The buffer instance must be of the class kMetaClassInternalBinaryBuffer, "
+           "so must be a member variable of another class. This type is never serialised and is used so you can hold a memory block in "
+           "which it is freed after the class instance is destroyed. You can declare member variables with this type and then use it to store the buffer.");
+    ADD_FN(MS, "MetaStreamWriteBuffer", luaMetaStreamWriteBuffer, "nil MetaStreamWriteBuffer(stream, bufferInstance)",
+           "See above for information about bufferInstance. Does not write the size. Writes the buffer in its entirety, size bytes.");
+    ADD_FN(MS, "MetaStreamReadCache", luaMetaStreamReadCache, "nil MetaStreamReadCache(stream, cacheInstance, optional size = -1)",
+           "Reads size bytes from the stream into the buffer instance. The buffer instance must be of the class kMetaClassInternalDataStreamCache, "
+           "so must be a member variable of another class. This type is very similar to the binary buffer type above, however it stores a cache "
+           "of the range of bytes from the current position in the stream to the current position plus the size parameter. What this means is that "
+           "even if the file is finished reading from it will stay open as long as the instance is alive. This is useful for large data blocks which "
+           "we wouldn't want in memory such as archives of files. By default the size is -1 and doesn't need to be passed in, suggesting that all remaining bytes"
+           " should be cached. After this call the meta stream will have effectively read all these bytes so the next read bytes will be after this.");
+    ADD_FN(MS, "MetaStreamWriteCached", luaMetaStreamWriteCached, "nil MetaStreamWriteCached(stream, cacheInstance)",
+           "See above for information about cacheInstance. Does not write the size. Writes the cached bytes in its entirety to the stream.");
+    ADD_FN(MS, "MetaStreamWriteDDS", luaMetaStreamWriteDDS, "nil MetaStreamWriteDDS(stream, table)",
+           "Writes a DDS file header with the given information. It must include the same information as returned by the read version above.");
+    ADD_FN(MS, "MetaStreamDumpBuffer", luaMetaStreamDumpBuffer, "nil MetaStreamDumpBuffer(binaryBuffer, offset, size, outFileName)",
+           "Dumps the binary buffer out to a file name. Pass in the offset in the buffer and number of bytes to dump.");
+    ADD_FN(MS, "MetaStreamGetDDSHeaderSize", luaMetaStreamDDSSize, "number MetaStreamGetDDSHeaderSize(table)",
+           "Gets the number of bytes that would be written or have been read from the given DDS header table that "
+           "either you contruct or was returned in the read function above. This is the number of bytes read or would be written.");
+    ADD_FN(MS, "MetaStreamReadDDS", luaMetaStreamReadDDS, "table MetaStreamReadDDS(stream)",
+           "Reads a DDS file header returning a table with its information. See gitbook docs for table of return values.");
+    ADD_FN(MS, "MetaGetCachedSize", luaMetaStreamCachedSize, "number MetaGetCachedSize(cacheInstance)",
+           "Returns the size of the cached data stream instance (kMetaClassInternalDataStreamCache class). "
+           "This size is set when you read a buffer from a meta stream - its held internally.");
+    ADD_FN(MS, "MetaStreamFindClass", luaMetaStreamFindClass,"typename, versionNumber MetaStreamFindClass(stream, typeSymbol)",
+           "Finds the class in the meta system associated with the given type symbol for the given meta stream. The symbol "
+           "is either a symbol (16 byte hex hash string) or a string which will be hashed. Examples of use are passing in a symbol "
+           "read from the meta stream when the meta stream contains a class determined by its symbol also stored in the meta "
+           "stream. Returns the class type name and version number associated. The class is found by searching the meta stream header for "
+           "the type name symbol, if it is found then the returned class is one with the same version hash as in the header of the meta stream. "
+           "If it is not found in the header, then it may still be valid as intrinsic types are container types are not in headers. In those cases, "
+           "the type with version number zero is returned - as those types don't have different versions and if they do they are never used.");
+    ADD_FN(Meta::L, "MetaSerialiseDefault", luaMetaSerialiseDefault, "bool MetaSerialiseDefault(stream, instance, isWrite)",
+           "Default serialises the given class instance to/from the given stream in the given serialisation mode. "
+           "See documentation for more information about this function. Returns if success or failed."); // serialise related
+    ADD_FN(Meta::L, "MetaSerialise", luaMetaSerialise, "bool MetaSerialise(stream, instance, isWrite)",
+           "Serialises the given instance to/from the given stream in the given serialisation mode. "
+           "This will decide whether to call the custom serialisation, if there is one, or else to call the default serialiser. "
+           "Use this to serialise any class instance to/from the given stream, as opposed to the default serialiser which "
+           "should be called in a custom serialiser if needed.");
     
     // MISC
     
-    ADD_FN(LuaMisc, "SymbolTableFind", luaSymbolFind);
-    ADD_FN(LuaMisc, "SymbolTableRegister", luaSymbolReg);
-    ADD_FN(LuaMisc, "SymbolTableClear", luaSymbolClear);
-    ADD_FN(LuaMisc, "SymbolCompare", luaSymbolCmp);
-    ADD_FN(LuaMisc, "SymbolCreate", luaSymbol);
+    ADD_FN(LuaMisc, "SymbolTableFind", luaSymbolFind, "string SymbolTableFind(symbolString)",
+           "Searches the global symbol table for the given symbol hash (argument must be a symbol). "
+           "If it is found, the string version is returned, else an empty string.");
+    ADD_FN(LuaMisc, "SymbolTableRegister", luaSymbolReg, "nil SymbolTableRegister(string)",
+           "Registers a string such that a call to find after with the symbol whose hash is equal to the arguments hash, will return the argument.");
+    ADD_FN(LuaMisc, "SymbolTableClear", luaSymbolClear, "nil SymbolTableClear()",
+           "Clears the global symbol table. Do not use this function unless there is an explicit reason to do so: you will loose all string versions of hashes.");
+    ADD_FN(LuaMisc, "SymbolCompare", luaSymbolCmp,"bool SymbolCompare(left, right)",
+           "Compares if the symbol hash of left and right are equal to each other. Either or both of them can be an un-hashed string, "
+           "or any of them can be a hashed string (ie a 16 byte hex hash string).");
+    ADD_FN(LuaMisc, "SymbolCreate", luaSymbol, "symbol SymbolCreate(string)",
+           "Creates a symbol, by hashing the string argument in lower case. If the string argument "
+           "is itself a string 16 byte hex hash, it will still be hashed so be careful.");
+    
+    // Global LUA flag constants for use in the library init scripts
+    
+    PUSH_GLOBAL_I(Col, "kMetaClassNonBlocked", Meta::CLASS_NON_BLOCKED, "Class is not blocked");
+    PUSH_GLOBAL_I(Col, "kMetaClassIntrinsic", Meta::CLASS_INTRINSIC, "Class is intrinsic");
+    PUSH_GLOBAL_I(Col, "kMetaClassAllowAsync", Meta::CLASS_ALLOW_ASYNC, "Can be serialised asynchronously");
+    PUSH_GLOBAL_I(Col, "kMetaClassContainer", Meta::CLASS_CONTAINER, "Container flag");
+    PUSH_GLOBAL_I(Col, "kMetaClassAbstract", Meta::CLASS_ABSTRACT, "Class is abstract");
+    PUSH_GLOBAL_I(Col, "kMetaClassAttachable", Meta::CLASS_ATTACHABLE, "Class is attachable");
+    PUSH_GLOBAL_I(Col, "kMetaClassProxy", Meta::CLASS_PROXY, "Proxy class disables member blocking");
+    
+    PUSH_GLOBAL_I(Col, "kMetaMemberEnum", Meta::MEMBER_ENUM, "Member is an enum");
+    PUSH_GLOBAL_I(Col, "kMetaMemberFlag", Meta::MEMBER_FLAG, "Member is a flag");
+    PUSH_GLOBAL_I(Col, "kMetaMemberBaseClass", Meta::MEMBER_BASE, "Member is a base class");
+    PUSH_GLOBAL_I(Col, "kMetaMemberMemoryDisable", Meta::MEMBER_MEMORY_DISABLE, "Member is excluded from memory");
+    PUSH_GLOBAL_I(Col, "kMetaMemberSerialiseDisable", Meta::MEMBER_SERIALISE_DISABLE, "Member is excluded from disk");
+    PUSH_GLOBAL_I(Col, "kMetaMemberVersionDisable", Meta::MEMBER_VERSION_HASH_DISABLE, "Excluded from version hash");
+    
+    PUSH_GLOBAL_DESC(Col, "kMetaUInt32", "Intrinsic unsigned 32-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaInt", "Intrinsic signed 32-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaUInt", "Alias for unsigned 32-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaInt32", "Alias for signed 32-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaUInt64", "Intrinsic unsigned 64-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaInt64", "Intrinsic signed 64-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMeta__UnsignedInt64", "Alias for unsigned 64-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaLong", "Alias for signed 32-bit integer (Windows)");
+    PUSH_GLOBAL_DESC(Col, "kMetaFloat", "Intrinsic 32-bit floating point");
+    PUSH_GLOBAL_DESC(Col, "kMetaDouble", "Intrinsic 64-bit floating point");
+    PUSH_GLOBAL_DESC(Col, "kMetaBool", "Intrinsic boolean type");
+    PUSH_GLOBAL_DESC(Col, "kMetaInt8", "Intrinsic signed 8-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaUnsignedInt8", "Intrinsic unsigned 8-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaInt16", "Intrinsic signed 16-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaUnsignedInt16", "Intrinsic unsigned 16-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaSignedChar", "Alias for signed 8-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaChar", "Alias for signed 8-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaLongDoubler", "Alias for 64-bit float (double)");
+    PUSH_GLOBAL_DESC(Col, "kMetaUnsignedChar", "Alias for unsigned 8-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaUnsignedInt", "Alias for unsigned 32-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaUnsignedLong", "Alias for unsigned 32-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaUnsignedShort", "Alias for unsigned 16-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaShort", "Alias for signed 16-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaWideChar", "Wide character (typically UTF-16)");
+    PUSH_GLOBAL_DESC(Col, "kMetaLongLong", "Alias for signed 64-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMetaUnsignedLongLong", "Alias for unsigned 64-bit integer");
+    PUSH_GLOBAL_DESC(Col, "kMeta__Int64", "Alias for signed 64-bit integer");
+    
+    PUSH_GLOBAL_DESC(Col, "kMetaSymbol", "Intrinsic Symbol type");
+    PUSH_GLOBAL_DESC(Col, "kMetaClassSymbol", "Intrinsic Symbol type with class prefix"); // with class prefix
+    
+    PUSH_GLOBAL_DESC(Col, "kMetaString", "Intrinsic String type");
+    PUSH_GLOBAL_DESC(Col, "kMetaClassString", "Intrinsic String type with class prefix"); // with class prefix
+    
+    PUSH_GLOBAL_DESC(Col, "kMetaClassInternalBinaryBuffer", "Internal binary buffer class"); // internal class
+    PUSH_GLOBAL_DESC(Col, "kMetaClassInternalDataStreamCache", "Internal data stream cache class"); // internal class
+
+    
+    // CAPS
+    
+    const GameCapDesc* pDesc = GameCapDescs;
+    while(pDesc->Cap != GameCapability::NONE)
+    {
+        PUSH_GLOBAL_I(Col, pDesc->Name, (U32)pDesc->Cap, "Game capabilities");
+        pDesc++;
+    }
     
     return Col;
 }

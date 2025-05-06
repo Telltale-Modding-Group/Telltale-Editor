@@ -16,7 +16,7 @@ void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* upload
     // BLACK TEXTURE
     DefaultRenderTexture tex{};
     tex.Type = DefaultRenderTextureType::BLACK;
-    tex.Texture = context.AllocateTexture();
+    tex.Texture = context.AllocateRuntimeTexture();
     tex.Texture->SetName("Default TTE Black Texture");
     tex.Texture->Create2D(&context, 1, 1, RenderSurfaceFormat::RGBA8, 1);
     DataStreamRef texStream = Stream(4);
@@ -26,7 +26,7 @@ void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* upload
     
     // WHITE TEXTURE
     tex.Type = DefaultRenderTextureType::WHITE;
-    tex.Texture = context.AllocateTexture();
+    tex.Texture = context.AllocateRuntimeTexture();
     tex.Texture->SetName("Default TTE White Texture");
     tex.Texture->Create2D(&context, 1, 1, RenderSurfaceFormat::RGBA8, 1);
     texStream = Stream(4);

@@ -351,7 +351,7 @@ void RegistryDirectory_System::RefreshResources()
 
 // TTARCH1 DIRECTORY
 
-Bool RegistryDirectory_TTArchive::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)
+Bool RegistryDirectory_TTArchive::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck)
 {
     StringMask mask = "*.ttarch;*.tta";
     TTE_ASSERT(resourceName == mask, "Resource is not a valid TTARCH filename: %s", resourceName.c_str());
@@ -522,7 +522,7 @@ String RegistryDirectory_GamePack2::GetResourceName(const Symbol &resource)
     return n;
 }
 
-Bool RegistryDirectory_GamePack2::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)
+Bool RegistryDirectory_GamePack2::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck)
 {
     TTE_ASSERT(StringEndsWith(resourceName, ".pk2"), "Resource is not a valid PK2 filename: %s", resourceName.c_str());
     _Pack.Reset();
@@ -667,7 +667,7 @@ Bool RegistryDirectory_GamePack2::GetResources(std::vector<std::pair<Symbol, Ptr
 
 // ISO DIRECTORY
 
-Bool RegistryDirectory_ISO9660::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)
+Bool RegistryDirectory_ISO9660::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck)
 {
     TTE_ASSERT(StringEndsWith(resourceName, ".iso"), "Resource is not a valid ISO filename: %s", resourceName.c_str());
     _ISO.Reset();
@@ -770,7 +770,7 @@ Bool RegistryDirectory_ISO9660::GetResources(std::vector<std::pair<Symbol, Ptr<R
 
 // TTARCH2 DIRECTORY
 
-Bool RegistryDirectory_TTArchive2::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)
+Bool RegistryDirectory_TTArchive2::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck)
 {
     TTE_ASSERT(StringEndsWith(resourceName, ".ttarch2"), "Resource is not a valid TTARCH2 filename: %s", resourceName.c_str());
     _Archive.Reset();
@@ -1231,7 +1231,7 @@ U32 luaResourceSetRegister(LuaManager& man) // through this exists in lua, we wi
 
 static U32 luaResourcePrintLocations(LuaManager& man)
 {
-    TTE_ASSERT(man.GetTop() == 1, "ResourcePrintLocations does not accept arguments!");
+    TTE_ASSERT(man.GetTop() == 0, "ResourcePrintLocations does not accept arguments!");
     ScriptManager::GetGlobal(man, "_resourceRegistryInternal", true);
     
     TTE_ASSERT(man.Type(-1) == LuaType::LIGHT_OPAQUE, "No resource registry is bound the current Lua VM!"); // resource registry needed!
@@ -1250,15 +1250,18 @@ static U32 luaResourceAddObject(LuaManager& man)
 void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker)
 {
     
-    PUSH_FUNC(Col, "RegisterSetDescription", &luaResourceSetRegister);
-    PUSH_FUNC(Col, "ResourcePrintLocations", &luaResourcePrintLocations);
-    PUSH_FUNC(Col, "GameEngine_AddBuildVersionInfo", &luaResourceAddObject); // dummy func. _resCdesc ('c' sometimes). some resdescs just call this. idk why
-    
+    PUSH_FUNC(Col, "RegisterSetDescription", &luaResourceSetRegister, "nil RegisterSetDescription(set)",
+              "Registers a resource set description to the attached resource registry");
+    PUSH_FUNC(Col, "ResourcePrintLocations", &luaResourcePrintLocations, "nil ResourcePrintLocations()",
+              "Prints all resource locations. Must have an attached resource registry.");
+    PUSH_FUNC(Col, "GameEngine_AddBuildVersionInfo", &luaResourceAddObject, "nil GameEngine_AddBuildVersionInfo(info)",
+              "Adds build information dates. Ignored.");
+    // dummy func. _resCdesc ('c' sometimes). some resdescs just call this. idk why
 }
 
 // RESOURCE REGISTRY
 
-#define SCOPE_LOCK() std::unique_lock<std::mutex> lck{_Guard}
+#define SCOPE_LOCK() std::unique_lock<std::recursive_mutex> lck{_Guard}
 
 void ResourceRegistry::_BindVM()
 {
@@ -1274,7 +1277,7 @@ void ResourceRegistry::_UnbindVM()
     ScriptManager::SetGlobal(_LVM, "_resourceRegistryInternal", true);
 }
 
-void ResourceRegistry::_ApplyMountDirectory(RegistryDirectory* pMountPoint, std::unique_lock<std::mutex>& lck)
+void ResourceRegistry::_ApplyMountDirectory(RegistryDirectory* pMountPoint, std::unique_lock<std::recursive_mutex>& lck)
 {
     if(pMountPoint)
     {
@@ -1423,7 +1426,7 @@ String ResourceRegistry::ResourceAddressGetResourceName(const String& address)
 }
 
 void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
-                                         const String& folderID, const String& fspath, std::unique_lock<std::mutex>& lck)
+                                         const String& folderID, const String& fspath, std::unique_lock<std::recursive_mutex>& lck)
 {
     // Find all .TTARCH archives. Lets put their priority higher to prefer those resources over filesystem, such that telltale do.
     
@@ -1646,14 +1649,14 @@ StringMask ResourceRegistry::_ArchivesMask(Bool bLegacy)
 }
 
 Bool ResourceRegistry::_ImportAllocateArchivePack(const String& resourceName, const String& archiveID,
-                                                  const String& archivePhysicalPath, Ptr<ResourceLocation>& parent, std::unique_lock<std::mutex>& lck)
+                                                  const String& archivePhysicalPath, Ptr<ResourceLocation>& parent, std::unique_lock<std::recursive_mutex>& lck)
 {
     DataStreamRef archiveStream = parent->LocateResource(resourceName, nullptr);
     return archiveStream ? _ImportArchivePack(resourceName, archiveID, archivePhysicalPath, archiveStream, lck) : false;
 }
 
 Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const String& archiveID,
-                                          const String& archivePhysicalPath, DataStreamRef& archiveStream, std::unique_lock<std::mutex>& lck)
+                                          const String& archivePhysicalPath, DataStreamRef& archiveStream, std::unique_lock<std::recursive_mutex>& lck)
 {
     // create archive location
     StringMask maskTTArch1 = "*.ttarch;*.tta";
@@ -1924,7 +1927,7 @@ static Bool _PerformHandleNormalise(HandleObjectInfo& handle)
     return res;
 }
 
-void ResourceRegistry::_ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::mutex>& lck)
+void ResourceRegistry::_ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::recursive_mutex>& lck)
 {
     if(handle._Flags.Test(HandleFlags::NEEDS_DESTROY))
     {
@@ -1956,7 +1959,7 @@ void ResourceRegistry::_ProcessDirtyHandle(HandleObjectInfo&& handle, std::uniqu
     _AliveHandles.insert(std::move(handle)); // make normal again
 }
 
-void ResourceRegistry::_ProcessDirtyHandles(Float budget, U64 startStamp, std::unique_lock<std::mutex>& lck)
+void ResourceRegistry::_ProcessDirtyHandles(Float budget, U64 startStamp, std::unique_lock<std::recursive_mutex>& lck)
 {
     while (_DirtyHandles.size() && GetTimeStampDifference(startStamp, GetTimeStamp()) < budget)
     {
@@ -1973,7 +1976,7 @@ void HandleBase::_SetObject(Ptr<ResourceRegistry> &registry, Symbol name, Bool b
     if(_ResourceName && bUnloadOld)
     {
         Bool bFound = false;
-        std::unique_lock<std::mutex> lck{registry->_Guard}; // SCOPE LOCK
+        std::unique_lock<std::recursive_mutex> lck{registry->_Guard}; // SCOPE LOCK
         HandleObjectInfo proxy{};
         proxy._ResourceName = _ResourceName;
         auto it = registry->_AliveHandles.lower_bound(proxy);
@@ -2017,7 +2020,7 @@ void HandleBase::_SetObject(Ptr<ResourceRegistry> &registry, Symbol name, Bool b
     }
 }
 
-void HandleObjectInfo::_OnUnload(ResourceRegistry &registry, std::unique_lock<std::mutex> &lck)
+void HandleObjectInfo::_OnUnload(ResourceRegistry &registry, std::unique_lock<std::recursive_mutex> &lck)
 {
     ;
 }
@@ -2054,7 +2057,7 @@ Ptr<Handleable> HandleBase::_GetObject(Ptr<ResourceRegistry>& registry)
     return {};
 }
 
-Bool ResourceRegistry::_SetupHandleResourceLoad(HandleObjectInfo &hoi, std::unique_lock<std::mutex> &lck)
+Bool ResourceRegistry::_SetupHandleResourceLoad(HandleObjectInfo &hoi, std::unique_lock<std::recursive_mutex> &lck)
 {
     hoi._Flags.Add(HandleFlags::NEEDS_SERIALISE_IN);
     hoi._Flags.Add(HandleFlags::NEEDS_NORMALISATION);
@@ -2120,7 +2123,7 @@ Bool ResourceRegistry::_EnsureHandleLoadedLocked(const HandleBase& handle, Bool 
     HandleObjectInfo hoi{};
     hoi._ResourceName = handle._ResourceName;
     TTE_ASSERT(handle._AllocatorFn, "Allocate function for common class was not set. Handle<T> should be used!");
-    hoi._Handle = handle._AllocatorFn();
+    hoi._Handle = handle._AllocatorFn(shared_from_this());
     TTE_ASSERT(hoi._Handle.get(), "Could not allocate underlying common class instance for Handle<T>!");
     Bool bResult = _SetupHandleResourceLoad(hoi, lck);
      _ProcessDirtyHandle(std::move(hoi), lck);
@@ -2128,7 +2131,7 @@ Bool ResourceRegistry::_EnsureHandleLoadedLocked(const HandleBase& handle, Bool 
 }
 
 void ResourceRegistry::_UnloadResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>> &resources,
-                                        std::unique_lock<std::mutex>& lck, U32 mx)
+                                        std::unique_lock<std::recursive_mutex>& lck, U32 mx)
 {
     U32 processed = 0;
     for(auto uit = resources.begin(); uit != resources.end();)
@@ -2272,7 +2275,7 @@ void ResourceRegistry::_DoApplyResourceSet(ResourceSet* pSet, const std::map<Ptr
     pSet->SetFlags.Add(ResourceSetFlags::APPLIED);
 }
 
-void ResourceRegistry::_ReconfigureSets(const std::set<ResourceSet*>& turnOff, const std::set<ResourceSet*>& turnOn, std::unique_lock<std::mutex>& lck, Bool bDefer)
+void ResourceRegistry::_ReconfigureSets(const std::set<ResourceSet*>& turnOff, const std::set<ResourceSet*>& turnOn, std::unique_lock<std::recursive_mutex>& lck, Bool bDefer)
 {
     // UNLOAD
     
@@ -2406,7 +2409,7 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
             if(job->HOI[i]._Instance)
             {
                 // Normalise
-                job->HOI[i]._Handle = job->Allocators[i]();
+                job->HOI[i]._Handle = job->Allocators[i](job->Registry);
                 bFail = !_PerformHandleNormalise(job->HOI[i]);
                 job->HOI[i]._Instance = {}; // ignore instance, not needed
             }
@@ -2423,7 +2426,7 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
     
     // Insert loaded into registry
     {
-        std::unique_lock<std::mutex> lck{job->Registry->_Guard};
+        std::unique_lock<std::recursive_mutex> lck{job->Registry->_Guard};
         for(U32 i = 0; i < job->NumResources; i++)
         {
             if(job->HOI[i]._Flags.Test(HandleFlags::LOADED))
@@ -2615,6 +2618,7 @@ HandleLockOwner::HandleLockOwner() : _LockOwnerID((U32)rand() | 0x100) {}
 Handleable& Handleable::operator=(Handleable&& rhs)
 {
     _LockKey.store(rhs._LockKey.exchange(0));
+    _Registry = std::move(rhs._Registry);
     return *this;
 }
 
@@ -2641,4 +2645,14 @@ void Handleable::OverrideLockedTimeStamp(const HandleLockOwner &owner, Bool bRel
 {
     TTE_ASSERT(OwnedBy(owner, false), "Lock is not owned");
     _LockTimeStamp.store(value, bRelaxed ? std::memory_order_relaxed : std::memory_order_release);
+}
+
+Handleable::Handleable(Ptr<ResourceRegistry> reg)
+{
+    _Registry = reg;
+}
+
+Ptr<ResourceRegistry> Handleable::GetRegistry() const
+{
+    return _Registry.expired() ? nullptr : _Registry.lock();
 }

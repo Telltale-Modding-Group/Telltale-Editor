@@ -325,7 +325,7 @@ DataStreamFile::DataStreamFile(const ResourceURL &url) : DataStream(url), _Handl
     // Attempt to open the file
     String fpath = url.GetRawPath(); // Get the raw path without the scheme, and pass it to the file system to try and find the file.
     std::filesystem::path p{fpath.c_str()};
-    p = p.parent_path();
+    p = std::filesystem::absolute(p.parent_path());
     if(!std::filesystem::exists(p))
         std::filesystem::create_directories(p);
     _Handle = FileOpen(fpath.c_str());

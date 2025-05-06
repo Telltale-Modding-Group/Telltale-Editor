@@ -1,0 +1,1978 @@
+Meta Stream [NIBM] debug output from the Telltale Editor v1.0.0
+
+_metaVersionInfo:
+{
+-	class D3DMesh: Version 0xAABC259D[0]
+-	class D3DMesh::TriangleSet: Version 0xBFACCBC7[0]
+-	class BoundingBox: Version 0xC1415525[0]
+-	class Vector3: Version 0xA9505579[0]
+-	class Color: Version 0x8A3B8409[0]
+-	struct D3DMesh::PaletteEntry: Version 0xF020AC1C[0]
+-	class D3DIndexBuffer: Version 0x5D06BCA4[0]
+-	class D3DVertexBuffer: Version 0xF19C43B0[0]
+}
+
+:Lua Serialiser: SerialiseBoneD3DMesh
+class D3DMesh :
+{
+    class String mName: sk05_ratCreature.d3dmesh
+    bool mbDeformable: 1
+    class DCArray<class D3DMesh::TriangleSet> mTriangleSets:
+    {
+        :Lua Serialiser for [Value 0]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 0
+            int mMaxVertIndex: 491
+            int mStartIndex: 0
+            int mNumPrimitives: 644
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -1.58086
+                    float y: 0.167774
+                    float z: 1.18781
+                }
+                class Vector3 mMax:
+                {
+                    float x: 1.30512
+                    float y: 0.978587
+                    float z: 1.76743
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 1932
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 1]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 1
+            int mGeometryFormat: 0
+            int mMinVertIndex: 492
+            int mMaxVertIndex: 963
+            int mStartIndex: 1932
+            int mNumPrimitives: 620
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.237108
+                    float y: 0.167774
+                    float z: 1.40334
+                }
+                class Vector3 mMax:
+                {
+                    float x: 1.58322
+                    float y: 1.7632
+                    float z: 2.21838
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 1860
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 2]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 2
+            int mGeometryFormat: 0
+            int mMinVertIndex: 964
+            int mMaxVertIndex: 1210
+            int mStartIndex: 3792
+            int mNumPrimitives: 368
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.458271
+                    float y: 0.00864596
+                    float z: -0.307927
+                }
+                class Vector3 mMax:
+                {
+                    float x: 1.21197
+                    float y: 2.20054
+                    float z: 2.07052
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 1104
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 3]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 3
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1211
+            int mMaxVertIndex: 1515
+            int mStartIndex: 4896
+            int mNumPrimitives: 349
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.114207
+                    float y: -0.00277267
+                    float z: -0.0876969
+                }
+                class Vector3 mMax:
+                {
+                    float x: 1.36602
+                    float y: 1.74188
+                    float z: 2.17157
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 1047
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 4]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 4
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1516
+            int mMaxVertIndex: 1692
+            int mStartIndex: 5943
+            int mNumPrimitives: 242
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -1.15024
+                    float y: 0.63568
+                    float z: -0.149869
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.290208
+                    float y: 2.12833
+                    float z: 2.19467
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 726
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 5]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 5
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1693
+            int mMaxVertIndex: 1965
+            int mStartIndex: 6669
+            int mNumPrimitives: 336
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.653206
+                    float y: -0.00277271
+                    float z: -0.307927
+                }
+                class Vector3 mMax:
+                {
+                    float x: 2.19047e-08
+                    float y: 1.74188
+                    float z: 2.17157
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 1008
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 6]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 6
+            int mGeometryFormat: 0
+            int mMinVertIndex: 1966
+            int mMaxVertIndex: 2016
+            int mStartIndex: 7677
+            int mNumPrimitives: 62
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.290208
+                    float y: 1.29573
+                    float z: 1.60288
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.227705
+                    float y: 1.98845
+                    float z: 2.00937
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 186
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 7]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 1
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2017
+            int mMaxVertIndex: 2030
+            int mStartIndex: 7863
+            int mNumPrimitives: 10
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.186311
+                    float y: 1.66011
+                    float z: 1.78841
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.186311
+                    float y: 1.83509
+                    float z: 2.09889
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 30
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 3
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 8]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 2
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2031
+            int mMaxVertIndex: 2096
+            int mStartIndex: 7893
+            int mNumPrimitives: 49
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.482787
+                    float y: 0.5696
+                    float z: -0.275977
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.805693
+                    float y: 2.26876
+                    float z: 1.80872
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 147
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 3
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 9]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 3
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2097
+            int mMaxVertIndex: 2099
+            int mStartIndex: 8040
+            int mNumPrimitives: 1
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: 0.580539
+                    float y: 0.0509371
+                    float z: 0.259081
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.593225
+                    float y: 0.0666005
+                    float z: 0.269337
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 3
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 3
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 10]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 4
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2100
+            int mMaxVertIndex: 2126
+            int mStartIndex: 8043
+            int mNumPrimitives: 13
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.805693
+                    float y: 0.5696
+                    float z: -0.149869
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0
+                    float y: 2.13284
+                    float z: 1.54244
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 39
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 3
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 11]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 1
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2127
+            int mMaxVertIndex: 2160
+            int mStartIndex: 8082
+            int mNumPrimitives: 44
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.153766
+                    float y: 1.39625
+                    float z: 2.14997
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.153766
+                    float y: 1.5405
+                    float z: 2.21878
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 132
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 0.413026
+            class Color mSpecularColor:
+            {
+                float r: 0.13224
+                float g: 0.13224
+                float b: 0.13224
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0.898
+                float g: 0.898
+                float b: 0.898
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 3
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 12]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 1
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2161
+            int mMaxVertIndex: 2204
+            int mStartIndex: 8214
+            int mNumPrimitives: 48
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.164561
+                    float y: 1.37312
+                    float z: 1.98217
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.164561
+                    float y: 1.44411
+                    float z: 2.03243
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 144
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 13]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 2
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2205
+            int mMaxVertIndex: 2333
+            int mStartIndex: 8358
+            int mNumPrimitives: 135
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.148283
+                    float y: 1.30426
+                    float z: 2.01107
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.148283
+                    float y: 1.40845
+                    float z: 2.11276
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 405
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 14]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 6
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2334
+            int mMaxVertIndex: 2386
+            int mStartIndex: 8763
+            int mNumPrimitives: 102
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.0532697
+                    float y: 1.32478
+                    float z: 1.87001
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.0532697
+                    float y: 1.37022
+                    float z: 2.05194
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 306
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 15]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 3
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2387
+            int mMaxVertIndex: 2524
+            int mStartIndex: 9069
+            int mNumPrimitives: 144
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.126325
+                    float y: 1.26671
+                    float z: 1.99953
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.126325
+                    float y: 1.35488
+                    float z: 2.10976
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 432
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 16]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: SimpleDeform
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 6
+            int mGeometryFormat: 0
+            int mMinVertIndex: 2525
+            int mMaxVertIndex: 2636
+            int mStartIndex: 9501
+            int mNumPrimitives: 160
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.161134
+                    float y: 1.37053
+                    float z: 2.04652
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.161134
+                    float y: 1.5659
+                    float z: 2.1907
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: sk05_ratcreature.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 480
+            bool mbDoubleSided: 1
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0.03306
+                float g: 0.03306
+                float b: 0.03306
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+    }
+    class DCArray<class DCArray<struct D3DMesh::PaletteEntry> > mBonePalettes:
+    {
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 0]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: pinkyF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: pinkyF2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: pinkyF3_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: ringF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: ringF2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: wrist_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: ringF3_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: middleF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: middleF2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: middleF3_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: indexF1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: indexF2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: indexF3_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: thumb3_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: thumb1_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: thumb2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: elbow_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: thumb3_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 1]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: pinkyF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: pinkyF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: pinkyF3_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: ringF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: ringF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: wrist_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: ringF3_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: middleF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: middleF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: middleF3_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: indexF1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: indexF2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: indexF3_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: thumb1_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: thumb2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: thumb3_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: ratCreature_mouthUpper_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 2]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: pelvis
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: leg_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: spine1
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: spine2
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: shoulder_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: ratCreature_cheek_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: ratCreature_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: arm_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: shoulderPad_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: elbow_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: knee_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: ankle_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: heel_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: ball_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 3]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: elbow_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: wrist_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: toe_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: heel_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: ball_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: toeBig_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: ratCreature_ear_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: ratCreature_mouthUpper_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: ratCreature_mouthLipUpper_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: ratCreature_mouthCornerUpper_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: ratCreature_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: ratCreature_mouthLower_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: ratCreature_mouthLower_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: ratCreature_mouthCornerLower_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: ratCreature_cheek_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: ratCreature_mouthLipUpper_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: thumb1_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 4]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: ratCreature_ear3_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: ratCreature_ear2_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: ratCreature_ear_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: pelvis
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: leg_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: spine1
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: root
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: spine2
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: ratCreature_mouthUpper_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: spine3
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: shoulder_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: ratCreature_cheek_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: arm_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: shoulderPad_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: elbow_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: knee_R
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 5]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: ankle_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: knee_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: heel_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: ball_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: toe_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: toeBig_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: leg_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: ratCreature_ear_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: ratCreature_mouthUpper_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: ratCreature_mouthCornerUpper_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: ratCreature_mouthLipUpper_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: ratCreature_mouthCornerLower_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: ratCreature_cheek_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: ratCreature_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: ratCreature_mouthUpper_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 16]:
+            {
+                class String mBoneName: ratCreature_mouthLower_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 17]:
+            {
+                class String mBoneName: ratCreature_mouthLipUpper_L
+                int mSkeletonIndex: -1
+            }
+        }
+        class DCArray<struct D3DMesh::PaletteEntry> [Value 6]:
+        {
+            struct D3DMesh::PaletteEntry [Value 0]:
+            {
+                class String mBoneName: ratCreature_ear3_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 1]:
+            {
+                class String mBoneName: ratCreature_ear2_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 2]:
+            {
+                class String mBoneName: ratCreature_ear_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 3]:
+            {
+                class String mBoneName: head
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 4]:
+            {
+                class String mBoneName: ratCreature_cheek_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 5]:
+            {
+                class String mBoneName: neck
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 6]:
+            {
+                class String mBoneName: ratCreature_mouthCornerLower_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 7]:
+            {
+                class String mBoneName: ratCreature_jaw
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 8]:
+            {
+                class String mBoneName: ratCreature_mouthCornerLower_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 9]:
+            {
+                class String mBoneName: ratCreature_cheek_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 10]:
+            {
+                class String mBoneName: ratCreature_tongue
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 11]:
+            {
+                class String mBoneName: ratCreature_tongue2
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 12]:
+            {
+                class String mBoneName: ratCreature_eyeLidUpper_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 13]:
+            {
+                class String mBoneName: ratCreature_eyeLidLower_L
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 14]:
+            {
+                class String mBoneName: ratCreature_eyeLidLower_R
+                int mSkeletonIndex: -1
+            }
+            struct D3DMesh::PaletteEntry [Value 15]:
+            {
+                class String mBoneName: ratCreature_eyeLidUpper_R
+                int mSkeletonIndex: -1
+            }
+        }
+    }
+    bool mbLightmaps: 0
+}
+:Lua Serialiser for Index Buffer: SerialiseBoneD3DIndexBuffer
+class D3DIndexBuffer :
+{
+    bool mbLocked: 0
+    int mFormat: 101
+    int mNumIndicies: 9981
+    int mIndexByteSize: 2
+}
+[BufferData Base64] >> "AAABAAIAAQADAAIAAgADAAQAAwAFAAQABgAEAAcABwAEAAUACAAGAAcACQAIAAcACQAKAAgACwAMAA0ADgAIAAoADAALAA8AEAARABIACgATAA4AFAAVABYAFwAYABAAEAAYABEAGQAaAAEAAQAaAAMAGwAFABoAAwAaAAUAHAA=..."
+:Lua Serialiser for VertexBuffer0: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 2637
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "XUS9v/u3mD4KwcI/C/fAv9T7nj7xj8A/mLi+v838kj6LX8I/5TrBv8MplT5IkcA/rrTAv61FhT4868I/ARfDv9J1ij7pCME/F5fBv5ZXgD5OlMM/1ALFv07xhj7nkME/72vCv0g2eD4YFsM/eEHFv27Kez7akcE/LTXFv1FkbD4=..."
+:Lua Serialiser for VertexBuffer1: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 2637
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "pO6zPKU2ez71HHg/QLBRvyFJDD9fvi0+uINLvd8Y/7w8j38/De9Ov6y7wD7zwec+VQ5mvGsfwD4sRG0/GIArv9sYPD+PFNo92G6JPZSPxLxdWX8/qkhIvyc3Cj+V+54+Fpf2veD6Fj6mUXs/U7U0v++HJj+Qf48+olOvvv7X7j4=..."
+:Lua Serialiser for VertexBuffer2: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 2637
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "AAAAPwAAAD8AAAAAZmYmPzMzsz4AAAAAZmZmP83MzD0AAAAAzsxMP8/MTD4AAAAAZmZmP8/MzD0AAAAAAABAPwAAgD4AAAAAAAAAPwAAAD8AAAAAAAAAPwAAAD8AAAAAZmZmP83MzD0AAAAAMzMzP5qZmT4AAAAAAACAPwAAAAA=..."
+:Lua Serialiser for VertexBuffer3: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 2637
+    int mVertSize: 4
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "AAQAAAQAAAAEAAAABAAAAAQIAAAECAAABAgAAAQIAAAIBAAACAQAAAgAAAAIAAAACAAAAAgEAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAgAAAAIAAAACAAAAAAEAAAEAAAABAgAAAQIAAAIBAAACAAAAAgAAAA=..."
+:Lua Serialiser for VertexBuffer4: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 2637
+    int mVertSize: 8
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "aPLKPdQVNT+wD9Q9CWY2P1BsyD3ZRjY/KKzOPTRvNz+I9L09ajs4PxAqxj1gEjk/KGS4PXLmOD8Anb89XNY5P0Bytz2Juzk/GKe6PcfKOj++Va49sOo6P6h1wz0L6Tw/yPK/PQSRPD84FcY91Tw7P0YOqz2rgzo//Fi2PR5XPj8=..."
+:Lua Serialiser for VertexBuffer8: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 2637
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "pK61vn+RNT9G8Bu/9rvSPb8Q0z5Lvme/T+zsvlvMPj9RwfW+vLsBvgkIFj+S4Ey/q4ylvrGvND/5WyG/WZlpPr2LtT4OImi/lQ0IvxafMj8t7fW+xFXNPPRNAz/3qlu/eFTyvgPfPz9A/Oy+HcYJPnVNBT/90le/FdSqvmllRj8=..."

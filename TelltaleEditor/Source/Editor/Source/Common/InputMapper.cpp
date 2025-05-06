@@ -39,13 +39,14 @@ void InputMapper::FinaliseNormalisationAsync()
 
 void InputMapper::RegisterScriptAPI(LuaFunctionCollection& Col)
 {
-    PUSH_FUNC(Col, "CommonInputMapperSetName", &InputMapperAPI::luaIMAPSetName);
-    PUSH_FUNC(Col, "CommonInputMapperPushMapping", &InputMapperAPI::luaIMAPPushMapping);
-    PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeBegin", (U32)InputMapper::EventType::BEGIN);
-    PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeEnd", (U32)InputMapper::EventType::END);
-    PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeMouseMove", (U32)InputMapper::EventType::MOUSE_MOVE);
-    PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeForce", (U32)InputMapper::EventType::FORCE);
-    PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeBeginOrEnd", (U32)InputMapper::EventType::BEGIN_OR_END);
+    PUSH_FUNC(Col, "CommonInputMapperSetName", &InputMapperAPI::luaIMAPSetName, "nil CommonInputMapperSetName(state, name)", "Set name of input mapper");
+    PUSH_FUNC(Col, "CommonInputMapperPushMapping", &InputMapperAPI::luaIMAPPushMapping,
+              "nil CommonInputMapperPushMapping(state, code, type, scriptFunction, controllerIndexOverride)", "Push a mapping to the input mapper common class");
+    PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeBegin", (U32)InputMapper::EventType::BEGIN, "Trigger when an event begins");
+    PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeEnd", (U32)InputMapper::EventType::END, "Trigger when an event ends");
+    PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeMouseMove", (U32)InputMapper::EventType::MOUSE_MOVE, "Trigger on mouse move event");
+    PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeForce", (U32)InputMapper::EventType::FORCE, "Trigger forced(?)");
+    PUSH_GLOBAL_I(Col, "kCommonInputMapperTypeBeginOrEnd", (U32)InputMapper::EventType::BEGIN_OR_END,"Trigger on event begin or end");
 }
 
 // =========================== PLATFORM INPUT MAPPER

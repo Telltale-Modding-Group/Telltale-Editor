@@ -193,16 +193,22 @@ U32 RenderTexture::CalculateSlicePitch(RenderSurfaceFormat format, U32 mipWidth,
 void RenderTexture::RegisterScriptAPI(LuaFunctionCollection &Col)
 {
     
-    PUSH_FUNC(Col, "CommonTextureSetName", &TextureAPI::luaTextureSetName);
-    PUSH_FUNC(Col, "CommonTextureSetFormat", &TextureAPI::luaTextureSetFormat);
-    PUSH_FUNC(Col, "CommonTextureSetDimensions", &TextureAPI::luaTextureSetDimensions);
-    PUSH_FUNC(Col, "CommonTexturePushOrderedImage", &TextureAPI::luaTexturePushImage);
-    PUSH_FUNC(Col, "CommonTextureResolveRGBA", &TextureAPI::luaTextureResolve); // resolve image to RGBA
-    PUSH_FUNC(Col, "CommonTextureCalculatePitch", &TextureAPI::luaTextureCalculatePitch);
-    PUSH_FUNC(Col, "CommonTextureCalculateSlicePitch", &TextureAPI::luaTextureCalculateSlicePitch);
-    
-    PUSH_GLOBAL_I(Col, "kCommonTextureResolvableFormatBGRX", 0);
-    //PUSH_GLOBAL_I(Col, "kCommonTextureDDSHeaderSize", 0x7C); different versions
+    PUSH_FUNC(Col, "CommonTextureSetName", &TextureAPI::luaTextureSetName, "nil CommonTextureSetName(state, name)", "Sets the name of the common texture");
+    PUSH_FUNC(Col, "CommonTextureSetFormat", &TextureAPI::luaTextureSetFormat, "nil CommonTextureSetFormat(state, texFormat)", "Sets the format of the texture data");
+    PUSH_FUNC(Col, "CommonTextureSetDimensions", &TextureAPI::luaTextureSetDimensions,
+              "nil CommonTextureSetDimensions(state, width, height, mipMapCount, depth, arraySize)", "Sets the texture dimensions");
+    PUSH_FUNC(Col, "CommonTexturePushOrderedImage", &TextureAPI::luaTexturePushImage,
+              "nil CommonTexturePushOrderedImage(state, width, height, rowPitch, slicePitch, binaryBuffer)",
+              "Pushes an ordered image inside the texture. This must be done in an ordered fashion! See the DDS file format on how to push.");
+    PUSH_FUNC(Col, "CommonTextureResolveRGBA", &TextureAPI::luaTextureResolve,
+              "nil CommonTextureResolveRGBA(state, binaryBuffer, resolvableFormat, width, height)",
+              "Resolve/decompress a texture format into a standard RGBA image such that it fits as a standard texture format."); // resolve image to RGBA
+    PUSH_FUNC(Col, "CommonTextureCalculatePitch", &TextureAPI::luaTextureCalculatePitch,
+              "int CommonTextureCalculatePitch(texFormat, width, height)", "Calculates the pitch of the texture given the texture format, in bytes.");
+    PUSH_FUNC(Col, "CommonTextureCalculateSlicePitch", &TextureAPI::luaTextureCalculateSlicePitch,
+              "int CommonTextureCalculateSlicePitch(texFormat, width, height)", "Calculates the slice pitch of the texture given the texture format, in bytes.");
+    PUSH_GLOBAL_I(Col, "kCommonTextureResolvableFormatBGRX", 0, "BGR'X' resolvable texture format. 'X' is unused and set to opaque.");
+    //PUSH_GLOBAL_I(Col, "kCommonTextureDDSHeaderSize", 0x7C, "..."); different versions
     
 }
 

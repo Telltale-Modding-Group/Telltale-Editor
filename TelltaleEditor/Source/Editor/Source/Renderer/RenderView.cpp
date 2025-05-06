@@ -47,7 +47,7 @@ void RenderViewPass::PushRenderInst(RenderContext& context, RenderInst &&inst, S
     RenderFrame& frame = *SceneView->Frame;
     
     TTE_ASSERT(frame.Heap.Contains(params), "Shader parameter stack must be allocated from render context!");
-    if(inst._VertexStateInfo.NumVertexBuffers == 0 || inst._VertexStateInfo.NumVertexAttribs == 0)
+    if(inst._DrawDefault == DefaultRenderMeshType::NONE && (inst._VertexStateInfo.NumVertexBuffers == 0 || inst._VertexStateInfo.NumVertexAttribs == 0))
         TTE_ASSERT(false, "Cannot push a render instance draw if the vertex state has not been specified");
     
     RenderInst& instance = DrawCalls.EmplaceBack(frame.Heap);
@@ -147,7 +147,7 @@ const RenderTargetDesc& GetRenderTargetDesc(RenderTargetConstantID id)
 void RenderContext::_ResolveBackBuffers(RenderCommandBuffer& buf)
 {
     if(!_ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER])
-        _ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER] = TTE_NEW_PTR(RenderTexture, MEMORY_TAG_RENDERER);
+        _ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER] = AllocateRuntimeTexture();
     Flags texFlags{};
     texFlags.Add(RenderTexture::TEXTURE_FLAG_DELEGATED);
     RenderSurfaceFormat fmt = FromSDLFormat(SDL_GetGPUSwapchainTextureFormat(_Device, _Window));
@@ -171,7 +171,7 @@ void RenderContext::_ResolveTarget(RenderFrame& frame, const RenderTargetIDSurfa
         if(!texture || texture->_Width != w || texture->_Height != h)
         {
             if(!texture)
-                texture = TTE_NEW_PTR(RenderTexture, MEMORY_TAG_RENDERER);
+                texture = AllocateRuntimeTexture();
             const RenderTargetDesc& desc = GetRenderTargetDesc((RenderTargetConstantID)surface.ID._Value);
             texture->_Name = GetRenderTargetDesc((RenderTargetConstantID)surface.ID._Value).Name;
             texture->CreateTarget(*this, {}, desc.Format, w, h, desc.NumMips, desc.NumSlices, desc.ArraySize, desc.DepthTarget);

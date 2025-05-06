@@ -1,7 +1,6 @@
 #include <Renderer/RenderContext.hpp>
 #include <Core/Context.hpp>
 #include <Common/InputMapper.hpp>
-#include <Core/Thread.hpp>
 
 #include <chrono>
 #include <cfloat>
@@ -45,7 +44,7 @@ static struct AttributeFormatInfo {
     RenderBufferAttributeFormat IntrinsicType = RenderBufferAttributeFormat::UNKNOWN;
     CString ConstantName;
 }
-SDL_VertexAttributeMappings[13]
+SDL_VertexAttributeMappings[21]
 {
     {RenderBufferAttributeFormat::F32x1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, 1, 4, RenderBufferAttributeFormat::F32x1, "kCommonMeshFloat1"},
     {RenderBufferAttributeFormat::F32x2, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, 2, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat2"},
@@ -59,6 +58,14 @@ SDL_VertexAttributeMappings[13]
     {RenderBufferAttributeFormat::U32x2, SDL_GPU_VERTEXELEMENTFORMAT_UINT2, 2, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt2"},
     {RenderBufferAttributeFormat::U32x3, SDL_GPU_VERTEXELEMENTFORMAT_UINT3, 3, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt3"},
     {RenderBufferAttributeFormat::U32x4, SDL_GPU_VERTEXELEMENTFORMAT_UINT4, 4, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt4"},
+    {RenderBufferAttributeFormat::U8x2, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte2"},
+    {RenderBufferAttributeFormat::U8x4, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte4"},
+    {RenderBufferAttributeFormat::I8x2, SDL_GPU_VERTEXELEMENTFORMAT_BYTE2, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte2"},
+    {RenderBufferAttributeFormat::I8x4, SDL_GPU_VERTEXELEMENTFORMAT_BYTE4, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte4"},
+    {RenderBufferAttributeFormat::U8x2_NORM, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2_NORM, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte2Norm"},
+    {RenderBufferAttributeFormat::U8x4_NORM, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte4Norm"},
+    {RenderBufferAttributeFormat::I8x2_NORM, SDL_GPU_VERTEXELEMENTFORMAT_BYTE2_NORM, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte2Norm"},
+    {RenderBufferAttributeFormat::I8x4_NORM, SDL_GPU_VERTEXELEMENTFORMAT_BYTE4_NORM, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte4Norm"},
     {RenderBufferAttributeFormat::UNKNOWN, SDL_GPU_VERTEXELEMENTFORMAT_INVALID, 0, 0, RenderBufferAttributeFormat::F32x1, "kCommonMeshFormatUnknown"},
     // add above this!
 };
@@ -106,25 +113,25 @@ void RegisterRenderConstants(LuaFunctionCollection& Col)
     U32 i = 0;
     while(SDL_VertexAttributeMappings[i].Format != RenderBufferAttributeFormat::UNKNOWN)
     {
-        PUSH_GLOBAL_I(Col, SDL_VertexAttributeMappings[i].ConstantName, (U32)SDL_VertexAttributeMappings[i].Format);
+        PUSH_GLOBAL_I(Col, SDL_VertexAttributeMappings[i].ConstantName, (U32)SDL_VertexAttributeMappings[i].Format, "Vertex attribute formats");
         i++;
     }
     i = 0;
     while(SDL_PrimitiveMappings[i].Type != RenderPrimitiveType::UNKNOWN)
     {
-        PUSH_GLOBAL_I(Col, SDL_PrimitiveMappings[i].ConstantName, (U32)SDL_PrimitiveMappings[i].Type);
+        PUSH_GLOBAL_I(Col, SDL_PrimitiveMappings[i].ConstantName, (U32)SDL_PrimitiveMappings[i].Type, "Primitive types");
         i++;
     }
     i = 0;
     while(SDL_FormatMappings[i].Format != RenderSurfaceFormat::UNKNOWN)
     {
-        PUSH_GLOBAL_I(Col, SDL_FormatMappings[i].ConstantName, (U32)SDL_FormatMappings[i].Format);
+        PUSH_GLOBAL_I(Col, SDL_FormatMappings[i].ConstantName, (U32)SDL_FormatMappings[i].Format, "Surface formats");
         i++;
     }
     i = 0;
     while(AttribInfoMap[i].Type != RenderAttributeType::UNKNOWN)
     {
-        PUSH_GLOBAL_I(Col, AttribInfoMap[i].ConstantName, (U32)AttribInfoMap[i].Type);
+        PUSH_GLOBAL_I(Col, AttribInfoMap[i].ConstantName, (U32)AttribInfoMap[i].Type, "Vertex attributes");
         i++;
     }
 }
@@ -172,6 +179,28 @@ void RenderContext::Shutdown()
     {
         SDL_Quit();
         SDL3_Initialised = false;
+    }
+}
+
+Bool RenderContext::IsLeftHanded()
+{
+    CString device = SDL_GetGPUDeviceDriver(_Device);
+    if(CompareCaseInsensitive(device, "metal"))
+    {
+        return false; // RIGHT
+    }
+    else if(CompareCaseInsensitive(device, "vulkan"))
+    {
+        return false; // RIGHT
+    }
+    else if(CompareCaseInsensitive(device, "direct3d12"))
+    {
+        return true; // LEFT
+    }
+    else
+    {
+        TTE_ASSERT(false, "Unknown graphics device driver: %s", device);
+        return false;
     }
 }
 
@@ -1667,7 +1696,7 @@ void RenderCommandBuffer::BindPipeline(Ptr<RenderPipelineState> &state)
 
 // ============================ BUFFERS
 
-Ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes)
+Ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes, String N)
 {
     Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
     buffer->_Context = this;
@@ -1680,14 +1709,14 @@ Ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes)
     inf.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
     
     inf.props = SDL_CreateProperties();
-    SDL_SetStringProperty(inf.props, SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, "TTE Vertex Buffer");
+    SDL_SetStringProperty(inf.props, SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, N.c_str());
     buffer->_Handle = SDL_CreateGPUBuffer(_Device, &inf);
     SDL_DestroyProperties(inf.props);
     
     return buffer;
 }
 
-Ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes)
+Ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes, String N)
 {
     Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
     buffer->_Context = this;
@@ -1700,14 +1729,14 @@ Ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes)
     inf.usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ;
     
     inf.props = SDL_CreateProperties();
-    SDL_SetStringProperty(inf.props, SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, "TTE Generic Buffer");
+    SDL_SetStringProperty(inf.props, SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, N.c_str());
     buffer->_Handle = SDL_CreateGPUBuffer(_Device, &inf);
     SDL_DestroyProperties(inf.props);
     
     return buffer;
 }
 
-Ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes)
+Ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes, String N)
 {
     Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
     buffer->_Context = this;
@@ -1720,7 +1749,7 @@ Ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes)
     inf.usage = SDL_GPU_BUFFERUSAGE_INDEX;
     
     inf.props = SDL_CreateProperties();
-    SDL_SetStringProperty(inf.props, SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, "TTE Index Buffer");
+    SDL_SetStringProperty(inf.props, SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, N.c_str());
     buffer->_Handle = SDL_CreateGPUBuffer(_Device, &inf);
     SDL_DestroyProperties(inf.props);
     

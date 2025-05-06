@@ -137,13 +137,28 @@ LuaFunctionCollection luaGameEngine(Bool bWorker) { // always define all
     LuaFunctionCollection col{};
     
     // 'LuaContainer'
-    col.Functions.push_back({"ContainerGetNumElements", &luaContainerGetNumElements});
-    col.Functions.push_back({"ContainerRemoveElement", &luaContainerRemoveElement});
-    col.Functions.push_back({"ContainerInsertElement", &luaContainerInsertElement});
-    col.Functions.push_back({"ContainerEmplaceElement", &luaContainerEmplaceElement});
-    col.Functions.push_back({"ContainerGetElement", &luaContainerGetElement});
-    col.Functions.push_back({"ContainerClear", &luaContainerClear});
-    col.Functions.push_back({"ContainerReserve", &luaContainerReserve});
+    col.Functions.push_back({"ContainerGetNumElements", &luaContainerGetNumElements,
+        "int ContainerGetNumElements(container)", "Get the number of elements in a container."
+        
+    });
+    col.Functions.push_back({"ContainerRemoveElement", &luaContainerRemoveElement,
+        "nil ContainerRemoveElement(container, index)", "Remove the item at index from the container"
+    });
+    col.Functions.push_back({"ContainerInsertElement", &luaContainerInsertElement,
+        "nil ContainerInsertElement(container, element)", "Insert at an item at the end of the container"
+    });
+    col.Functions.push_back({"ContainerEmplaceElement", &luaContainerEmplaceElement,
+        "obj ContainerEmplaceElement(container)", "Emplace and return an element at the end of the container"
+    });
+    col.Functions.push_back({"ContainerGetElement", &luaContainerGetElement,
+        "obj ContainerGetElement(container,_index)", "Get the item in the container"
+    });
+    col.Functions.push_back({"ContainerClear", &luaContainerClear,
+        "nil ContainerClear(container)", "Clear the container"
+    });
+    col.Functions.push_back({"ContainerReserve", &luaContainerReserve,
+        "nil ContainerReserve(container, capacity)", "Allocate backend memory for the container to reduce memory allocations until size is bigger than capacity"
+    });
     
     InjectResourceAPI(col, bWorker);
     

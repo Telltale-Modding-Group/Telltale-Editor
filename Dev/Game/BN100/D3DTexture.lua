@@ -72,6 +72,7 @@ function SerialiseD3DTexture_Bone(stream, instance, write)
         ddsTexSize = MetaGetBufferSize(bufferInst) -- write buffer size
 
         local dds = {} -- TODO
+        TTE_Assert(false, "TODO!")
 
         MetaStreamWriteInt(stream, ddsTexSize + MetaStreamGetDDSHeaderSize(dds))
         MetaStreamWriteDDS(strema, dds)
@@ -81,7 +82,6 @@ function SerialiseD3DTexture_Bone(stream, instance, write)
         headerInfo = MetaStreamReadDDS(stream) -- as far as we know, bone has nothing from this DDS header that isn't inferred from d3dtx header
         TTE_Assert(headerInfo["Format CC"] ~= "DX10", "DDS in DX9 contains DX10 information") -- should not, we are in DX9
         MetaStreamReadBuffer(stream, bufferInst, ddsTexSize - MetaStreamGetDDSHeaderSize(headerInfo))
-        print(DumpTable(headerInfo))
     end
     return true
 end

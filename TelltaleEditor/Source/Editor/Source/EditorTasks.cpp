@@ -101,7 +101,7 @@ void TextureNormalisationTask::Finalise(TelltaleEditor& editor)
 
 // RESOURCE SYSTEM EXTRACTION
 
-static Bool _DoResourcesExtract(Ptr<ResourceRegistry>& reg, const String& outputFolder, std::set<String>::const_iterator begin, std::set<String>::const_iterator end, Bool bFolders)
+static Bool _DoResourcesExtract(Ptr<ResourceRegistry>& reg, const String& outputFolder, std::set<String>::const_iterator begin, std::set<String>::const_iterator end, Bool bFolders, ResourceExtractCallback* callback)
 {
     for(auto it = begin; it != end; it++)
     {
@@ -136,6 +136,7 @@ static Bool _DoResourcesExtract(Ptr<ResourceRegistry>& reg, const String& output
             src = Meta::MapDecryptingStream(src);
             DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(fileName);
             DataStreamManager::GetInstance()->Transfer(src, out, src->GetSize());
+            callback(fileName);
         } // quietly ignore for now
     }
     return true;
@@ -151,7 +152,7 @@ static Bool _DoResourcesExtractAsync(const JobThread& thread, void* pRawTask, vo
     std::advance(it, index * ((U32)task->WorkingFiles->size() / task->AsyncWorkers));
     auto itend = it;
     std::advance(itend, ((U32)task->WorkingFiles->size() / task->AsyncWorkers));
-    return _DoResourcesExtract(task->Registry, task->Folder, it, itend, task->Folders);
+    return _DoResourcesExtract(task->Registry, task->Folder, it, itend, task->Folders, task->Callback);
 }
 
 Bool ResourcesExtractionTask::PerformAsync(const JobThread &thread, ToolContext *pLockedContext)
@@ -161,7 +162,7 @@ Bool ResourcesExtractionTask::PerformAsync(const JobThread &thread, ToolContext 
     std::set<String> files{};
     
     {
-        std::lock_guard<std::mutex> G{Registry->_Guard};
+        std::lock_guard<std::recursive_mutex> G{Registry->_Guard};
         Ptr<ResourceLocation> loc = Registry->_Locate(Logical);
         TTE_ASSERT(loc != nullptr, "The location %s could not be found!", Logical.c_str());
         loc->GetResourceNames(files, UseMask ? &Mask : nullptr);
@@ -185,7 +186,7 @@ Bool ResourcesExtractionTask::PerformAsync(const JobThread &thread, ToolContext 
     
     auto it = files.cbegin();
     std::advance(it, (AsyncWorkers - 1) * ((U32)files.size() / AsyncWorkers));
-    Bool bResult = _DoResourcesExtract(Registry, Folder, it, files.cend(), Folders);
+    Bool bResult = _DoResourcesExtract(Registry, Folder, it, files.cend(), Folders, Callback);
     
     return bResult && JobScheduler::Instance->Wait(AsyncWorkers - 1, H);
 }

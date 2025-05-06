@@ -67,6 +67,10 @@ class Handleable : public std::enable_shared_from_this<Handleable>
     mutable std::atomic<U64> _LockTimeStamp;
     mutable std::atomic<U32> _LockKey;
     
+protected:
+    
+    mutable WeakPtr<ResourceRegistry> _Registry;
+    
 public:
     
     // Returns false if locked already (ie fail)
@@ -84,6 +88,8 @@ public:
     
     Bool OwnedBy(const HandleLockOwner& lockOwner, Bool bLockIfAvail) const;
     
+    Ptr<ResourceRegistry> GetRegistry() const; // get registry
+    
     inline Bool ForceLock(const HandleLockOwner& lockOwner)
     {
         Bool lock = Lock(lockOwner);
@@ -93,7 +99,7 @@ public:
     
     virtual void FinaliseNormalisationAsync() = 0;
     
-    Handleable() = default;
+    Handleable(Ptr<ResourceRegistry>);
     
     Handleable(const Handleable&) = delete;
     Handleable& operator=(const Handleable&) = delete; // no copy allowed. must be done explicitly
@@ -129,7 +135,7 @@ struct HandleObjectInfo
     DataStreamRef _OpenStream; // if it needs to be serialised in or out this is the stream to/from
     Flags _Flags; // any flags
     
-    void _OnUnload(ResourceRegistry& registry, std::unique_lock<std::mutex>& lck); // called when unloading, may be async
+    void _OnUnload(ResourceRegistry& registry, std::unique_lock<std::recursive_mutex>& lck); // called when unloading, may be async
     
     inline Bool operator<(const HandleObjectInfo& rhs) const
     {
@@ -144,12 +150,12 @@ struct HandleObjectInfo
 };
 
 // Function proto for common instance allocator
-using CommonInstanceAllocator = Ptr<Handleable> ();
+using CommonInstanceAllocator = Ptr<Handleable> (Ptr<ResourceRegistry> registry);
 
-template<typename T> Ptr<Handleable> AllocateCommon()
+template<typename T> Ptr<Handleable> AllocateCommon(Ptr<ResourceRegistry> registry)
 {
     static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
-    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE);
+    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, registry);
 }
 
 // Non-templated version for below
@@ -199,11 +205,23 @@ public:
         _ResourceName = name;
     }
     
+    // Get resource name
+    inline Symbol GetObject() const
+    {
+        return _ResourceName;
+    }
+    
+    // Get resource name using symbol map lookup
+    inline String GetObjectResolved() const
+    {
+        return SymbolTable::Find(_ResourceName);
+    }
+    
 };
 
 // Handle to a common resource. This is basically a templated version of HandleBase, but caches the loaded handle to the common resource.
 template<typename T>
-class Handle : protected HandleBase
+class Handle : public HandleBase
 {
     
     Ptr<T> _Cached;
@@ -219,7 +237,7 @@ public:
     inline Handle() : HandleBase(Symbol(), &AllocateCommon<T>) {}
     
     // Gets the underlying resouce. The resource will always be valid but may not be loaded. You can use other functionality to ensure its loaded.
-    inline Ptr<T> GetObject(Ptr<ResourceRegistry>& registry, Bool bEnsureLoaded)
+    inline Ptr<T> GetObject(Ptr<ResourceRegistry> registry, Bool bEnsureLoaded)
     {
         if(_Cached)
             return _Cached;
@@ -234,7 +252,7 @@ public:
         return _Cached;
     }
     
-    inline void SetObject(Ptr<ResourceRegistry>& registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
+    inline void SetObject(Ptr<ResourceRegistry> registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
     {
         return HandleBase::SetObject<T>(registry, name, bUnloadOld, bEnsureLoaded);
     }
@@ -257,6 +275,33 @@ public:
     }
     
 };
+
+namespace Meta
+{
+    
+    template<typename T> struct CoersionPOD<Handle<T>> : _CoercePODBase<>
+    {
+        
+        static inline void Extract(Handle<T>& out, ClassInstance& inst)
+        {
+            ClassInstance mem = GetMember(inst, "mHandle", true); // mHandle must exist (It should in all games).
+            TTE_ASSERT(Is(mem, "Symbol") || Is(mem, "class Symbol"), "Handle<T>::mHandle is not a Symbol");
+            Symbol val{};
+            Meta::ExtractPODInstance(val, mem);
+            out.SetObject(val);
+        }
+        
+        static inline void Import(const Handle<T>& in, ClassInstance& inst)
+        {
+            ClassInstance mem = GetMember(inst, "mHandle", true); // mHandle must exist (It should in all games).
+            TTE_ASSERT(Is(mem, "Symbol") || Is(mem, "class Symbol"), "Handle<T>::mHandle is not a Symbol");
+            Symbol val = in.GetObject();
+            Meta::ImportPODInstance(val, mem);
+        }
+        
+    };
+    
+}
 
 // ================================================== RESOURCE PATCH SETS ==================================================
 
@@ -445,7 +490,7 @@ public:
     
     virtual ~RegistryDirectory_System() = default;
     
-    inline Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck) // no update needed
+    inline Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck) // no update needed
     {
         return false;
     }
@@ -483,7 +528,7 @@ public:
     virtual DataStreamRef OpenResource(const Symbol& resourceName, String* outName); // open resource
     virtual void RefreshResources(); // refresh
     
-    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck); // update from resource syss
+    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck); // update from resource syss
     
     virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // nothing in archive
     
@@ -522,7 +567,7 @@ public:
     virtual DataStreamRef OpenResource(const Symbol& resourceName,String* outName); // open resource
     virtual void RefreshResources(); // refresh
     
-    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck); // update from resource sys
+    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck); // update from resource sys
     
     virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // nothing in archive
     
@@ -561,7 +606,7 @@ public:
     virtual DataStreamRef OpenResource(const Symbol& resourceName,String* outName); // open resource
     virtual void RefreshResources(); // refresh
     
-    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck); // update from resource sys
+    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck); // update from resource sys
     
     virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // although its not flat, treat as it is. do nothing here.
     
@@ -600,7 +645,7 @@ public:
     virtual DataStreamRef OpenResource(const Symbol& resourceName,String* outName); // open resource
     virtual void RefreshResources(); // refresh
     
-    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck); // update from resource sys
+    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck); // update from resource sys
     
     virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // although its not flat, treat as it is. do nothing here.
     
@@ -633,7 +678,7 @@ struct ResourceLocation
     
     virtual String GetPhysicalPath() = 0; // get physical path if this is a system directory
     
-    virtual Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck)  { return true; }  // internal update
+    virtual Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck)  { return true; }  // internal update
     
 };
 
@@ -713,7 +758,7 @@ struct ResourceConcreteLocation : ResourceLocation
         return Directory.GetPath();
     }
     
-    inline Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::mutex>& lck) override
+    inline Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck) override
     {
         return Directory.UpdateArchiveInternal(resourceName, location, lck);
     }
@@ -919,6 +964,15 @@ public:
     // Wait until preload offset finishes. Must be a return value from Preload
     void WaitPreload(U32 preloadOffset);
     
+    // Helper to create a handle to a file. Example usage: auto myHandle = Registry->MakeHandle<Animation>("AnimationFile.anm", true)
+    template<typename T>
+    inline Handle<T> MakeHandle(const Symbol& FileName, Bool bEnsureLoaded)
+    {
+        Handle<T> hHandle{};
+        hHandle.SetObject(shared_from_this(), FileName, false, bEnsureLoaded);
+        return hHandle;
+    }
+    
 private:
     
     LuaManager& _LVM; // local LVM used for this registry. Must be alive and acts as a parent!
@@ -927,7 +981,7 @@ private:
     
     std::vector<Ptr<ResourceLocation>> _Locations; // applied resource sets
     
-    std::mutex _Guard; // this is a thread safe class, all calls are safe with this guard.
+    std::recursive_mutex _Guard; // this is a thread safe class, all calls are safe with this guard.
     
     std::vector<std::pair<Symbol, Ptr<ResourceLocation>>> _DeferredUnloads; // deferred resource unloads
     
@@ -945,16 +999,16 @@ private:
     
     Ptr<ResourceLocation> _Locate(const String& logicalName); // locate internal no lock
     
-    void _ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::mutex>& lck);
+    void _ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::recursive_mutex>& lck);
     
-    void _ProcessDirtyHandles(Float budget, U64 startStamp, std::unique_lock<std::mutex>& lck);
+    void _ProcessDirtyHandles(Float budget, U64 startStamp, std::unique_lock<std::recursive_mutex>& lck);
     
     void _CheckLogical(const String& name); // checks asserts its OK.
     
     void _CheckConcrete(const String& name); // checks asserts its OK.
     
     // searches and loads any resource sets (_resdesc_).
-    void _ApplyMountDirectory(RegistryDirectory* pMountPoint, std::unique_lock<std::mutex>& lck);
+    void _ApplyMountDirectory(RegistryDirectory* pMountPoint, std::unique_lock<std::recursive_mutex>& lck);
     
     void _BindVM(); // bind to current VM
     
@@ -963,10 +1017,10 @@ private:
     ResourceSet* _FindSet(const Symbol& name); // find a resource set
     
     // configure sets and unload resources if needed. can defer until
-    void _ReconfigureSets(const std::set<ResourceSet*>& turnOff, const std::set<ResourceSet*>& turnOn, std::unique_lock<std::mutex>& lck, Bool bDefer);
+    void _ReconfigureSets(const std::set<ResourceSet*>& turnOff, const std::set<ResourceSet*>& turnOn, std::unique_lock<std::recursive_mutex>& lck, Bool bDefer);
     
     void _UnloadResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
-                          std::unique_lock<std::mutex>& lck, U32 maxNumUnloads); // perform resource unload
+                          std::unique_lock<std::recursive_mutex>& lck, U32 maxNumUnloads); // perform resource unload
     
     // gather resources to unload for this resource set
     void _GetResourcesToUnload(ResourceSet* pSet, std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& outResources);
@@ -984,17 +1038,17 @@ private:
     void _LocateResourceInternal(Symbol name, String* outName, DataStreamRef* outStream); // find resource
     
     void _LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
-                           const String& folderID, const String& physicalPath, std::unique_lock<std::mutex>& lck); // open .ttarch, legacy resource system
+                           const String& folderID, const String& physicalPath, std::unique_lock<std::recursive_mutex>& lck); // open .ttarch, legacy resource system
     
     Bool _ImportArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
-                            DataStreamRef& archiveStream, std::unique_lock<std::mutex>& lck); // import ttarch/ttarch2/pk2 into parent as sub
+                            DataStreamRef& archiveStream, std::unique_lock<std::recursive_mutex>& lck); // import ttarch/ttarch2/pk2 into parent as sub
     
     Bool _ImportAllocateArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
-                                    Ptr<ResourceLocation>& parent, std::unique_lock<std::mutex>& lck);
+                                    Ptr<ResourceLocation>& parent, std::unique_lock<std::recursive_mutex>& lck);
     
     Bool _EnsureHandleLoadedLocked(const HandleBase& handle, Bool bOnlyQuery); // locks
     
-    Bool _SetupHandleResourceLoad(HandleObjectInfo& hoi, std::unique_lock<std::mutex>& lck); // performs a resource load. finds and opens stream and sets serialise and normalise flags
+    Bool _SetupHandleResourceLoad(HandleObjectInfo& hoi, std::unique_lock<std::recursive_mutex>& lck); // performs a resource load. finds and opens stream and sets serialise and normalise flags
     
     static StringMask _ArchivesMask(Bool bLegacy);
     

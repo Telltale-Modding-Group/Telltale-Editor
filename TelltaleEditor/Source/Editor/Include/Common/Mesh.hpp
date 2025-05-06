@@ -104,21 +104,32 @@ struct Mesh : HandleLockOwner
         std::vector<VertexState> VertexStates; // vertex states (draw call bind sets), containing verts/inds/etc.
         std::vector<MeshMaterial> Materials;
         
+        struct
+        {
+            
+            Ptr<RenderBuffer> BoneMatrixBuffer; // TODO move into bone matrix cache and volume packing
+            
+        } RuntimeData;
+        
     public:
+        
+        inline MeshInstance(Ptr<ResourceRegistry> reg) : Handleable(reg) {}
         
         virtual void FinaliseNormalisationAsync() override;
         
     };
-    
-    // adds a mesh instance, which should have been previously normalised into.
-    void AddMesh(Ptr<ResourceRegistry>& registry, Handle<Mesh::MeshInstance> handle);
-    
-    std::vector<Ptr<MeshInstance>> MeshList; // list of meshes
     
     // Registers mesh normalisers and specialisers
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
     
     // creates bounding box for sphere
     static Sphere CreateSphereForBox(BoundingBox bb);
+    
+    
+    
+    // adds a mesh instance, which should have been previously normalised into.
+    void AddMesh(Ptr<ResourceRegistry>& registry, Handle<Mesh::MeshInstance> handle);
+    
+    std::vector<Ptr<MeshInstance>> MeshList; // list of meshes
     
 };

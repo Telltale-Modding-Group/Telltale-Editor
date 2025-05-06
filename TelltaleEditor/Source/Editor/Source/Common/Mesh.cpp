@@ -1,6 +1,14 @@
 #include <Common/Mesh.hpp>
 #include <EditorTasks.hpp>
 
+// RENDERABLE
+
+void SceneModule<SceneModuleType::RENDERABLE>::OnSetupAgent(SceneAgent* pAgentGettingCreated)
+{
+    // no need to check parent prop. different from actual engine, module is already initiantiated
+    pAgentGettingCreated->AgentNode->AddObjDataRef("", Renderable);
+}
+
 // NORMALISATION AND SPECIALISATION OF MESH INTO COMMON FORMAT AND BACK
 class MeshAPI
 {
@@ -299,10 +307,8 @@ public:
         U32 startInd = (U32)man.ToInteger(5);
         U32 numPrim = (U32)man.ToInteger(6);
         U32 numInd = (U32)man.ToInteger(7);
-        U32 baseInd = (U32)man.ToInteger(8);
+        I32 baseInd = man.ToInteger(8);
         U32 matInd = (U32)man.ToInteger(9);
-        
-        TTE_ASSERT(baseInd == 0, "Base index implementation needed!"); // wtf is this
         
         TTE_ASSERT(t->LODs.size() && t->LODs.back().Batches[batchType].size(), "No LODs/batches");
         
@@ -346,6 +352,91 @@ public:
         return 0;
     }
     
+    // resolve (state, buffer, palette table, vertIndexTab, fourBoneSkinning, indexDivisor, meshName)
+    // palette table is table of tables. paletteTable[batch/whatever index] = table_u32_array[actual serialised buffer data index => bone name]
+    // vertex index table maps 'whatever indices' (above) to an actual vertex buffer range. Each value in table must be have Min and Max keys as int indices
+    // four bone skinning is a bool. true for 4 bone influence, else 3.
+    // index divisor is what each bone index is divided by. used for old vec4 indices for each row (into matrix, div4) for old games. use 1 for normal.
+    // ONLY ACCEPTS UBYTEx4 (ie 1x uint per vert!)
+    static U32 luaResolveBonePalettes(LuaManager& man)
+    {
+        Memory::FastBufferAllocator allocator{};
+        TTE_ASSERT(man.GetTop() == 7, "Incorrect usage");
+        Mesh::MeshInstance* t = Task(man);
+        Meta::ClassInstance buf = Meta::AcquireScriptInstance(man, 2);
+        if(!buf)
+        {
+            TTE_ASSERT(false, "Vertex buffer not found");
+            return 0;
+        }
+        Meta::BinaryBuffer* pBuffer = (Meta::BinaryBuffer*)buf._GetInternal();
+        U8* pBoneIndices = pBuffer->BufferData.get();
+        U8* pNewIndices = allocator.Alloc(pBuffer->BufferSize, 8);
+        memset(pNewIndices, 0xFF, pBuffer->BufferSize);
+        Bool bFourSkinning = man.ToBool(5);
+        U32 divisor = (U32)man.ToInteger(6);
+        TTE_ASSERT(divisor > 0, "Divisor invalid");
+        
+        // mesh name determines skeleton file name. in future if its different can find .prop of meshName and use Skeleton File key for skeleton file
+        String skeleton = FileSetExtension(man.ToString(7), "skl");
+        Ptr<ResourceRegistry> pRegistry = t->GetRegistry();
+        Handle<Skeleton> hSkeleton = pRegistry->MakeHandle<Skeleton>(skeleton, true);
+        Ptr<Skeleton> pSkeleton = hSkeleton.GetObject(pRegistry, true);
+        TTE_ASSERT(pSkeleton, "Skeleton file %s was not found or could not be loaded when normalising its mesh file! This file is required "
+                   "to be able to load meshes with a skeleton attachment!", skeleton.c_str());
+        
+        man.PushNil();
+        while(man.TableNext(4))
+        {
+            ScriptManager::TableGet(man, "Min");
+            U32 minIndex = ScriptManager::PopUnsignedInteger(man);
+            ScriptManager::TableGet(man, "Max");
+            U32 maxIndex = ScriptManager::PopUnsignedInteger(man);
+            TTE_ASSERT(maxIndex >= minIndex, "Invalid indices range");
+            man.Pop(1); // pop table
+            man.PushCopy(-1); // dup top as will be erased in gettable
+            man.GetTable(3); // key, batch index is at top. get from palette table
+            man.PushNil();
+            while(man.TableNext(-2))
+            {
+                U32 serialisedIndex = (U32)man.ToInteger(-2); // key
+                String skeletonBone = ScriptManager::PopString(man);
+                U32 skeletonIndex = 0;
+                for(const auto& sklEntry: pSkeleton->GetEntries())
+                {
+                    if(CompareCaseInsensitive(sklEntry.JointName, skeletonBone))
+                    {
+                        break;
+                    }
+                    skeletonIndex++;
+                }
+                TTE_ASSERT(skeletonIndex < pSkeleton->GetEntries().size(), "Mesh bone palette entry '%s' was not found in the skeleton!", skeletonBone.c_str());
+                TTE_ASSERT(skeletonIndex < 255 && serialisedIndex < 255, "Indices invalid"); // COULD change to 256, doubt ever get close to that many. 0xFF reserved here.
+                for(U32 i = minIndex; i <= maxIndex; i++)
+                {
+                    U32 bufIndex = i << 2;
+                    for(U32 j = 0; j < (bFourSkinning?4:3); j++)
+                    {
+                        if((pBoneIndices[bufIndex] / divisor) == serialisedIndex)
+                        {
+                            pNewIndices[bufIndex] = skeletonIndex;
+                        }
+                        bufIndex++;
+                    }
+                }
+            }
+            man.Pop(1); // pop key table
+        }
+        for(U32 i = 0; i < pBuffer->BufferSize; i++)
+        {
+            if(!bFourSkinning && ((i&3) == 3))
+                pNewIndices[i] = 0;
+            TTE_ASSERT(pNewIndices[i] != 0xFF, "When resolving bone indices, at vertex %d the bone indices were not all resolved!", i >> 2);
+        }
+        memcpy(pBoneIndices, pNewIndices, pBuffer->BufferSize);
+        return 0;
+    }
+    
 };
 
 Sphere Mesh::CreateSphereForBox(BoundingBox bb)
@@ -358,26 +449,46 @@ Sphere Mesh::CreateSphereForBox(BoundingBox bb)
 // register all lua normalisation and specialisation API
 void Mesh::RegisterScriptAPI(LuaFunctionCollection &Col)
 {
-    PUSH_FUNC(Col, "CommonMeshSetName", &MeshAPI::luaSetName);
-    PUSH_FUNC(Col, "CommonMeshSetDeformable", &MeshAPI::luaSetDeformable);
-    PUSH_FUNC(Col, "CommonMeshPushVertexBuffer", &MeshAPI::luaSetNextVertexBuffer);
-    PUSH_FUNC(Col, "CommonMeshSetIndexBuffer", &MeshAPI::luaSetIndexBuffer);
-    PUSH_FUNC(Col, "CommonMeshAdvanceVertexState", &MeshAPI::luaAdvanceVertexState);
-    PUSH_FUNC(Col, "CommonMeshDecompressVertices", &MeshAPI::luaDecompressVertices);
-    PUSH_FUNC(Col, "CommonMeshPushLOD", &MeshAPI::luaPushLevelOfDetail);
-    PUSH_FUNC(Col, "CommonMeshSetLODBounds", &MeshAPI::luaSetLODBounds);
-    PUSH_FUNC(Col, "CommonMeshPushBatch", &MeshAPI::luaPushBatch);
-    PUSH_FUNC(Col, "CommonMeshSetBatchBounds", &MeshAPI::luaBatchSetBounds);
-    PUSH_FUNC(Col, "CommonMeshSetBatchParameters", &MeshAPI::luaSetBatchParameters);
-    PUSH_FUNC(Col, "CommonMeshAddVertexAttribute", &MeshAPI::luaAddVertexAttrib);
-    PUSH_FUNC(Col, "CommonMeshPushMaterial", &MeshAPI::luaPushMaterial);
+    PUSH_FUNC(Col, "CommonMeshSetName", &MeshAPI::luaSetName, "nil CommonMeshSetName(state, name)", "Set the common mesh name");
+    PUSH_FUNC(Col, "CommonMeshSetDeformable", &MeshAPI::luaSetDeformable, "nil CommonMeshSetDeformable(state, deformable)", "Set whether the mesh is deformable or not");
+    PUSH_FUNC(Col, "CommonMeshPushVertexBuffer", &MeshAPI::luaSetNextVertexBuffer, "nil CommonMeshPushVertexBuffer(state, numVerts, vertexStride, binaryBuffer)",
+              "Push a new vertex buffer to the common mesh");
+    PUSH_FUNC(Col, "CommonMeshSetIndexBuffer", &MeshAPI::luaSetIndexBuffer
+              , "nil CommonMeshSetIndexBuffer(state, numIndices, formatIsUnsignedShort, binaryBuffer", "Set the common mesh's index buffer");
+    PUSH_FUNC(Col, "CommonMeshAdvanceVertexState", &MeshAPI::luaAdvanceVertexState, "nil CommonMeshAdvanceVertexState(state)", "Sequential attributes and buffers"
+              " will be assigned to this new vertex state.");
+    PUSH_FUNC(Col, "CommonMeshDecompressVertices", &MeshAPI::luaDecompressVertices,
+              "nil CommonMeshDecompressVertices(state, binaryBuffer, numVerts, compressedType)", "Decompress vertices from a telltale mesh");
+    PUSH_FUNC(Col, "CommonMeshPushLOD", &MeshAPI::luaPushLevelOfDetail, "nil CommonMeshPushLOD(state, vertexStateIndex)",
+              "Push a level-of-detail to the given vertex state index. All sequential calls will append to this LOD.");
+    PUSH_FUNC(Col, "CommonMeshSetLODBounds", &MeshAPI::luaSetLODBounds,
+              "nil CommonMeshSetLODBounds(state, boundingBoxInst, [optional] boundingSphereInst)", "Set current LOD bounding information");
+    PUSH_FUNC(Col, "CommonMeshPushBatch", &MeshAPI::luaPushBatch, "nil CommonMeshPushBatch(state, isShadowBatch)",
+              "Push a mesh batch. Specify if its a shadow batch.");
+    PUSH_FUNC(Col, "CommonMeshSetBatchBounds", &MeshAPI::luaBatchSetBounds,
+              "nil CommonMeshSetBatchBounds(state, isShadowBatch, boundingBoxInst, [optional] boundingSphereInst)", "Set current batch bounding information");
+    PUSH_FUNC(Col, "CommonMeshSetBatchParameters", &MeshAPI::luaSetBatchParameters,
+              "nil CommonMeshSetBatchParameters(state, bIsShadowBatch, minVert, maxVert, startIndexBufferIndex, numPrimitives, numIndices, baseIndex, matIndex)",
+              "Set batch parameter information");
+    PUSH_FUNC(Col, "CommonMeshAddVertexAttribute", &MeshAPI::luaAddVertexAttrib,
+              "nil CommonMeshAddVertexAttribute(state, attribType, vertexBufferIndex, attribFormat)", "Adds a new vertex attribute to the current vertex state");
+    PUSH_FUNC(Col, "CommonMeshPushMaterial", &MeshAPI::luaPushMaterial,
+              "nil CommonMeshPushMaterial(state, diffuseTexName)", "Push material information to the mesh");
+    PUSH_FUNC(Col, "CommonMeshResolveBonePalettes", &MeshAPI::luaResolveBonePalettes,
+              "nil CommonMeshResolveBonePalettes(state, buffer, palette table, vertIndexTab, fourBoneSkinning, indexDivisor, meshName)",
+              "Resolve legacy mesh bone palettes. This will modify the bone indices buffer given. "
+              "Palette table is table of tables. paletteTable[batch/whatever index] = table_u32_array[actual serialised buffer data index => bone name]"
+              ". Vertex index table maps 'whatever indices' (above) to an actual vertex buffer range. Each value in table must be have Min and Max keys as int indices"
+              " Four bone skinning is a bool: true for 4 bone influence, else 3."
+              " Index divisor is what each bone index is divided by. Used for old Vec4 indices for each row (into matrix, div 4) for old games. Use 1 to ignore."
+              " This function only accepts bone index buffer in the format of 4x ubytes! (or float unorm bytes x4)");
     
     // U16 => two Unorm floats. x and y 8 bits each normalised to 0.0 to 1.0
-    PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatUNormUV", 0);
+    PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatUNormUV", 0, "Mesh compressed format involving unsigned normed UV values");
     // U16 => three Snorm floats, third determined by sqrt. x and y have 7 bits each, normed to -1 to 1. MSB unused. bit 15 of 16 is sign of z.
-    PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatSNormNormal", 1);
+    PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatSNormNormal", 1, "Mesh compressed format involving signed normed normal vector3 values");
     // U16 => three Unorm floats, third determined by 1 - x - y (no square, approx). x and y 8 bits each. normalised to 0.0 to 1.0
-    PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatUNormNormalAprox", 2);
+    PUSH_GLOBAL_I(Col, "kCommonMeshCompressedFormatUNormNormalAprox", 2, "Mesh compressed format involving unsigned approximated normed normal vector3 values");
     
 }
 

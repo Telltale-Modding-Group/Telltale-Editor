@@ -359,6 +359,8 @@ public:
     
     static InputCode GetInputCode(String name);
     
+    inline InputMapper(Ptr<ResourceRegistry> reg) : Handleable(reg) {}
+    
 private:
     
     friend class InputMapperAPI;

@@ -345,6 +345,8 @@ public:
     // Returns if the current API uses a row major matrix ordering
     Bool IsRowMajor();
     
+    Bool IsLeftHanded();
+    
     // Pops a layer. This could stop a current scene rendering for example. Will update next frame. If you previously called push, this reverts this.
     void PopLayer();
     
@@ -372,18 +374,18 @@ public:
     Ptr<RenderPipelineState> _AllocatePipelineState();
     
     // Create a vertex buffer which can be filled up later
-    Ptr<RenderBuffer> CreateVertexBuffer(U64 sizeBytes);
+    Ptr<RenderBuffer> CreateVertexBuffer(U64 sizeBytes, String Name = "TTE Vertex Buffer");
     
     // Create an index buffer which can be filled up later
-    Ptr<RenderBuffer> CreateIndexBuffer(U64 sizeBytes);
+    Ptr<RenderBuffer> CreateIndexBuffer(U64 sizeBytes, String Name = "TTE Index Buffer");
     
     // Create a generic buffer
-    Ptr<RenderBuffer> CreateGenericBuffer(U64 szBytes);
+    Ptr<RenderBuffer> CreateGenericBuffer(U64 szBytes, String Name = "TTE Generic Buffer");
     
     // Create a texture. Call its create member function to create.
-    inline Ptr<RenderTexture> AllocateTexture()
+    inline Ptr<RenderTexture> AllocateRuntimeTexture()
     {
-        return TTE_NEW_PTR(RenderTexture, MEMORY_TAG_RENDERER);
+        return TTE_NEW_PTR(RenderTexture, MEMORY_TAG_RENDERER, nullptr);
     }
     
     // Purge unused transfer buffers and other GPU resources to free up memory

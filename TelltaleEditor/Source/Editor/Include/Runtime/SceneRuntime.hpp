@@ -56,7 +56,7 @@ public:
     
 protected:
     
-    inline const Ptr<ResourceRegistry>& GetResourceRegistry() { return _AttachedRegistry; } // use only while updating
+    inline Ptr<ResourceRegistry>& GetResourceRegistry() { return _AttachedRegistry; } // use only while updating
     
     inline LuaManager& GetScriptManager() { return _ScriptManager; } // use only while updating
     

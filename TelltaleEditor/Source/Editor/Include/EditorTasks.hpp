@@ -37,7 +37,7 @@ struct EditorTask
 struct MeshNormalisationTask : EditorTask
 {
     
-    inline MeshNormalisationTask(U32 id) : EditorTask(false, id) {}
+    inline MeshNormalisationTask(U32 id, Ptr<ResourceRegistry> registry) : EditorTask(false, id), Renderable(registry) {}
     
     virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override;
     
@@ -57,7 +57,7 @@ struct MeshNormalisationTask : EditorTask
 struct TextureNormalisationTask : EditorTask
 {
     
-    inline TextureNormalisationTask(U32 id) : EditorTask(false, id) {}
+    inline TextureNormalisationTask(U32 id, Ptr<ResourceRegistry> registry) : EditorTask(false, id), Local(registry) {}
     
     virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override;
     
@@ -78,7 +78,7 @@ struct CommonNormalisationTask : EditorTask
     
     static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
     
-    inline CommonNormalisationTask(U32 id) : EditorTask(false, id) {}
+    inline CommonNormalisationTask(U32 id, Ptr<ResourceRegistry> registry) : EditorTask(false, id), Local(registry) {}
     
     virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override
     {
@@ -143,6 +143,9 @@ struct ArchiveExtractionTask : EditorTask
     
 };
 
+// Called when filename has been extracted
+using ResourceExtractCallback = void(const String& fileName);
+
 // Extracts from resource sys
 struct ResourcesExtractionTask : EditorTask
 {
@@ -165,6 +168,7 @@ struct ResourcesExtractionTask : EditorTask
     
     U32 AsyncWorkers = 0; // per thread
     std::set<String>* WorkingFiles;
+    ResourceExtractCallback* Callback = nullptr;
     
 };
 

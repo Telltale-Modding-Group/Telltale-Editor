@@ -117,7 +117,7 @@ public:
     
     void SetName(CString name);
     
-    RenderTexture() = default;
+    inline RenderTexture(Ptr<ResourceRegistry> reg) : Handleable(reg) {}
     ~RenderTexture(); // RenderContext specific.
     
     RenderTexture& operator=(RenderTexture&&) = default;

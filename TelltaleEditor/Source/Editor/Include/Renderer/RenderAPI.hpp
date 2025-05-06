@@ -71,6 +71,18 @@ enum class RenderBufferAttributeFormat : U32
     U32x3,
     U32x4,
     
+    U8x2,
+    U8x4,
+    
+    I8x2,
+    I8x4,
+    
+    U8x2_NORM,
+    U8x4_NORM,
+    
+    I8x2_NORM,
+    I8x4_NORM,
+    
 };
 
 // ============================================= RENDER VERTEX ATTRIBS =============================================
@@ -95,16 +107,16 @@ static struct AttribInfo {
     CString ConstantName;
 } constexpr AttribInfoMap[]
 {
-    {RenderAttributeType::POSITION, "kCommonMeshAttributePosition"},
-    {RenderAttributeType::NORMAL, "kCommonMeshAttributeNormal"},
-    {RenderAttributeType::BINORMAL, "kCommonMeshAttributeBinormal"},
-    {RenderAttributeType::TANGENT, "kCommonMeshAttributeTangent"},
-    {RenderAttributeType::BLEND_WEIGHT, "kCommonMeshAttributeBlendWeight"},
-    {RenderAttributeType::BLEND_INDEX, "kCommonMeshAttributeBlendIndex"},
-    {RenderAttributeType::COLOUR, "kCommonMeshAttributeColour"},
-    {RenderAttributeType::UV_DIFFUSE, "kCommonMeshAttributeUVDiffuse"},
-    {RenderAttributeType::UV_LIGHTMAP, "kCommonMeshAttributeUVLightMap"},
-    {RenderAttributeType::UNKNOWN, "kCommonMeshAttributeUnknown"},
+    {RenderAttributeType::POSITION, "kCommonMeshAttributePosition"},        // 0
+    {RenderAttributeType::NORMAL, "kCommonMeshAttributeNormal"},            // 1
+    {RenderAttributeType::BINORMAL, "kCommonMeshAttributeBinormal"},        // 2
+    {RenderAttributeType::TANGENT, "kCommonMeshAttributeTangent"},          // 3
+    {RenderAttributeType::BLEND_WEIGHT, "kCommonMeshAttributeBlendWeight"}, // 4
+    {RenderAttributeType::BLEND_INDEX, "kCommonMeshAttributeBlendIndex"},   // 5
+    {RenderAttributeType::COLOUR, "kCommonMeshAttributeColour"},            // 6
+    {RenderAttributeType::UV_DIFFUSE, "kCommonMeshAttributeUVDiffuse"},     // 7
+    {RenderAttributeType::UV_LIGHTMAP, "kCommonMeshAttributeUVLightMap"},   // 8
+    {RenderAttributeType::UNKNOWN, "kCommonMeshAttributeUnknown"},          // ~
 };
 
 using VertexAttributesBitset = BitSet<RenderAttributeType, (U32)RenderAttributeType::COUNT, RenderAttributeType::POSITION>;

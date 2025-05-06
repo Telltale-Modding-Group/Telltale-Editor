@@ -1,12 +1,15 @@
 #include <TelltaleEditor.hpp>
 #include <Renderer/RenderContext.hpp>
 
+extern Float kDefaultContribution[256];
 static TelltaleEditor* _MyContext = nullptr;
 
 TelltaleEditor* CreateEditorContext(GameSnapshot s, Bool ui)
 {
     TTE_ASSERT(_MyContext == nullptr, "A context already exists");
     _MyContext = TTE_NEW(TelltaleEditor, MEMORY_TAG_TOOL_CONTEXT, s, ui);
+    for(U32 i = 0; i < 256; i++)
+        kDefaultContribution[i] = 1.0f;
     return _MyContext;
 }
 
@@ -136,13 +139,18 @@ U32 TelltaleEditor::EnqueueArchive2ExtractTask(TTArchive2* pArchive, std::set<St
     return _TaskFence++;
 }
 
-U32 TelltaleEditor::EnqueueResourceLocationExtractTask(Ptr<ResourceRegistry> registry, const String& logical, String outputFolder, StringMask mask, Bool f)
+static void _DefaultResourceCallback(const String&) {}
+
+U32 TelltaleEditor::EnqueueResourceLocationExtractTask(Ptr<ResourceRegistry> registry,
+                                                       const String& logical, String outputFolder,
+                                                       StringMask mask, Bool f, ResourceExtractCallback* pCb)
 {
     TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
     ResourcesExtractionTask* task = TTE_NEW(ResourcesExtractionTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
     task->Folder = std::move(outputFolder);
     task->Logical = logical;
     task->Folders = f;
+    task->Callback = pCb ? pCb : &_DefaultResourceCallback;
     task->Mask = mask;
     if(mask.length())
         task->UseMask = true;
@@ -163,20 +171,20 @@ U32 TelltaleEditor::EnqueueArchiveExtractTask(TTArchive* pArchive, std::set<Stri
     return _TaskFence++;
 }
 
-U32 TelltaleEditor::EnqueueNormaliseTextureTask(Meta::ClassInstance instance, Ptr<RenderTexture> outputTexture)
+U32 TelltaleEditor::EnqueueNormaliseTextureTask(Ptr<ResourceRegistry> registry, Meta::ClassInstance instance, Ptr<RenderTexture> outputTexture)
 {
     TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
-    TextureNormalisationTask* task = TTE_NEW(TextureNormalisationTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
+    TextureNormalisationTask* task = TTE_NEW(TextureNormalisationTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence, registry);
     *const_cast<Ptr<RenderTexture>*>(&task->Output) = std::move(outputTexture);
     task->Instance = std::move(instance);
     _EnqueueTask(task);
     return _TaskFence++;
 }
 
-U32 TelltaleEditor::EnqueueNormaliseMeshTask(Scene *pScene, Symbol agent, Meta::ClassInstance instance)
+U32 TelltaleEditor::EnqueueNormaliseMeshTask(Ptr<ResourceRegistry> registry, Scene *pScene, Symbol agent, Meta::ClassInstance instance)
 {
     TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
-    MeshNormalisationTask* task = TTE_NEW(MeshNormalisationTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
+    MeshNormalisationTask* task = TTE_NEW(MeshNormalisationTask, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence, registry);
     task->Agent = agent;
     task->Output = pScene;
     task->Instance = std::move(instance);
@@ -184,20 +192,20 @@ U32 TelltaleEditor::EnqueueNormaliseMeshTask(Scene *pScene, Symbol agent, Meta::
     return _TaskFence++;
 }
 
-U32 TelltaleEditor::EnqueueNormaliseInputMapperTask(Ptr<InputMapper> imap, Meta::ClassInstance instance)
+U32 TelltaleEditor::EnqueueNormaliseInputMapperTask(Ptr<ResourceRegistry> registry, Ptr<InputMapper> imap, Meta::ClassInstance instance)
 {
     TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
-    CommonNormalisationTask<InputMapper>* task = TTE_NEW(CommonNormalisationTask<InputMapper>, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
+    CommonNormalisationTask<InputMapper>* task = TTE_NEW(CommonNormalisationTask<InputMapper>, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence, registry);
     task->Output = imap;
     task->Instance = std::move(instance);
     _EnqueueTask(task);
     return _TaskFence++;
 }
 
-U32 TelltaleEditor::EnqueueNormaliseSceneTask(Ptr<Scene> pScene, Meta::ClassInstance sceneInstance)
+U32 TelltaleEditor::EnqueueNormaliseSceneTask(Ptr<ResourceRegistry> registry, Ptr<Scene> pScene, Meta::ClassInstance sceneInstance)
 {
     TTE_ASSERT(IsCallingFromMain(), "Only can be called from the main thread");
-    CommonNormalisationTask<Scene>* task = TTE_NEW(CommonNormalisationTask<Scene>, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence);
+    CommonNormalisationTask<Scene>* task = TTE_NEW(CommonNormalisationTask<Scene>, MEMORY_TAG_TEMPORARY_ASYNC, _TaskFence, registry);
     task->Output = pScene;
     task->Instance = std::move(sceneInstance);
     _EnqueueTask(task);
@@ -225,3 +233,8 @@ void TelltaleEditor::_EnqueueTask(EditorTask* pTask)
     JobHandle handle = JobScheduler::Instance->Post(std::move(desc));
     _Active.push_back(std::make_pair(pTask, std::move(handle)));
 }
+
+#undef _TTE_SYMBOLS_HPP
+#define _TTE_SYMBOLS_IMPL
+#include <Symbols.hpp>
+#undef _TTE_SYMBOLS_IMPL

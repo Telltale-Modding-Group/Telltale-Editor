@@ -9,19 +9,29 @@ function SerialiseScene_Bone1(stream, inst, write)
     if not write then
         local numAgents = MetaStreamReadInt(stream)
         local agentArray = MetaGetMember(inst, "_mAgents")
-        local agentClass, agentClassVer = MetaStreamFindClass(stream, "class Scene::AgentInfo")
         for i=1,numAgents do
             local agentInfo = ContainerEmplaceElement(agentArray)
             if not MetaSerialise(stream, agentInfo, write) then
                 return false
             end
-            local nameInst = MetaGetClassValue(MetaGetMember(agentInfo, "mAgentName"))
         end
     end
     MetaStreamEndBlock(stream, write)
     return true
 end
 
-function NormaliseScene_Bone1(boneScene, normalised)
-    print("Gonna have to do this soon")
+function NormaliseScene_Bone1(inst, boneScene)
+    CommonSceneSetName(boneScene, MetaGetClassValue(MetaGetMember(inst, "mName")))
+    CommonSceneSetHidden(boneScene, MetaGetClassValue(MetaGetMember(inst, "mbHidden")))
+    local agentArray = MetaGetMember(inst, "_mAgents")
+    local numAgents = ContainerGetNumElements(agentArray)
+    for i=1,numAgents do
+        local agentInfo = ContainerGetElement(agentArray, i-1)
+        local agentName = MetaGetClassValue(MetaGetMember(agentInfo, "mAgentName"))
+        local agentProps = MetaGetMember(agentInfo, "mAgentSceneProps")
+        -- TODO non prop key stuff. (mbMembersimported too??)
+        print("imported?: ", MetaGetClassValue(MetaGetMember(agentInfo, "mbMembersImportedIntoSceneProps")))
+        CommonScenePushAgent(boneScene, agentName, agentProps)
+    end
+    return true
 end

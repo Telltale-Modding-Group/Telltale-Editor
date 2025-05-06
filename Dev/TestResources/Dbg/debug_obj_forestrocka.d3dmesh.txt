@@ -1,0 +1,231 @@
+Meta Stream [NIBM] debug output from the Telltale Editor v1.0.0
+
+_metaVersionInfo:
+{
+-	class D3DMesh: Version 0xAABC259D[0]
+-	class D3DMesh::TriangleSet: Version 0xBFACCBC7[0]
+-	class BoundingBox: Version 0xC1415525[0]
+-	class Vector3: Version 0xA9505579[0]
+-	class Color: Version 0x8A3B8409[0]
+-	class D3DIndexBuffer: Version 0x5D06BCA4[0]
+-	class D3DVertexBuffer: Version 0xF19C43B0[0]
+}
+
+:Lua Serialiser: SerialiseBoneD3DMesh
+class D3DMesh :
+{
+    class String mName: obj_forestRockA.d3dmesh
+    bool mbDeformable: 0
+    class DCArray<class D3DMesh::TriangleSet> mTriangleSets:
+    {
+        :Lua Serialiser for [Value 0]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: Lightmap
+            class String mPixelShaderName: Lightmap
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 0
+            int mMaxVertIndex: 107
+            int mStartIndex: 0
+            int mNumPrimitives: 128
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.594912
+                    float y: -0.175847
+                    float z: -0.367242
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.582245
+                    float y: 0.294325
+                    float z: 0.353072
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: env_rock_e.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: obj_forestrocka_000.d3dtx
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 384
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 0
+            float mfReflectivity: 0.5
+        }
+        :Lua Serialiser for [Value 1]: SerialiseBoneTriangleSet
+        class D3DMesh::TriangleSet :
+        {
+            class String mVertexShaderName: Simple
+            class String mPixelShaderName: Simple
+            int mBonePaletteIndex: 0
+            int mGeometryFormat: 0
+            int mMinVertIndex: 108
+            int mMaxVertIndex: 111
+            int mStartIndex: 384
+            int mNumPrimitives: 2
+            class String mLightingGroup: default
+            class BoundingBox mBoundingBox:
+            {
+                class Vector3 mMin:
+                {
+                    float x: -0.940383
+                    float y: 0.0214717
+                    float z: -0.496659
+                }
+                class Vector3 mMax:
+                {
+                    float x: 0.96035
+                    float y: 0.0214717
+                    float z: 1.42922
+                }
+            }
+            class Handle<class D3DTexture> mhDiffuseMap:
+            {
+                class Symbol mHandle: env_shadforroad_obj_alp.d3dtx
+            }
+            class Handle<class D3DTexture> mhDetailMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhLightMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            class Handle<class D3DTexture> mhBumpMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            bool mbHasPixelShader_RemoveMe: 1
+            class DCArray<int> mTriStrips:
+            {
+            }
+            int mNumTotalIndices: 6
+            bool mbDoubleSided: 0
+            float mfBumpHeight: 0
+            class Handle<class D3DTexture> mhEnvMap:
+            {
+                class Symbol mHandle: Symbol<0000000000000000>
+            }
+            float mfEccentricity: 1
+            class Color mSpecularColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            class Color mAmbientColor:
+            {
+                float r: 0
+                float g: 0
+                float b: 0
+                float a: 1
+            }
+            bool mbSelfIlluminated: 0
+            int mAlphaMode: 3
+            float mfReflectivity: 0.5
+        }
+    }
+    class DCArray<class DCArray<struct D3DMesh::PaletteEntry> > mBonePalettes:
+    {
+    }
+    bool mbLightmaps: 1
+}
+:Lua Serialiser for Index Buffer: SerialiseBoneD3DIndexBuffer
+class D3DIndexBuffer :
+{
+    bool mbLocked: 0
+    int mFormat: 101
+    int mNumIndicies: 390
+    int mIndexByteSize: 2
+}
+[BufferData Base64] >> "AAABAAIAAwACAAEAAgAEAAAABAAFAAAABAAGAAUABgAHAAUACAAJAAoACQALAAoAAQAAAAwAAAANAAwAAAAFAA0ABQAOAA0ADgAFAA8ABQAHAA8AEAAIABEACAAKABEADAANABIADQATABIAFAATAA4ADQAOABMAFAAOABUADgA=..."
+:Lua Serialiser for VertexBuffer0: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 112
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "HtwRP2Jyxz0oNzI+9HrsPli8BD0+Y5Q+j3/kPu0LCb6Yg00+UHjCPkxC0L1uG4c+dCT9Pv8QIL6gD4y8/w0VPx/OVj0wvwS9LEjVPjwRNL4k8Fy+asT8PrDdwTtA5nG+asT8PrDdwTtA5nG+LEjVPjwRNL4k8Fy+/vyhPgAa4rw=..."
+:Lua Serialiser for VertexBuffer1: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 112
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "3d5nP7hf4bxiitg+UjYBP3KSsr073ls/gItQPyM10r6mvtE+3EH6PnV2pb59ck8/coxoP9Vb1L6zfli9pjF9P19pIr1CpRG+C3UzP2frtb6hSx6/jqk5P81yJr6CRSu/jqk5P81yJr6CRSu/C3UzP2frtb6hSx6/yjGfPkU8ir4=..."
+:Lua Serialiser for VertexBuffer4: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 112
+    int mVertSize: 8
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "0PuePgXoZD+uekw+ak9XP87NcT4LLXQ/80EPPlyIXz8iyQc/mMh/P8j7BD/Lm3c/kbxUP79Oez/+kEA/rxFsP/6QQD+vEWw/kbxUP79Oez8tjWU/uRhKP8nkdD+KoFc/9a+BPs1rSj91wKw+SuxTP7wmBD8qT2o/FcI5PwoIVz8=..."
+:Lua Serialiser for VertexBuffer5: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 112
+    int mVertSize: 8
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "QmeiPrBqdz0c3Zg+sN7ePEN1gD5QG1g9ZC2FPijmDT3EUHo+SPPrPSbOmz4Y8fQ9m5R0PlxOMD6K+ZQ+BFE2Po98rj0LCQE/wpwMPq+/9j40K8I9fwroPgOZAz5PEeI++JWmPqgBAT3fPrI+8Ll0PQC+qD7w0fk9ur2hPnQnPD4=..."
+:Lua Serialiser for VertexBuffer8: SerialiseBoneD3DVertexBuffer
+class D3DVertexBuffer :
+{
+    bool mbLocked: 0
+    int mNumVerts: 112
+    int mVertSize: 12
+    int mType: 0
+    bool mbStoreCompressed: 1
+}
+[BufferData Base64] >> "6xWZPl5PMj8z+ya/kjAWP6qUPj+KMaO+Lx0aP/VVMT9QV8u+lbIqP5bHPj8sX5s7sg0zPuzcvT7pfmm/XCZ5vnWFBL4xFna/+zn3vpZFD7+9ayy/whjRvshqBb8A2T+/95Ylvw6fQL+Sof69OAwkv9oKQ7/YIcG9X/E1v2YCNL8=..."
