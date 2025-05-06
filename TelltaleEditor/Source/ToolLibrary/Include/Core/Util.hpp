@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <mutex>
 #include <sstream>
+#include <cmath>
 
 class ToolContext; // forward declaration. used a lot. see context.hpp
 class DataStream; // See DataStream.hpp
@@ -364,7 +365,7 @@ inline String ToLower(const String& input)
 
 inline void StringReplace(String& str, const String& from, const String& to, Bool ignoreCase = false)
 {
-    if (from.empty()) return str;
+    if (from.empty()) return;
     
     String searchStr = str;
     String target = from;
