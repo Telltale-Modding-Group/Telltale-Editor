@@ -1,4 +1,5 @@
 #include <Core/Math.hpp>
+#include <cmath>
 
 Colour Colour::Black{0.f,0.f,0.f,1.0f};
 Colour Colour::White{ 1.f,1.f,1.f,1.0f };
