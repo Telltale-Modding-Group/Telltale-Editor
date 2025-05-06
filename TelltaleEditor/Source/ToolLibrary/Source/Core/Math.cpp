@@ -1,6 +1,10 @@
 #include <Core/Math.hpp>
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 Colour Colour::Black{0.f,0.f,0.f,1.0f};
 Colour Colour::White{ 1.f,1.f,1.f,1.0f };
 Colour Colour::Red{ 1.f,0.f,0.f,1.0f };
