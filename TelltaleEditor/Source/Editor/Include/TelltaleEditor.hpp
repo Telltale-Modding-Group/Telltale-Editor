@@ -157,12 +157,9 @@ namespace CommandLine
         std::vector<String> Aliases;
         Bool Multiple = false;
         
-        struct // default value
-        {
-            String StringValue;
-            I32 IntValue;
-            Bool BoolValue;
-        };
+        String StringValue;
+        I32 IntValue;
+        Bool BoolValue;
     };
     
     using TaskExecutor = I32 (const std::vector<TaskArgument>& args);
