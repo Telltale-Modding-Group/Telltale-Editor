@@ -1,4 +1,3 @@
-#include <Core/Thread.hpp>
 #include <Scheduler/JobScheduler.hpp>
 #include <Meta/Meta.hpp> // for lua modules
 #include <Scripting/ScriptManager.hpp>
@@ -36,13 +35,15 @@ void JobScheduler::_JobThreadFn(JobScheduler &scheduler, U32 threadIndex)
 {
     // Initialise.
     JobThread myself{};
+    myself.FastBufferSize = FAST_BUFFER_SIZE;
+    myself.FastBufferOffset = 0;
+    myself.FastBuffer = TTE_ALLOC(FAST_BUFFER_SIZE, MEMORY_TAG_RUNTIME_BUFFER);
     myself.ThreadNumber = threadIndex;
     myself.ThreadName = std::string("Worker Thread ") + std::to_string(threadIndex);
     myself.L.Initialise(LuaVersion::LUA_5_2_3); // latest
     MyLocalThread = &myself;
     
-    ScriptManager::RegisterCollection(myself.L, luaLibraryAPI(false)); // Register editor library
-    ScriptManager::RegisterCollection(myself.L, luaGameEngine(false)); // Register telltale engine
+    InjectFullLuaAPI(myself.L, true);
     ScriptManager::RegisterCollection(myself.L, scheduler._workerScriptCollection); // register anything eles
     
     SetThreadName(myself.ThreadName); // Set name in debugger for future use
@@ -54,16 +55,19 @@ void JobScheduler::_JobThreadFn(JobScheduler &scheduler, U32 threadIndex)
         JobThreadWaitResult wResult = scheduler._WaitJobThread(true, myself); // Wait until kicked off.
         
         if (wResult == JOB_THREAD_RESULT_CANCEL_EXIT)
-            return; // Result says to exit, so just exit and join.
+            break; // Result says to exit, so just exit and join.
         else if (myself.CurrentJob.RunnableFunction == NULL)
             continue;
         
         // We now have a job to run, so run it here.
         JobThreadWaitResult result = _JobThreadRunJob(scheduler, myself);
         if (result == JOB_THREAD_RESULT_CANCEL_EXIT)
-            return; // Exit. If result was just a normal exit, wait job thread will keep returning jobs until no are left.
+            break; // Exit. If result was just a normal exit, wait job thread will keep returning jobs until no are left.
     }
     
+    myself.FastBufferSize = myself.FastBufferOffset = 0;
+    TTE_FREE(myself.FastBuffer);
+    myself.FastBuffer = nullptr;
     MyLocalThread = nullptr;
     // Join with main thread.
 }

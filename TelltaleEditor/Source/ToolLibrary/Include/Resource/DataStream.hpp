@@ -114,6 +114,7 @@ protected:
 class DataStreamFile : public DataStream
 {
 public:
+    
     virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
     
     virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
@@ -126,8 +127,9 @@ public:
     
     virtual ~DataStreamFile();
     
-protected:
     DataStreamFile(const ResourceURL &url);
+    
+protected:
     
     U64 _Handle;
     U64 _MaxOffset; // if writing, the maximum offset written to. Ensures when flushing any bytes after this are cleared

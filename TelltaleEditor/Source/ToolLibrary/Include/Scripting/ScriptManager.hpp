@@ -3,6 +3,7 @@
 #include <Scripting/LuaManager.hpp>
 #include <vector>
 #include <unordered_map>
+#include <iostream>
 #include <Core/Symbol.hpp>
 
 // High level LUA scripting API. This builds upon the Lua Manager which leads with the
@@ -23,6 +24,7 @@ struct LuaFunctionRegObject
 {
     String Name;
     LuaCFunction Function = nullptr;
+    String Declaration, Description;
 };
 
 // Collection of registerable C functions providing C API.
@@ -34,18 +36,17 @@ struct LuaFunctionCollection
     std::unordered_map<String, String> StringGlobals; // global name to value to reg
     std::unordered_map<String, U32> IntegerGlobals; // global name to value to reg
     
+    std::unordered_map<String, String> GlobalDescriptions; // global name to description
+    
 };
 
-#define PUSH_FUNC(Col, Name, Fn) Col.Functions.push_back({Name, Fn})
+#define PUSH_FUNC(Col, Name, Fn, Decl, Desc) Col.Functions.push_back({Name, Fn, Decl, Desc})
 
-#define PUSH_GLOBAL_S(Col, Name, Str) Col.StringGlobals[Name] = Str
+#define PUSH_GLOBAL_S(Col, Name, Str, Desc) Col.StringGlobals[Name] = Str; Col.GlobalDescriptions[Name] = Desc
 
-#define PUSH_GLOBAL_I(Col, Name, Val) Col.IntegerGlobals[Name] = Val
+#define PUSH_GLOBAL_I(Col, Name, Val, Desc) Col.IntegerGlobals[Name] = Val; Col.GlobalDescriptions[Name] = Desc
 
-LuaFunctionCollection luaGameEngine(Bool bWorker); // actual engine game api in EngineLUAApi.cpp
-LuaFunctionCollection luaLibraryAPI(Bool bWorker); // actual api in LibraryLUAApi.cpp
-
-void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker); // actual game engine resource API into luaGameEngine function collection (Internal)
+#define PUSH_GLOBAL_DESC(Col, Name, Desc) Col.GlobalDescriptions[Name] = Desc
 
 // Provides high level scripting access. Most of the functions are the same as Telltales actual ScriptManager API.
 namespace ScriptManager
@@ -264,7 +265,7 @@ namespace ScriptManager
     inline Symbol ToSymbol(LuaManager& man, I32 i)
     {
         String v = man.ToString(i);
-        Symbol sym = SymbolFromHexString(v);
+        Symbol sym = SymbolFromHexString(v, true);
         return sym.GetCRC64() == 0 ? Symbol(v) : sym;
     }
     
@@ -275,4 +276,36 @@ namespace ScriptManager
         man.PushLString(val.length() == 0 ? SymbolToHexString(value) : val);
     }
     
+}
+
+LuaFunctionCollection luaGameEngine(Bool bWorker); // actual engine game api in EngineLUAApi.cpp
+LuaFunctionCollection luaLibraryAPI(Bool bWorker); // actual api in LibraryLUAApi.cpp
+
+void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker); // actual game engine resource API into luaGameEngine function collection (Internal)
+
+void luaCompleteGameEngine(LuaFunctionCollection& Col); // Full game engine (Telltale). See LuaGameEngine.cpp
+
+inline void InjectFullLuaAPI(LuaManager& man, Bool bWorker)
+{
+    LuaFunctionCollection Col = luaGameEngine(bWorker); // adds resource api
+    ScriptManager::RegisterCollection(man, Col);
+    Col = luaLibraryAPI(bWorker);
+    luaCompleteGameEngine(Col);
+    ScriptManager::RegisterCollection(man, Col);
+    CString dumpTable =
+    R"(
+    function DumpTable(o)
+       if type(o) == 'table' then
+          local s = '{ '
+          for k,v in pairs(o) do
+             if type(k) ~= 'number' then k = '"'..k..'"' end
+             s = s .. '['..k..'] = ' .. DumpTable(v) .. ','
+          end
+          return s .. '} '
+       else
+          return tostring(o)
+       end
+    end
+    )";
+    man.RunText(dumpTable, (U32)strlen(dumpTable), false, "DumpTable.lua");
 }

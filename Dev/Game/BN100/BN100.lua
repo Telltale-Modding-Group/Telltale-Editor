@@ -9,6 +9,7 @@ require("ToolLibrary/Game/BN100/Rules.lua")
 require("ToolLibrary/Game/BN100/Audio.lua")
 require("ToolLibrary/Game/BN100/Animation.lua")
 require("ToolLibrary/Game/BN100/Chore.lua")
+require("ToolLibrary/Game/BN100/Misc.lua")
 
 -- registers two types: one with baseclass_containerinterface and one without (vers exists for both). pass in k and v table (or k being SArray N)
 function DoRegisterBoneCollection(containerInterfaceTbl, name, k, v, fl)
@@ -262,6 +263,17 @@ function RegisterBone100(vendor, platform)
 	imapMapping.Members[3] = NewMember("mScriptFunction", kMetaClassString, 0)
 	MetaRegisterClass(imapMapping)
 
+	imapMappingArray, _ = RegisterBoneCollection(MetaCI, "class DCArray<class InputMapper::EventMapping>", nil, imapMapping)
+
+	-- .IMAP FILES
+	local imap = NewClass("class InputMapper", 0)
+	imap.Extension = "imap"
+	imap.Normaliser = "NormaliseInputMapperBone1"
+	imap.Members[1] = NewMember("mName", kMetaClassString)
+	imap.Members[2] = NewMember("mMappedEvents", imapMappingArray)
+	MetaRegisterClass(imap)
+	MetaAssociateFolderExtension("BN100", "*.imap", "InputMappers/")
+
 	local lightType = NewClass("class LightType", 0)
 	lightType.Members[1] = NewMember("mLightType", kMetaInt, 0)
 	MetaRegisterClass(lightType)
@@ -404,6 +416,7 @@ function RegisterBone100(vendor, platform)
 	anm1.Extension = "anm"
 	anm1.Flags = kMetaClassAttachable
 	anm1.Serialiser = "SerialiseAnimationBone1"
+	anm1.Normaliser = "NormaliseAnimationBone1"
 	anm1.Members[1] = NewMember("mName", kMetaClassString)
 	anm1.Members[2] = NewMember("mLength", kMetaFloat)
 	MetaRegisterClass(anm1)
@@ -414,6 +427,7 @@ function RegisterBone100(vendor, platform)
 	anm0.Extension = "anm"
 	anm0.Flags = kMetaClassAttachable
 	anm0.Serialiser = "SerialiseAnimationBone1"
+	anm0.Normaliser = "NormaliseAnimationBone1"
 	anm0.Members[1] = NewMember("mFlags", MetaFlags)
 	anm0.Members[2] = NewMember("mName", kMetaClassString)
 	anm0.Members[3] = NewMember("mLength", kMetaFloat)
@@ -439,7 +453,9 @@ function RegisterBone100(vendor, platform)
 	quatKeys.Serialiser = "SerialiseCQKeysBone1"
 	quatKeys.Members[1] = NewMember("_mName", kMetaClassString, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	quatKeys.Members[2] = NewMember("_mBuffer", kMetaClassInternalBinaryBuffer, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable) -- nSamples = size / 6
-	quatKeys.Members[3] = NewMember("_mLength", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	quatKeys.Members[3] = NewMember("_mMinTime", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	quatKeys.Members[4] = NewMember("_mMaxTime", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	quatKeys.Members[5] = NewMember("_mFlags", kMetaInt, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	MetaRegisterClass(quatKeys)
 
 	local vecKeys = NewClass("class CompressedVector3Keys", 0)
@@ -447,25 +463,16 @@ function RegisterBone100(vendor, platform)
 	vecKeys.Serialiser = "SerialiseCVKeysBone1"
 	vecKeys.Members[1] = NewMember("_mName", kMetaClassString, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	vecKeys.Members[2] = NewMember("_mBuffer", kMetaClassInternalBinaryBuffer, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable) -- nSamples = size / 6
-	vecKeys.Members[3] = NewMember("_mLength", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[3] = NewMember("_mMinTime", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	vecKeys.Members[4] = NewMember("_mV1X", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	vecKeys.Members[5] = NewMember("_mV1Y", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	vecKeys.Members[6] = NewMember("_mV1Z", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	vecKeys.Members[7] = NewMember("_mV2X", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	vecKeys.Members[8] = NewMember("_mV2Y", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	vecKeys.Members[9] = NewMember("_mV2Z", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	vecKeys.Members[10] = NewMember("_mTypeUnk", kMetaInt, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[10] = NewMember("_mFlags", kMetaInt, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vecKeys.Members[11] = NewMember("_mMaxTime", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	MetaRegisterClass(vecKeys)
-
-	imapMappingArray, _ = RegisterBoneCollection(MetaCI, "class DCArray<class InputMapper::EventMapping>", nil, imapMapping)
-
-	-- .IMAP FILES
-	local imap = NewClass("class InputMapper", 0)
-	imap.Extension = "imap"
-	imap.Members[1] = NewMember("mName", kMetaClassString)
-	imap.Members[2] = NewMember("mMappedEvents", imapMappingArray)
-	MetaRegisterClass(imap)
-	MetaAssociateFolderExtension("BN100", "*.imap", "InputMappers/")
 
 	-- .LANGRES FILES
 	local langr = NewClass("class LanguageResource", 0)
@@ -679,6 +686,7 @@ function RegisterBone100(vendor, platform)
 
 	local skl = NewClass("class Skeleton", 0)
 	skl.Extension = "skl"
+	skl.Normaliser = "NormaliseSkeletonBone1"
 	skl.Members[1] = NewMember("mEntries", arraySklEntry)
 	MetaRegisterClass(skl)
 	MetaAssociateFolderExtension("BN100", "*.skl", "Meshes/Skeletons/")

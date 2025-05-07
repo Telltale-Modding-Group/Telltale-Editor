@@ -12,7 +12,12 @@ namespace RenderUtility
     
     void SetCameraParameters(RenderContext& context, ShaderParameter_Camera* cam, Camera* ac)
     {
-        FinalisePlatformMatrix(context, cam->ViewProj, (ac->GetProjectionMatrix() * ac->GetViewMatrix()));
+        Matrix4 vp = (ac->GetProjectionMatrix() * ac->GetViewMatrix());
+        if(context.IsLeftHanded())
+        {
+            vp.SetRow(2, -vp.GetRow(2));
+        }
+        FinalisePlatformMatrix(context, cam->ViewProj, vp); // swap rows/cols if needed
         cam->HFOVParam = ac->_HFOV * ac->_HFOVScale;
         cam->VFOVParam = 2.0f * atanf(ac->GetAspectRatio() * tanf(ac->_HFOV * ac->_HFOVScale * 0.5f));
         cam->Aspect = ac->GetAspectRatio();
@@ -20,9 +25,9 @@ namespace RenderUtility
         cam->CameraFar = ac->_FarClip;
     }
     
-    void _DrawInternal(RenderContext& context, Camera* ac, Matrix4 model, Colour col, DefaultRenderMeshType primitive, ShaderParametersStack* paramStack)
+    void _DrawInternal(RenderContext& context, Camera* ac, Matrix4 model, Colour col, DefaultRenderMeshType primitive, RenderViewPass* pass)
     {
-        TTE_ASSERT(paramStack, "Parameter stack is not specified!");
+        TTE_ASSERT(pass, "Pass is not specified!");
         RenderFrame& frame = context.GetFrame(true);
         
         // SETUP CAMERA UNIFORM
@@ -54,14 +59,10 @@ namespace RenderUtility
             context.SetParameterUniform(frame, group, PARAMETER_CAMERA, cam, sizeof(ShaderParameter_Camera));
         context.SetParameterUniform(frame, group, PARAMETER_OBJECT, &obj, sizeof(ShaderParameter_Object));
         
-        // Push the group to the stack
-        context.PushParameterGroup(frame, paramStack, group); // push the group to this param stack
-        
         // Queue the draw command
         RenderInst draw {};
         draw.DrawDefaultMesh(primitive);
-        context.PushRenderInst(frame, paramStack, std::move(draw)); // push draw command
-        
+        pass->PushRenderInst(context, std::move(draw), group);
     }
     
 }

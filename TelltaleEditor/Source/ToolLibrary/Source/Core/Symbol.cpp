@@ -49,7 +49,17 @@ SymbolTable* SymbolTable::_ActiveTables = nullptr;
 Symbol SymbolFromHexString(const String& str, Bool bStrict)
 {
     if(str.length() != 16)
+    {
+        if(str.length())
+        { // skip numbers
+            U64 result{};
+            std::istringstream iss(str);
+            iss >> std::hex >> result;
+            if(iss.fail() || !iss.eof())
+                RuntimeSymbols.Register(str);
+        }
         return bStrict ? Symbol() : Symbol(str);
+    }
     
     // Parse the string as a hexadecimal number
     U64 result{};
@@ -57,7 +67,11 @@ Symbol SymbolFromHexString(const String& str, Bool bStrict)
     iss >> std::hex >> result;
     
     if(iss.fail() || !iss.eof())
+    {
+        if(str.length())
+            RuntimeSymbols.Register(str);
         return bStrict ? Symbol() : Symbol(str);
+    }
     
     return result;
 }
@@ -107,10 +121,13 @@ void SymbolTable::SerialiseOut(DataStreamRef& stream)
     stream->Write((const U8*)str.c_str(), (U64)str.length());
 }
 
-SymbolTable::SymbolTable()
+SymbolTable::SymbolTable(Bool bPrivate)
 {
-    _Next = _ActiveTables;
-    _ActiveTables = this;
+    if(!bPrivate)
+    {
+        _Next = _ActiveTables;
+        _ActiveTables = this;
+    }
 }
 
 String SymbolTable::_Find(Symbol sym)

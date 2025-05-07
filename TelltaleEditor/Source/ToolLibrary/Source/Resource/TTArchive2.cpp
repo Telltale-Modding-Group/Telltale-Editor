@@ -30,6 +30,12 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
         _Version = 0;
         return false;
     }
+    if(_Version == 3)
+    {
+        U32 _{};
+        SerialiseDataU32(in, 0, &_, false);
+        TTE_ASSERT(_ <= 15, "Corrupt archive 2");
+    }
     
     U32 filenameBufferSize = {};
     SerialiseDataU32(in, 0, &filenameBufferSize, false);
@@ -136,6 +142,12 @@ Bool TTArchive2::SerialiseOut(DataStreamRef& o, ContainerParams params, JobHandl
     U8 Magic[4] {'0', 'A', 'T', 'T'};
     Magic[0] = 0x30 + _Version;
     headerStream->Write(Magic, 4);
+    
+    if(_Version == 3)
+    {
+        Magic[0] = 0;
+        headerStream->Write(Magic, 4);
+    }
     
     // Write magic again, it will be replaced the name table after the calculation
     headerStream->Write(Magic, 4);

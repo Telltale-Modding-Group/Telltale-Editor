@@ -33,7 +33,6 @@ struct UniformObject
 
 // Constants for the point light (hardcoded)
 constant float3 lightPos = float3(10.0f, 10.0f, 10.0f); // Light position in world space
-constant float3 lightColor = float3(0.92f, 0.73f, 0.89f); // White light
 
 vertex VertexOut main0(VertexIn in [[stage_in]], constant UniformCamera& cam [[buffer(0)]], constant UniformObject& obj [[buffer(1)]]) {
     VertexOut out;
@@ -52,8 +51,8 @@ vertex VertexOut main0(VertexIn in [[stage_in]], constant UniformCamera& cam [[b
     // Calculate diffuse lighting based on the normal and light direction (Lambertian model)
     float diff = max(dot(normalWorldSpace, lightDir), 0.0f);
 
-    // Apply diffuse light intensity to the color
-    out.colour = obj.diffuse * diff * lightColor;
+    float3 ambient = 0.6 * obj.diffuse;
+    out.colour = (ambient + diff) * obj.diffuse;
     out.uv = in.uv;
 
     return out;

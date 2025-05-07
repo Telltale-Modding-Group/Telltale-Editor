@@ -5,6 +5,8 @@
 #include <Resource/DataStream.hpp>
 #include <Scripting/LuaManager.hpp>
 #include <Core/BitSet.hpp>
+#include <Core/Math.hpp>
+#include <Core/GameCaps.hpp>
 
 #include <climits>
 #include <vector>
@@ -12,6 +14,9 @@
 #include <sstream>
 #include <functional>
 #include <map>
+
+class PropertySet;
+class FunctionBase;
 
 // maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
 #define MAX_VERSION_NUMBER 10
@@ -153,7 +158,7 @@ namespace Meta {
     struct RegGame;
     
     // Weak reference to the parent. Deep into member trees, these point to the top level class, eg: array of materials , top level is D3DMesh
-    using ParentWeakReference = std::weak_ptr<U8>;
+    using ParentWeakReference = WeakPtr<U8>;
     
     // A type class. This as well as Member are used internally. Refer to classes using the index (U32 - internal version CRC).
     // Refer to members by name string
@@ -219,6 +224,8 @@ namespace Meta {
         String _EnumFlagToString(Class* pClass, const void* pVal);
         
         Bool _CheckPlatformForGame(RegGame&, const String& platform);
+        
+        Bool _CheckVendorForGame(RegGame&, const String& platform);
         
         Bool _CheckPlatform(const String& platform);
         
@@ -371,9 +378,12 @@ namespace Meta {
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
         std::multimap<String, String, FolderAssociateComparator> FolderAssociates; // mask to folder name, eg '*.dlg' into Dialogs/, and 'module_*.prop' into Properties/Primitives/, '*.prop' => Properties/
         std::vector<String> ValidPlatforms; // game platforms
+        std::vector<String> ValidVendors; // if non zero it must be specified. eg 'DevBuild' for early dev releases etc. see script
         BlowfishKey MasterKey; // key used for all platforms
         Flags Fl; // flags
         U32 ArchiveVersion = 0; // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
+        String PropsClassName; // class name for property set class. eg 'class PropertySet'
+        GameCapabilitiesBitSet Caps;
         
         inline Bool UsesArchive2() const
         {
@@ -389,6 +399,8 @@ namespace Meta {
     class ClassInstance {
         
         // FRIENDS FOR ACCESSING PRIVATE FUNCTIONALITY
+        
+        friend class ::PropertySet;
         
         friend class ClassInstanceCollection;
         
@@ -491,6 +503,12 @@ namespace Meta {
         
     private:
         
+        void ExecuteCallbacks(); // execute callbacks passing in current value.
+        
+        void AddCallback(Ptr<FunctionBase>&& cb);
+        
+        void ClearCallbacks();
+        
         // Use by _MakeInstance. Deleter is defined in the meta.cpp TU.
         inline ClassInstance(U32 storedID, U8* memory, std::function<void(U8*)> _deleter, ParentWeakReference attachTo) :
         _InstanceClassID(storedID), _InstanceMemory(memory, _deleter), _ParentAttachMemory(std::move(attachTo)) {}
@@ -506,6 +524,7 @@ namespace Meta {
         U32 _InstanceClassID; // class id
         Ptr<U8> _InstanceMemory; // memory pointer to instance in memory
         ParentWeakReference _ParentAttachMemory; // weak reference to top level parent this instance is controlled by. NO ACCESS is
+        std::vector<Ptr<FunctionBase>> _Callbacks; // prop callbacks for child instances. called when 
         // ever given to the parent. this is such that, for example, in async jobs the parent is kept constant and untouched by each child.
         
     };
@@ -861,7 +880,17 @@ namespace Meta {
             }
         }
         TTE_ASSERT(false, "Member %s::%s does not exist! Abort!!", pClass->Name.c_str(), name.c_str());
-        return *((T*)0); // !! abort.
+        return *((T*)FileNull()); // !! abort.
+    }
+    
+    inline Bool IsSymbolClass(const Class& clazz)
+    {
+        return CompareCaseInsensitive(clazz.Name, "class Symbol") || CompareCaseInsensitive(clazz.Name, "Symbol");
+    }
+    
+    inline Bool IsStringClass(const Class& clazz)
+    {
+        return CompareCaseInsensitive(clazz.Name, "class String") || CompareCaseInsensitive(clazz.Name, "String");
     }
     
     // Returns if the given instance has a member of the given name
@@ -880,6 +909,8 @@ namespace Meta {
         }
         return false;
     }
+    
+    const Class& GetClass(U32 id);
     
     // If the given instance class is a collection, this returns the modifyable collection for it. DO NOT access this after arrayType is not alive.
     // Thread safe between game switches.
@@ -900,7 +931,6 @@ namespace Meta {
         std::map<Symbol, CompiledScript> Specialisers{};
         I32 GameIndex = -1;
         String VersionCalcFun{}; // lua function which calculates version crc for a type.
-        
         
         struct DeferredRegister
         {
@@ -934,6 +964,265 @@ namespace Meta {
     
     // Gets the internal state. Its important that this is constant as it should NOT change between game switches.
     const InternalState& GetInternalState();
+    
+    // ============= ============= ============= ============= C++ <-> META  =============  =============  =============  =============
+    
+    template<Bool _Valid = true> struct _CoercePODBase
+    {
+        static constexpr Bool IsValid = _Valid;
+    };
+    
+    template<typename T>
+    struct CoersionPOD : _CoercePODBase<false>
+    {
+        
+        static inline void Extract(T& dest, ClassInstance& src)
+        {
+            TTE_ASSERT(false, "No implementation defined for T");
+        }
+        
+        static inline void Import(const T& src, ClassInstance& dest)
+        {
+            TTE_ASSERT(false, "No implementation defined for T");
+        }
+        
+    };
+    
+    // INLINED EXTRACTORS TO HELP COERCE TYPES FROM META SYSTEM INTO C++ WHICH DON'T CHANGE OVER GAMES
+    
+#define _COERCABLE_HELPER(_T) template<> struct CoersionPOD<_T> : _CoercePODBase<> \
+    { static inline void Extract(_T& out, ClassInstance& inst) { out = COERCE(inst._GetInternal(), _T); } \
+    static inline void Import(const _T& src, ClassInstance& inst) { COERCE(inst._GetInternal(), _T) = src; } }; \
+    
+    _COERCABLE_HELPER(Bool)
+    _COERCABLE_HELPER(String)
+    _COERCABLE_HELPER(I32)
+    _COERCABLE_HELPER(U32)
+    _COERCABLE_HELPER(U8)
+    _COERCABLE_HELPER(I8)
+    _COERCABLE_HELPER(U16)
+    _COERCABLE_HELPER(I16)
+    _COERCABLE_HELPER(I64)
+    _COERCABLE_HELPER(U64)
+    _COERCABLE_HELPER(Symbol)
+    _COERCABLE_HELPER(Float)
+    _COERCABLE_HELPER(double)
+    
+#undef _COERCABLE_HELPER
+    
+    /**
+     Extracts into out the contents of the class. This is useful for intrinsic types which never change in the engine such as Vector2, Transform or Quaternions.
+     The type must be implemented in this header, which is likely is. If not, make a PR please.
+     */
+    template<typename T> void ExtractPODInstance(T& out, Meta::ClassInstance& inst)
+    {
+        static_assert(CoersionPOD<T>::IsValid, "Extractor for T has not been implemented!");
+        CoersionPOD<T>::Extract(out, inst);
+    }
+    
+    /**
+     Imports T 'in' into the class instance inst. This is useful for intrinsic types which never change in the engine such as Vector2, Transform or Quaternions.
+     The type must be implemented in this header, which is likely is. If not, make a PR please.
+     */
+    template<typename T> void ImportPODInstance(const T& in, Meta::ClassInstance& inst)
+    {
+        static_assert(CoersionPOD<T>::IsValid, "Extractor for T has not been implemented!");
+        CoersionPOD<T>::Import(in, inst);
+    }
+    
+    template<> struct CoersionPOD<Vector2> : _CoercePODBase<>
+    {
+        static inline void Extract(Vector2& out, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "x", true);
+            ExtractPODInstance(out.x, temp);
+            temp = Meta::GetMember(inst, "y", true);
+            ExtractPODInstance(out.y, temp);
+        }
+        static inline void Import(const Vector2& in, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "x", true);
+            ImportPODInstance(in.x, temp);
+            temp = Meta::GetMember(inst, "y", true);
+            ImportPODInstance(in.y, temp);
+        }
+    };
+    
+    template<> struct CoersionPOD<Vector3> : _CoercePODBase<>
+    {
+        static inline void Extract(Vector3& out, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "x", true);
+            ExtractPODInstance(out.x, temp);
+            temp = Meta::GetMember(inst, "y", true);
+            ExtractPODInstance(out.y, temp);
+            temp = Meta::GetMember(inst, "z", true);
+            ExtractPODInstance(out.z, temp);
+        }
+        static inline void Import(const Vector3& in, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "x", true);
+            ImportPODInstance(in.x, temp);
+            temp = Meta::GetMember(inst, "y", true);
+            ImportPODInstance(in.y, temp);
+            temp = Meta::GetMember(inst, "z", true);
+            ImportPODInstance(in.z, temp);
+        }
+    };
+    
+    template<> struct CoersionPOD<Vector4> : _CoercePODBase<>
+    {
+        static inline void Extract(Vector4& out, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "x", true);
+            ExtractPODInstance(out.x, temp);
+            temp = Meta::GetMember(inst, "y", true);
+            ExtractPODInstance(out.y, temp);
+            temp = Meta::GetMember(inst, "z", true);
+            ExtractPODInstance(out.z, temp);
+            temp = Meta::GetMember(inst, "w", true);
+            ExtractPODInstance(out.w, temp);
+        }
+        static inline void Import(const Vector4& in, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "x", true);
+            ImportPODInstance(in.x, temp);
+            temp = Meta::GetMember(inst, "y", true);
+            ImportPODInstance(in.y, temp);
+            temp = Meta::GetMember(inst, "z", true);
+            ImportPODInstance(in.z, temp);
+            temp = Meta::GetMember(inst, "w", true);
+            ImportPODInstance(in.w, temp);
+        }
+    };
+    
+    template<> struct CoersionPOD<Quaternion> : _CoercePODBase<>
+    {
+        static inline void Extract(Quaternion& out, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "x", true);
+            ExtractPODInstance(out.x, temp);
+            temp = Meta::GetMember(inst, "y", true);
+            ExtractPODInstance(out.y, temp);
+            temp = Meta::GetMember(inst, "z", true);
+            ExtractPODInstance(out.z, temp);
+            temp = Meta::GetMember(inst, "w", true);
+            ExtractPODInstance(out.w, temp);
+        }
+        static inline void Import(const Quaternion& in, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "x", true);
+            ImportPODInstance(in.x, temp);
+            temp = Meta::GetMember(inst, "y", true);
+            ImportPODInstance(in.y, temp);
+            temp = Meta::GetMember(inst, "z", true);
+            ImportPODInstance(in.z, temp);
+            temp = Meta::GetMember(inst, "w", true);
+            ImportPODInstance(in.w, temp);
+        }
+    };
+    
+    template<> struct CoersionPOD<Colour> : _CoercePODBase<>
+    {
+        static inline void Extract(Colour& out, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "r", true);
+            ExtractPODInstance(out.r, temp);
+            temp = Meta::GetMember(inst, "g", true);
+            ExtractPODInstance(out.g, temp);
+            temp = Meta::GetMember(inst, "b", true);
+            ExtractPODInstance(out.b, temp);
+            temp = Meta::GetMember(inst, "a", true);
+            ExtractPODInstance(out.a, temp);
+        }
+        static inline void Import(const Colour& in, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "r", true);
+            ImportPODInstance(in.r, temp);
+            temp = Meta::GetMember(inst, "g", true);
+            ImportPODInstance(in.g, temp);
+            temp = Meta::GetMember(inst, "b", true);
+            ImportPODInstance(in.b, temp);
+            temp = Meta::GetMember(inst, "a", true);
+            ImportPODInstance(in.a, temp);
+        }
+    };
+    
+    template<> struct CoersionPOD<BoundingBox> : _CoercePODBase<>
+    {
+        static inline void Extract(BoundingBox& out, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "mMin", true);
+            ExtractPODInstance(out._Min, temp);
+            temp = Meta::GetMember(inst, "mMax", true);
+            ExtractPODInstance(out._Max, temp);
+        }
+        static inline void Import(const BoundingBox& in, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "mMin", true);
+            ImportPODInstance(in._Min, temp);
+            temp = Meta::GetMember(inst, "mMax", true);
+            ImportPODInstance(in._Max, temp);
+        }
+    };
+    
+    template<> struct CoersionPOD<Sphere> : _CoercePODBase<>
+    {
+        static inline void Extract(Sphere& out, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "mRadius", true);
+            ExtractPODInstance(out._Radius, temp);
+            temp = Meta::GetMember(inst, "mCenter", true);
+            ExtractPODInstance(out._Center, temp);
+        }
+        static inline void Import(const Sphere& in, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "mRadius", true);
+            ImportPODInstance(in._Radius, temp);
+            temp = Meta::GetMember(inst, "mCenter", true);
+            ImportPODInstance(in._Center, temp);
+        }
+    };
+    
+    template<> struct CoersionPOD<Transform> : _CoercePODBase<>
+    {
+        static inline void Extract(Transform& out, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "mRot", true);
+            ExtractPODInstance(out._Rot, temp);
+            temp = Meta::GetMember(inst, "mTrans", true);
+            ExtractPODInstance(out._Trans, temp);
+        }
+        static inline void Import(const Transform& in, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "mRot", true);
+            ImportPODInstance(in._Rot, temp);
+            temp = Meta::GetMember(inst, "mTrans", true);
+            ImportPODInstance(in._Trans, temp);
+        }
+    };
+    
+    template<> struct CoersionPOD<Polar> : _CoercePODBase<>
+    {
+        static inline void Extract(Polar& out, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "mR", true);
+            ExtractPODInstance(out.R, temp);
+            temp = Meta::GetMember(inst, "mTheta", true);
+            ExtractPODInstance(out.Theta, temp);
+            temp = Meta::GetMember(inst, "mPhi", true);
+            ExtractPODInstance(out.Phi, temp);
+        }
+        static inline void Import(const Polar& in, ClassInstance& inst)
+        {
+            ClassInstance temp = Meta::GetMember(inst, "mR", true);
+            ImportPODInstance(in.R, temp);
+            temp = Meta::GetMember(inst, "mTheta", true);
+            ImportPODInstance(in.Theta, temp);
+            temp = Meta::GetMember(inst, "mPhi", true);
+            ImportPODInstance(in.Phi, temp);
+        }
+    };
     
 }
 

@@ -2,8 +2,14 @@
 #include <Core/Context.hpp>
 #include <Scripting/LuaManager.hpp>
 #include <Core/Symbol.hpp>
+#include <Core/Callbacks.hpp>
+
 #include <sstream>
 #include <map>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
 
 // ===================================================================         META
 // ===================================================================
@@ -26,6 +32,16 @@ namespace Meta {
         {
             for(auto& p: game.ValidPlatforms)
                 if(CompareCaseInsensitive(p, platform))
+                    return true;
+            return false;
+        }
+        
+        Bool _CheckVendorForGame(RegGame& game, const String& vendor)
+        {
+            if(game.ValidVendors.size() == 0)
+                return true; // most have only 1 branch/vendor
+            for(auto& p: game.ValidVendors)
+                if(CompareCaseInsensitive(p, vendor))
                     return true;
             return false;
         }
@@ -358,7 +374,7 @@ namespace Meta {
             else if(clazz->SerialiseScriptFn.length() > 0) // RUN LUA SERIALISER FUNCTION
             {
                 
-                LuaManager& man = JobScheduler::IsRunningFromWorker() ? JobScheduler::GetCurrentThread().L : GetToolContext()->GetLibraryLVM();
+                LuaManager& man = GetThreadLVM();
                 
                 if(stream.DebugOutputFile)
                 {
@@ -416,7 +432,7 @@ namespace Meta {
                 
                 man.CallFunction(3, 1, true); // call, locked.
                 
-                result = ScriptManager::PopBool(GetToolContext()->GetLibraryLVM()); // check result
+                result = ScriptManager::PopBool(man); // check result
                 
                 if(!result)
                 {
@@ -1359,6 +1375,11 @@ namespace Meta {
                     TTE_ASSERT(false, "The platform '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
                     return;
                 }
+                if(!_Impl::_CheckVendorForGame(game, snap.Vendor))
+                {
+                    TTE_ASSERT(false, "The vendor '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
+                    return;
+                }
                 break;
             }
             i++;
@@ -1475,38 +1496,7 @@ namespace Meta {
         TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
         TTE_ASSERT(GetToolContext(), "Tool context not created");
         
-        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaLibraryAPI(false)); // Register editor library
-        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaGameEngine(false)); // Register telltale engine
-        
-        // Global LUA flag constants for use in the library init scripts
-        
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_NON_BLOCKED);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassNonBlocked", true); // class is not blocked
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_INTRINSIC);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassIntrinsic", true); // class is intrinsic
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_ALLOW_ASYNC);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassAllowAsync", true); // class can be serialised async faster
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_CONTAINER);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassContainer", true); // container flag
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_ABSTRACT);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassAbstract", true); // abstract
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_ATTACHABLE);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassAttachable", true); // abstract
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_PROXY);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassProxy", true); // proxy fix, disable all member blocking
-        
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_ENUM);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberEnum", true); // member is an enum
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_FLAG);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberFlag", true); // member is a flag
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_BASE);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberBaseClass", true); // member is a base class
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_MEMORY_DISABLE);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberMemoryDisable", true); // member not in memory (no Class needed)
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_SERIALISE_DISABLE);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberSerialiseDisable", true); // member not on disk
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_VERSION_HASH_DISABLE);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberVersionDisable", true); // no version include
+        InjectFullLuaAPI(GetToolContext()->GetLibraryLVM(), false);
         
         // Setup games script
         
@@ -2037,6 +2027,40 @@ namespace Meta {
         }
         
         return instance; // OK / FAIL
+    }
+    
+    const Class& GetClass(U32 id)
+    {
+        auto it = GetInternalState().Classes.find(id);
+        TTE_ASSERT(it != GetInternalState().Classes.end(), "Could not find class by id");
+        return it->second;
+    }
+    
+    void ClassInstance::ExecuteCallbacks()
+    {
+        U8* ptr = _GetInternal();
+        if(ptr)
+        {
+            for(auto cb: _Callbacks)
+            {
+                cb->CallMeta(*this);
+            }
+        }
+    }
+    
+    void ClassInstance::AddCallback(Ptr<FunctionBase>&& cb)
+    {
+        for(auto it = _Callbacks.begin(); it != _Callbacks.end(); it++)
+        {
+            if(it->get()->Equals(*cb))
+                return;
+        }
+        _Callbacks.push_back(std::move(cb));
+    }
+    
+    void ClassInstance::ClearCallbacks()
+    {
+        _Callbacks.clear();
     }
     
     // ===================================================================         COLLECTIONS

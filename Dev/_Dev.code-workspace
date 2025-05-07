@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"Lua": {
+			"workspace": {
+				"library": [
+					"${workspaceFolder}/Docs_Latest.lua"
+				],
+			},
+		}
+	}
+}
