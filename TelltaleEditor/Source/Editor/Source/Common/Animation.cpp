@@ -238,6 +238,7 @@ void Animation::FinaliseNormalisationAsync()
 
 void Animation::RegisterScriptAPI(LuaFunctionCollection &Col)
 {
+    
     PUSH_FUNC(Col, "CommonAnimationSetName", &AnimationAPI::luaSetName, "nil CommonAnimationSetName(state, name)", "Set common animation name");
     PUSH_FUNC(Col, "CommonAnimationSetLength", &AnimationAPI::luaSetLen, "nil CommonAnimationSetLength(state, length)", "Set common animation length");
     PUSH_FUNC(Col, "CommonAnimationPushCompressedVector3Keys", &AnimationAPI::luaPushCompressedVec3s,

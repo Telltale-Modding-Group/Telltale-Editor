@@ -283,11 +283,14 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker); // actual api in LibraryLUAAp
 
 void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker); // actual game engine resource API into luaGameEngine function collection (Internal)
 
+void luaCompleteGameEngine(LuaFunctionCollection& Col); // Full game engine (Telltale). See LuaGameEngine.cpp
+
 inline void InjectFullLuaAPI(LuaManager& man, Bool bWorker)
 {
     LuaFunctionCollection Col = luaGameEngine(bWorker); // adds resource api
     ScriptManager::RegisterCollection(man, Col);
     Col = luaLibraryAPI(bWorker);
+    luaCompleteGameEngine(Col);
     ScriptManager::RegisterCollection(man, Col);
     CString dumpTable =
     R"(

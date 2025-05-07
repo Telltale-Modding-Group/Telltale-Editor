@@ -13,6 +13,8 @@ SceneRuntime::SceneRuntime(RenderContext& context, const Ptr<ResourceRegistry>& 
     
     // add lua collections to script VM
     InjectFullLuaAPI(_ScriptManager, true); // treat as worker
+    _ScriptManager.PushOpaque(this);
+    ScriptManager::SetGlobal(_ScriptManager, "_SceneRuntime", true);
     
     // On Attach
     
