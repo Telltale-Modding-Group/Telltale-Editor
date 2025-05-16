@@ -5,6 +5,7 @@
 #include <string>
 #include <mutex>
 #include <utility>
+#include <atomic>
 
 #include <Core/Util.hpp>
 
@@ -140,7 +141,7 @@ public:
     
     inline HandleLockOwner(const HandleLockOwner&) : _LockOwnerID(0) {}
     
-    inline HandleLockOwner& operator=(const HandleLockOwner&) { _LockOwnerID = 0; }
+    inline HandleLockOwner& operator=(const HandleLockOwner&) { _LockOwnerID = 0; return *this; }
     
     HandleLockOwner();
     
