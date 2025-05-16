@@ -15,6 +15,8 @@ public:
     
     inline TTArchive2(U32 version) : _Version(version) {}
     
+    ~TTArchive2();
+    
     Bool SerialiseIn(DataStreamRef& in);
     
     // May be async. Do not reference out between. If return false it failed and no async. Else check handle validity.
@@ -64,6 +66,11 @@ public:
     inline void Reset()
     {
         _Files.clear();
+    }
+    
+    inline Bool IsActive()
+    {
+        return _Files.size() > 0;
     }
     
 private:

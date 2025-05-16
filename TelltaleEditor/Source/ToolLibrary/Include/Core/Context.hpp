@@ -42,13 +42,7 @@ private:
     
 public:
     
-    inline ~ToolContext()
-    {
-        Release();
-        Meta::Shutdown();
-        DataStreamManager::Shutdown();
-        // Lua shuts down automatically in dtor
-    }
+    ~ToolContext();
     
     // Meta.cpp. This gets the active game currently Switched to. Returns nullptr if no game is currently set.
     const Meta::RegGame* GetActiveGame();
@@ -92,6 +86,7 @@ public:
     }
     
     // Creates a resource registry for the given game. Only use in the current game! Must be destroyed before a switch.
+    // This binds itself to the library LVM!
     Ptr<ResourceRegistry> CreateResourceRegistry();
     
 private:
@@ -103,7 +98,7 @@ private:
     LuaFunctionCollection _PerStateCollection; // functions to register for each worker thread lua state.
     
     std::mutex _DependentsLock;
-    std::vector<std::weak_ptr<GameDependentObject>> _SwitchDependents{}; // see game dependent object
+    std::vector<WeakPtr<GameDependentObject>> _SwitchDependents{}; // see game dependent object
     
     friend ToolContext* CreateToolContext(LuaFunctionCollection);
     

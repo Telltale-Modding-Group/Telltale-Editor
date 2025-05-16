@@ -3,12 +3,12 @@
 // Render types
 
 #include <Core/Config.hpp>
+#include <Core/BitSet.hpp>
 #include <Core/LinearHeap.hpp>
 #include <Renderer/Camera.hpp>
 #include <Renderer/RenderParameters.hpp>
 #include <Scheduler/JobScheduler.hpp>
 #include <Meta/Meta.hpp>
-#include <Common/Texture.hpp>
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_gpu.h>
@@ -19,6 +19,19 @@
 #include <mutex>
 
 class RenderContext;
+
+// ============================================= ENUMS =============================================
+
+enum class RenderSurfaceFormat
+{
+    UNKNOWN,
+    RGBA8,
+    BGRA8,
+    DXT1,
+    DXT3,
+    DXT5,
+    DEPTH32FSTENCIL8,
+};
 
 enum class RenderTextureAddressMode
 {
@@ -58,7 +71,21 @@ enum class RenderBufferAttributeFormat : U32
     U32x3,
     U32x4,
     
+    U8x2,
+    U8x4,
+    
+    I8x2,
+    I8x4,
+    
+    U8x2_NORM,
+    U8x4_NORM,
+    
+    I8x2_NORM,
+    I8x4_NORM,
+    
 };
+
+// ============================================= RENDER VERTEX ATTRIBS =============================================
 
 enum class RenderAttributeType : U32
 {
@@ -75,30 +102,32 @@ enum class RenderAttributeType : U32
     COUNT = UNKNOWN,
 };
 
-using VertexAttributesBitset = BitSet<RenderAttributeType, (U32)RenderAttributeType::COUNT, RenderAttributeType::POSITION>;
-
 static struct AttribInfo {
     RenderAttributeType Type;
     CString ConstantName;
 } constexpr AttribInfoMap[]
 {
-    {RenderAttributeType::POSITION, "kCommonMeshAttributePosition"},
-    {RenderAttributeType::NORMAL, "kCommonMeshAttributeNormal"},
-    {RenderAttributeType::BINORMAL, "kCommonMeshAttributeBinormal"},
-    {RenderAttributeType::TANGENT, "kCommonMeshAttributeTangent"},
-    {RenderAttributeType::BLEND_WEIGHT, "kCommonMeshAttributeBlendWeight"},
-    {RenderAttributeType::BLEND_INDEX, "kCommonMeshAttributeBlendIndex"},
-    {RenderAttributeType::COLOUR, "kCommonMeshAttributeColour"},
-    {RenderAttributeType::UV_DIFFUSE, "kCommonMeshAttributeUVDiffuse"},
-    {RenderAttributeType::UV_LIGHTMAP, "kCommonMeshAttributeUVLightMap"},
-    {RenderAttributeType::UNKNOWN, "kCommonMeshAttributeUnknown"},
+    {RenderAttributeType::POSITION, "kCommonMeshAttributePosition"},        // 0
+    {RenderAttributeType::NORMAL, "kCommonMeshAttributeNormal"},            // 1
+    {RenderAttributeType::BINORMAL, "kCommonMeshAttributeBinormal"},        // 2
+    {RenderAttributeType::TANGENT, "kCommonMeshAttributeTangent"},          // 3
+    {RenderAttributeType::BLEND_WEIGHT, "kCommonMeshAttributeBlendWeight"}, // 4
+    {RenderAttributeType::BLEND_INDEX, "kCommonMeshAttributeBlendIndex"},   // 5
+    {RenderAttributeType::COLOUR, "kCommonMeshAttributeColour"},            // 6
+    {RenderAttributeType::UV_DIFFUSE, "kCommonMeshAttributeUVDiffuse"},     // 7
+    {RenderAttributeType::UV_LIGHTMAP, "kCommonMeshAttributeUVLightMap"},   // 8
+    {RenderAttributeType::UNKNOWN, "kCommonMeshAttributeUnknown"},          // ~
 };
+
+using VertexAttributesBitset = BitSet<RenderAttributeType, (U32)RenderAttributeType::COUNT, RenderAttributeType::POSITION>;
 
 class RenderContext;
 
 struct RenderScene;
-struct RenderTexture;
-struct RenderFrame;
+class RenderTexture;
+class RenderFrame;
+
+// ============================================= UTIL ENUMS AND TYPES =============================================
 
 enum class RenderBufferUsage : U32
 {
@@ -114,6 +143,50 @@ enum class RenderPrimitiveType : U32
     LINE_LIST,
 };
 
+// NDC (Normalised device coords) scissor rect. From -1 to 1 in both. By default is whole screen
+struct RenderNDCScissorRect
+{
+    
+    Vector2 Min;
+    Vector2 Max;
+    
+    inline RenderNDCScissorRect() : Min(-1.0f, -1.0f), Max(1.0f, 1.0f) {}
+    
+    // Convert to screen space (0-width/height in x and y)
+    inline void GetScreenSpaceRect(U32& x, U32& y, U32& width, U32& height, U32 screenWidth, U32 screenHeight) const
+    {
+        U32 minX = static_cast<U32>((Min.x + 1.0f) * 0.5f * screenWidth);
+        U32 minY = static_cast<U32>((Min.y + 1.0f) * 0.5f * screenHeight);
+        U32 maxX = static_cast<U32>((Max.x + 1.0f) * 0.5f * screenWidth);
+        U32 maxY = static_cast<U32>((Max.y + 1.0f) * 0.5f * screenHeight);
+        x = minX;
+        y = minY;
+        width = maxX > minX ? (maxX - minX) : 0;
+        height = maxY > minY ? (maxY - minY) : 0;
+    }
+    
+    // sub rect. scales child inside parent one
+    static inline RenderNDCScissorRect SubRect(const RenderNDCScissorRect& parent, const RenderNDCScissorRect& child)
+    {
+        RenderNDCScissorRect result;
+        Float scaleX = (parent.Max.x - parent.Min.x) * 0.5f;
+        Float scaleY = (parent.Max.y - parent.Min.y) * 0.5f;
+        Vector2 center = Vector2{(parent.Max.x + parent.Min.x) * 0.5f, (parent.Max.y + parent.Min.y) * 0.5f };
+        
+        result.Min.x = center.x + (child.Min.x * scaleX);
+        result.Min.y = center.y + (child.Min.y * scaleY);
+        result.Max.x = center.x + (child.Max.x * scaleX);
+        result.Max.y = center.y + (child.Max.y * scaleY);
+        
+        if (result.Min.x > result.Max.x || result.Min.y > result.Max.y)
+        {
+            result = RenderNDCScissorRect();
+        }
+        return result;
+    }
+    
+};
+
 // Returns number of expected vertices for a given primitive type above.
 inline U32 GetNumVertsForPrimitiveType(RenderPrimitiveType type, U32 numPrims)
 {
@@ -123,6 +196,112 @@ inline U32 GetNumVertsForPrimitiveType(RenderPrimitiveType type, U32 numPrims)
         return 2 * numPrims; // a line is defined by two points
     return 0;
 }
+
+// ============================================= RENDER CORE TYPES =============================================
+
+enum class RenderStateType
+{
+    NONE = 0,
+    
+    // RASTERISER STATE
+    
+    CULL_MODE = 1, // SDL_GPUCullMode
+    FILL_MODE = 2, // SDL_GPUFillMode
+    WINDING = 3, // SDL_GPUFrontFace
+    Z_OFFSET = 4, // Bool. True = add 16 (telltale uses this exact number), False = 0
+    Z_INVERSE = 5, // Bool. True to invert Z values by scale of -1.0. Only if depth bias is enabled. Affects depth state too.
+    Z_CLIPPING = 6, // Bool. Enable depth clipping
+    Z_BIAS = 7, // Bool. If true, add depth slope. Add negative depth slope if Z_INVERSE
+    
+    // DEPTH STENCIL STATE
+    Z_ENABLE = 8, // Bool. Enable depth testing
+    Z_WRITE_ENABLE = 9, // Bool. Enable writing to depth (mask with 1s, else 0s)
+    Z_COMPARE_FUNC = 10, // SDL_GPUCompareOp. Depth comparison operation
+    STENCIL_ENABLE = 11, // Bool. Enable stencil testing
+    STENCIL_READ_MASK = 12, // U8. Read mask for stencil test
+    STENCIL_WRITE_MASK = 13, // U8. Write mask for stencil test
+    STENCIL_COMPARE_FUNC = 14, // SDL_GPUCompareOp. Stencil comparison operation
+    STENCIL_DEPTH_FAIL_OP = 15, // SDL_GPUStencilOp. Depth test fail operation
+    STENCIL_PASS_OP = 16, // SDL_GPUStencilOp. Stencil test pass operation
+    STENCIL_FAIL_OP = 17, // SDL_GPUStencilOp. Stencil test fail operation
+    
+    // RENDER TARGET INDEX 0 BLEND DESC
+    BLEND_ENABLE = 18, // Bool
+    COLOUR_WRITE_ENABLE_MASK = 19, // Nibble mask. Bit 0 red, through to 3 being alpha. Default all 1s
+    SOURCE_BLEND = 20, // SDL_GPUBlendFactor
+    DEST_BLEND = 21, // SDL_GPUBlendFactor
+    BLEND_OP = 22, // SDL_GPUBlendOp
+    ALPHA_SOURCE_BLEND = 23, // SDL_GPUBlendFactor
+    ALPHA_DEST_BLEND = 24, // SDL_GPUBlendFactor
+    ALPHA_BLEND_OP = 25, // SDL_GPUBlendOp
+    SEPARATE_ALPHA_BLEND = 26, // Bool, default true. Separate blend for alpha. If false, uses color blends for alpha and alpha_xxx are ignored. (color converted to alpha enum dw)
+    
+    NUM,
+};
+
+// varying unit size bitset, packed, render state information which typically is used attached to a pipeline state.
+class RenderStateBlob
+{
+    
+    struct Entry
+    {
+        RenderStateType Type;
+        CString Name;
+        U32 BitWidth;
+        U32 Default;
+        mutable U32 WordIndex;
+        mutable U32 WordShift;
+    };
+    
+    // Simpler to store this way. Telltale do this as well and only need to store the bit widths so can calculate the
+    static constexpr Entry _Entries[(U32)RenderStateType::NUM] =
+    {
+        {RenderStateType::NONE, "kRenderStateNone", 0, 0},
+        {RenderStateType::CULL_MODE, "kRenderStateCullMode", 2, SDL_GPU_CULLMODE_BACK},
+        {RenderStateType::FILL_MODE, "kRenderStateFillMode", 1, SDL_GPU_FILLMODE_FILL},
+        {RenderStateType::WINDING, "kRenderStateWinding", 1, SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE},  // TAKE INTO ACCOUNT GRAPHICS API!!! D3D11 USES CLOCKWISE NORMALLY
+        {RenderStateType::Z_OFFSET, "kRenderStateZOffset", 1, 0},
+        {RenderStateType::Z_INVERSE, "kRenderStateZInverse", 1, 0},
+        {RenderStateType::Z_CLIPPING, "kRenderStateZClipping", 1, 1}, // true, enable clipping by default
+        {RenderStateType::Z_BIAS, "kRenderStateZBias", 1, 0},
+        {RenderStateType::Z_ENABLE, "kRenderStateZEnable", 1, 0},
+        {RenderStateType::Z_WRITE_ENABLE, "kRenderStateZWriteEnable", 1, 0},
+        {RenderStateType::Z_COMPARE_FUNC, "kRenderStateZCompareFunc", 4, SDL_GPU_COMPAREOP_LESS_OR_EQUAL},
+        {RenderStateType::STENCIL_ENABLE, "kRenderStateStencilEnable", 1, 0},
+        {RenderStateType::STENCIL_READ_MASK, "kRenderStateStencilReadMask", 8, 0},
+        {RenderStateType::STENCIL_WRITE_MASK, "kRenderStateStencilWriteMask", 8, 0},
+        {RenderStateType::STENCIL_COMPARE_FUNC, "kRenderStateStencilCompareFunc", 4, SDL_GPU_COMPAREOP_NEVER},
+        {RenderStateType::STENCIL_DEPTH_FAIL_OP, "kRenderStateStencilDepthFailOp", 4, SDL_GPU_STENCILOP_KEEP},
+        {RenderStateType::STENCIL_PASS_OP, "kRenderStateStencilPassOp", 4, SDL_GPU_STENCILOP_KEEP},
+        {RenderStateType::STENCIL_FAIL_OP, "kRenderStateStencilFailOp", 4, SDL_GPU_STENCILOP_KEEP},
+        {RenderStateType::BLEND_ENABLE, "kRenderStateBlendEnable", 1, 0},
+        {RenderStateType::COLOUR_WRITE_ENABLE_MASK, "kRenderStateColourWriteMask", 4, 0xF}, // all channels
+        {RenderStateType::SOURCE_BLEND, "kRenderStateSourceBlend", 4, SDL_GPU_BLENDFACTOR_ONE},
+        {RenderStateType::DEST_BLEND, "kRenderStateDestBlend", 4, SDL_GPU_BLENDFACTOR_ZERO},
+        {RenderStateType::BLEND_OP, "kRenderStateBlendOp", 3, SDL_BLENDOPERATION_ADD},
+        {RenderStateType::ALPHA_SOURCE_BLEND, "kRenderStateAlphaSourceBlend", 4, SDL_GPU_BLENDFACTOR_ZERO},
+        {RenderStateType::ALPHA_DEST_BLEND, "kRenderStateAlphaDestBlend", 4, SDL_GPU_BLENDFACTOR_ZERO},
+        {RenderStateType::ALPHA_BLEND_OP, "kRenderStateAlphaBlendOp", 3, SDL_BLENDOPERATION_ADD},
+        {RenderStateType::SEPARATE_ALPHA_BLEND, "kRenderStateSeparateAlphaBlendEnable", 1, 0},
+    };
+    
+    static Entry _GetEntry(RenderStateType type);
+    
+    U32 _Words[3];
+    
+public:
+    
+    static RenderStateBlob Default;
+    
+    static void Initialise();
+    
+    U32 GetValue(RenderStateType) const;
+    
+    void SetValue(RenderStateType, U32 value);
+    
+    RenderStateBlob(); // sets defaults
+    
+};
 
 /// A buffer in the renderer holding data. You own these and can create them below.
 struct RenderBuffer
@@ -210,6 +389,115 @@ struct RenderVertexState
     
 };
 
+// ============================================= RENDER TARGETS =============================================
+
+// Render target IDs. These are constant render targets such as backbuffers and depth targets. Dynamic ones surpass this range.
+enum class RenderTargetConstantID
+{
+    NONE = -1,
+    BACKBUFFER = 0,
+    DEPTH,
+    NUM,
+};
+
+// Info about constant target
+struct RenderTargetDesc
+{
+    RenderTargetConstantID ID;
+    CString Name;
+    RenderSurfaceFormat Format;
+    U32 NumMips = 1;
+    U32 NumSlices = 1;
+    U32 ArraySize = 1;
+    Bool Extrinsic = false; // true for backbuffer handled separate
+    Bool DepthTarget = false;
+};
+
+constexpr RenderTargetDesc TargetDescs [] =
+{
+    {RenderTargetConstantID::BACKBUFFER, "BackBuffer", RenderSurfaceFormat::UNKNOWN, 1, 1, 1, true},
+    {RenderTargetConstantID::DEPTH, "Depth Stencil", RenderSurfaceFormat::DEPTH32FSTENCIL8, 1, 1, 1, false, true},
+    {RenderTargetConstantID::NONE, "None"},
+};
+
+const RenderTargetDesc& GetRenderTargetDesc(RenderTargetConstantID id);
+
+struct RenderTargetID
+{
+    
+    friend class RenderContext;
+    
+private:
+    U32 _Value;
+public:
+    
+    inline RenderTargetID() : RenderTargetID(RenderTargetConstantID::NONE) {}
+    
+    inline RenderTargetID(RenderTargetConstantID targetConst) : _Value((U32)targetConst) {}
+    
+    inline static RenderTargetID CreateDynamicID(U32 zeroBasedDynamicIndex) // create dynamic id
+    {
+        return RenderTargetID((RenderTargetConstantID)(zeroBasedDynamicIndex + (U32)RenderTargetConstantID::NUM));
+    }
+    
+    inline Bool IsConstantTarget() const { return _Value < (U32)RenderTargetConstantID::NUM; }
+    
+    inline Bool IsDynamicTarget() const { return IsValid() && _Value >= (U32)RenderTargetConstantID::NUM; }
+    
+    inline Bool IsValid() const { return _Value != (U32)-1; }
+    
+    inline U32 GetRawID() { return _Value; }
+    
+};
+
+/// Render target surface descriptor
+struct RenderTargetIDSurface
+{
+    RenderTargetID ID;
+    U32 Mip;
+    U32 Slice;
+};
+
+struct RenderTargetResolvedSurface
+{
+    RenderTexture* Target = nullptr;
+    U32 Mip = 0, Slice = 0;
+};
+
+// High level render target IDs which will translate to actual render target sets in render
+class RenderTargetIDSet
+{
+    
+    friend class RenderContext;
+    friend class RenderViewPass;
+    
+    RenderTargetIDSurface Target[8];
+    RenderTargetIDSurface Depth;
+    
+public:
+    
+    RenderTargetIDSet() = default;
+    
+};
+
+// Physical (internal) render targets which are to be bound.
+class RenderTargetSet
+{
+    
+    friend class RenderContext;
+    friend struct RenderCommandBuffer;
+    
+    RenderTargetResolvedSurface Target[8];
+    RenderTargetResolvedSurface Depth;
+    
+public:
+    
+    RenderTargetSet() = default;
+    
+};
+
+// ============================================= PIPELINE STATES AND PASSES =============================================
+
 /// Bindable pipeline state. Create lots at initialisation and then bind each and render, this is the modern typical best approach to rendering. Internal use. Represents a state of the rasterizer.
 struct RenderPipelineState
 {
@@ -230,6 +518,12 @@ struct RenderPipelineState
     
     RenderPrimitiveType PrimitiveType = RenderPrimitiveType::TRIANGLE_LIST; // primitive type
     
+    RenderSurfaceFormat TargetFormat[8];
+    RenderSurfaceFormat DepthFormat = RenderSurfaceFormat::UNKNOWN;
+    U32 NumColourTargets = 0;
+    
+    RenderStateBlob RState; // render state
+    
     // FUNCTIONALITY
     
     RenderVertexState VertexState; // bindable buffer information (format) - no actual binds
@@ -240,25 +534,6 @@ struct RenderPipelineState
     
 };
 
-struct DefaultRenderTexture
-{
-    
-    DefaultRenderTextureType Type;
-    Ptr<RenderTexture> Texture;
-    
-};
-
-struct DefaultRenderMesh
-{
-    
-    DefaultRenderMeshType Type;
-    Ptr<RenderPipelineState> PipelineState;
-    Ptr<RenderBuffer> IndexBuffer;
-    Ptr<RenderBuffer> VertexBuffer; // only one vertex buffer for default ones, they are simple.
-    U32 NumIndices = 0;
-    
-};
-
 /// A render pass
 struct RenderPass
 {
@@ -266,9 +541,19 @@ struct RenderPass
     SDL_GPURenderPass* _Handle = nullptr;
     SDL_GPUCopyPass* _CopyHandle = nullptr;
     
-    Colour ClearCol = Colour::Black;
+    CString Name = nullptr;
+    Colour ClearColour = Colour::Black;
+    Float ClearDepth = 0.0f;
+    U8 ClearStencil = 0;
+    Bool DoClearColour = false;
+    Bool DoClearDepth = false;
+    Bool DoClearStencil = false;
     
+    RenderTargetSet Targets;
+
 };
+
+// ============================================= RENDER SHADERS =============================================
 
 /// Internal shader, lightweight object.
 struct RenderShader
@@ -289,6 +574,8 @@ struct RenderShader
     ~RenderShader();
     
 };
+
+// ============================================= RENDER COMMAND BUFFER =============================================
 
 /// A set of draw commands which are appended to and then finally submitted in one batch.
 struct RenderCommandBuffer
@@ -320,9 +607,6 @@ struct RenderCommandBuffer
     // Bind a default texture
     void BindDefaultTexture(U32 slot, RenderShaderType, Ptr<RenderSampler> sampler, DefaultRenderTextureType type);
     
-    // Bind a default mesh
-    void BindDefaultMesh(DefaultRenderMeshType type);
-    
     // After calling bind default mesh and any other textures or generic buffers have been bound, draw a default mesh using this
     void DrawDefaultMesh(DefaultRenderMeshType type);
     
@@ -337,7 +621,7 @@ struct RenderCommandBuffer
     
     // Perform a texture sub-image upload. Prefer to use render frame update list! This is OK for use in defaults.
     void UploadTextureDataSlow(Ptr<RenderTexture>& texture, DataStreamRef srcStream,
-                               U64 srcOffset, U32 mip, U32 slice, U32 dataSize);
+                               U64 srcOffset, U32 mip, U32 slice, U32 face, U32 dataSize);
     
     // Draws indexed.
     void DrawIndexed(U32 numIndices, U32 numInstances, U32 indexStart, I32 vertexIndexOffset, U32 firstInstanceIndex);
@@ -361,35 +645,14 @@ struct RenderCommandBuffer
     
 };
 
-enum class SceneMessageType : U32
-{
-    START_INTERNAL, // INTERNAL! do not post this externally. internally starts the scene in the next frame.
-    STOP, // stops the scene rendering and removes it from the stack.
-};
-
-// A message that can be sent to a scene. This can be to update one of the agents positions, etc.
-struct SceneMessage
-{
-    
-    String Scene; // scene name
-    Symbol Agent; // scene agent sym, if needed (is a lot)
-    void* Arguments = nullptr; // arguments to this message if needed. Must allocate context.AllocateMessageAruments Freed after use internally.
-    SceneMessageType Type; // messasge type
-    U32 Priority = 0; // priority of the message. higher ones are done first.
-    
-    inline bool operator<(const SceneMessage& rhs) const
-    {
-        return Priority < rhs.Priority;
-    }
-    
-};
-
 // ============================================= HIGH LEVEL DRAW COMMAND STRUCTS =============================================
 
 // A draw instance. These can be created by the render context only on the populater thread to issue high level draw commands.
 // These boil down to in the render execution of these finding a pipeline state for this render instance
 class RenderInst
 {
+    
+    friend class RenderContext;
     
     RenderInst* _Next = nullptr; // next in unordered array. this is sorted at execution.
     
@@ -404,9 +667,11 @@ class RenderInst
     
     RenderVertexState _VertexStateInfo; // info (not actual) about vertex state
     
+    RenderStateBlob _RenderState;
+    
     RenderPrimitiveType _PrimitiveType = RenderPrimitiveType::TRIANGLE_LIST; // default triangles
     
-    ShaderParametersStack* _Parameters = nullptr; // shader inputs
+    ShaderParametersGroup* _Parameters = nullptr; // shader inputs
     
     //U32 _ObjectIndex = (U32)-1; // object arbitrary index. can be used to hide specific draws if the view says they arent visible.
     //U32 _BaseIndex = 0; ??
@@ -424,7 +689,7 @@ class RenderInst
     String Program;
     
 public:
-    
+
     /**
      * Sets the render layer. This determines the draw order. layer is from -0x8000 to 0x7FFF and sublayer is from 0 to 0x3FF.
      */
@@ -507,12 +772,19 @@ public:
         _IndexCount = _IndexBufferIndex = 0; // set later
     }
     
-    inline Bool operator<(const RenderInst& rhs) const {
+    // Returns reference to blob which can be modified.
+    inline RenderStateBlob& GetRenderState()
+    {
+        return _RenderState;
+    }
+    
+    inline Bool operator<(const RenderInst& rhs) const
+    {
         return _SortKey < rhs._SortKey;
     }
     
     friend struct RenderInstSorter;
-    friend class RenderContext;
+    friend struct RenderViewPass;
     
 };
 
@@ -525,107 +797,7 @@ struct RenderInstSorter {
     
 };
 
-// ============================================= RENDER FRAME =============================================
-
-class RenderFrameUpdateList;
-
-/// A render frame. Two are active at one time, one is filled up my the main thread and then executed and run on the GPU in the render job which is done async.
-struct RenderFrame
-{
-    
-    U64 FrameNumber = 0; // this frame number
-    RenderTexture* BackBuffer = nullptr; // set at begin render frame internally
-    
-    std::vector<RenderCommandBuffer*> CommandBuffers; // command buffers which will be destroyed at frame end (render execution)
-    
-    RenderInst* DrawCalls = nullptr; // draw call list (high level)
-    U32 NumDrawCalls = 0; // number of elements in linked list above
-    
-    RenderFrameUpdateList* UpdateList; // list of updates for frame.
-    
-    LinearHeap Heap; // frame heap memory
-    
-    // Reset and clear the frame to new frame number
-    void Reset(RenderContext& context, U64 newFrameNumber);
-    
-    // Shared pointer will be released at end of frame after render. Use to keep pointers alive for duration of frame
-    template<typename T>
-    inline void PushAutorelease(Ptr<T> val)
-    {
-        auto it = _Autorelease.find((U64)val.get());
-        if(it == _Autorelease.end())
-            _Autorelease[(U64)val.get()] = std::move(val);
-    }
-    
-    std::unordered_map<U64, Ptr<void>> _Autorelease; // released at end of frame.
-    
-};
-
-/**
- This class is a per-frame managed state which takes care of handling copy pass information.
- This gets executed before any draw calls such that all updates complete before the renderfer needs them.
- */
-class RenderFrameUpdateList
-{
-    
-    // No staging buffer. Static data.
-    struct MetaBufferUpload
-    {
-        
-        MetaBufferUpload* Next = nullptr;
-        
-        Meta::BinaryBuffer Data;
-        
-        Ptr<RenderBuffer> Buffer;
-        
-        U64 DestPosition = 0; // dest position in Buffer
-        
-    };
-    
-    struct DataStreamBufferUpload
-    {
-        
-        DataStreamBufferUpload* Next = nullptr;
-        
-        DataStreamRef Src;
-        Ptr<RenderBuffer> Buffer;
-        
-        U64 Position = 0; // start pos
-        U64 UploadSize = 0;
-        
-        U64 DestPosition = 0; // dest position Buffer
-        
-    };
-    
-    friend class RenderContext;
-    
-    RenderContext& _Context;
-    RenderFrame& _Frame;
-    
-    U64 _TotalBufferUploadSize = 0; // total bytes this frame so far being uploaded to GPU
-    U32 _TotalNumUploads = 0; // number of uploads to process this frame
-    
-    MetaBufferUpload* _MetaUploads = nullptr;
-    DataStreamBufferUpload* _StreamUploads = nullptr;
-    
-    // Begins the render frame internally. This does all uploading updates to GPU.
-    void BeginRenderFrame(RenderCommandBuffer* pCopyCommands);
-    
-    void EndRenderFrame();
-    
-    // Remove the buffer from any previous uploads, as a new upload is present which would override it.
-    void _DismissBuffer(const Ptr<RenderBuffer>& buf);
-    
-public:
-    
-    inline RenderFrameUpdateList(RenderContext& context, RenderFrame& frame) : _Frame(frame), _Context(context) {}
-    
-    void UpdateBufferMeta(const Meta::BinaryBuffer& metaBuffer, const Ptr<RenderBuffer>& destBuffer, U64 destOffset);
-    
-    void UpdateBufferDataStream(const DataStreamRef& srcStream, const Ptr<RenderBuffer>& destBuffer, U64 srcPos, U64 nBytes, U64 destOffset);
-    
-};
-
+class RenderViewPass;
 
 // registers common mesh constants
 void RegisterRenderConstants(LuaFunctionCollection& Col);
@@ -685,12 +857,12 @@ namespace RenderUtility
     }
     
     // internal draw. null camera means a higher level camera will be searched for in the base parameters stack
-    void _DrawInternal(RenderContext& context, Camera* cam, Matrix4 world, Colour col, DefaultRenderMeshType primitive, ShaderParametersStack* pBaseParams);
+    void _DrawInternal(RenderContext& context, Camera* cam, Matrix4 world, Colour col, DefaultRenderMeshType primitive, RenderViewPass* pBaseParams);
     
     /**
      Draws a wire sphere with the given camera and model matrix specifying its world transformation. Vertices from -1 to 1. Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+    inline void DrawWireSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
     {
         _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_SPHERE, pBaseParams);
     }
@@ -698,7 +870,7 @@ namespace RenderUtility
     /**
      Draws a wireframe unit capsule with the given camera and model matrix specifying its world transformation. Vertices are from -1 to 1! Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireCapsule(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+    inline void DrawWireCapsule(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
     {
         _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CAPSULE, pBaseParams);
     }
@@ -706,7 +878,7 @@ namespace RenderUtility
     /**
      Draws a wireframe box with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+    inline void DrawWireBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
     {
         _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_BOX, pBaseParams);
     }
@@ -714,7 +886,7 @@ namespace RenderUtility
     /**
      Draws a filled coloured box with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+    inline void DrawFilledBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
     {
         _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_BOX, pBaseParams);
     }
@@ -722,7 +894,7 @@ namespace RenderUtility
     /**
      Draws a filled in sphere with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+    inline void DrawFilledSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
     {
         _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_SPHERE, pBaseParams);
     }
@@ -730,7 +902,7 @@ namespace RenderUtility
     /**
      Draws a filled in cone with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 in height and width. Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+    inline void DrawFilledCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
     {
         _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CONE, pBaseParams);
     }
@@ -738,7 +910,7 @@ namespace RenderUtility
     /**
      Draws a wireframe cone with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+    inline void DrawWireCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
     {
         _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CONE, pBaseParams);
     }
@@ -746,7 +918,7 @@ namespace RenderUtility
     /**
      Draws a filled in cylinder with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 in height and width. Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+    inline void DrawFilledCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
     {
         _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CYLINDER, pBaseParams);
     }
@@ -754,7 +926,7 @@ namespace RenderUtility
     /**
      Draws a wireframe cylinder with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, ShaderParametersStack* pBaseParams)
+    inline void DrawWireCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
     {
         _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CYLINDER, pBaseParams);
     }

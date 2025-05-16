@@ -21,6 +21,7 @@ enum class ResourceScheme
     CACHE = 2, //'cache': a file kept only in (volatile) memory. Not available when app is exited. Used for temporary stuff.
     // CACHE: warning. this will cache a reference to the file in memory. see DataStreamManager, as you must release it when finished!
     SYMBOL = 3, //'symbol': followed by the hexadecimal hash after the colon. Special scheme used to find from symbol.
+    LOGICAL = 4, //logical with expected logical locator.
 };
 
 String SchemeToString(ResourceScheme);
@@ -36,7 +37,10 @@ public:
     ResourceURL() = default;
     
     // Constructs with the given path. Path can start with 'xxx:path/path' where xxx is the scheme string.
-    ResourceURL(String path);
+    // Set allow angle brackets to true for resource registry paths allowed (eg <User>/etc)
+    ResourceURL(String path, Bool bAllowAngleBrackets);
+    
+    inline ResourceURL(String path) : ResourceURL(path, false) {}
     
     inline ResourceURL(CString cpath) : ResourceURL(String(cpath)) {}
     
@@ -46,7 +50,7 @@ public:
     explicit ResourceURL(const Symbol &symbol);
     
     // Construct manually
-    inline ResourceURL(ResourceScheme scheme, const String &path) : _Path(path), _Scheme(scheme) { _Normalise(); }
+    inline ResourceURL(ResourceScheme scheme, const String &path) : _Path(path), _Scheme(scheme) { _Normalise(false); }
     
     // Returns the full path of the URL
     String GetPath() const;
@@ -73,7 +77,7 @@ public:
     inline operator bool() const { return _Scheme != ResourceScheme::INVALID; }
     
 private:
-    void _Normalise(); // remove platform specific stuff.
+    void _Normalise(Bool bAngles); // remove platform specific stuff.
     
     String _Path;
     ResourceScheme _Scheme;
@@ -114,6 +118,7 @@ protected:
 class DataStreamFile : public DataStream
 {
 public:
+    
     virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
     
     virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
@@ -126,8 +131,9 @@ public:
     
     virtual ~DataStreamFile();
     
-protected:
     DataStreamFile(const ResourceURL &url);
+    
+protected:
     
     U64 _Handle;
     U64 _MaxOffset; // if writing, the maximum offset written to. Ensures when flushing any bytes after this are cleared

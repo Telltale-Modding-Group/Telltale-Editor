@@ -2,11 +2,40 @@
 #include <Resource/ResourceRegistry.hpp>
 #include <Meta/Meta.hpp>
 
-thread_local Bool _IsMain = false; // Used in meta.
+// ===================================================================         UTIL
+// ===================================================================
+
+thread_local Bool _IsMain = false;
+
+struct IsMainSetter
+{
+    
+    IsMainSetter()
+    {
+        _IsMain = true;
+    }
+    
+};
+
+static IsMainSetter _MainSetter{};
+[[maybe_unused]] static void* _ForceMainInit = (void*)&_MainSetter;
 
 Bool IsCallingFromMain()
 {
     return _IsMain;
+}
+
+String MakeTypeName(String fullName)
+{
+    if(Meta::GetInternalState().GameIndex == -1 || Meta::GetInternalState().GetActiveGame().Caps[GameCapability::RAW_TYPE_NAMES])
+    {
+        StringReplace(fullName, "class ", "");
+        StringReplace(fullName, "struct ", "");
+        StringReplace(fullName, "enum ", "");
+        StringReplace(fullName, "std::", "");
+        StringReplace(fullName, " ", "");
+    }
+    return fullName;
 }
 
 // ===================================================================         TOOL CONTEXT
@@ -17,11 +46,13 @@ static ToolContext* GlobalContext = nullptr;
 ToolContext* CreateToolContext(LuaFunctionCollection API)
 {
     
-    if(GlobalContext == nullptr){
-        _IsMain = true; // CreateToolContext sets this current thread as the main thread
+    if(GlobalContext == nullptr)
+    {
         GlobalContext = (ToolContext*)TTE_ALLOC(sizeof(ToolContext), MEMORY_TAG_TOOL_CONTEXT); // alloc raw and construct, as its private.
         new (GlobalContext) ToolContext(std::move(API)); // construct after as some asserts require
-    }else{
+    }
+    else
+    {
         TTE_ASSERT(false, "Trying to create more than one ToolContext. Only one instance is allowed per process.");
     }
     
@@ -66,6 +97,8 @@ Ptr<ResourceRegistry> ToolContext::CreateResourceRegistry()
         _SwitchDependents.push_back(asDependent);
     }
     
+    registry->BindLuaManager(GetLibraryLVM());
+    
     return registry;
 }
 
@@ -86,13 +119,26 @@ void ToolContext::Switch(GameSnapshot snapshot)
     JobScheduler::Initialise(_PerStateCollection);
     
     DataStreamRef symbols = LoadLibraryResource("SymbolMaps/Files_" + snapshot.ID + ".symmap");
-    GameSymbols.SerialiseIn(symbols); // reload
+    GetGameSymbols().SerialiseIn(symbols); // reload
+    
+    GetLibraryLVM().PushNil();
+    ScriptManager::SetGlobal(GetLibraryLVM(), "__ResourceRegistry", true); // remove reg
     
     _Setup = true;
 }
 
+ToolContext::~ToolContext()
+{
+    Release();
+    Meta::Shutdown();
+    DataStreamManager::Shutdown();
+    Memory::Shutdown();
+    // Lua shuts down automatically in dtor
+}
+
 ToolContext::ToolContext(LuaFunctionCollection PerState)
 {
+    Memory::Initialise();
     DataStreamManager::Initialise();
     Compression::Initialise();
     _L[0].Initialise(LuaVersion::LUA_5_2_3);
@@ -105,7 +151,7 @@ ToolContext::ToolContext(LuaFunctionCollection PerState)
     ScriptManager::RegisterCollection(GetLibraryLVM(), _PerStateCollection);
     
     DataStreamRef symbols = LoadLibraryResource("SymbolMaps/RuntimeSymbols.symmap"); // Load runtime symbols
-    RuntimeSymbols.SerialiseIn(symbols);
+    GetRuntimeSymbols().SerialiseIn(symbols);
 }
 
 String ToolContext::LoadLibraryStringResource(String name)
@@ -152,7 +198,7 @@ void ToolContext::Release()
         JobScheduler::Shutdown();
         Meta::RelGame();
         Blowfish::Shutdown();
-        GameSymbols.Clear();
+        GetGameSymbols().Clear();
         
         _Setup = false;
         

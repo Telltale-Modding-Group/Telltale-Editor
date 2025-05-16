@@ -361,3 +361,111 @@ public:
     }
     
 };
+
+
+template<typename T, U32 PageSize> // batched pages. optimises accessed via reducing cache misses. no freeing is done. assumes use by linear heap.
+struct PagedList
+{
+    
+    static_assert(PageSize > 0 && PageSize < 0x100000, "Page size invalid");
+    
+    struct Page
+    {
+        T List[PageSize];
+        Page* Next;
+    };
+    
+    struct Iterator
+    {
+        friend struct PagedList;
+        
+    private:
+        
+        Page* CurrentPage;
+        U32 Index;
+        const U32 LastSize;
+        
+        inline Iterator(Page* pg, U32 i, const PagedList* pList) : CurrentPage(pg), Index(i), LastSize(pList->LastPageCount) {}
+        
+    public:
+        
+        inline Bool operator==(const Iterator& rhs) const
+        {
+            TTE_ASSERT(LastSize == rhs.LastSize, "List being modified while iterating!");
+            return CurrentPage == rhs.CurrentPage && Index == rhs.Index;
+        }
+        
+        inline Bool operator!=(const Iterator& rhs) const
+        {
+            TTE_ASSERT(LastSize == rhs.LastSize, "List being modified while iterating!");
+            return CurrentPage != rhs.CurrentPage || rhs.Index != Index;
+        }
+        
+        inline Iterator& operator++()
+        {
+            if (++Index >= PageSize)
+            {
+                if(CurrentPage)
+                    CurrentPage = CurrentPage->Next;
+                Index = 0;
+            }
+            if(CurrentPage == nullptr || (CurrentPage->Next == nullptr && Index >= LastSize))
+            {
+                Index = 0;
+                CurrentPage = nullptr;
+            }
+            return *this;
+        }
+        
+        inline Iterator operator++(int)
+        {
+            Iterator temp = *this;
+            ++(*this);
+            return temp;
+        }
+        
+        inline const T& operator*() const
+        {
+            TTE_ASSERT(CurrentPage, "Iterator out of bounds access");
+            return CurrentPage->List[Index];
+        }
+        
+        inline T& operator*()
+        {
+            TTE_ASSERT(CurrentPage, "Iterator out of bounds access");
+            return CurrentPage->List[Index];
+        }
+    };
+    
+    Page* First = nullptr;
+    Page* Last = nullptr;
+    U32 LastPageCount = 0;
+    U32 Size = 0;
+    
+    inline T& EmplaceBack(LinearHeap& heap)
+    {
+        if (Last == nullptr || LastPageCount >= PageSize)
+        {
+            Page* newPage = heap.New<Page>();
+            if (Last)
+                Last->Next = newPage;
+            else
+                First = newPage;
+            Last = newPage;
+            LastPageCount = 0;
+        }
+        Size++;
+        return Last->List[LastPageCount++];
+    }
+    
+    inline const Iterator CBegin() const { return Iterator(First, 0, this); }
+    inline const Iterator CEnd() const { return Iterator(nullptr, 0, this); }
+    
+    inline Iterator Begin() { return Iterator(First, 0, this); }
+    inline Iterator End() { return Iterator(nullptr, 0, this); }
+    
+    inline U32 GetSize() const { return Size; }
+    
+    inline U32 GetPageCount() const { return (Size - LastPageCount) / PageSize; }
+    
+};
