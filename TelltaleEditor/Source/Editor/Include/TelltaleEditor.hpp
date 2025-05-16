@@ -10,6 +10,14 @@
 #include <Resource/ResourceRegistry.hpp>
 #include <Common/Common.hpp>
 
+class TelltaleEditor;
+
+/// Creatae the global editor context (use once). Creates tool context internally. Set UI to true to run the UI as well.
+TelltaleEditor* CreateEditorContext(GameSnapshot snapshot, Bool UI);
+
+/// Free the global editor context (use once). Do this right at the end when you are finished with the application.
+void FreeEditorContext();
+
 // C++ API
 
 /// The ToolLibrary is the underlying library. This is the main part of the editor which allows for this post job and wait system for any task related. This also includes GUI.
@@ -96,6 +104,16 @@ public:
                                            StringMask mask, Bool bFolders = false, ResourceExtractCallback* pCallback = nullptr);
     
     /**
+     Specailses (on this thread, no enqueueing) the given instance into the meta class instance for the current game, putting it back into a telltale format which can be serialised to a file using Meta.
+     */
+    Bool QuickSpecialise(Ptr<Handleable> pCommonInstance, Meta::ClassInstance outInstance);
+    
+    /**
+     Normalises (on this thread, no enqueueing) to the given instance from  the meta class instance for the current game.
+     */
+    Bool QuickNormalise(Ptr<Handleable> pCommonInstanceOut, Meta::ClassInstance inInstance);
+    
+    /**
      Creates a resource registry which can be used to manage telltale games resources. These cannot be used between game switches. Must be destroyed before this object or a switch!
      See ToolContext:CreateResourceRegistry().
      */
@@ -135,11 +153,6 @@ private:
 };
 
 Bool AsyncTTETaskDelegate(const JobThread& thread, void* argA, void* argB);
-
-/// Creatae the global editor context (use once). Creates tool context internally. Set UI to true to run the UI as well.
-TelltaleEditor* CreateEditorContext(GameSnapshot snapshot, Bool UI);
-
-void FreeEditorContext();
 
 // Command line helpers
 namespace CommandLine

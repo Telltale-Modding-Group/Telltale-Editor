@@ -76,7 +76,7 @@ public:
             else
             {
                 key = *(const String*)clazz._GetInternal();
-                RuntimeSymbols.Register(key); // ensure we know all bone names
+                GetRuntimeSymbols().Register(key); // ensure we know all bone names
             }
             entry.ResourceGroupMembership[std::move(key)] = *pVal;
         }
@@ -89,7 +89,21 @@ public:
 
 std::atomic<U32> Skeleton::_sSerial{1};
 
-Skeleton::Skeleton(Ptr<ResourceRegistry> registry) : Handleable(registry)
+Skeleton::Skeleton(Skeleton&& rhs) : HandleableRegistered<Skeleton>(rhs)
+{
+    _Serial = rhs._Serial;
+    rhs._Serial = 0;
+}
+
+Skeleton::Skeleton(const Skeleton& rhs) : HandleableRegistered<Skeleton>(rhs)
+{
+    _Serial = _sSerial++;
+    if(_Serial == UINT32_MAX)
+        _sSerial = 1;
+    _Entries = rhs._Entries;
+}
+
+Skeleton::Skeleton(Ptr<ResourceRegistry> registry) : HandleableRegistered<Skeleton>(std::move(registry))
 {
     _Serial = _sSerial++;
     if(_Serial == UINT32_MAX)

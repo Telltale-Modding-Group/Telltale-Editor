@@ -16,6 +16,8 @@ enum class GameCapability
     USES_LENC,
     // Scripts dont have encryption
     SCRIPT_ENCRYPTION_DISABLED,
+    // Type names are not 'tool', ie they have 'class ' etc.
+    RAW_TYPE_NAMES,
     
     NUM,
 };
@@ -35,5 +37,6 @@ constexpr GameCapDesc GameCapDescs[] =
     {"kGameCapUsesLocationInfo", GameCapability::USES_LOCATION_INFO},
     {"kGameCapUsesLenc", GameCapability::USES_LENC},
     {"kGameCapNoScriptEncryption", GameCapability::USES_LENC},
+    {"kGameCapRawClassNames", GameCapability::RAW_TYPE_NAMES},
     {"", GameCapability::NONE},
 };

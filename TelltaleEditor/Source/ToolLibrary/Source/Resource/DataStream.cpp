@@ -20,6 +20,8 @@ String SchemeToString(ResourceScheme scheme)
         return "symbol";
     else if (scheme == ResourceScheme::FILE)
         return "file";
+    else if (scheme == ResourceScheme::LOGICAL)
+        return "logical";
     else
         return "";
 }
@@ -31,6 +33,8 @@ ResourceScheme StringToScheme(const String &scheme)
         return ResourceScheme::FILE;
     else if (schemeSymbol == Symbol("symbol"))
         return ResourceScheme::SYMBOL;
+    else if (schemeSymbol == Symbol("logical"))
+        return ResourceScheme::LOGICAL;
     else if (schemeSymbol == Symbol("cache"))
         return ResourceScheme::CACHE;
     else
@@ -112,10 +116,7 @@ DataStreamRef DataStreamManager::CreateFileStream(const ResourceURL &path)
 
 ResourceURL DataStreamManager::Resolve(const Symbol &unresolved)
 {
-    
-    // TODO. resource set descriptions, search archives and folders like engine, OR search data.ttarch if not found on fsys.
-    
-    return ResourceURL(); // Not found
+    return ResourceURL(); // .
 }
 
 void DataStreamManager::Publicise(Ptr<DataStreamMemory> &stream)
@@ -406,7 +407,7 @@ ResourceURL::ResourceURL(const Symbol &symbol)
     }
 }
 
-ResourceURL::ResourceURL(String path)
+ResourceURL::ResourceURL(String path, Bool bAllowAngles)
 {
     // Split from scheme.
     size_t pos = path.find_first_of(':');
@@ -420,17 +421,22 @@ ResourceURL::ResourceURL(String path)
         _Scheme = StringToScheme(path.substr(0, pos));
         _Path = path.substr(pos + 1);
     }
-    _Normalise();
+    _Normalise(bAllowAngles);
 }
 
-void ResourceURL::_Normalise()
+void ResourceURL::_Normalise(Bool angleBrackets)
 {
     // replace backslashes with forward slashes
     std::replace(_Path.begin(), _Path.end(), '\\', '/');
     
     // paths cannot contain bad characters
-    std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_ ";
+    std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_<> ";
     _Path.erase(std::remove_if(_Path.begin(), _Path.end(), [&validChars](char c) { return validChars.find(c) == std::string::npos; }), _Path.end());
+    if(!angleBrackets)
+    {
+        validChars = "<>"; // 'invalid' chars
+        _Path.erase(std::remove_if(_Path.begin(), _Path.end(), [&validChars](char c) { return validChars.find(c) != std::string::npos; }), _Path.end());
+    }
     
     // remove leading/trailing whitespace 'trim' and slashes
     _Path.erase(0, _Path.find_first_not_of(" \t\n\r\\")); // dont remove '/' prefix, macos absolute paths / linux

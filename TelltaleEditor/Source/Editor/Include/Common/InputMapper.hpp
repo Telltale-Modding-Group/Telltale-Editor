@@ -322,9 +322,14 @@ extern const InputCodeDesc InputCodeDescs[];
 
 class RuntimeInputEvent;
 
-class InputMapper : public Handleable
+class InputMapper : public HandleableRegistered<InputMapper>
 {
 public:
+    
+    static constexpr CString ClassHandle = "Handle<InputMapper>";
+    static constexpr CString Class = "InputMapper";
+    
+    inline InputMapper(Ptr<ResourceRegistry> reg) : HandleableRegistered<InputMapper>(std::move(reg)) {}
     
     enum class EventType
     {
@@ -358,8 +363,6 @@ public:
     static String GetInputCodeName(InputCode key);
     
     static InputCode GetInputCode(String name);
-    
-    inline InputMapper(Ptr<ResourceRegistry> reg) : Handleable(reg) {}
     
 private:
     

@@ -667,11 +667,14 @@ struct AnimationMixerAccumulater<SkeletonPose>
 
 // ANIMATION COMMON CLASS (TELLTALE .ANM FILES)
 
-class Animation : public Handleable
+class Animation : public HandleableRegistered<Animation>
 {
 public:
     
-    inline Animation(Ptr<ResourceRegistry> reg) : Handleable(reg) {}
+    static constexpr CString ClassHandle = "Handle<Animation>";
+    static constexpr CString Class = "Animation";
+    
+    inline Animation(Ptr<ResourceRegistry> reg) : HandleableRegistered<Animation>(std::move(reg)) {}
     
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
     
@@ -695,6 +698,6 @@ private:
     String _Name;
     Float _Length;
     
-    std::vector<Ptr<AnimationValueInterface>> _Values; // In future we could make this memory friendly
+    std::vector<Ptr<AnimationValueInterface>> _Values;
     
 };

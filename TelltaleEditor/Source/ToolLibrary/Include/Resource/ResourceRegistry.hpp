@@ -32,88 +32,29 @@
 
 // ================================================== RESOURCE LIFETIME MANAGEMENT ==================================================
 
-class ResourceRegistry;
-
-// If you inherit from this you can lock handles to files.
-class HandleLockOwner
+template<typename T> inline Ptr<Handleable> AllocateCommon(Ptr<ResourceRegistry> registry)
 {
-    
-    friend class Handleable;
-    
-    U32 _LockOwnerID;
-    
-public:
-    
-    HandleLockOwner(HandleLockOwner&&) = default; // allow moving
-    HandleLockOwner& operator=(HandleLockOwner&&) = default;
-    
-    HandleLockOwner(const HandleLockOwner&) = delete; // copying is NOT allowed. we have locked it, are not sharing it. like me with money.
-    HandleLockOwner& operator=(const HandleLockOwner&) = delete;
-    
-    HandleLockOwner();
-    
-#ifdef DEBUG
-    virtual ~HandleLockOwner() = default; // to check no derives for specific
-#else
-    ~HandleLockOwner() = default;
-#endif
-    
-};
+    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
+    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, registry);
+}
 
-// All common classes which are normalised into from telltale types (eg meshes, textures, dialogs) inherit from this to be used in Handle.
-class Handleable : public std::enable_shared_from_this<Handleable>
+template<> inline Ptr<Handleable> AllocateCommon<Placeholder>(Ptr<ResourceRegistry>)
 {
-    
-    mutable std::atomic<U64> _LockTimeStamp;
-    mutable std::atomic<U32> _LockKey;
-    
-protected:
-    
-    mutable WeakPtr<ResourceRegistry> _Registry;
-    
-public:
-    
-    // Returns false if locked already (ie fail)
-    // locks the resource returning the lock key. this is done to ensure no other accesses
-    virtual Bool Lock(const HandleLockOwner& lockOwner) final;
-    
-    virtual void Unlock(const HandleLockOwner& lockOwner) final;
-    
-    virtual U64 GetLockedTimeStamp(const HandleLockOwner& owner, Bool bRelaxed) final; // pass in if you know you already have the lock (eg cached etc)
-    
-    // Overrides the internal locked time stamp. Do it relaxed if you *know* you have locked this resource (Will be asserted)
-    virtual void OverrideLockedTimeStamp(const HandleLockOwner& owner, Bool bRelaxed, U64 value) final;
-    
-    Bool IsLocked() const;
-    
-    Bool OwnedBy(const HandleLockOwner& lockOwner, Bool bLockIfAvail) const;
-    
-    Ptr<ResourceRegistry> GetRegistry() const; // get registry
-    
-    inline Bool ForceLock(const HandleLockOwner& lockOwner)
-    {
-        Bool lock = Lock(lockOwner);
-        TTE_ASSERT(lock, "Lock acquisition failed but was required here");
-        return lock;
-    }
-    
-    virtual void FinaliseNormalisationAsync() = 0;
-    
-    Handleable(Ptr<ResourceRegistry>);
-    
-    Handleable(const Handleable&) = delete;
-    Handleable& operator=(const Handleable&) = delete; // no copy allowed. must be done explicitly
-    
-    inline Handleable(Handleable&& rhs)
-    {
-        this->operator=(std::move(rhs));
-    }
-    
-    Handleable& operator=(Handleable&& rhs); // moveable though.
-    
-    virtual ~Handleable() = default;
-    
-};
+    return {};
+}
+
+template<typename T>
+inline HandleableRegistered<T>::HandleableRegistered(Ptr<ResourceRegistry> reg) : Handleable(std::move(reg))
+{
+    // Register coersion for common T
+    REGISTER_MY_COERSION(T);
+}
+
+template<typename T>
+inline Ptr<Handleable> HandleableRegistered<T>::Clone() const
+{
+    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, *dynamic_cast<const T*>(this));
+}
 
 enum class HandleFlags
 {
@@ -121,6 +62,7 @@ enum class HandleFlags
     NEEDS_SERIALISE_IN = 2, // needs to be serialised in from the stream
     NEEDS_DESTROY = 4, // needs to be destroyed
     LOADED = 8, // has been normalised into, so is loaded.
+    NON_PURGABLE = 16, // flag 1 in engine
     
     // other flags in future, serialise out needed, load dependent resources (eg textures in a mesh, non embeds in chore etc)
 };
@@ -130,10 +72,11 @@ struct HandleObjectInfo
 {
     
     Symbol _ResourceName; // name of this resource
+    String _Locator; // location of the resource for re-saving.
     Meta::ClassInstance _Instance; // instance in the meta system
     Ptr<Handleable> _Handle; // pointer to actual alive common instance
     DataStreamRef _OpenStream; // if it needs to be serialised in or out this is the stream to/from
-    Flags _Flags; // any flags
+    mutable Flags _Flags; // any flags
     
     void _OnUnload(ResourceRegistry& registry, std::unique_lock<std::recursive_mutex>& lck); // called when unloading, may be async
     
@@ -149,15 +92,6 @@ struct HandleObjectInfo
     
 };
 
-// Function proto for common instance allocator
-using CommonInstanceAllocator = Ptr<Handleable> (Ptr<ResourceRegistry> registry);
-
-template<typename T> Ptr<Handleable> AllocateCommon(Ptr<ResourceRegistry> registry)
-{
-    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
-    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, registry);
-}
-
 // Non-templated version for below
 class HandleBase
 {
@@ -166,7 +100,7 @@ class HandleBase
     
 protected:
     
-    Ptr<Handleable> _GetObject(Ptr<ResourceRegistry>& registry);
+    Ptr<Handleable> _GetObject(Ptr<ResourceRegistry>& registry, Meta::ClassInstance* pClassOut = nullptr);
     
     Symbol _ResourceName;
     CommonInstanceAllocator* _AllocatorFn; // for creating the common class
@@ -195,11 +129,11 @@ public:
         if(!_AllocatorFn)
         {
             _AllocatorFn = &AllocateCommon<T>;
-        }else TTE_ASSERT(_AllocatorFn == &AllocateCommon<T>, "Cannot switch between handle underlying type! It must stay the same");
+        }
+        else TTE_ASSERT(_AllocatorFn == &AllocateCommon<T>, "Cannot switch between handle underlying type! It must stay the same");
         _SetObject(registry, name, bUnloadOld, bEnsureLoaded);
     }
     
-    // Similar but does not load just sets the name, can be loaded later.
     inline void SetObject(Symbol name)
     {
         _ResourceName = name;
@@ -230,11 +164,14 @@ class Handle : public HandleBase
     
     inline Handle(Symbol rn) : HandleBase(rn, &AllocateCommon<T>), _Cached{}
     {
+        REGISTER_MY_COERSION(Handle<T>);
     }
     
 public:
     
-    inline Handle() : HandleBase(Symbol(), &AllocateCommon<T>) {}
+    inline Handle() : Handle(Symbol())
+    {
+    }
     
     // Gets the underlying resouce. The resource will always be valid but may not be loaded. You can use other functionality to ensure its loaded.
     inline Ptr<T> GetObject(Ptr<ResourceRegistry> registry, Bool bEnsureLoaded)
@@ -254,12 +191,17 @@ public:
     
     inline void SetObject(Ptr<ResourceRegistry> registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
     {
+        if(name != _ResourceName)
+            _Cached = {};
         return HandleBase::SetObject<T>(registry, name, bUnloadOld, bEnsureLoaded);
     }
     
-    inline Bool IsLoaded(Ptr<ResourceRegistry>& registry)
+    // Similar but does not load just sets the name, can be loaded later.
+    inline void SetObject(Symbol name)
     {
-        return HandleBase::IsLoaded(registry);
+        if(name != _ResourceName)
+            _Cached = {};
+        HandleBase::SetObject(name);
     }
     
     // Flushes the cached value, meaning if its updated the cached resource here will get updated next GetObject
@@ -269,37 +211,142 @@ public:
         _Cached.reset();
     }
     
-    inline void SetObject(Symbol name)
+    inline Bool IsLoaded(Ptr<ResourceRegistry>& registry)
     {
-        HandleBase::SetObject(name);
+        return HandleBase::IsLoaded(registry);
+    }
+    
+    inline Symbol GetObject() const
+    {
+        return HandleBase::GetObject();
+    }
+    
+    inline Bool operator<(const Handle& rhs)
+    {
+        return _ResourceName < rhs._ResourceName;
+    }
+    
+    inline operator Bool() const
+    {
+        return _Cached.operator Bool();
     }
     
 };
 
-namespace Meta
+// Special type for prop sets. Use HandlePropertySet alias.
+template<>
+class Handle<Placeholder> : public HandleBase
+{
+
+    Meta::ClassInstance _Cached;
+    
+    inline Handle(Symbol rn) : HandleBase(rn, &AllocateCommon<Placeholder>), _Cached{}
+    {
+    }
+    
+public:
+    
+    inline Handle() : HandleBase(Symbol(), &AllocateCommon<Placeholder>) {}
+    
+    // Gets the underlying resouce. The resource will always be valid but may not be loaded. You can use other functionality to ensure its loaded.
+    inline Meta::ClassInstance GetObject(Ptr<ResourceRegistry> registry, Bool bEnsureLoaded)
+    {
+        if(_Cached)
+            return _Cached;
+        if(bEnsureLoaded)
+            HandleBase::EnsureIsLoaded(registry);
+        _GetObject(registry, &_Cached);
+        return _Cached;
+    }
+    
+    inline void SetObject(Ptr<ResourceRegistry> registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
+    {
+        if(name != _ResourceName)
+            _Cached = {};
+        _SetObject(registry, name, bUnloadOld, bEnsureLoaded);
+    }
+    
+    // Flushes the cached value, meaning if its updated the cached resource here will get updated next GetObject
+    inline void EnsureIsLoaded(Ptr<ResourceRegistry>& registry)
+    {
+        HandleBase::EnsureIsLoaded(registry);
+        _Cached = {};
+    }
+    
+    inline Bool IsLoaded(Ptr<ResourceRegistry>& registry)
+    {
+        return HandleBase::IsLoaded(registry);
+    }
+    
+    inline Symbol GetObject() const
+    {
+        return HandleBase::GetObject();
+    }
+    
+    // Similar but does not load just sets the name, can be loaded later.
+    inline void SetObject(Symbol name)
+    {
+        if(name != _ResourceName)
+            _Cached = {};
+        HandleBase::SetObject(name);
+    }
+    
+    inline Bool operator<(const Handle& rhs) const
+    {
+        return _ResourceName < rhs._ResourceName;
+    }
+    
+    inline operator Bool() const
+    {
+        return _Cached.operator Bool();
+    }
+    
+};
+
+// Special handle to a property set (ie meta instance)
+using HandlePropertySet = Handle<Placeholder>;
+
+namespace Meta::_Impl
 {
     
-    template<typename T> struct CoersionPOD<Handle<T>> : _CoercePODBase<>
+    DECL_COERSION(Handle<Placeholder>, "Handle<PropertySet>")
     {
-        
+        static void Extract(Handle<Placeholder>& out, ClassInstance& inst);
+        static void Import(const Handle<Placeholder>& in, ClassInstance& inst);
+        static void ImportLua(const Handle<Placeholder>& in, LuaManager& man);
+        static void ExtractLua(Handle<Placeholder>& out, LuaManager& man, I32 stackIndex);
+    };
+    
+    DECL_COERSION_TP(Handle, T::ClassHandle)
+    {
         static inline void Extract(Handle<T>& out, ClassInstance& inst)
         {
             ClassInstance mem = GetMember(inst, "mHandle", true); // mHandle must exist (It should in all games).
             TTE_ASSERT(Is(mem, "Symbol") || Is(mem, "class Symbol"), "Handle<T>::mHandle is not a Symbol");
             Symbol val{};
-            Meta::ExtractPODInstance(val, mem);
+            Meta::ExtractCoercableInstance(val, mem);
             out.SetObject(val);
         }
         
         static inline void Import(const Handle<T>& in, ClassInstance& inst)
         {
-            ClassInstance mem = GetMember(inst, "mHandle", true); // mHandle must exist (It should in all games).
+            ClassInstance mem = GetMember(inst, "mHandle", true);
             TTE_ASSERT(Is(mem, "Symbol") || Is(mem, "class Symbol"), "Handle<T>::mHandle is not a Symbol");
             Symbol val = in.GetObject();
-            Meta::ImportPODInstance(val, mem);
+            Meta::ImportCoercableInstance(val, mem);
         }
         
+        static inline void ImportLua(const Handle<T>& in, LuaManager& man)
+        {
+            man.PushLString(SymbolTable::FindOrHashString(in.GetObject()));
+        }
+        
+        static inline void ExtractLua(Handle<T>& out, LuaManager& man, I32 stackIndex)
+        {
+            out.SetObject(ScriptManager::ToSymbol(man, stackIndex));
+        }
     };
+
     
 }
 
@@ -332,78 +379,36 @@ struct ResourceSet
     
 };
 
-// ================================================== STRING MASK HELPER ==================================================
+struct ResourceLocation;
 
-/// A string mask to help find resources.
-class StringMask : public String {
+// Resolved resource address. Location is the folder / location (eg master locator, directory on disk or a logical location). Name is the name of the resource.
+class ResourceAddress
+{
+    
+    friend class ResourceRegistry;
+    
+    String LocationName; // name of location. Empty for default
+    String Name;
+    Bool IsCache = false;
+    
 public:
     
-    // MUST HAVE NO MEMBERS.
-    
-    enum MaskMode {
-        MASKMODE_SIMPLE_MATCH = 0,          // Exact match required (except for wildcards)
-        MASKMODE_ANY_SUBSTRING = 1,         // Pattern can match anywhere within `str`
-        MASKMODE_ANY_ENDING = 2,            // Pattern can match any suffix of `str`
-        MASKMODE_ANY_ENDING_NO_DIRECTORY = 3 // Similar to MASKMODE_ANY_ENDING but ignores directory separators
-    };
-    
-    inline StringMask(const String& mask) : String(mask) {}
-    
-    inline StringMask(CString mask) : String(mask) {}
-    
-    /**
-     * @brief Checks if a given string matches a search mask with wildcard patterns.
-     *
-     * @param testString The string to check against the search mask.
-     * @param searchMask A semicolon-separated list of patterns (e.g., "*.dlog;*.chore;!private_*").
-     *                   - Patterns prefixed with '!' indicate exclusion (negation).
-     * @param mode The matching mode from StringMask::MaskMode.
-     *             - MASKMODE_SIMPLE_MATCH: Exact match with wildcards.
-     *             - MASKMODE_ANY_SUBSTRING: Pattern can appear anywhere.
-     *             - MASKMODE_ANY_ENDING: Pattern can match the end.
-     *             - MASKMODE_ANY_ENDING_NO_DIRECTORY: Ignores directories, only matches filenames.
-     * @param excluded (Optional) If provided, set to `true` if `testString` is explicitly excluded.
-     *
-     * @return `true` if `testString` matches any pattern, `false` if it is excluded.
-     */
-    static Bool MatchSearchMask(
-                                CString testString,
-                                CString searchMask,
-                                StringMask::MaskMode mode,
-                                Bool* excluded = nullptr);
-    
-    static Bool MaskCompare(CString pattern, CString str, CString end, MaskMode mode);
-    
-    inline Bool operator==(const String& rhs) const
+    inline const String& GetLocationName() const
     {
-        return MatchSearchMask(rhs.c_str(), this->c_str(), MASKMODE_SIMPLE_MATCH);
+        return LocationName;
     }
     
-    inline Bool operator!=(const String& rhs) const
+    inline const String& GetName() const
     {
-        return !MatchSearchMask(rhs.c_str(), this->c_str(), MASKMODE_SIMPLE_MATCH);
+        return Name;
     }
     
-    inline Bool operator==(CString rhs) const
+    inline operator Bool() const
     {
-        return MatchSearchMask(rhs, this->c_str(), MASKMODE_SIMPLE_MATCH);
-    }
-    
-    inline Bool operator!=(CString rhs) const
-    {
-        return !MatchSearchMask(rhs, this->c_str(), MASKMODE_SIMPLE_MATCH);
+        return Name.length() > 0;
     }
     
 };
-
-inline Bool operator==(const String& lhs, const StringMask& mask) // otherway round just in case
-{
-    return mask == lhs;
-}
-
-static_assert(sizeof(String) == sizeof(StringMask), "String and StringMask must have same size and be castable.");
-
-struct ResourceLocation;
 
 // ================================================== RESOURCE DIRECTORIES ==================================================
 
@@ -470,7 +475,13 @@ class RegistryDirectory_System : public RegistryDirectory
     
 public:
     
-    inline RegistryDirectory_System(const String& path) : RegistryDirectory(path), _LastLocatedResource() {}
+    inline RegistryDirectory_System(const String& path) : RegistryDirectory(path), _LastLocatedResource()
+    {
+        if(!std::filesystem::is_directory(path))
+        {
+            TTE_LOG("WARNING: Registry system directory '%s' does not exist!", path.c_str());
+        }
+    }
     
     virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
                               Ptr<ResourceLocation>& self, const StringMask* optionalMask); // with self
@@ -508,9 +519,9 @@ class RegistryDirectory_TTArchive : public RegistryDirectory
     String _LastLocatedResource;
     Bool _LastLocatedResourceStatus = false; // true if it existed
     
-    TTArchive _Archive;
-    
 public:
+    
+    TTArchive _Archive;
     
     inline RegistryDirectory_TTArchive(const String& path, TTArchive&& arc) : RegistryDirectory(path), _LastLocatedResource(), _Archive(std::move(arc)) {}
     
@@ -547,9 +558,9 @@ class RegistryDirectory_TTArchive2 : public RegistryDirectory
     String _LastLocatedResource;
     Bool _LastLocatedResourceStatus = false; // true if it existed
     
-    TTArchive2 _Archive;
-    
 public:
+    
+    TTArchive2 _Archive;
     
     inline RegistryDirectory_TTArchive2(const String& path, TTArchive2&& arc) : RegistryDirectory(path), _LastLocatedResource(), _Archive(std::move(arc)) {}
     
@@ -667,6 +678,10 @@ struct ResourceLocation
     
     String Name;
     
+    inline virtual RegistryDirectory* GetConcreteDirectory() { return nullptr; }
+    
+    virtual RegistryDirectory* LocateConcreteDirectory(const Symbol& resourceName) = 0;
+    
     virtual Bool GetResourceNames(std::set<String>& names, const StringMask* optionalMask) = 0;
     
     // gets resources, in a map form, of resource symbol to its directory. eg: mesh.d3dmesh : MCSM_pc_txmesh.ttarch2 (RegistryDirectory_TTArchive2 instance) - ie concrete
@@ -714,6 +729,8 @@ struct ResourceLogicalLocation : ResourceLocation
     
     virtual Bool HasResource(const Symbol& name);
     
+    virtual RegistryDirectory* LocateConcreteDirectory(const Symbol& resourceName);
+    
     inline virtual String GetPhysicalPath() { return ""; } // no physical path
     
 };
@@ -735,6 +752,16 @@ struct ResourceConcreteLocation : ResourceLocation
     inline Bool GetResourceNames(std::set<String>& names, const StringMask* optionalMask) override
     {
         return Directory.GetResourceNames(names, optionalMask);
+    }
+    
+    inline virtual RegistryDirectory* LocateConcreteDirectory(const Symbol& resourceName) override
+    {
+        return HasResource(resourceName) ? &Directory : nullptr;
+    }
+    
+    inline virtual RegistryDirectory* GetConcreteDirectory() override
+    {
+        return &Directory;
     }
     
     inline Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
@@ -811,6 +838,10 @@ class ResourceRegistry : public GameDependentObject, public std::enable_shared_f
 {
 public:
     
+    void BindLuaManager(LuaManager& man);
+    
+    static Ptr<ResourceRegistry> GetBoundRegistry(LuaManager& man);
+    
     /**
      Returns true if the current game does not use the resource system and uses the old telltale resource system.
      */
@@ -834,8 +865,9 @@ public:
      This will search this directory for any resource descriptions and load them such that they can be enabled.
      In the actual engine, this function doesn't exist and it loads resdescs differently. The ID passed in from this function typically doesn't need to be used at all in finding resources,
      as the resource sets map to the master location anyway "<>".
+     Set force legacy to true to recursive and get all resources like the old resource system telltale used (no resource sets). Useful for debugging and just getting all resources.
      */
-    void MountSystem(const String& id, const String& fspath);
+    void MountSystem(const String& id, const String& fspath, Bool bForceLegacy);
     
     /**
      See MountSystem. This version however does not expect a file directory path, but a file such as an archive, ISO or any container pack file supported.
@@ -852,8 +884,9 @@ public:
     void CreateLogicalLocation(const String& name);
     
     /**
-     Creates a phyiscal (concrete) directory resource location. Logical dir name should be in the format same of MountSystem, eg <Project>/ or '<ProjectDataItalian>/', trailing forward slash!
+     Creates a phyiscal (concrete) directory resource location. Logical dir name must end with a, trailing forward slash! Name typically tends to be '<User>/' for example, but ''c:/path/" is ok too
      Also pass in the directory to map on disk. Can be relative or absolute to your computer.
+     
      */
     void CreateConcreteDirectoryLocation(const String& logicalDirName, const String& physPath);
     
@@ -872,6 +905,11 @@ public:
      Checks if the given resource set exists. This is *not* a logical locator, and shouldn't have the angle brackets.
      */
     Bool ResourceSetExists(const Symbol& name);
+    
+    /**
+     Tests if the resource location with the give name exists
+     */
+    Bool ResourceLocationExists(const Symbol& name);
     
     /**
      Changes the given resource set priority. Note if it is currently applied then this has no effect until it is reloaded.
@@ -914,6 +952,21 @@ public:
     Bool ResourceSetIsSticky(const Symbol& name);
     
     /**
+     Return the name of the resource concrete location ID containing the given resource name in the resource set.
+     */
+    String ResourceSetGetLocationID(const Symbol& setName, const Symbol& resourceName);
+    
+    /**
+     For a loaded resource, sets the purgability of the resource name. When on, the resource won't be unloaded at any time unless this is called again with false.
+     */
+    void ResourceSetNonPurgable(const Symbol& resourceName, Bool bOnOff);
+    
+    /**
+     Sets the default resource location. Locator symbols will look here first.
+     */
+    void ResourceSetDefaultLocation(const String& id);
+    
+    /**
      Maps locations. Pass in the resouce set which you want add this mapping to (first argument).
      When this resource set is enabled, any resources associated in the source resource set will be accessible via the destination resource set.
      Note that lots of locations can be mapped into one destination, so higher priority resources will be found and loaded first while a resource set is enabled.
@@ -929,6 +982,15 @@ public:
      Configures resource sets. Turns off and on specific groups of resource sets. If any defer unload is true,, ensure Update() gets called regularly.
      */
     void ReconfigureResourceSets(const std::set<Symbol>& turnOff, const std::set<Symbol>& turnOn, Bool bDeferUnloads);
+    
+    /**
+     Attempts to locate the resousrce name for a memory address. For property sets, this can be the meta instance internal memory, for common classes such as Scene this is the raw scene pointer
+     you get from the Handle<T>::GetObject.
+     */
+    String LocateResource(const void* pResourceMemory);
+    
+    // Unloads a resource, If not purgable or does not exist (loaded) returns false.
+    Bool UnloadResource(const Symbol& resourceName);
     
     /**
      Returns the concrete location ID for the given resource. Eg '/users/..../archives/file.text' will return the location name for /users/..../archives/.
@@ -952,6 +1014,37 @@ public:
     
     // Gets all resource names which match the optional mask, else all, in all currently resource sets.
     void GetResourceNames(std::set<String>& outNames, const StringMask* optionalMask);
+    
+    // Gets all resource names which match the optional mask, else all. Specify the resource location to search in.
+    void GetLocationResourceNames(const Symbol& location, std::set<String>& outNames, const StringMask* optionalMask);
+    
+    // Returns true if the given resource exists on file or in cache
+    Bool ResourceExists(const Symbol& resourceName);
+    
+    // Creates a resource on file and saves it empty.
+    Bool CreateResource(const ResourceAddress& address);
+    
+    // Revert resource to the one on disk, or first found file in the resource system.
+    Bool RevertResource(const Symbol& resourceName);
+    
+    // Saves the given resource name. Must be loaded in the cache else returns false and does nothing. Saves to the first resource location matching its name (use sets!)
+    Bool SaveResource(const Symbol& resourceName);
+    
+    // Deletes the resource
+    void DeleteResource(const Symbol& resourceName);
+    
+    // Copies the resource. Copies into the same resource location.
+    void CopyResource(const Symbol& resourceName, const String& destName);
+    
+    // Locates the concreteresource location of the given file name. Returns the name of the location. Will return empty string if not found or only in the cache.
+    String LocateConcreteResourceLocation(const Symbol& resourceName);
+    
+    // See version with string. Finds it, must exist.
+    ResourceAddress CreateResolvedAddress(const Symbol& resourceName);
+    
+    // Create a resolved resouce address. Include folder path, file name, prefix scheme (optional default file)
+    // Valid path may be '<User>/file.txt' or 'ttcache:module_prop.prop'. set default to cache to default to the cache if no scheme (normal) (else locator)
+    ResourceAddress CreateResolvedAddress(const String& resourceName, Bool bDefaultToCache);
     
     // Sets a set of resources to be loaded, which will be loaded async.
     // The handles should have been set with the resource names but not loaded, ie SetObject with the booleans all false.
@@ -997,6 +1090,8 @@ private:
     
     std::vector<PreloadBatchJobRef> _PreloadJobs;
     
+    String _DefaultLocation = "<>";
+    
     Ptr<ResourceLocation> _Locate(const String& logicalName); // locate internal no lock
     
     void _ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::recursive_mutex>& lck);
@@ -1009,11 +1104,7 @@ private:
     
     // searches and loads any resource sets (_resdesc_).
     void _ApplyMountDirectory(RegistryDirectory* pMountPoint, std::unique_lock<std::recursive_mutex>& lck);
-    
-    void _BindVM(); // bind to current VM
-    
-    void _UnbindVM(); // unbind from current VM
-    
+
     ResourceSet* _FindSet(const Symbol& name); // find a resource set
     
     // configure sets and unload resources if needed. can defer until
@@ -1059,6 +1150,15 @@ private:
     friend class HandleBase;
     
     friend Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*);
+    friend U32 luaResourceSetGetAll(LuaManager& man);
+    friend U32 luaResourceReportReferencedAssets(LuaManager& man);
+    friend U32 luaResourceExistsLogicalLocation(LuaManager& man);
+    friend U32 luaResourceExists(LuaManager& man);
+    friend U32 luaResourceCreateLogicalLocation(LuaManager& man);
+    friend U32 luaResourceArchiveFind(LuaManager& man);
+    friend U32 luaResourceArchiveIsActive(LuaManager& man);
+    friend U32 luaResourceCopy(LuaManager& man);
+    friend U32 luaLoad(LuaManager& man);
     
     /**
      Constructor. The lua manager version passed in MUST match any game scripts lua versions being run! This is because this will run any resource sets, which may use an older version!
@@ -1066,12 +1166,6 @@ private:
      By default, the master location is registered ("<>") here. This is a logical location so has no physical path.
      ONLY ACCESSIBLE via use of the ToolContext.
      */
-    inline ResourceRegistry(LuaManager& man) : GameDependentObject("ResourceRegistry"), _LVM(man)
-    {
-        TTE_ASSERT(Meta::GetInternalState().GameIndex != -1, "Resource registries can only be when a game is set!");
-        TTE_ASSERT(man.GetVersion() == Meta::GetInternalState().Games[Meta::GetInternalState().GameIndex].LVersion,
-                   "The lua manager used for the current game must match the version being used for this resource registry");
-        
-        CreateLogicalLocation("<>");
-    }
+    ResourceRegistry(LuaManager& man);
+    
 };

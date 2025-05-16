@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string>
 #include <mutex>
+#include <utility>
 
 #include <Core/Util.hpp>
 
@@ -26,7 +27,8 @@
 // Helper logging functions, if VA_ARGS is empty overloading is used to not do anything. In the future make this more sophisticated, log to UI and files.
 inline void LogConsole() {}
 
-inline void LogConsole(CString Msg, ...) {
+inline void LogConsole(CString Msg, ...)
+{
     static std::mutex _Guard{}; // used for \n not coming up because of interleaved calls multithreaded
     _Guard.lock();
     va_list va{};
@@ -58,11 +60,11 @@ inline void LogConsole(CString Msg, ...) {
 #ifdef DEBUG
 
 // First argument is expression to test, second is format string (optional) then optional format string arguments
-#define TTE_ASSERT(EXPR, ...)                                                                                                                        \
-if (!(EXPR))                                                                                                                                     \
-{                                                                                                                                                \
-TTE_LOG(__VA_ARGS__);                                                                                                                    \
-DebugBreakpoint();                                                                                                                           \
+#define TTE_ASSERT(EXPR, ...)       \
+if (!(EXPR))                        \
+{                                   \
+TTE_LOG(__VA_ARGS__);               \
+DebugBreakpoint();                  \
 }
 
 #else
@@ -117,6 +119,132 @@ TTE_LOG(__VA_ARGS__); \
  * @brief Sets a breakpoint
  */
 void DebugBreakpoint();
+
+// ===================================================================         HANDLEABLE (DEFINED IN RESOURCE REGISTRY)
+// ===================================================================         Defined here as needed everywhere!
+
+class ResourceRegistry;
+
+// If you inherit from this you can lock handles to files.
+class HandleLockOwner
+{
+    
+    friend class Handleable;
+    
+    U32 _LockOwnerID;
+    
+public:
+    
+    HandleLockOwner(HandleLockOwner&&) = default; // allow moving
+    HandleLockOwner& operator=(HandleLockOwner&&) = default;
+    
+    inline HandleLockOwner(const HandleLockOwner&) : _LockOwnerID(0) {}
+    
+    inline HandleLockOwner& operator=(const HandleLockOwner&) { _LockOwnerID = 0; }
+    
+    HandleLockOwner();
+    
+#ifdef DEBUG
+    virtual ~HandleLockOwner() = default; // to check no derives for specific
+#else
+    ~HandleLockOwner() = default;
+#endif
+    
+};
+
+// All common classes which are normalised into from telltale types (eg meshes, textures, dialogs) inherit from this to be used in Handle.
+class Handleable : public std::enable_shared_from_this<Handleable>
+{
+    
+    mutable std::atomic<U64> _LockTimeStamp;
+    mutable std::atomic<U32> _LockKey;
+    
+protected:
+    
+    mutable WeakPtr<ResourceRegistry> _Registry;
+    
+public:
+    
+    // Returns false if locked already (ie fail)
+    // locks the resource returning the lock key. this is done to ensure no other accesses
+    virtual Bool Lock(const HandleLockOwner& lockOwner) final;
+    
+    virtual void Unlock(const HandleLockOwner& lockOwner) final;
+    
+    virtual U64 GetLockedTimeStamp(const HandleLockOwner& owner, Bool bRelaxed) final; // pass in if you know you already have the lock (eg cached etc)
+    
+    // Overrides the internal locked time stamp. Do it relaxed if you *know* you have locked this resource (Will be asserted)
+    virtual void OverrideLockedTimeStamp(const HandleLockOwner& owner, Bool bRelaxed, U64 value) final;
+    
+    Bool IsLocked() const;
+    
+    Bool OwnedBy(const HandleLockOwner& lockOwner, Bool bLockIfAvail) const;
+    
+    Ptr<ResourceRegistry> GetRegistry() const; // get registry
+    
+    inline Bool ForceLock(const HandleLockOwner& lockOwner)
+    {
+        Bool lock = Lock(lockOwner);
+        TTE_ASSERT(lock, "Lock acquisition failed but was required here");
+        return lock;
+    }
+    
+    virtual void FinaliseNormalisationAsync() = 0;
+    
+    virtual Ptr<Handleable> Clone() const = 0;
+    
+    inline Handleable(const Handleable& rhs) : _LockKey(), _LockTimeStamp(), _Registry(rhs._Registry) { }
+    
+    inline Handleable& operator=(const Handleable& rhs)
+    {
+        _Registry = rhs._Registry;
+        return *this;
+    }
+    
+    inline Handleable(Handleable&& rhs)
+    {
+        this->operator=(std::move(rhs));
+    }
+    
+    inline Handleable(Ptr<ResourceRegistry> reg)
+    {
+        _Registry = std::move(reg);
+    }
+    
+    Handleable& operator=(Handleable&& rhs); // moveable though.
+    
+    virtual ~Handleable() = default;
+    
+};
+
+template<typename T> // extend common classes from this!
+class HandleableRegistered : public Handleable
+{
+public:
+    
+    inline virtual Ptr<Handleable> Clone() const override;
+    
+    inline HandleableRegistered(const HandleableRegistered& rhs) : Handleable(rhs) {}
+    inline HandleableRegistered(HandleableRegistered&& rhs) : Handleable(std::move(rhs)) {}
+    
+    inline HandleableRegistered& operator=(HandleableRegistered&& rhs)
+    {
+        Handleable::operator=(std::move(rhs));
+        return *this;
+    }
+    
+    inline HandleableRegistered& operator=(const HandleableRegistered& rhs)
+    {
+        Handleable::operator=(rhs);
+        return *this;
+    }
+    
+    inline HandleableRegistered(Ptr<ResourceRegistry> reg); // used for force instantiate the coersion functions.
+    
+};
+
+// Function proto for common instance allocator
+using CommonInstanceAllocator = Ptr<Handleable> (Ptr<ResourceRegistry> registry);
 
 // ===================================================================         FILE API
 // ===================================================================
@@ -193,4 +321,5 @@ enum ObjectTag : U32
 {
     TTARCHIVE1 = 1, // TTArchive instance, see TTArchive.hpp
     TTARCHIVE2 = 2, // TTArchive2 instance, see TTArchive2.hpp
+    HANDLEABLE = 3, // Handleable common instance. eg Animation, Chore or MeshInstance.
 };

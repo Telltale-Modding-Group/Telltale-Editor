@@ -75,14 +75,14 @@ void Scene::_SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>:
     
     // SETUP RUNTIME PROPERTIES
     
-    if(!PropertySet::ExistsKey(pAgent->Props, kRuntimeVisibilityKey, true))
+    if(!PropertySet::ExistsKey(pAgent->Props, kRuntimeVisibilityKey, true, GetRegistry()))
     {
-        PropertySet::Set<Bool>(pAgent->Props, kRuntimeVisibilityKey, true, "bool");
+        PropertySet::Set<Bool>(pAgent->Props, kRuntimeVisibilityKey, true, "bool", GetRegistry());
     }
     
     // ADD CALLBACKS
     
-    PropertySet::AddCallback(pAgent->Props, kRuntimeVisibilityKey, ALLOCATE_METHOD_CALLBACK(pAgent, &SceneAgent::SetVisible, SceneAgent, Bool));
+    PropertySet::AddCallback(pAgent->Props, kRuntimeVisibilityKey, ALLOCATE_METHOD_CALLBACK_1(pAgent, &SceneAgent::SetVisible, SceneAgent, Bool));
     
     // 1 (Sync1) prepare non dependent mesh agents
     
@@ -221,13 +221,13 @@ void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassIn
     agentPtr->Props = props;
     if(!agentPtr->Props)
     {
-        U32 clazz = Meta::FindClass(Meta::GetInternalState().GetActiveGame().PropsClassName, 0);
+        U32 clazz = Meta::FindClass("class PropertySet", 0);
         TTE_ASSERT(clazz!=0, "Property set class not found!");
         agentPtr->Props = Meta::CreateInstance(clazz);
     }
     else
     {
-        TTE_ASSERT(Meta::GetClass(props.GetClassID()).Name == Meta::GetInternalState().GetActiveGame().PropsClassName, "At Scene::AddAgent -> properties class mismatch!");
+        TTE_ASSERT(Meta::GetClass(props.GetClassID()).Flags & Meta::_CLASS_PROP, "At Scene::AddAgent -> properties class mismatch!");
     }
     for(auto it = modules.begin(); it != modules.end(); it++)
     {

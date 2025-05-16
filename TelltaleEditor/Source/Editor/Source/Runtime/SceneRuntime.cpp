@@ -5,6 +5,31 @@
 
 #define INTERNAL_START_PRIORITY 0x0F0C70FF
 
+static U32 luaResourceGetLowQualityPreloadEnabled(LuaManager& man)
+{
+    ScriptManager::GetGlobal(man, "_SceneRuntime", true);
+    Bool bHasRuntime = man.Type(-1) != LuaType::NIL;
+    SceneRuntime* runtime = bHasRuntime ? (SceneRuntime*)man.ToPointer(-1) : nullptr;
+    man.Pop(1);
+    man.PushBool(bHasRuntime ? runtime->GetUseLowQualityPreloadPacks() : false);
+    return 1;
+}
+
+static U32 luaResourceEnableLowQualityPreload(LuaManager& man)
+{
+    Bool bUse = man.ToBool(1);
+    ScriptManager::GetGlobal(man, "_SceneRuntime", true);
+    Bool bHasRuntime = man.Type(-1) != LuaType::NIL;
+    SceneRuntime* runtime = bHasRuntime ? (SceneRuntime*)man.ToPointer(-1) : nullptr;
+    man.Pop(1);
+    if(bHasRuntime && runtime->GetUseLowQualityPreloadPacks() != bUse)
+    {
+        runtime->SetUseLowQualityPreloadPacks(bUse);
+        TTE_LOG("%s Low End Preload Packs", bUse ? "Enabling" : "Disabling");
+    }
+    return 0;
+}
+
 SceneRuntime::SceneRuntime(RenderContext& context, const Ptr<ResourceRegistry>& pResourceSystem)
         : RenderLayer("Scene Runtime", context), GameDependentObject("Scene Runtime Object")
 {
@@ -15,6 +40,14 @@ SceneRuntime::SceneRuntime(RenderContext& context, const Ptr<ResourceRegistry>& 
     InjectFullLuaAPI(_ScriptManager, true); // treat as worker
     _ScriptManager.PushOpaque(this);
     ScriptManager::SetGlobal(_ScriptManager, "_SceneRuntime", true);
+    _AttachedRegistry->BindLuaManager(_ScriptManager);
+    
+    LuaFunctionCollection col{};
+    PUSH_FUNC(col, "ResourceGetLowQualityPreloadEnabled", &luaResourceGetLowQualityPreloadEnabled, "boolGetLowQualityPreloadEnabled()",
+              "Returns false. Here for compatibility reasons.");
+    PUSH_FUNC(col, "ResourceEnableLowQualityPreload", &luaResourceEnableLowQualityPreload, "nil ResourceEnableLowQualityPreload(bOnOff)",
+              "Toggles whether to use low quality preload packages. Must have an attached scene runtime, ie must be called from a game script running.");
+    ScriptManager::RegisterCollection(_ScriptManager, col);
     
     // On Attach
     
@@ -26,7 +59,7 @@ SceneRuntime::~SceneRuntime()
     
     for(auto& scene: _AsyncScenes)
     {
-        scene.OnAsyncRenderDetach(*this);
+        scene->OnAsyncRenderDetach(*this);
     }
     
     _ScriptManager.GC();
@@ -44,13 +77,25 @@ void SceneRuntime::AsyncProcessEvents(const std::vector<RuntimeInputEvent> &even
             _KeysDown.Set(event.Code, false);
     }
     for(auto it = _AsyncScenes.rbegin(); it != _AsyncScenes.rend(); it++)
-        it->AsyncProcessEvents(*this, events);
+        (*it)->AsyncProcessEvents(*this, events);
+}
+
+void SceneRuntime::SetUseLowQualityPreloadPacks(Bool bOnOff)
+{
+    _Flags.Set(SceneRuntimeFlag::USE_LOW_QUALITY_PRELOAD_PACKS, bOnOff);
+}
+
+Bool SceneRuntime::GetUseLowQualityPreloadPacks()
+{
+    return _Flags.Test(SceneRuntimeFlag::USE_LOW_QUALITY_PRELOAD_PACKS);
 }
 
 RenderNDCScissorRect SceneRuntime::AsyncUpdate(RenderFrame &frame, RenderNDCScissorRect scissor, Float deltaTime)
 {
-    // PERFORM SCENE MESSAGES
+    // UPDATE RESOURCES
+    _AttachedRegistry->Update(MAX(1.0f / 1000.f, MIN(5.f / 1000.f, deltaTime))); // 5 ms cap
     
+    // PERFORM SCENE MESSAGES
     _MessagesLock.lock();
     std::priority_queue<SceneMessage> messages = std::move(_AsyncMessages);
     _MessagesLock.unlock();
@@ -60,22 +105,32 @@ RenderNDCScissorRect SceneRuntime::AsyncUpdate(RenderFrame &frame, RenderNDCScis
         SceneMessage msg = messages.top(); messages.pop();
         if(msg.Type == SceneMessageType::START_INTERNAL)
         {
-            // Start a scene
-            _AsyncScenes.emplace_back(std::move(*((Scene*)msg.Arguments)));
-            _AsyncScenes.back().OnAsyncRenderAttach(*this); // on attach. ready to prepare this frame.
+            // Start a scene (NON TELLTALE SCRIPTING WAY (using scene open / add)
+            Ptr<Scene> pScene = TTE_NEW_PTR(Scene, MEMORY_TAG_SCENE_DATA, std::move(*((Scene*)msg.Arguments)));
+            _AsyncScenes.push_back(std::move(pScene));
+            _AsyncScenes.back()->OnAsyncRenderAttach(*this); // on attach. ready to prepare this frame.
             TTE_DEL((Scene*)msg.Arguments); // delete the temp alloc
             continue;
         }
+        else if(msg.Scene.length() == 0)
+        {
+            AsyncProcessGlobalMessage(msg);
+            if(msg.Arguments)
+            {
+                TTE_FREE(msg.Arguments); // free any arguments
+            }
+            continue;;
+        }
         for(auto sceneit = _AsyncScenes.begin(); sceneit != _AsyncScenes.end(); sceneit++)
         {
-            Scene& scene = *sceneit;
-            if(CompareCaseInsensitive(scene.GetName(), msg.Scene))
+            Ptr<Scene> pScene = *sceneit;
+            if(CompareCaseInsensitive(pScene->GetName(), msg.Scene))
             {
                 Ptr<SceneAgent> pAgent{};
                 if(msg.Agent)
                 {
-                    auto it = scene._Agents.find(msg.Agent);
-                    if(it != scene._Agents.end())
+                    auto it = pScene->_Agents.find(msg.Agent);
+                    if(it != pScene->_Agents.end())
                     {
                         pAgent = it->second;
                     }
@@ -89,12 +144,12 @@ RenderNDCScissorRect SceneRuntime::AsyncUpdate(RenderFrame &frame, RenderNDCScis
                 {
                     if(msg.Type == SceneMessageType::STOP)
                     {
-                        scene.OnAsyncRenderDetach(*this);
+                        pScene->OnAsyncRenderDetach(*this);
                         _AsyncScenes.erase(sceneit); // remove the scene. done.
                     }
                     else
                     {
-                        scene.AsyncProcessRenderMessage(*this, msg, pAgent.get());
+                        TTE_ASSERT(pScene->AsyncProcessRenderMessage(*this, msg, pAgent.get()), "Scene message could not be processed!");
                         if(msg.Arguments)
                         {
                             TTE_FREE(msg.Arguments); // free any arguments
@@ -108,7 +163,7 @@ RenderNDCScissorRect SceneRuntime::AsyncUpdate(RenderFrame &frame, RenderNDCScis
     
     // HIGH LEVEL RENDER (ASYNC)
     for(auto& scene : _AsyncScenes)
-        scene.PerformAsyncRender(*this, frame, deltaTime);
+        scene->PerformAsyncRender(*this, frame, deltaTime);
     
     return scissor; // same scissor
 }
@@ -136,7 +191,6 @@ void SceneRuntime::PushScene(Scene&& scene)
     SendMessage(msg);
 }
 
-
 Bool SceneRuntime::IsKeyDown(InputCode key)
 {
     TTE_ASSERT(InputMapper::IsCommonInputCode(key), "Invalid key code"); // ONLY ACCEPT COMMON CODES. Platform ones are mapped.
@@ -145,11 +199,44 @@ Bool SceneRuntime::IsKeyDown(InputCode key)
 
 // ACTUAL SCENE RUNTIME
 
+void SceneRuntime::AsyncProcessGlobalMessage(SceneMessage message)
+{
+    if(message.Type == SceneMessageType::OPEN_SCENE) // TODO. PRELOAD PACKS WHEN WE GET TO THEM.
+    {
+        String* filename = (String*)message.Arguments;
+        String* entryPoint = filename + 1;
+        
+        Handle<Scene> hScene{};
+        Ptr<Scene> pScene{};
+        hScene.SetObject(_AttachedRegistry, Symbol(*filename), false, true);
+        _AsyncScenes.push_back(pScene = hScene.GetObject(_AttachedRegistry, true));
+        ScriptManager::RunText(_ScriptManager, *entryPoint, filename->c_str(), false);
+        
+        filename->~String();
+        entryPoint->~String();
+    }
+    else if(message.Type == SceneMessageType::ADD_SCENE)
+    {
+        AddSceneInfo* info = (AddSceneInfo*)message.Arguments;
+        
+        Handle<Scene> hScene{};
+        Ptr<Scene> pScene{};
+        hScene.SetObject(_AttachedRegistry, Symbol(info->FileName), false, true);
+        _AsyncScenes.push_back(pScene = hScene.GetObject(_AttachedRegistry, true));
+        ScriptManager::RunText(_ScriptManager, info->EntryPoint, info->FileName.c_str(), false);
+        
+        info->~AddSceneInfo();
+    }
+    else
+    {
+        TTE_ASSERT(false, "Scene message unknown");
+    }
+}
 
 // Called whenever a message for the scene needs to be processed.
-void Scene::AsyncProcessRenderMessage(SceneRuntime& context, SceneMessage message, const SceneAgent* pAgent)
+Bool Scene::AsyncProcessRenderMessage(SceneRuntime& context, SceneMessage message, const SceneAgent* pAgent)
 {
-    
+    return false;
 }
 
 // TESTING !!

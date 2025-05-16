@@ -330,17 +330,14 @@ enum class SceneFlags
 
 /// A collection of agents. This is the common scene class for all games by telltale. This does not have any of the code for serialistion, that is done when lua injects scene information
 /// from its scene meta class into this. This is a common class to all games and represents a common telltale scene.
-class Scene : public Handleable
+class Scene : public HandleableRegistered<Scene>
 {
 public:
     
-    inline Scene(Ptr<ResourceRegistry> reg) : Handleable(reg) {}
+    static constexpr CString ClassHandle = "Handle<Scene>";
+    static constexpr CString Class = "Scene";
     
-    Scene(const Scene&) = delete; // DISALLOW COPY
-    Scene& operator=(const Scene&) = delete;
-    
-    Scene(Scene&&) = default; // ALLOW MOVE
-    Scene& operator=(Scene&&) = default;
+    inline Scene(Ptr<ResourceRegistry> reg) : HandleableRegistered<Scene>(std::move(reg)) {}
     
     inline void SetName(String name)
     {
@@ -391,8 +388,8 @@ private:
     
     // ==== RENDER CONTEXT USE ONLY. THESE FUNCTIONS ARE DEFINED IN RENDERSCENE.CPP, SEPARATE TO REST DEFINED IN COMMON/SCENE.CPP
     
-    // Internal call. Called by render context in async to process scene messages
-    void AsyncProcessRenderMessage(SceneRuntime& context, SceneMessage message, const SceneAgent* pAgent);
+    // Internal call. Called by render context in async to process scene messages. Returns true if processed, ie valid message.
+    Bool AsyncProcessRenderMessage(SceneRuntime& context, SceneMessage message, const SceneAgent* pAgent);
     
     // Async so only access this scene. Setup render information. Thread safe with perform render, detach and async process messages.
     void OnAsyncRenderAttach(SceneRuntime& context);

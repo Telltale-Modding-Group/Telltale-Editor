@@ -4,6 +4,7 @@
 #include <Resource/TTArchive.hpp>
 #include <Resource/TTArchive2.hpp>
 #include <Core/Base64.hpp>
+#include <Resource/ResourceRegistry.hpp>
 
 #include <sstream>
 #include <utility>
@@ -130,8 +131,6 @@ namespace Meta
             RegGame reg{};
             
             // pop stuff into reg game struct
-            ScriptManager::TableGet(man, "PropertySetClassName");
-            reg.PropsClassName = ScriptManager::PopString(man);
             ScriptManager::TableGet(man, "Name");
             reg.Name = ScriptManager::PopString(man);
             ScriptManager::TableGet(man, "ID");
@@ -580,7 +579,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             
             if(FindClass(name, n) != 0)
             {
-                TTE_LOG("At MetaRegisterDuplicate: new duplicated class name and version number already exist");
+                TTE_LOG("At MetaRegisterDuplicate: new duplicated class name and version number already exist (%s:%u)", name.c_str(), n);
                 man.PushNil();
                 return 1;
             }
@@ -783,13 +782,16 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 TTE_ASSERT(false, "When registering collection, value type table not registered properly");
             }
             
+            Bool bDefer = def.KeyType.length() || def.ValueType.length();
+            TTE_ASSERT(!bDefer || c.ArraySize == 0, "When registering collection: cannot forward declare static arrays as their size is required.");
+            
             U32 id = _Impl::_Register(man, std::move(c), 1);
             
             man.PushLString("__MetaId");
             man.PushUnsignedInteger(id);
             man.SetTable(1);
             
-            if(def.KeyType.length() || def.ValueType.length())
+            if(bDefer)
             {
                 def.CollectionClass = id;
                 State._Temp.Deferred.push_back(std::move(def));
@@ -846,7 +848,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             Symbol s = SymbolFromHexString(tn, true);
             if(s.GetCRC64())
             {
-                String str = RuntimeSymbols.Find(s);
+                String str = GetRuntimeSymbols().Find(s);
                 if(str.length())
                 {
                     tn = str;
@@ -1597,7 +1599,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.PushNil();
                 return 1;
             }
-            
+
             ClassInstance cinst = CopyInstance(inst, attach, name);
             cinst.PushWeakScriptRef(man, attach.ObtainParentRef());
             
@@ -2503,7 +2505,7 @@ namespace LuaMisc
     static U32 luaSymbolReg(LuaManager& man)
     {
         TTE_ASSERT(man.GetTop() == 1, "Incorrect usage for SymbolRegister")
-        RuntimeSymbols.Register(man.ToString(-1));
+        GetRuntimeSymbols().Register(man.ToString(-1));
         return 0;
     }
     
@@ -2536,7 +2538,7 @@ namespace LuaMisc
     
     static U32 luaSymbolClear(LuaManager&)
     {
-        RuntimeSymbols.Clear();
+        GetRuntimeSymbols().Clear();
         return 0;
     }
     
@@ -2573,11 +2575,16 @@ namespace TTE
         }
         if(EnsureMain())
         {
+            Bool hasReg = ResourceRegistry::GetBoundRegistry(man).unique();
             GameSnapshot snap{};
             snap.ID = man.ToString(-3);
             snap.Platform = man.ToString(-2);
             snap.Vendor = man.ToString(-1);
             Context->Switch(snap);
+            if(hasReg)
+            {
+                Context->CreateResourceRegistry()->BindLuaManager(man); // cached in dependents. keeps alive
+            }
         }
         return 0;
     }
@@ -2732,7 +2739,6 @@ namespace TTE
         if(r->GetSize() > 0)
         {
             TTArchive2* pArchive = TTE_NEW(TTArchive2, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->ArchiveVersion);
-            TTE_LOG("Loading telltale archive 2 %s...", path.c_str());
             if(!pArchive->SerialiseIn(r))
             {
                 TTE_LOG("Cannot open archive %s: read failed (archive format invalid)", path.c_str());
@@ -2774,7 +2780,6 @@ namespace TTE
         if(r->GetSize() > 0)
         {
             TTArchive* pArchive = TTE_NEW(TTArchive, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->ArchiveVersion);
-            TTE_LOG("Loading telltale archive %s...", path.c_str());
             if(!pArchive->SerialiseIn(r))
             {
                 TTE_LOG("Cannot open archive %s: read failed (archive format invalid)", path.c_str());
@@ -2899,6 +2904,34 @@ namespace TTE
         return 1;
     }
     
+    static U32 luaMountArchive(LuaManager& man)
+    {
+        Ptr<ResourceRegistry> reg = ResourceRegistry::GetBoundRegistry(man);
+        if(reg)
+        {
+            reg->MountArchive(man.ToString(1), man.ToString(2));
+        }
+        else
+        {
+            TTE_LOG("At TTE_MountArchive: no resource registry found");
+        }
+        return 0;
+    }
+    
+    static U32 luaMountSystem(LuaManager& man)
+    {
+        Ptr<ResourceRegistry> reg = ResourceRegistry::GetBoundRegistry(man);
+        if(reg)
+        {
+            reg->MountSystem(man.ToString(1), man.ToString(2), man.ToBool(3));
+        }
+        else
+        {
+            TTE_LOG("At TTE_MountSystem: no resource registry found");
+        }
+        return 0;
+    }
+    
 }
 
 static U32 luaMetaIsIsolated(LuaManager& man)
@@ -2923,11 +2956,24 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     
     if(!bWorker)
     {
+        Col.Functions.push_back({"TTE_MountArchive", &TTE::luaMountArchive, "nil TTE_MountArchive(locationID, physPath)",
+            "Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that archive"
+            " can be found. This supports .ttarch2/ttarch/iso/pk2. Physical path is the path on your local machine. Location ID should be in the format "
+            "<XXX>/. Please note that the archive must be from the current game snapshot! Otherwise it will fail to read due to incorrect encryptino and "
+            "expected format."
+        });
+        Col.Functions.push_back({"TTE_MountSystem", &TTE::luaMountSystem, "nil TTE_MountSystem(locationID, physPath, forceLegacy)",
+            "Mounts the resource system (like creating a concrete directroy location) to the given physical path under the name locationID."
+            " Location ID should be in the format <XXX>/. Physical path can be absolute or relative to your working directory. "
+            "The last argument can be set to true to use the old telltale engine resource system which had no resource set descriptions. "
+            "This means that it will recurse all directories and add them all. Set this to true to just easily get all resources quickly for debugging,"
+            " so that they are all in resource system ready to be used."
+        });
         Col.Functions.push_back({"TTE_Switch", &TTE::luaSwitch, "nil TTE_Switch(gameID, platformName, vendorName)",
             "Switches the editor context to a new game snapshot. Note that this can only be called from a mod "
             "script at startup or when no files are being read or processed. If it is called at one of those"
             " times, an error is thrown to the log and it does nothing."});
-        Col.Functions.push_back({"TTE_OpenMetaStream", &TTE::luaOpenMetaStream, "instance TTE_OpenMetaStream(filename, optional archive)",
+        Col.Functions.push_back({"TTE_OpenMetaStream", &TTE::luaOpenMetaStream, "instance TTE_OpenMetaStream(filename, --[[optional]] archive)",
             "Opens and reads a meta stream, returning the base class instance that the file contains. "
             "This returns a strong reference to the instance. If one argument is passed in, filename is "
             "the path on your computer where the file is (or relative to the executable). If two are "
@@ -3100,7 +3146,7 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(Meta::L, "MetaMoveInstance", luaMetaMoveInstance, "instane MetaMoveInstance(instance, name, parent)",
            "Creates a new instance, moving everything from the 1st argument into the returned instance, leaving "
            "the first one alive but empty like it was just created. Rest of arguments are the same as CreateInstance. Parent and instance cannot be the same.");
-    ADD_FN(Meta::L, "MetaIsCollection", luaMetaIsCollection, "bool MetaIsCollection(instance/typename, optional versionNumber)",
+    ADD_FN(Meta::L, "MetaIsCollection", luaMetaIsCollection, "bool MetaIsCollection(instance_Or_typename, --[[optional]] versionNumber)",
            "Returns true if the given instance (1 argument) else is a collection class. If two arguments, pass in the typename and version number to test.");
     ADD_FN(Meta::L, "MetaToString", luaMetaToString, "string MetaToString(instance)",
            "Converts the given instance to a string. If the class of the instance has a defined to string meta operation, "
@@ -3190,7 +3236,7 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
            "which it is freed after the class instance is destroyed. You can declare member variables with this type and then use it to store the buffer.");
     ADD_FN(MS, "MetaStreamWriteBuffer", luaMetaStreamWriteBuffer, "nil MetaStreamWriteBuffer(stream, bufferInstance)",
            "See above for information about bufferInstance. Does not write the size. Writes the buffer in its entirety, size bytes.");
-    ADD_FN(MS, "MetaStreamReadCache", luaMetaStreamReadCache, "nil MetaStreamReadCache(stream, cacheInstance, optional size = -1)",
+    ADD_FN(MS, "MetaStreamReadCache", luaMetaStreamReadCache, "nil MetaStreamReadCache(stream, cacheInstance, --[[optional]] size)",
            "Reads size bytes from the stream into the buffer instance. The buffer instance must be of the class kMetaClassInternalDataStreamCache, "
            "so must be a member variable of another class. This type is very similar to the binary buffer type above, however it stores a cache "
            "of the range of bytes from the current position in the stream to the current position plus the size parameter. What this means is that "
@@ -3222,11 +3268,12 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(Meta::L, "MetaSerialiseDefault", luaMetaSerialiseDefault, "bool MetaSerialiseDefault(stream, instance, isWrite)",
            "Default serialises the given class instance to/from the given stream in the given serialisation mode. "
            "See documentation for more information about this function. Returns if success or failed."); // serialise related
-    ADD_FN(Meta::L, "MetaSerialise", luaMetaSerialise, "bool MetaSerialise(stream, instance, isWrite)",
+    ADD_FN(Meta::L, "MetaSerialise", luaMetaSerialise, "bool MetaSerialise(stream, instance, isWrite, --[[optional]] debugName)",
            "Serialises the given instance to/from the given stream in the given serialisation mode. "
            "This will decide whether to call the custom serialisation, if there is one, or else to call the default serialiser. "
            "Use this to serialise any class instance to/from the given stream, as opposed to the default serialiser which "
-           "should be called in a custom serialiser if needed.");
+           "should be called in a custom serialiser if needed."
+           " Optionally specify a debug name to put into any debug outputs when reading.");
     
     // MISC
     

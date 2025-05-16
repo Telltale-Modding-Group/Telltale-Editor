@@ -1,10 +1,10 @@
 -- Rule class implementation for Bone1
 
 function SerialiseRulesBone1(stream, instance, write)
-    ruleMap = MetaGetMember(instance, "_mRules")
-    ruleNames = MetaGetMember(instance, "_mRuleNames")
-    numNames = ContainerGetNumElements(ruleNames)
-    numRules = ContainerGetNumElements(ruleMap)
+    local ruleMap = MetaGetMember(instance, "_mRules")
+    local ruleNames = MetaGetMember(instance, "_mRuleNames")
+    local numNames = ContainerGetNumElements(ruleNames)
+    local numRules = ContainerGetNumElements(ruleMap)
     TTE_Assert(numNames == numRules, "Number of names and rule maps must be equal as like its a map!") -- should not happen.
 
     if not MetaSerialiseDefault(stream, instance, write) then return false end
@@ -18,7 +18,7 @@ function SerialiseRulesBone1(stream, instance, write)
         if write then
             if not MetaSerialise(stream, ContainerGetElement(ruleMap, i - 1)) then return false end
         else
-            if not MetaSerialise(stream, ContainerEmplacelement(ruleMap)) then return false end
+            if not MetaSerialise(stream, ContainerEmplaceElement(ruleMap)) then return false end
         end
     end
 
@@ -27,8 +27,8 @@ end
 
 -- .RULE
 function SerialiseRuleBone1(stream, instance, write)
-	agentInfo = MetaGetMember(instance, "_mAgentInfo")
-	numAgents = ContainerGetNumElements(agentInfo)
+	local agentInfo = MetaGetMember(instance, "_mAgentInfo")
+	local numAgents = ContainerGetNumElements(agentInfo)
 	if write and numAgents > 0 then MetaSetClassValue(MetaGetMember(instance, "mbVersionHasAgents"), true) end
 
 	if not MetaSerialiseDefault(stream, instance, write) then return false end
@@ -43,7 +43,7 @@ function SerialiseRuleBone1(stream, instance, write)
 	end
 
 	for i=1,numAgents do
-		inst = nil
+		local inst = nil
 		if write then
 			inst = ContainerGetElement(agentInfo, i - 1)
 		else

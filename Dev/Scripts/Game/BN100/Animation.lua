@@ -70,10 +70,10 @@ function NormaliseAnimationBone1(instance, state)
 end
 
 function NormaliseSkeletonBone1(instance, state)
-    entries = MetaGetMember(instance, "mEntries")
-    num = ContainerGetNumElements(entries)
+    local entries = MetaGetMember(instance, "mEntries")
+    local num = ContainerGetNumElements(entries)
     for i=1,num do
-        entry = ContainerGetElement(entries, i - 1)
+        local entry = ContainerGetElement(entries, i - 1)
         local entryInfo = {}
         entryInfo["Joint Name"] = SymbolTableFind(MetaGetClassValue(MetaGetMember(entry, "mJointName")))
         entryInfo["Parent Name"] = SymbolTableFind(MetaGetClassValue(MetaGetMember(entry, "mParentName")))

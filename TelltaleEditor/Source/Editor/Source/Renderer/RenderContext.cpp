@@ -111,9 +111,11 @@ SDL_PrimitiveMappings[3]
 void RegisterRenderConstants(LuaFunctionCollection& Col)
 {
     U32 i = 0;
-    while(SDL_VertexAttributeMappings[i].Format != RenderBufferAttributeFormat::UNKNOWN)
+    Bool bEnd = false;
+    while(!bEnd)
     {
         PUSH_GLOBAL_I(Col, SDL_VertexAttributeMappings[i].ConstantName, (U32)SDL_VertexAttributeMappings[i].Format, "Vertex attribute formats");
+        bEnd = SDL_VertexAttributeMappings[i].Format == RenderBufferAttributeFormat::UNKNOWN;
         i++;
     }
     i = 0;
@@ -129,11 +131,14 @@ void RegisterRenderConstants(LuaFunctionCollection& Col)
         i++;
     }
     i = 0;
-    while(AttribInfoMap[i].Type != RenderAttributeType::UNKNOWN)
+    bEnd = false;
+    while(!bEnd)
     {
         PUSH_GLOBAL_I(Col, AttribInfoMap[i].ConstantName, (U32)AttribInfoMap[i].Type, "Vertex attributes");
+        bEnd = AttribInfoMap[i].Type == RenderAttributeType::UNKNOWN;
         i++;
     }
+    bEnd = false;
 }
 
 inline SDL_GPUPrimitiveType ToSDLPrimitiveType(RenderPrimitiveType format)

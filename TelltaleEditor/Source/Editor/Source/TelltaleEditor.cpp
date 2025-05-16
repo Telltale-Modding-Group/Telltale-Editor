@@ -1,5 +1,8 @@
 #include <TelltaleEditor.hpp>
 #include <Renderer/RenderContext.hpp>
+#include <Core/Symbol.hpp>
+
+void luaCompleteGameEngine(LuaFunctionCollection& Col); // Full game engine (Telltale). See LuaGameEngine.cpp
 
 extern Float kDefaultContribution[256];
 static TelltaleEditor* _MyContext = nullptr;
@@ -25,7 +28,9 @@ TelltaleEditor::TelltaleEditor(GameSnapshot s, Bool ui)
     _UI = ui;
     _Running = ui;
     
-    LuaFunctionCollection commonAPI = CreateScriptAPI();
+    LuaFunctionCollection commonAPI = CreateScriptAPI(); // Common class API
+    luaCompleteGameEngine(commonAPI); // Telltale full API
+    
     _ModdingContext = CreateToolContext(std::move(commonAPI));
     
     _ModdingContext->Switch(s); // create context loads the symbols. in the editor lets resave them in close
@@ -54,7 +59,7 @@ TelltaleEditor::~TelltaleEditor()
     Wait(); // wait for all tasks to finish
     
     DataStreamRef symbols = LoadLibraryResource("SymbolMaps/RuntimeSymbols.symmap"); // Save out runtime symbols
-    RuntimeSymbols.SerialiseOut(symbols);
+    GetRuntimeSymbols().SerialiseOut(symbols);
     
     RenderContext::Shutdown();
     
@@ -232,6 +237,24 @@ void TelltaleEditor::_EnqueueTask(EditorTask* pTask)
     }
     JobHandle handle = JobScheduler::Instance->Post(std::move(desc));
     _Active.push_back(std::make_pair(pTask, std::move(handle)));
+}
+
+Bool TelltaleEditor::QuickNormalise(Ptr<Handleable> pCommonInstanceOut, Meta::ClassInstance inInstance)
+{
+    if(pCommonInstanceOut && inInstance)
+    {
+        return InstanceTransformation::PerformNormaliseAsync(pCommonInstanceOut, inInstance, GetThreadLVM());
+    }
+    return false;
+}
+
+Bool TelltaleEditor::QuickSpecialise(Ptr<Handleable> pCommonInstance, Meta::ClassInstance instance)
+{
+    if(pCommonInstance && instance)
+    {
+        return InstanceTransformation::PerformSpecialiseAsync(pCommonInstance, instance, GetThreadLVM());
+    }
+    return false;
 }
 
 #undef _TTE_SYMBOLS_HPP

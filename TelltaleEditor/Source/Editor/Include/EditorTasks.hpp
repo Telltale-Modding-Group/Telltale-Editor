@@ -82,34 +82,7 @@ struct CommonNormalisationTask : EditorTask
     
     virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override
     {
-        String fn = Meta::GetInternalState().Classes.find(Instance.GetClassID())->second.NormaliserStringFn;
-        auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
-        TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found: '%s'", fn.c_str());
-        
-        ScriptManager::GetGlobal(thread.L, fn, true);
-        if(thread.L.Type(-1) != LuaType::FUNCTION)
-        {
-            thread.L.Pop(1);
-            TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary,
-                                          normaliser->second.Size, LoadChunkMode::BINARY), "Could not load normaliser chunk for %s", fn.c_str());
-        }
-        
-        Instance.PushWeakScriptRef(thread.L, Instance.ObtainParentRef());
-        thread.L.PushOpaque(&Local);
-        
-        thread.L.CallFunction(2, 1, false);
-        
-        Bool result;
-        
-        if(!(result=ScriptManager::PopBool(thread.L)))
-        {
-            TTE_LOG("Normalise failed for %s", fn.c_str());
-        }
-        else
-        {
-            Local.FinaliseNormalisationAsync();
-        }
-        return true;
+        return InstanceTransformation::PerformNormaliseAsync(TTE_PROXY_PTR(&Local, Handleable), Instance, thread.L);
     }
     
     virtual void Finalise(TelltaleEditor&) override

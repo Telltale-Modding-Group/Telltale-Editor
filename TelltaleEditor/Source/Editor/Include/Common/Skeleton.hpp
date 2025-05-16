@@ -31,9 +31,12 @@ struct SkeletonEntry
 };
 
 // A skeleton resource describes bone layouts for a mesh in terms of its vertex groupings.
-class Skeleton : public Handleable
+class Skeleton : public HandleableRegistered<Skeleton>
 {
 public:
+    
+    static constexpr CString ClassHandle = "Handle<Skeleton>";
+    static constexpr CString Class = "Skeleton";
     
     Skeleton(Ptr<ResourceRegistry> reg);
     
@@ -46,8 +49,8 @@ public:
     
     void FinaliseNormalisationAsync() override;
 
-    Skeleton(const Skeleton&) = delete;
-    Skeleton(Skeleton&&) = delete; // must update serial. disable for now
+    Skeleton(Skeleton&&);
+    Skeleton(const Skeleton&);
     
     U32 GetSerial() const; // unique ID
     

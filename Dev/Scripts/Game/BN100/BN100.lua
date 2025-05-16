@@ -70,7 +70,7 @@ function RegisterBoneKeyframedValue(ci, typedInterface, typeName, typeTable)
 	sample.Members[3] = NewMember("mValue", typeTable)
 	MetaRegisterClass(sample)
 
-	arraySample, _ = RegisterBoneCollection(ci, "class DCArray<class KeyframedValue<" .. typeName .. ">::Sample>", nil, sample)
+	local arraySample, _ = RegisterBoneCollection(ci, "class DCArray<class KeyframedValue<" .. typeName .. ">::Sample>", nil, sample)
 
 	local keyframed = NewClass("class KeyframedValue<" .. typeName .. ">", 0)
 	keyframed.Members[1] = NewMember("Baseclass_AnimatedValueInterface<T>", NewProxyClass(typedInterface.Name .. " *", "mVal", typedInterface))
@@ -181,23 +181,23 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(MetaCI)
 
 	-- ALL HANDLE TYPES
-	hAnim = RegisterBoneHandle("class Handle<class Animation>")
-	hChore = RegisterBoneHandle("class Handle<class Chore>")
-	hMesh = RegisterBoneHandle("class Handle<class D3DMesh>")
-	hTexture = RegisterBoneHandle("class Handle<class D3DTexture>")
-	hDlgResource = RegisterBoneHandle("class Handle<class DialogResource>")
-	hProp = RegisterBoneHandle("class Handle<class PropertySet>")
-	hAud = RegisterBoneHandle("class Handle<class AudioData")
-	hScene = RegisterBoneHandle("class Handle<class Scene>")
-	hSkeleton = RegisterBoneHandle("class Handle<class Skeleton>")
-	hStyle = RegisterBoneHandle("class Handle<class StyleGuide>")
-	hVoiceData = RegisterBoneHandle("class Handle<class VoiceData>")
-	hWalkBoxes = RegisterBoneHandle("class Handle<class WalkBoxes>")
-	hFont = RegisterBoneHandle("class Handle<class Font>")
-	hAnimChore = RegisterBoneHandle("class Handle<class AnimOrChore>")
+	local hAnim = RegisterBoneHandle("class Handle<class Animation>")
+	local hChore = RegisterBoneHandle("class Handle<class Chore>")
+	local hMesh = RegisterBoneHandle("class Handle<class D3DMesh>")
+	local hTexture = RegisterBoneHandle("class Handle<class D3DTexture>")
+	local hDlgResource = RegisterBoneHandle("class Handle<class DialogResource>")
+	local hProp = RegisterBoneHandle("class Handle<class PropertySet>")
+	local hAud = RegisterBoneHandle("class Handle<class AudioData")
+	local hScene = RegisterBoneHandle("class Handle<class Scene>")
+	local hSkeleton = RegisterBoneHandle("class Handle<class Skeleton>")
+	local hStyle = RegisterBoneHandle("class Handle<class StyleGuide>")
+	local hVoiceData = RegisterBoneHandle("class Handle<class VoiceData>")
+	local hWalkBoxes = RegisterBoneHandle("class Handle<class WalkBoxes>")
+	local hFont = RegisterBoneHandle("class Handle<class Font>")
+	local hAnimChore = RegisterBoneHandle("class Handle<class AnimOrChore>")
 	
 	-- array of prop file names (for parent list in prop). only list in this game, rest are arrays etc
-	local MetaHandleArrayProp = { VersionIndex = 0}
+	local MetaHandleArrayProp = { VersionIndex = 0 }
 	MetaHandleArrayProp.Name = "class List<class Handle<class PropertySet> >"
 	MetaHandleArrayProp.Members = {} -- no members in this one for some reason
 	MetaRegisterCollection(MetaHandleArrayProp, nil, hProp)
@@ -255,7 +255,7 @@ function RegisterBone100(vendor, platform)
 	-- mVal type name for versioning must be enum NavCam::Mode, not int, so we need the wrapper above
 	MetaRegisterClass(navCamMode)
 
-	structNavMode = MetaRegisterDuplicate(navCamMode, "struct NavCam::EnumMode", 0)
+	local structNavMode = MetaRegisterDuplicate(navCamMode, "struct NavCam::EnumMode", 0)
 
 	local imapMapping = NewClass("class InputMapper::EventMapping", 0)
 	imapMapping.Members[1] = NewMember("mInputCode", NewProxyClass("enum InputCode", "mVal", kMetaInt) , kMetaMemberEnum)
@@ -263,7 +263,7 @@ function RegisterBone100(vendor, platform)
 	imapMapping.Members[3] = NewMember("mScriptFunction", kMetaClassString, 0)
 	MetaRegisterClass(imapMapping)
 
-	imapMappingArray, _ = RegisterBoneCollection(MetaCI, "class DCArray<class InputMapper::EventMapping>", nil, imapMapping)
+	local imapMappingArray, _ = RegisterBoneCollection(MetaCI, "class DCArray<class InputMapper::EventMapping>", nil, imapMapping)
 
 	-- .IMAP FILES
 	local imap = NewClass("class InputMapper", 0)
@@ -312,12 +312,12 @@ function RegisterBone100(vendor, platform)
 	transform.Members[2] = NewMember("mTrans", MetaVec3)
 	MetaRegisterClass(transform)
 
-	arrayHandleChore, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Chore> >", nil, hChore)
-	arrayHandleAnim , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Animation> >", nil, hAnim)
-	arrayHandleAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AnimOrChore> >", nil, hAnimChore)
-	arrayAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class AnimOrChore>", nil, animOrChore)
+	local arrayHandleChore, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Chore> >", nil, hChore)
+	local arrayHandleAnim , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Animation> >", nil, hAnim)
+	local arrayHandleAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AnimOrChore> >", nil, hAnimChore)
+	local arrayAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class AnimOrChore>", nil, animOrChore)
 
-	arrayClassString, _ = RegisterBoneCollection(MetaCI, "class DCArray<class String>", nil, kMetaClassString)
+	local arrayClassString, _ = RegisterBoneCollection(MetaCI, "class DCArray<class String>", nil, kMetaClassString)
 
 	local enumActiveDuring = NewClass("struct ActingPalette::EnumActiveDuring", 0)
 	enumActiveDuring.Members[1] = NewMember("mVal", NewProxyClass("enum ActingPalette::ActiveDuring", "mVal", kMetaInt))
@@ -363,7 +363,7 @@ function RegisterBone100(vendor, platform)
 	actingPalette2.Members[6] = NewMember("mActiveDuring", enumActiveDuring)
 	MetaRegisterClass(actingPalette2)
 
-	arrayPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ActingPalette>", nil, actingPalette1)
+	local arrayPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ActingPalette>", nil, actingPalette1)
 
 	local actingPaletteClass = NewClass("class ActingPaletteClass", 0)
 	actingPaletteClass.Members[1] = NewMember("mName", kMetaClassString)
@@ -398,12 +398,12 @@ function RegisterBone100(vendor, platform)
 	anmBase.Members[2] = NewMember("mFlags", kMetaInt)
 	MetaRegisterClass(anmBase)
 
-	animatedBool = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<bool>")
-	animatedColor = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Color>")
-	animatedFloat = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<float>")
-	animatedQuat = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Quaternion>")
-	animatedStr = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class String>")
-	animatedVec3 = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Vector3>")
+	local animatedBool = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<bool>")
+	local animatedColor = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Color>")
+	local animatedFloat = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<float>")
+	local animatedQuat = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Quaternion>")
+	local animatedStr = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class String>")
+	local animatedVec3 = RegisterBoneANMValue(anmBase, "class AnimatedValueInterface<class Vector3>")
 
 	RegisterBoneKeyframedValue(MetaCI, animatedBool, "bool", kMetaBool)
 	RegisterBoneKeyframedValue(MetaCI, animatedColor, "class Color", MetaCol)
@@ -529,7 +529,7 @@ function RegisterBone100(vendor, platform)
 	langp1.Members[3] = NewMember("mLangID", kMetaInt)
 	MetaRegisterClass(langp1)
 
-	mapIntLangRes, _ = RegisterBoneCollection(MetaCI, "class Map<int,class LanguageResource,struct std::less<int> >", kMetaInt, langr) -- dont change name! hashed.
+	local mapIntLangRes, _ = RegisterBoneCollection(MetaCI, "class Map<int,class LanguageResource,struct std::less<int> >", kMetaInt, langr) -- dont change name! hashed.
 
 	-- .LANGDB FILES
 	local langdb = NewClass("class LanguageDatabase", 0)
@@ -544,7 +544,7 @@ function RegisterBone100(vendor, platform)
 	ruleInf.Members[3] = NewMember("mActionProperties", prop)
 	MetaRegisterClass(ruleInf)
 
-	arrayRuleInfo, _ = RegisterBoneCollection(MetaCI, "__ArrayRuleAgents", nil, ruleInf)
+	local arrayRuleInfo, _ = RegisterBoneCollection(MetaCI, "__ArrayRuleAgents", nil, ruleInf)
 
 	local rule0 = NewClass("class Rule", 0)
 	rule0.Serialiser = "SerialiseRuleBone1"
@@ -584,7 +584,7 @@ function RegisterBone100(vendor, platform)
 	rule4.Members[5] = NewMember("mActionProperties", prop)
 	MetaRegisterClass(rule4)
 
-	arrayRule, _ = RegisterBoneCollection(MetaCI, "__ArrayRules", nil, rule0)
+	local arrayRule, _ = RegisterBoneCollection(MetaCI, "__ArrayRules", nil, rule0)
 
 	local setString = { VersionIndex = 0 }
 	setString.Name = "class Set<class String,struct std::less<class String> >"
@@ -618,7 +618,7 @@ function RegisterBone100(vendor, platform)
 	sgAgent1.Members[3] = NewMember("mQuaternion", MetaQuat)
 	MetaRegisterClass(sgAgent1)
 
-	arraySaveGameAgent, _ = RegisterBoneCollection(MetaCI, "class DCArray<class SaveGame::AgentInfo>", nil, sgAgent)
+	local arraySaveGameAgent, _ = RegisterBoneCollection(MetaCI, "class DCArray<class SaveGame::AgentInfo>", nil, sgAgent)
 
 	local sg0 = NewClass("class SaveGame", 0)
 	sg0.Extension = "save"
@@ -655,7 +655,7 @@ function RegisterBone100(vendor, platform)
 	sceneAgent0.Members[10] = NewMember("mbMembersImportedIntoSceneProps", kMetaBool)
 	MetaRegisterClass(sceneAgent0)
 
-	arrayAgents, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Scene::AgentInfo>", nil, sceneAgent0, kMetaClassIntrinsic)
+	local arrayAgents, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Scene::AgentInfo>", nil, sceneAgent0)
 
 	local scene = NewClass("class Scene", 0)
 	scene.Extension = "scene"
@@ -667,7 +667,7 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(scene)
 	MetaAssociateFolderExtension("BN100", "*.scene", "Scenes/")
 
-	mapStringFloat, _ = RegisterBoneCollection(MetaCI, "class Map<class String,float,struct std::less<class String> >", kMetaClassString, kMetaFloat)
+	local mapStringFloat, _ = RegisterBoneCollection(MetaCI, "class Map<class String,float,struct std::less<class String> >", kMetaClassString, kMetaFloat)
 
 	local sklEntry = NewClass("class Skeleton::Entry", 0)
 	sklEntry.Members[1] = NewMember("mJointName", kMetaClassString)
@@ -682,7 +682,7 @@ function RegisterBone100(vendor, platform)
 	sklEntry.Members[10] = NewMember("mResourceGroupMembership", mapStringFloat)
 	MetaRegisterClass(sklEntry)
 
-	arraySklEntry, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Skeleton::Entry>", nil, sklEntry)
+	local arraySklEntry, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Skeleton::Entry>", nil, sklEntry)
 
 	local skl = NewClass("class Skeleton", 0)
 	skl.Extension = "skl"
@@ -691,7 +691,7 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(skl)
 	MetaAssociateFolderExtension("BN100", "*.skl", "Meshes/Skeletons/")
 
-	arrayPaletteClass, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ActingPaletteClass>", nil, actingPaletteClass)
+	local arrayPaletteClass, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ActingPaletteClass>", nil, actingPaletteClass)
 
 	local style0 = NewClass("class StyleGuide", 0)
 	style0.Extension = "style"
@@ -719,9 +719,9 @@ function RegisterBone100(vendor, platform)
 	style3.Members[3] = NewMember("mAgentName", kMetaClassString)
 	MetaRegisterClass(style3)
 
-	arrayBool, _ = RegisterBoneCollection(MetaCI, "class DArray<bool>", nil, kMetaBool)
-	arrayDInt, _ = RegisterBoneCollection(MetaCI, "class DArray<int>", nil, kMetaInt)
-	arrayDCInt, _ = RegisterBoneCollection(MetaCI, "class DCArray<int>", nil, kMetaInt)
+	local arrayBool, _ = RegisterBoneCollection(MetaCI, "class DArray<bool>", nil, kMetaBool)
+	local arrayDInt, _ = RegisterBoneCollection(MetaCI, "class DArray<int>", nil, kMetaInt)
+	local arrayDCInt, _ = RegisterBoneCollection(MetaCI, "class DCArray<int>", nil, kMetaInt)
 
 	local styleRef = NewClass("class StyleGuideRef", 0) -- has custom serialiser, just calls default
 	styleRef.Members[1] = NewMember("mhStyleGuide", hStyle)
@@ -729,7 +729,7 @@ function RegisterBone100(vendor, platform)
 	styleRef.Members[3] = NewMember("mPalettesUsed", arrayBool)
 	MetaRegisterClass(styleRef)
 
-	arrayStyleRef = RegisterBoneCollection(MetaCI, "class DCArray<class StyleGuideRef>", nil, styleRef)
+	local arrayStyleRef = RegisterBoneCollection(MetaCI, "class DCArray<class StyleGuideRef>", nil, styleRef)
 
 	local vox0 = NewClass("class VoiceData", 0)
 	vox0.Extension = "vox"
@@ -798,10 +798,10 @@ function RegisterBone100(vendor, platform)
 	wboxQuad.Members[1] = NewMember("mVerts", array4Int)
 	MetaRegisterClass(wboxQuad)
 
-	arrayVec3, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Vector3>", nil, MetaVec3)
-	arrayQuad, _ = RegisterBoneCollection(MetaCI, "class DCArray<class WalkBoxes::Quad>", nil, wboxQuad)
-	arrayVert, _ = RegisterBoneCollection(MetaCI, "class DCArray<class WalkBoxes::Vert>", nil, wboxVert)
-	arrayTri, _ = RegisterBoneCollection(MetaCI, "class DCArray<class WalkBoxes::Tri>", nil, wboxTri)
+	local arrayVec3, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Vector3>", nil, MetaVec3)
+	local arrayQuad, _ = RegisterBoneCollection(MetaCI, "class DCArray<class WalkBoxes::Quad>", nil, wboxQuad)
+	local arrayVert, _ = RegisterBoneCollection(MetaCI, "class DCArray<class WalkBoxes::Vert>", nil, wboxVert)
+	local arrayTri, _ = RegisterBoneCollection(MetaCI, "class DCArray<class WalkBoxes::Tri>", nil, wboxTri)
 
 	local wbox = NewClass("class WalkBoxes", 0)
 	wbox.Extension = "wbox"
@@ -837,7 +837,7 @@ function RegisterBone100(vendor, platform)
 	choreBlock.Members[4] = NewMember("mScale", kMetaFloat)
 	MetaRegisterClass(choreBlock)
 
-	arrayChoreBlock, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreResource::Block>", nil, choreBlock)
+	local arrayChoreBlock, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreResource::Block>", nil, choreBlock)
 
 	local choreResource = NewClass("class ChoreResource", 0)
 	choreResource.Serialiser = "SerialiseChoreResourceBone1"
@@ -861,8 +861,8 @@ function RegisterBone100(vendor, platform)
 	choreResource.Members[17] = NewMember("mAAStatus", NewProxyClass("enum ChoreResource::AAStatus", "mVal", kMetaInt))
 	MetaRegisterClass(choreResource)
 
-	arrayChoreAgent, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreAgent>", nil, choreAgent)
-	arrayChoreResource, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreResource>", nil, choreResource)
+	local arrayChoreAgent, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreAgent>", nil, choreAgent)
+	local arrayChoreResource, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreResource>", nil, choreResource)
 
 	local chore = NewClass("class Chore", 0)
 	chore.Extension = "chore"
@@ -884,17 +884,17 @@ function RegisterBone100(vendor, platform)
 	MetaAssociateFolderExtension("BN100", "*.chore", "Chores/")
 	MetaAssociateFolderExtension("BN100", "dlg_*.chore", "Chores/Dialog/")
 
-	mesh = RegisterBoneD3DMesh(platform, vendor, bb, hTexture, arrayDCInt, MetaCol, MetaCI)
+	local mesh = RegisterBoneD3DMesh(platform, vendor, bb, hTexture, arrayDCInt, MetaCol, MetaCI)
 
-	tex = RegisterBoneD3DTexture(vendor, platform)
+	local tex = RegisterBoneD3DTexture(vendor, platform)
 
 	local glyph = NewClass("struct Font::GlyphInfo", 0)
 	glyph.Members[1] = NewMember("mTexturePage", kMetaInt)
 	glyph.Members[2] = NewMember("mGlyph", MetaTRectF)
 	MetaRegisterClass(glyph)
 
-	arrayGlyph, _ = RegisterBoneCollection(MetaCI, "class DCArray<struct Font::GlyphInfo>", nil, glyph)
-	arrayTex, _ = RegisterBoneCollection(MetaCI, "class DCArray<class D3DTexture>", nil, tex)
+	local arrayGlyph, _ = RegisterBoneCollection(MetaCI, "class DCArray<struct Font::GlyphInfo>", nil, glyph)
+	local arrayTex, _ = RegisterBoneCollection(MetaCI, "class DCArray<class D3DTexture>", nil, tex)
 
 	local font = NewClass("class Font", 0) -- has serialiser but just disables mipmapping whatever
 	font.Extension = "font"
@@ -993,12 +993,12 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(dlgText)
 
 	-- following arrays are not serialised or used, only used internally here to store
-	arrDlg, _ = RegisterBoneCollection(MetaCI, "__DialogDialogArray", nil, dlgDlg) 
-	arrBranch, _ = RegisterBoneCollection(MetaCI, "__DialogBranchArray", nil, dlgBranch) 
-	arrItem, _ = RegisterBoneCollection(MetaCI, "__DialogItemArray", nil, dlgItem) 
-	arrText, _ = RegisterBoneCollection(MetaCI, "__DialogTextArray", nil, dlgText) 
-	arrExc, _ = RegisterBoneCollection(MetaCI, "__DialogExchangeArray", nil, dlgEx) 
-	arrLine, _ = RegisterBoneCollection(MetaCI, "__DialogLineArray", nil, dlgLine) 
+	local arrDlg, _ = RegisterBoneCollection(MetaCI, "__DialogDialogArray", nil, dlgDlg) 
+	local arrBranch, _ = RegisterBoneCollection(MetaCI, "__DialogBranchArray", nil, dlgBranch) 
+	local arrItem, _ = RegisterBoneCollection(MetaCI, "__DialogItemArray", nil, dlgItem) 
+	local arrText, _ = RegisterBoneCollection(MetaCI, "__DialogTextArray", nil, dlgText) 
+	local arrExc, _ = RegisterBoneCollection(MetaCI, "__DialogExchangeArray", nil, dlgEx) 
+	local arrLine, _ = RegisterBoneCollection(MetaCI, "__DialogLineArray", nil, dlgLine) 
 
 	local dlg = NewClass("class DialogResource", 0)
 	dlg.Extension = "dlg"
@@ -1024,8 +1024,6 @@ function RegisterBone100(vendor, platform)
 
 	RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AudioData> >", nil, hAud)
 	RegisterBoneCollection(MetaCI, "class Map<class String,class String,struct std::less<class String> >", kMetaClassString, kMetaClassString)
-	
-	MetaDumpVersions()
 
 	return true
 end

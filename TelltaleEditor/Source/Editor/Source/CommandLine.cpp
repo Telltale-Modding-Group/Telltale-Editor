@@ -129,7 +129,7 @@ namespace CommandLine
             TelltaleEditor* editor = CreateEditorContext(game, false);
             
             Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry();
-            registry->MountSystem("<Data>/", mount);
+            registry->MountSystem("<Data>/", mount, true);
             
             std::set<String> all{};
             registry->GetResourceNames(all, nullptr);
@@ -140,7 +140,16 @@ namespace CommandLine
                 t.Register(f);
             t.SerialiseOut(out);
             TTE_LOG("** Dumped symbol map!");
+            FreeEditorContext();
         }
+        return 0;
+    }
+    
+    static I32 Executor_GenRTSM(const std::vector<TaskArgument> &args)
+    {
+        DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(GetStringArgumentOrDefault(args, "-out", "./default.symmap"));
+        GetRuntimeSymbols().SerialiseOut(out);
+        TTE_LOG("** Dumped symbol map!");
         return 0;
     }
     
@@ -169,15 +178,17 @@ namespace CommandLine
             if(std::filesystem::is_regular_file(mount))
                 registry->MountArchive("<Data>/", mount);
             else if(std::filesystem::is_directory(mount))
-                registry->MountSystem("<Data>/", mount);
+                registry->MountSystem("<Data>/", mount, true);
             else
             {
+                FreeEditorContext();
                 TTE_LOG("** The mount point '%s' does not exist on your local machine!", mount.c_str());
                 return 1;
             }
             editor->EnqueueResourceLocationExtractTask(registry, "<Data>/", out, filter, !bFlat, &Executor_Extract_CallbackAsync);
             editor->Wait();
             TTE_LOG("\n** Successfully extracted files from resource location");
+            FreeEditorContext();
         }
         return 0;
     }
@@ -198,6 +209,7 @@ namespace CommandLine
             DataStreamRef outfile = DataStreamManager::GetInstance()->CreateFileStream(out);
             if(!infile->GetSize())
             {
+                FreeEditorContext();
                 TTE_LOG("\n** Input file not found or empty");
                 return 1;
             }
@@ -205,6 +217,7 @@ namespace CommandLine
                 TTE_LOG("\n** Successfully converted to JSON");
             else
                 TTE_LOG("\n** Failed to fully serialise the file input. Please contact us. The JSON is written until where the error occured.");
+            FreeEditorContext();
         }
         return 0;
     }
@@ -229,7 +242,10 @@ namespace CommandLine
             {
                 String out = infiles.size() == 1 && HasArgument(args, "-out") ? GetStringArgumentOrDefault(args, "-out", "") : (outfo + FileGetFilename(in));
                 if(!game.ID.length())
+                {
+                    FreeEditorContext();
                     return 1;
+                }
                 Bool bEncryptDisable = Meta::GetInternalState().GetActiveGame().Caps[GameCapability::SCRIPT_ENCRYPTION_DISABLED];
                 DataStreamRef infile = DataStreamManager::GetInstance()->CreateFileStream(in);
                 if(HasArgument(args, "-encrypt"))
@@ -240,6 +256,7 @@ namespace CommandLine
                     if(bEncryptDisable)
                     {
                         TTE_LOG("** Error: the game snapshot provided does not support script encryption");
+                        FreeEditorContext();
                         return 1;
                     }
                     DataStreamRef encrypted = ScriptManager::EncryptScript(infile, StringEndsWith(out, ".lenc"));
@@ -259,10 +276,12 @@ namespace CommandLine
                 else
                 {
                     TTE_LOG("** No lua sub-task specified. Please specify -encrypt,-decrypt etc...");
+                    FreeEditorContext();
                     return 1;
                 }
                 TTE_LOG("** Done %s", in.c_str());
             }
+            FreeEditorContext();
         }
         return 0;
     }
@@ -272,24 +291,136 @@ namespace CommandLine
     // Simply run mod.lua
     static I32 Executor_Exec(const std::vector<TaskArgument>& args)
     {
+        I32 ret = 0;
         String exec = GetStringArgumentOrDefault(args, "-script", "mod.lua");
         GameSnapshot game = GetSnapshot(args);
         if(!game.ID.length())
             return 1;
         TelltaleEditor* editor = CreateEditorContext(game, false);
         {
+            Ptr<ResourceRegistry> userReg = editor->CreateResourceRegistry();
             DataStreamRef file = DataStreamManager::GetInstance()->CreateFileStream(exec);
             if(!file->GetSize())
             {
                 TTE_LOG("** Input script %s not found or empty", exec.c_str());
-                return 1;
+                ret = 1;
             }
-            Memory::FastBufferAllocator alloc{};
-            U8* s = alloc.Alloc(file->GetSize(), 4);
-            file->Read(s, file->GetSize());
-            GetThreadLVM().RunText((CString)s, (U32)file->GetSize(), false, exec.c_str());
+            else
+            {
+                Memory::FastBufferAllocator alloc{};
+                U8* s = alloc.Alloc(file->GetSize(), 4);
+                file->Read(s, file->GetSize());
+                GetThreadLVM().RunText((CString)s, (U32)file->GetSize(), false, exec.c_str());
+            }
         }
-        
+        FreeEditorContext();
+        return ret;
+    }
+    
+    // ===================== DECRYPT MS =====================
+    
+    static I32 Executor_DecryptMS(const std::vector<TaskArgument>& args)
+    {
+        String inf = GetStringArgumentOrDefault(args, "-in", "");
+        String outfo = GetStringArgumentOrDefault(args, "-out", "./");
+        std::vector<String> infiles = GetInputFiles(inf);
+        if(!infiles.size())
+            return 1;
+        if(std::filesystem::is_regular_file(outfo))
+            outfo = std::filesystem::absolute(outfo).parent_path().string();
+        else if(!StringEndsWith(outfo, "/") && !StringEndsWith(outfo, "\\"))
+            outfo += "/";
+        {
+            GameSnapshot game = GetSnapshot(args);
+            TelltaleEditor* editor = CreateEditorContext(game, false);
+            for(String in: infiles)
+            {
+                String out = infiles.size() == 1 && HasArgument(args, "-out") ? GetStringArgumentOrDefault(args, "-out", "") : (outfo + FileGetFilename(in));
+                if(!game.ID.length())
+                {
+                    FreeEditorContext();
+                    return 1;
+                }
+                Bool bEncryptDisable = Meta::GetInternalState().GetActiveGame().Caps[GameCapability::SCRIPT_ENCRYPTION_DISABLED];
+                DataStreamRef infile = DataStreamManager::GetInstance()->CreateFileStream(in);
+                DataStreamRef outfile = DataStreamManager::GetInstance()->CreateFileStream(out);
+                infile = Meta::MapDecryptingStream(infile);
+                DataStreamManager::GetInstance()->Transfer(infile, outfile, infile->GetSize());
+                TTE_LOG("** Done %s", in.c_str());
+            }
+            FreeEditorContext();
+        }
+        return 0;
+    }
+    
+    // ===================== LOAD ALL DBG =====================
+    
+    static I32 Executor_LoadAll(const std::vector<TaskArgument>& args)
+    {
+        String inf = GetStringArgumentOrDefault(args, "-in", "");
+        String outerr = GetStringArgumentOrDefault(args, "-errorfile", "./ProbeLog.txt");
+        std::set<String> nonMeta{}, failedOpen{}, failed{};
+        U32 numOk = 0;
+        std::vector<String> infiles = GetInputFiles(inf);
+        if(!infiles.size())
+            return 1;
+        GameSnapshot game = GetSnapshot(args);
+        TelltaleEditor* editor = CreateEditorContext(game, false);
+        {
+            U32 i = 0;
+            Float scale = 100.0f / (Float)infiles.size();
+            for(const auto& fileName: infiles)
+            {
+                Float percent = (Float)i * scale;
+                if(Meta::FindClassByExtension(FileGetExtension(fileName), 0) == 0)
+                {
+                    nonMeta.insert(fileName);
+                    TTE_LOG("** %.04f%% Not a meta stream: %s", percent, fileName.c_str());
+                }
+                else
+                {
+                    DataStreamRef stream = DataStreamManager::GetInstance()->CreateFileStream(fileName);
+                    if(!stream || stream->GetSize() == 0)
+                    {
+                        TTE_LOG("** %.04f%% Failed to open: %s", percent, fileName.c_str());
+                        failedOpen.insert(fileName);
+                    }
+                    else
+                    {
+                        Meta::ClassInstance instance = Meta::ReadMetaStream(fileName, stream);
+                        if(instance)
+                        {
+                            numOk++;
+                            TTE_LOG("** %.04f%% Passed: %s", percent, fileName.c_str());
+                        }
+                        else
+                        {
+                            TTE_LOG("** %.04f%% Failed: %s", percent, fileName.c_str());
+                            failed.insert(fileName);
+                        }
+                    }
+                }
+                i++;
+            }
+            {
+                std::stringstream log{};
+                log << "** Probed files output generated by the Telltale Editor v" TTE_VERSION "\n\n";
+                log << "** Out of the " << infiles.size() << " input files, " << numOk << " successfully were read fully.\n\n";
+                log << "\n** The following files failed to be opened by Telltale Editor (check permissions):\n\n";
+                for(const auto& f: failedOpen)
+                    log << "** " << f << "\n";
+                log << "\n** The following files are not meta stream files:\n\n";
+                for(const auto& f: nonMeta)
+                    log << "** " << f << "\n";
+                log << "\n** The following files failed to read successfully:\n\n";
+                for(const auto& f: failed)
+                    log << "** " << f << "\n";
+                DataStreamRef logf = DataStreamManager::GetInstance()->CreateFileStream(outerr);
+                String s = log.str();
+                logf->Write((const U8*)s.c_str(), s.length());
+            }
+        }
+        FreeEditorContext();
         return 0;
     }
     
@@ -319,6 +450,11 @@ namespace CommandLine
         }
         
         {
+            auto& task = tasks.emplace_back(TaskInfo{"mkrtsymmap", "Generate string symbol map for all runtime telltale symbols", &Executor_GenRTSM});
+            task.OptionalArguments.push_back({"-out",ArgumentType::STRING, {"-o"}});
+        }
+        
+        {
             auto& task = tasks.emplace_back(TaskInfo{"extract", "Extract files from archives or any compound telltale file or whole game directory."
                 " Specify an optional filename filter, eg '*.scene;!*.dlg'. Flat doesn't export folders.", &Executor_Extract});
             task.OptionalArguments.push_back({"-out",ArgumentType::STRING, {"-o"}});
@@ -344,12 +480,32 @@ namespace CommandLine
             auto& task = tasks.emplace_back(TaskInfo{"lua", "Various lua script helpers which are applied to input file or "
                 "all files in the input folder", &Executor_Lua});
             task.OptionalArguments.push_back({"-out",ArgumentType::STRING, {"-o"}});
-            task.RequiredArguments.push_back({"-in",ArgumentType::STRING, {"-i", "-f", "-file"}});
+            task.RequiredArguments.push_back({"-in",ArgumentType::STRING, {"-i"}});
             task.RequiredArguments.push_back({"-game",ArgumentType::STRING});
             task.OptionalArguments.push_back({"-platform",ArgumentType::STRING});
             task.OptionalArguments.push_back({"-vendor",ArgumentType::STRING});
             task.OptionalArguments.push_back({"-decrypt",ArgumentType::NONE});
             task.OptionalArguments.push_back({"-encrypt",ArgumentType::NONE});
+        }
+        
+        {
+            auto& task = tasks.emplace_back(TaskInfo{"decrypt", "Decrypt encrypted meta streams (MBES/others). Does not decrypt lua scripts or any"
+                " other script! Prefer to use the lua command for that. Pass in a file or whole folder.", &Executor_DecryptMS});
+            task.OptionalArguments.push_back({"-out",ArgumentType::STRING, {"-o"}});
+            task.RequiredArguments.push_back({"-in",ArgumentType::STRING, {"-i"}});
+            task.RequiredArguments.push_back({"-game",ArgumentType::STRING});
+            task.OptionalArguments.push_back({"-platform",ArgumentType::STRING});
+            task.OptionalArguments.push_back({"-vendor",ArgumentType::STRING});
+        }
+        
+        {
+            auto& task = tasks.emplace_back(TaskInfo{"probe", "This probe command loads every single file (recursively) in the input"
+                " mount directory or archive pack. Any erroring files go to the output error file.", &Executor_LoadAll});
+            task.OptionalArguments.push_back({"-in",ArgumentType::STRING, {"-i"}});
+            task.RequiredArguments.push_back({"-game",ArgumentType::STRING});
+            task.OptionalArguments.push_back({"-platform",ArgumentType::STRING});
+            task.OptionalArguments.push_back({"-vendor",ArgumentType::STRING});
+            task.OptionalArguments.push_back({"-errorfile",ArgumentType::STRING, {"-ef","-errf"}});
         }
         
         {
@@ -412,24 +568,34 @@ namespace CommandLine
     
     std::vector<String> GetInputFiles(const String& _path)
     {
-        String path = _path;
-        if(std::filesystem::is_regular_file(path))
-            return {std::filesystem::absolute(path).string()};
-        if(!StringEndsWith(path, "/") && !StringEndsWith(path, "\\"))
-            path += "/";
-        if(std::filesystem::is_directory(path))
+        namespace fs = std::filesystem;
+        fs::path path = _path;
+        
+        if (fs::is_regular_file(path))
+            return {fs::absolute(path).string()};
+        
+        if (!fs::is_directory(path))
         {
-            std::vector<String> files{};
-            String dir = std::filesystem::absolute(std::filesystem::path(path)).parent_path().string();
-            if(!StringEndsWith(dir, "/") && !StringEndsWith(dir, "\\"))
-                dir += "/";
-            for(auto file: std::filesystem::directory_iterator(path))
-                if(std::filesystem::is_regular_file(file))
-                    files.push_back(dir + file.path().filename().string());
-            if(files.size())
-                return files;
+            TTE_LOG("** At '%s': not a directory or file", _path.c_str());
+            return {};
         }
-        TTE_LOG("** At '%s': no files found", path.c_str());
+        
+        std::vector<String> files;
+        fs::path base = fs::absolute(path);
+        
+        for (const auto& file : fs::recursive_directory_iterator(base))
+        {
+            if (fs::is_regular_file(file))
+            {
+                fs::path rel = fs::relative(file.path(), base);
+                files.push_back((path / rel).string());
+            }
+        }
+        
+        if (!files.empty())
+            return files;
+        
+        TTE_LOG("** At '%s': no files found", _path.c_str());
         return {};
     }
     

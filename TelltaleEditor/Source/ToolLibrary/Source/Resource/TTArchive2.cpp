@@ -221,3 +221,8 @@ Bool TTArchive2::SerialiseOut(DataStreamRef& o, ContainerParams params, JobHandl
     
     return bResult;
 }
+
+TTArchive2::~TTArchive2()
+{
+    
+}

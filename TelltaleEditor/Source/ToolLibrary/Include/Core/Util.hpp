@@ -226,6 +226,39 @@ inline Bool StringStartsWith(const String& str, const String& prefix)
     return str.size() >= prefix.size() && str.compare(0, prefix.size(), prefix) == 0;
 }
 
+// Gets the file name without path or extension
+inline String FileGetName(const String& filename)
+{
+    size_t slashPos = filename.find_last_of("/\\");
+    size_t dotPos = filename.find_last_of('.');
+    
+    size_t nameStart = (slashPos == String::npos) ? 0 : slashPos + 1;
+    
+    if (dotPos != String::npos && dotPos > nameStart)
+    {
+        return filename.substr(nameStart, dotPos - nameStart);
+    }
+    else
+    {
+        return filename.substr(nameStart);
+    }
+}
+
+// Sets or replaces the file name (excluding extension and path)
+inline String FileSetName(const String& filename, const String& newName)
+{
+    size_t slashPos = filename.find_last_of("/\\");
+    size_t dotPos = filename.find_last_of('.');
+    
+    size_t nameStart = (slashPos == String::npos) ? 0 : slashPos + 1;
+    bool hasExt = dotPos != String::npos && (dotPos > nameStart);
+    
+    String path = (slashPos == String::npos) ? "" : filename.substr(0, nameStart);
+    String ext = hasExt ? filename.substr(dotPos) : "";
+    
+    return path + newName + ext;
+}
+
 // Sets or replaces the file extension of a string
 inline String FileSetExtension(const String& filename, const String& newExt)
 {
@@ -256,6 +289,18 @@ inline String FileGetExtension(const String& filename)
     return "";
 }
 
+// Gets the path portion of a filename (excluding the filename and trailing slash)
+inline String FileGetPath(const String& filename)
+{
+    size_t slashPos = filename.find_last_of("/\\");
+    
+    if (slashPos != String::npos)
+    {
+        return filename.substr(0, slashPos);
+    }
+    return "";
+}
+
 inline String FileGetFilename(const String& filepath)
 {
     size_t slashPos = filepath.find_last_of("/\\");
@@ -268,7 +313,6 @@ inline String FileSetFilename(const String& filepath, const String& newFilename)
     String path = (slashPos == String::npos) ? "" : filepath.substr(0, slashPos + 1);
     return path + newFilename;
 }
-
 
 // Checks if a string ends with the other string suffix
 inline Bool StringEndsWith(const String& str, const String& suffix, Bool bCaseSensitive = true)
@@ -317,7 +361,7 @@ inline void StringParseFunctionSignature(const String& line, std::string& outRet
     outArgs.clear();
     while (std::getline(argStream, arg, ','))
     {
-        outReturnType = StringTrim(arg);
+        arg = StringTrim(arg);
         if (!arg.empty())
             outArgs.push_back(arg);
     }
@@ -383,16 +427,79 @@ inline void StringReplace(String& str, const String& from, const String& to, Boo
     }
 }
 
-// Removes 'class ' 'struct ' 'std::' and 'enum ' stuff. Used by telltale
-inline String MakeTypeName(String fullName)
+// Removes 'class ' 'struct ' 'std::' and 'enum ' stuff. Used by telltale. Tests game caps if they strip. Defined in Context.cpp
+String MakeTypeName(String fullName);
+
+// ================================================== STRING MASK HELPER ==================================================
+
+/// A string mask to help find resources.
+class StringMask : public String {
+public:
+    
+    // MUST HAVE NO MEMBERS.
+    
+    enum MaskMode {
+        MASKMODE_SIMPLE_MATCH = 0,          // Exact match required (except for wildcards)
+        MASKMODE_ANY_SUBSTRING = 1,         // Pattern can match anywhere within `str`
+        MASKMODE_ANY_ENDING = 2,            // Pattern can match any suffix of `str`
+        MASKMODE_ANY_ENDING_NO_DIRECTORY = 3 // Similar to MASKMODE_ANY_ENDING but ignores directory separators
+    };
+    
+    inline StringMask(const String& mask) : String(mask) {}
+    
+    inline StringMask(CString mask) : String(mask) {}
+    
+    /**
+     * @brief Checks if a given string matches a search mask with wildcard patterns.
+     *
+     * @param testString The string to check against the search mask.
+     * @param searchMask A semicolon-separated list of patterns (e.g., "*.dlog;*.chore;!private_*").
+     *                   - Patterns prefixed with '!' indicate exclusion (negation).
+     * @param mode The matching mode from StringMask::MaskMode.
+     *             - MASKMODE_SIMPLE_MATCH: Exact match with wildcards.
+     *             - MASKMODE_ANY_SUBSTRING: Pattern can appear anywhere.
+     *             - MASKMODE_ANY_ENDING: Pattern can match the end.
+     *             - MASKMODE_ANY_ENDING_NO_DIRECTORY: Ignores directories, only matches filenames.
+     * @param excluded (Optional) If provided, set to `true` if `testString` is explicitly excluded.
+     *
+     * @return `true` if `testString` matches any pattern, `false` if it is excluded.
+     */
+    static Bool MatchSearchMask(
+                                CString testString,
+                                CString searchMask,
+                                StringMask::MaskMode mode,
+                                Bool* excluded = nullptr);
+    
+    static Bool MaskCompare(CString pattern, CString str, CString end, MaskMode mode); // Defined in the resource registry.
+    
+    inline Bool operator==(const String& rhs) const
+    {
+        return MatchSearchMask(rhs.c_str(), this->c_str(), MASKMODE_SIMPLE_MATCH);
+    }
+    
+    inline Bool operator!=(const String& rhs) const
+    {
+        return !MatchSearchMask(rhs.c_str(), this->c_str(), MASKMODE_SIMPLE_MATCH);
+    }
+    
+    inline Bool operator==(CString rhs) const
+    {
+        return MatchSearchMask(rhs, this->c_str(), MASKMODE_SIMPLE_MATCH);
+    }
+    
+    inline Bool operator!=(CString rhs) const
+    {
+        return !MatchSearchMask(rhs, this->c_str(), MASKMODE_SIMPLE_MATCH);
+    }
+    
+};
+
+inline Bool operator==(const String& lhs, const StringMask& mask) // otherway round just in case
 {
-    StringReplace(fullName, "class ", "");
-    StringReplace(fullName, "struct ", "");
-    StringReplace(fullName, "enum ", "");
-    StringReplace(fullName, "std::", "");
-    StringReplace(fullName, " ", "");
-    return fullName;
+    return mask == lhs;
 }
+
+static_assert(sizeof(String) == sizeof(StringMask), "String and StringMask must have same size and be castable.");
 
 // ================================================ FLOAT UTIL ================================================
 
@@ -406,6 +513,8 @@ inline Float ClampFloat(Float val, Float min, Float max)
 {
     return fmaxf(min, fminf(max, val));
 }
+
+struct Placeholder {};
 
 // ================================================ MISC UTIL ================================================
 

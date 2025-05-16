@@ -454,7 +454,7 @@ void Mesh::RegisterScriptAPI(LuaFunctionCollection &Col)
     PUSH_FUNC(Col, "CommonMeshPushVertexBuffer", &MeshAPI::luaSetNextVertexBuffer, "nil CommonMeshPushVertexBuffer(state, numVerts, vertexStride, binaryBuffer)",
               "Push a new vertex buffer to the common mesh");
     PUSH_FUNC(Col, "CommonMeshSetIndexBuffer", &MeshAPI::luaSetIndexBuffer
-              , "nil CommonMeshSetIndexBuffer(state, numIndices, formatIsUnsignedShort, binaryBuffer", "Set the common mesh's index buffer");
+              , "nil CommonMeshSetIndexBuffer(state, numIndices, formatIsUnsignedShort, binaryBuffer)", "Set the common mesh's index buffer");
     PUSH_FUNC(Col, "CommonMeshAdvanceVertexState", &MeshAPI::luaAdvanceVertexState, "nil CommonMeshAdvanceVertexState(state)", "Sequential attributes and buffers"
               " will be assigned to this new vertex state.");
     PUSH_FUNC(Col, "CommonMeshDecompressVertices", &MeshAPI::luaDecompressVertices,
@@ -462,11 +462,11 @@ void Mesh::RegisterScriptAPI(LuaFunctionCollection &Col)
     PUSH_FUNC(Col, "CommonMeshPushLOD", &MeshAPI::luaPushLevelOfDetail, "nil CommonMeshPushLOD(state, vertexStateIndex)",
               "Push a level-of-detail to the given vertex state index. All sequential calls will append to this LOD.");
     PUSH_FUNC(Col, "CommonMeshSetLODBounds", &MeshAPI::luaSetLODBounds,
-              "nil CommonMeshSetLODBounds(state, boundingBoxInst, [optional] boundingSphereInst)", "Set current LOD bounding information");
+              "nil CommonMeshSetLODBounds(state, boundingBoxInst,  --[[optional]] boundingSphereInst)", "Set current LOD bounding information");
     PUSH_FUNC(Col, "CommonMeshPushBatch", &MeshAPI::luaPushBatch, "nil CommonMeshPushBatch(state, isShadowBatch)",
               "Push a mesh batch. Specify if its a shadow batch.");
     PUSH_FUNC(Col, "CommonMeshSetBatchBounds", &MeshAPI::luaBatchSetBounds,
-              "nil CommonMeshSetBatchBounds(state, isShadowBatch, boundingBoxInst, [optional] boundingSphereInst)", "Set current batch bounding information");
+              "nil CommonMeshSetBatchBounds(state, isShadowBatch, boundingBoxInst, --[[optional]] boundingSphereInst)", "Set current batch bounding information");
     PUSH_FUNC(Col, "CommonMeshSetBatchParameters", &MeshAPI::luaSetBatchParameters,
               "nil CommonMeshSetBatchParameters(state, bIsShadowBatch, minVert, maxVert, startIndexBufferIndex, numPrimitives, numIndices, baseIndex, matIndex)",
               "Set batch parameter information");
@@ -475,7 +475,7 @@ void Mesh::RegisterScriptAPI(LuaFunctionCollection &Col)
     PUSH_FUNC(Col, "CommonMeshPushMaterial", &MeshAPI::luaPushMaterial,
               "nil CommonMeshPushMaterial(state, diffuseTexName)", "Push material information to the mesh");
     PUSH_FUNC(Col, "CommonMeshResolveBonePalettes", &MeshAPI::luaResolveBonePalettes,
-              "nil CommonMeshResolveBonePalettes(state, buffer, palette table, vertIndexTab, fourBoneSkinning, indexDivisor, meshName)",
+              "nil CommonMeshResolveBonePalettes(state, buffer, palette_table, vertIndexTab, fourBoneSkinning, indexDivisor, meshName)",
               "Resolve legacy mesh bone palettes. This will modify the bone indices buffer given. "
               "Palette table is table of tables. paletteTable[batch/whatever index] = table_u32_array[actual serialised buffer data index => bone name]"
               ". Vertex index table maps 'whatever indices' (above) to an actual vertex buffer range. Each value in table must be have Min and Max keys as int indices"

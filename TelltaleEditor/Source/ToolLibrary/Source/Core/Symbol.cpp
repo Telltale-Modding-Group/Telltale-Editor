@@ -41,9 +41,6 @@ U32 CRC32(const U8 *Buffer, U32 BufferLength, U32 InitialCRC32)
     return ~InitialCRC32; // Inverted again
 }
 
-SymbolTable RuntimeSymbols{};
-SymbolTable GameSymbols{};
-
 SymbolTable* SymbolTable::_ActiveTables = nullptr;
 
 Symbol SymbolFromHexString(const String& str, Bool bStrict)
@@ -56,7 +53,7 @@ Symbol SymbolFromHexString(const String& str, Bool bStrict)
             std::istringstream iss(str);
             iss >> std::hex >> result;
             if(iss.fail() || !iss.eof())
-                RuntimeSymbols.Register(str);
+                GetRuntimeSymbols().Register(str);
         }
         return bStrict ? Symbol() : Symbol(str);
     }
@@ -69,7 +66,7 @@ Symbol SymbolFromHexString(const String& str, Bool bStrict)
     if(iss.fail() || !iss.eof())
     {
         if(str.length())
-            RuntimeSymbols.Register(str);
+            GetRuntimeSymbols().Register(str);
         return bStrict ? Symbol() : Symbol(str);
     }
     

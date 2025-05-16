@@ -160,7 +160,7 @@ public:
     static inline Bool TestPushKeyframed(LuaManager& man, const String& type,
                                          Animation& anm, String& name, CString typeName)
     {
-        return TestPushKeyframed<T>(man, type, anm, name, typeName, &Meta::ExtractPODInstance<T>);
+        return TestPushKeyframed<T>(man, type, anm, name, typeName, &Meta::ExtractCoercableInstance<T>);
     }
     
     template<typename T>
@@ -242,10 +242,10 @@ void Animation::RegisterScriptAPI(LuaFunctionCollection &Col)
     PUSH_FUNC(Col, "CommonAnimationSetName", &AnimationAPI::luaSetName, "nil CommonAnimationSetName(state, name)", "Set common animation name");
     PUSH_FUNC(Col, "CommonAnimationSetLength", &AnimationAPI::luaSetLen, "nil CommonAnimationSetLength(state, length)", "Set common animation length");
     PUSH_FUNC(Col, "CommonAnimationPushCompressedVector3Keys", &AnimationAPI::luaPushCompressedVec3s,
-              "nil CommonAnimationPushCompressedVector3Keys(state, name, minTime, maxTime, flags, type, format, format_options [see examples / Animation.cpp])",
+              "nil CommonAnimationPushCompressedVector3Keys(state, name, minTime, maxTime, flags, type, format, format_options --[[see examples / Animation.cpp]])",
               "Push compressed position keys to the animation as an animated value");
     PUSH_FUNC(Col, "CommonAnimationPushCompressedQuatKeys", &AnimationAPI::luaPushCompressedQuats,
-              "nil CommonAnimationPushCompressedQuatKeys(state, name, minTime, maxTime, flags, type, format, format_options [see examples / Animation.cpp])",
+              "nil CommonAnimationPushCompressedQuatKeys(state, name, minTime, maxTime, flags, type, format, format_options --[[see examples / Animation.cpp]])",
               "Push compressed position keys to the animation as an animated value");
     PUSH_FUNC(Col, "CommonAnimationPushKeyframedValues", &AnimationAPI::luaPushKeyframed,
               "nil CommonAnimationPushKeyframedValues(state, name, keyframedClassNameDecayed, minVal, maxVal, sampleContainer, flags, type)",

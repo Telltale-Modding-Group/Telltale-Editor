@@ -7,14 +7,24 @@ LuaManager::~LuaManager()
     // If the version is set, set version to empty and free adapter.
     if (_Version != LuaVersion::LUA_NONE)
     {
+        
+        for(U32 i = 0; i < (U32)LuaConstantMetaTable::NUM; i++)
+            if(_ConstantMetaTables[i])
+                UnrefReg(_ConstantMetaTables[i]);
+        
         _Adapter->Shutdown();
         _Version = LuaVersion::LUA_NONE;
         TTE_DEL(_Adapter);
         _Adapter = nullptr;
     }
+    if(_WeakRefSlot)
+    {
+        _WeakRefSlot->store(0, std::memory_order_relaxed);
+        _WeakRefSlot = nullptr;
+    }
 }
 
-//overriden 'require' lua function to load ourselfs. 'ToolLibrary/XXX' loads from lib resources XXX.
+//overriden 'require' lua function to load ourselfs. 'ToolLibrary/XXX' loads from Dev/ToolLibrary/Scripts
 U32 luaRequireOverride(LuaManager& man)
 {
     TTE_ASSERT(man.Type(-1) == LuaType::STRING, "Invalid argument passed to require");
@@ -34,19 +44,19 @@ U32 luaRequireOverride(LuaManager& man)
     {
         
         value = value.substr(12);
-        String script = GetToolContext()->LoadLibraryStringResource(value);
+        String script = GetToolContext()->LoadLibraryStringResource("Scripts/" + value);
         
         if(script.length() == 0)
             TTE_LOG("When loading script '%s': file empty or could not be read", value.c_str());
         
         if(man.RunText(script.c_str(), (U32)script.length(), false, value.c_str())){
             man.PushNil(); // value of it doesn't matter, only that it exists
-            ScriptManager::SetGlobal(man, "ToolLibrary/" + value, true); // set global
+            ScriptManager::SetGlobal(man, "ToolLibrary/Scripts/" + value, true); // set global
         }
         
     }else{
         
-        TTE_ASSERT(false, "Non tool library requires not supported yet."); // TODO find resource.
+        TTE_ASSERT(false, "Non tool library requires not supported yet."); // TODO find resource. and dofile, loadfile. (move to editor, hook)
         
     }
     return 0;
@@ -70,6 +80,42 @@ void LuaManager::Initialise(LuaVersion Vers)
     PushFn(&luaRequireOverride);
     ScriptManager::SetGlobal(*this, "require", false);
     
+    for(U32 i = 0; i < (U32)LuaConstantMetaTable::NUM; i++)
+        _ConstantMetaTables[i] = 0;
+}
+
+void LuaManager::SetConstantMetaTable(I32 index, LuaConstantMetaTable mt)
+{
+    PushEnv();
+    PushInteger(_ConstantMetaTables[(I32)mt]);
+    GetTable(-2, true);
+    Remove(-2); // remove env
+    SetMetatable(ToAbsolute(index)); // pops mt
+}
+
+I32 LuaManager::RefReg()
+{
+    return _Adapter->RefReg();
+}
+
+void LuaManager::UnrefReg(I32 ref)
+{
+    _Adapter->UnrefReg(ref);
+}
+
+void LuaManager::GetReg(I32 ref)
+{
+    _Adapter->GetReg(ref);
+}
+
+void LuaManager::RegisterConstantMetaTable(LuaConstantMetaTable mt)
+{
+    I32 ref = RefReg();
+    if(_ConstantMetaTables[(I32)mt] != 0)
+    {
+        UnrefReg(_ConstantMetaTables[(I32)mt]); // overriding
+    }
+    _ConstantMetaTables[(I32)mt] = ref;
 }
 
 static int _CompileWriter(lua_State*, const void* p, size_t sz, void* strm)

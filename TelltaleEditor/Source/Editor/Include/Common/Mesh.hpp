@@ -86,7 +86,7 @@ struct Mesh : HandleLockOwner
     
     // Renderable objects are a list of meshes (in props it has the 'D3D Mesh List' key or 'D3D Mesh'. base mesh + list
     // The common mesh format which we normalise and specialise telltale classes to.
-    class MeshInstance : public Handleable
+    class MeshInstance : public HandleableRegistered<MeshInstance>
     {
         
         friend class RenderContext;
@@ -113,7 +113,10 @@ struct Mesh : HandleLockOwner
         
     public:
         
-        inline MeshInstance(Ptr<ResourceRegistry> reg) : Handleable(reg) {}
+        static constexpr CString ClassHandle = "Handle<D3DMesh>";
+        static constexpr CString Class = "D3DMesh";
+        
+        inline MeshInstance(Ptr<ResourceRegistry> reg) : HandleableRegistered<MeshInstance>(std::move(reg)) {}
         
         virtual void FinaliseNormalisationAsync() override;
         

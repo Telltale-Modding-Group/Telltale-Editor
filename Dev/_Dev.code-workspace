@@ -5,10 +5,21 @@
 		}
 	],
 	"settings": {
+		"customCommands.commands":
+		[
+			{
+				"name": "Update Telltale Documentation",
+				"command": "../Bin/Debug/TelltaleEditor mkdocs -o Scripts/Docs_Latest.lua",
+			},
+			{
+				"name": "Run mod.lua Testing Script",
+				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game BN100 -platform MacOS",
+			}
+		],
 		"Lua": {
 			"workspace": {
 				"library": [
-					"${workspaceFolder}/Docs_Latest.lua"
+					"${workspaceFolder}/../Docs_Latest.lua"
 				],
 			},
 		}

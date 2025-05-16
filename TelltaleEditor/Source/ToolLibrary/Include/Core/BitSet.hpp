@@ -192,6 +192,15 @@ public:
     }
     
     template<typename IntOrEnum>
+    inline void Set(IntOrEnum fl, Bool bOnOff)
+    {
+        if(bOnOff)
+            Add(fl);
+        else
+            Remove(fl);
+    }
+    
+    template<typename IntOrEnum>
     inline void Remove(IntOrEnum fl)
     {
         _Value &= ~((U32)fl);

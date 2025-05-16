@@ -42,15 +42,15 @@ function RegisterBoneD3DMesh(platform, vendor, bb, hTexture, arrayDCInt, MetaCol
     triangleSet.Members[26] = NewMember("mfReflectivity", kMetaFloat)
     MetaRegisterClass(triangleSet)
 
-    arrayTriangleSet, _ = RegisterBoneCollection(MetaCI, "class DCArray<class D3DMesh::TriangleSet>", nil, triangleSet)
+    local arrayTriangleSet, _ = RegisterBoneCollection(MetaCI, "class DCArray<class D3DMesh::TriangleSet>", nil, triangleSet)
 
     local meshEntry = NewClass("struct D3DMesh::PaletteEntry", 0)
     meshEntry.Members[1] = NewMember("mBoneName", kMetaClassString)
     meshEntry.Members[2] = NewMember("mSkeletonIndex", kMetaInt)
     MetaRegisterClass(meshEntry)
 
-    arrayMeshPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<struct D3DMesh::PaletteEntry>", nil, meshEntry)
-    arrayArrayMeshPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<class DCArray<struct D3DMesh::PaletteEntry> >", nil, arrayMeshPalette)
+    local arrayMeshPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<struct D3DMesh::PaletteEntry>", nil, meshEntry)
+    local arrayArrayMeshPalette, _ = RegisterBoneCollection(MetaCI, "class DCArray<class DCArray<struct D3DMesh::PaletteEntry> >", nil, arrayMeshPalette)
 
     local vertexBuffer = NewClass("class D3DVertexBuffer", 0)
     vertexBuffer.Serialiser = "SerialiseBoneD3DVertexBuffer"
@@ -176,7 +176,7 @@ function NormaliseBoneD3DMesh(inst, state)
 
     -- In this game, they store the vertex information for each attrib in its own buffer, ie no interleaving.
 
-    function processBoneBuffer(state, bufferNum, index, expectedStride, attrib, format, isBoneIndices)
+    local function processBoneBuffer(state, bufferNum, index, expectedStride, attrib, format, isBoneIndices)
         local vertexBuffer = MetaGetMember(inst, "_VertexBuffer" .. tostring(bufferNum))
         local nVerts = MetaGetClassValue(MetaGetMember(vertexBuffer, "mNumVerts"))
         if nVerts > 0 then
@@ -260,7 +260,7 @@ function SerialiseBoneD3DIndexBuffer(stream, inst, write)
     if write then
         MetaStreamWriteBuffer(stream, MetaGetMember(inst, "_IndexBufferData"))
     else
-        indexBufferBytes = 2 -- format 101 means U16
+        local indexBufferBytes = 2 -- format 101 means U16
         if MetaGetClassValue(MetaGetMember(inst, "mFormat")) ~= 101 then
             indexBufferBytes = 4 -- else U32s
         end

@@ -1,6 +1,498 @@
 -- Telltale Editor generated Lua documentation. Using v1.0.0
 
 
+--- Creates a concrete directory location in the resource system, essentially mounting it to a physical folder on the users computer device, Physical path is relative to the working directory or
+--- absolute if you prefer.
+--- @param name nil
+--- @param path nil
+--- @return nil
+function ResourceCreateConcreteDirectoryLocation(name, path)
+end
+
+--- Creates a concrete archive location to mount into the resource system. The first argument is here for compatibilty! You should not use this function unless using it for debugging and
+--- personal tools inside TTE (ie don't use in a telltale game). ArchiveID should be the value of location + name + a '/' at the end. It is default done
+--- this way overriding what you pass in. The name is the archive file name so should end in .ttarch2 or .ttarch. The location is the existing (or this does nothing)
+--- resource location the archive exists inside of. Techically you can also pass in the cache mode as a fourth argument but prefer to use the set cache mode function.
+--- @param --[[ignored]] archiveID nil
+--- @param name nil
+--- @param location nil
+--- @return nil
+function ResourceCreateConcreteArchiveLocation(--[[ignored]] archiveID, name, location)
+end
+
+--- Loads a resource. Must be a telltale file. If loaded, returns the previous loaded instance. This returns a *weak* reference, so when the object is unloaded then it is invalidated.
+--- @param address nil
+--- @return resource
+function Load(address)
+end
+
+--- Loads a resource. Must be a telltale file. If loaded, returns the previous loaded instance. This returns a *weak* reference, so when the object is unloaded then it is invalidated.
+--- @param address nil
+--- @return resource
+function LoadAsync(address)
+end
+
+--- Loads a resource. Must be a telltale file. If loaded, returns the previous loaded instance. This returns a *weak* reference, so when the object is unloaded then it is invalidated.
+--- @param address nil
+--- @return resource
+function LoadAsyncAndWait(address)
+end
+
+--- Copies a resource. If the file is meta described, then the source must be loaded and the new resource will be loaded into the cache with destName. Else copies resource
+--- files.
+--- @param sourceName nil
+--- @param destName nil
+--- @return bool
+function ResourceCopy(sourceName, destName)
+end
+
+--- Returns if the given archive is currently active, ie is loaded. Pass in the archive name.
+--- @param archiveName nil
+--- @return bool
+function ResourceArchiveIsActive(archiveName)
+end
+
+--- Gets the resource name string from the given resource address / URL.
+--- @param address nil
+--- @return string
+function ResourceAddressGetResourceName(address)
+end
+
+--- Yes its spelt wrong by Telltale. Finds all archive locations. Mask must be non-null, eg *.ttarch2.
+--- @param mask nil
+--- @return nil
+function ResourceAchiveFind(mask)
+end
+
+--- TTE Uses a different preloading system but this would normally advance to the next preloading batch of files. Don't use.
+--- @param count nil
+--- @return nil
+function ResourceAdvancePreloadBatch(count)
+end
+
+--- Does nothing, here for compatibility reasons. This function was used externally only for episode download management.
+--- @param archiveID nil
+--- @param mode nil
+--- @return nil
+function ResourceArchiveSetCacheMode(archiveID, mode)
+end
+
+--- Does nothing, here for compatibility reasons. This function was used externally only for episode download management.
+--- @param archiveID nil
+--- @return nil
+function ResourceArchiveWaitForCaching(archiveID)
+end
+
+--- Creates a logical location with the given name. Returns false if it already existed. It must start and end with <> angle brackets.
+--- @param name nil
+--- @return nil
+function ResourceCreateLogicalLocation(name)
+end
+
+--- Deletes the resource from the loaded resources, essentially unloading it. If not saved, changes could be lost. Returns if it was deleted. May return false if the resource is set
+--- as non purgable.
+--- @param resource nil
+--- @return bool
+function ResourceDelete(resource)
+end
+
+--- Returns if the given resource exists. If you pass in an actual loaded resource (eg propertySet) then this will return true if its valid. If you pass in a URL
+--- or resource name then it returns if it exists somewhere in the resource system.
+--- @param resource nil
+--- @return bool
+function ResourceExists(resource)
+end
+
+--- Returns if the given logical location exists.
+--- @param locationStr nil
+--- @return bool
+function ResourceExistsLogicalLocation(locationStr)
+end
+
+--- Does nothing, here for compatibility reasons
+--- @return nil
+function ResourceGetLoadingCall()
+end
+
+--- Gets the string name of the given resource. The resource is a currently loaded resource such as a propertySet.
+--- @param resource nil
+--- @return string
+function ResourceGetName(resource)
+end
+
+--- Gets all of the resource names that match the given mask in the whole resource system. Returns tabled indexed 1 to N. Prefer to use the get names version which
+--- ensures no symbol hash strings are returned
+--- @param mask nil
+--- @return table
+function ResourceGetSymbols(mask)
+end
+
+--- Gets all of the resource names that match the given mask in the whole resource system. Returns tabled indexed 1 to N.
+--- @param mask nil
+--- @return table
+function ResourceGetNames(mask)
+end
+
+--- Gets the resource address of the given resource name with the current resource sets applied. Will include its resource location.
+--- @param resourceName nil
+--- @return string
+function ResourceGetURL(resourceName)
+end
+
+--- Returns the URL as a full physical concrete path. You can pass in a folder or a filename address.
+--- @param urlString nil
+--- @return string
+function ResourceGetURLAsLocal(urlString)
+end
+
+--- Does not do anything, only exists for compatibility reasons.
+--- @return nil
+function ResourceInitializeWritebackCache()
+end
+
+--- Does not do anything, only exists for compatibility reasons.
+--- @return nil
+function ResourceInitializeLegacySubproject()
+end
+
+--- Does not do anything, only exists for compatibility reasons.
+--- @return nil
+function ResourceInitializeSubprojects()
+end
+
+--- Returns true if the given resource is currently loaded in the resource system.
+--- @param resourceName nil
+--- @return bool
+function ResourceIsLoaded(resourceName)
+end
+
+--- Gets all resource names inside the given resource location. You also need to specify a mask for file names. Use * for all files. This versions gets them as symbols
+--- which are not gaurunteed to be strings. Prefer to use the get names version.
+--- @param locationName nil
+--- @param mask nil
+--- @return table
+function ResourceLocationGetSymbols(locationName, mask)
+end
+
+--- Gets all resource names inside the given resource location. You also need to specify a mask for file names. Use * for all files.
+--- @param locationName nil
+--- @param mask nil
+--- @return table
+function ResourceLocationGetNames(locationName, mask)
+end
+
+--- Injects a concrete resource location into the resource system. The name will be equal to the physical path. Returns if succeeds, can fail if it already exists.
+--- @param physicalPath nil
+--- @return bool
+function ResourceLocationInjectIntoResourceSystem(physicalPath)
+end
+
+--- Does not do anything, only exists for compatibility reasons.
+--- @return nil
+function ResourceOpenUser()
+end
+
+--- Prints to the console all assets that are currently loaded (ie referenced).
+--- @return nil
+function ResourceReportReferencedAssets()
+end
+
+--- Returns the concrete location ID for the given resource address.
+--- @param urlStr nil
+--- @return string
+function ResourceResolveAddressToConcreteLocationID(urlStr)
+end
+
+--- Resolves the URL to a concrete URL with the currently active resource sets. Returns nil if invalid url is passed in.
+--- @param urlStr nil
+--- @return string
+function ResourceResolveURLToConcrete(urlStr)
+end
+
+--- Does not do anything, here for compatibility.
+--- @return nil
+function ResourceRetryFailedResDescs()
+end
+
+--- Does not do anything, here for compatibility. Used in old games.
+--- @param file nil
+--- @return nil
+function ResourceSaveManifest(file)
+end
+
+--- Does not do anything, here for compatibility. Used in old games.
+--- @param file nil
+--- @return nil
+function ResourceLoadManifest(file)
+end
+
+--- Changes the priority of the given resource set.
+--- @param setName nil
+--- @param priority nil
+--- @return nil
+function ResourceSetChangePriority(setName, priority)
+end
+
+--- Creates a resource set at runtime. All arguments apart from the name are optional and default to false / 0.
+--- @param name nil
+--- @param priority nil
+--- @param isDynamic nil
+--- @param isBootable nil
+--- @param isSticky nil
+--- @return nil
+function ResourceSetCreate(name, priority, isDynamic, isBootable, isSticky)
+end
+
+--- Sets the default resource location to create resources in.
+--- @param locationName nil
+--- @return nil
+function ResourceSetDefaultLocation(locationName)
+end
+
+--- Destroys the given resource set, removing it and disabling it. See the disable function. Force is optional and default false.
+--- @param setName nil
+--- @param force nil
+--- @return bool
+function ResourceSetDestroy(setName, force)
+end
+
+--- Disables the resource set, optionally specifying to force that it gets disabled. Force is default true and optional. Returns if it was disabled.
+--- @param setName nil
+--- @param force nil
+--- @return bool
+function ResourceSetDisable(setName, force)
+end
+
+--- Enables the given resource set, meaning all resource names that try to get loaded will be looked into the given set. Optionally specify an override priority (default uses priority in
+--- the resource set description). Higher priority resource sets get searched first, meaning they override other files. Priorities can be negative or positive, any integer.
+--- @param setName nil
+--- @param priorityOverride nil
+--- @return nil
+function ResourceSetEnable(setName, priorityOverride)
+end
+
+--- Returns if the given resource set is currently applied in the resource system, such that it maps resource names to its concrete resource locations.
+--- @param setName nil
+--- @return bool
+function ResourceSetEnabled(setName)
+end
+
+--- Returns if the resource set exists in the resource system.
+--- @param setName nil
+--- @return bool
+function ResourceSetExists(setName)
+end
+
+--- Gets a table of all resource set names, indexed 1 to N. The first argument must be nil or a string but is ignored. The last three arguments are all
+--- optional and default to false. They specify how to filter the resource sets.
+--- @param unused nil
+--- @param onlyDynamic nil
+--- @param onlyBootable nil
+--- @param onlySticky nil
+--- @return table
+function ResourceSetGetAll(unused, onlyDynamic, onlyBootable, onlySticky)
+end
+
+--- Returns if the given resource set is sticky. These tends to be localisation resource sets.
+--- @param setName nil
+--- @return bool
+function ResourceSetIsSticky(setName)
+end
+
+--- Returns if the given resource set is bootable. These can be booted from.
+--- @param setName nil
+--- @return bool
+function ResourceSetIsBootable(setName)
+end
+
+--- Returns if the given resource set is dynamic. These are dynamic.
+--- @param setName nil
+--- @return bool
+function ResourceSetIsDynamic(setName)
+end
+
+--- Does nothing and provided for compatibility.
+--- @param string nil
+--- @return nil
+function ResourceSetLoadingCall(string)
+end
+
+--- Maps a resource location to another concrete one for the given resource set. Turn it off and back on again to have effect if already enabled.
+--- @param setName nil
+--- @param destLocation nil
+--- @param srcLocation nil
+--- @return nil
+function ResourceSetMapLocation(setName, destLocation, srcLocation)
+end
+
+--- Sets if the resource is non purgable or default (default not). This means it won't be unloaded until set off again.
+--- @param resourceName nil
+--- @param bOnOff nil
+--- @return nil
+function ResourceSetNonPurgable(resourceName, bOnOff)
+end
+
+--- Reconfigures resource set priorities. The argument should be a table of resource set name to priority override integer. If the priority is a boolean then it is treated as 'should
+--- this resource set be turned on or off', and the priority is left unchanged. By setting it to a number if will override the priority of it and enable it.
+--- Using a priority value of 0 acts as disabling it too.
+--- @param sets nil
+--- @return nil
+function ResourceSetReconfigure(sets)
+end
+
+--- Returns if the given resource name exists inside the given resource set in any one of its mapped locations.
+--- @param setName nil
+--- @param resourceName nil
+--- @return bool
+function ResourceSetResourceExists(setName, resourceName)
+end
+
+--- Gets the concrete location ID which the resource name in the given resource set is inside. For example, could return the name of the texture mesh archive if its in
+--- that archive for the given resource set. Returns nil if not found.
+--- @param setName nil
+--- @param resourceName nil
+--- @return string
+function ResourceSetGetLocationID(setName, resourceName)
+end
+
+--- Unused and here for compatibility
+--- @return nil
+function ResourceSetResourceGetURL()
+end
+
+--- Save the resource. It must be loaded and have an associated location to know where to save it.
+--- @param resName nil
+--- @return bool
+function Save(resName)
+end
+
+--- Revert the object to reflect what is loaded on disk. Pass in the resource name and not path. It must be loaded else returns false.
+--- @param resName nil
+--- @return bool
+function Revert(resName)
+end
+
+--- Create a brand new resource. Path is a resource address, so include the optional (default master loc mount point) logical identifier, eg logical://<User>/SaveGame.file
+--- @param resAddr nil
+--- @return bool
+function Create(resAddr)
+end
+
+--- Registers a resource set description to the attached resource registry
+--- @param set nil
+--- @return nil
+function RegisterSetDescription(set)
+end
+
+--- Prints all resource locations. Must have an attached resource registry.
+--- @return nil
+function ResourcePrintLocations()
+end
+
+--- Adds build information dates. Ignored.
+--- @param info nil
+--- @return nil
+function GameEngine_AddBuildVersionInfo(info)
+end
+
+--- Removes the file extension from the string
+--- @param filename nil
+--- @return string
+function FileStripExtension(filename)
+end
+
+--- Because Telltale employees can't spell this exists.
+--- @param filename nil
+--- @return string
+function FileStripExtention(filename)
+end
+
+--- Sets the file extension of the given filename
+--- @param filename nil
+--- @param extension nil
+--- @return string
+function FileSetExtension(filename, extension)
+end
+
+--- Because Telltale employees are dyslexic this exists! <3
+--- @param filename nil
+--- @param extension nil
+--- @return string
+function FileSetExtention(filename, extension)
+end
+
+--- Does nothing, not used in TTE or the runtime engine.
+--- @param filename nil
+--- @return nil
+function FileMakeWriteable(filename)
+end
+
+--- Does nothing, not used in TTE or the runtime engine.
+--- @param filename nil
+--- @return nil
+function FileMakeReadOnly(filename)
+end
+
+--- Does nothing, not used in TTE or the runtime engine.
+--- @return nil
+function FileClearLastErrorCorruptSaveFile()
+end
+
+--- Does nothing, not used in TTE or the runtime engine.
+--- @return nil
+function FileIsLastErrorCorruptSaveFile()
+end
+
+--- Get the file name, removing any path and extensions.
+--- @param filename nil
+--- @return string
+function FileGetFileName(filename)
+end
+
+--- Removes the file extension without the dot of the given filename.
+--- @param filename nil
+--- @return string
+function FileGetExtension(filename)
+end
+
+--- Find first file. Returns nil when done. This is a legacy API function and is only here for compatibility!
+--- @param strMask nil
+--- @param strPath nil
+--- @return string
+function FileFindFirst(strMask, strPath)
+end
+
+--- Find next file. Returns nil when done. This is a legacy API function and is only here for compatibility! The mask should be the same as the previous calls.
+--- @param strMask nil
+--- @return string
+function FileFindNext(strMask)
+end
+
+--- Checks if the global pathname (from C:/ or / in unix) exists.
+--- @param filename nil
+--- @return bool
+function FileExistsGlobal(filename)
+end
+
+--- Checks whether the file exists in the resource system. Tests all resource locations.
+--- @param filename nil
+--- @return bool
+function FileExists(filename)
+end
+
+--- Deletes the file in the mounted resource system
+--- @param filename nil
+--- @return nil
+function FileDelete(filename)
+end
+
+--- Copies file source to file destination. Files should just be resource names without paths. The destination resource is created in the same resource location.
+--- @param srcName nil
+--- @param dstName nil
+--- @return nil
+function FileCopy(srcName, dstName)
+end
+
 --- Get the number of elements in a container.
 --- @param container nil
 --- @return int
@@ -47,26 +539,232 @@ end
 function ContainerReserve(container, capacity)
 end
 
---- Registers a resource set description to the attached resource registry
---- @param set nil
+--- Remove a luaFunction that was registered for changes to a key in keysFromPropertySet when modified. If keysFromPropertySet is nil, then the callback is removed for each key in propertySet. Optional
+--- 4th parameter to search parents (default true).
+--- @param propertySet nil
+--- @param keysFromPropertySet nil
+--- @param luaFuncName nil
 --- @return nil
-function RegisterSetDescription(set)
+function PropertyRemoveMultiKeyCallback(propertySet, keysFromPropertySet, luaFuncName)
 end
 
---- Prints all resource locations. Must have an attached resource registry.
+--- Remove the luaFunction registered to be called whenever the key in the given property set is modified.
+--- @param propertySet nil
+--- @param key nil
+--- @param luaFuncName nil
 --- @return nil
-function ResourcePrintLocations()
+function PropertyRemoveKeyCallback(propertySet, key, luaFuncName)
 end
 
---- Adds build information dates. Ignored.
---- @param info nil
+--- Add a luaFunction to be called whenever a key in keysFromPropertySet is modified. If keysFromPropertySet is nil, then the callback will occur for any key modified in propertySet. The function
+--- gets called with the key and the new data for the key. Optional 4th argument to use all non-local parent keys when traversing keys from. It is default true. The
+--- keys from property set is not cached in any way and the keys with adding callbacks are taken at this call. Keys from can also be nil meaning the callback
+--- is added to every single value in the property set at the time of this call.
+--- @param propertySet nil
+--- @param keysFromPropertySet nil
+--- @param luaFuncName nil
 --- @return nil
-function GameEngine_AddBuildVersionInfo(info)
+function PropertyAddMultiKeyCallback(propertySet, keysFromPropertySet, luaFuncName)
+end
+
+--- Adds a callback to be called every time the key is modified. Pass in the lua function name for compatibility, while in most new games the function can also be
+--- the function lua object. The function gets called with the key and the new data for the key.
+--- @param propertySet nil
+--- @param key nil
+--- @param luaFuncName nil
+--- @return nil
+function PropertyAddKeyCallback(propertySet, key, luaFuncName)
+end
+
+--- Sets the property set as modified, calling every local key in the property set's callback.
+--- @param propertySet nil
+--- @return nil
+function PropertySetModified(propertySet)
+end
+
+--- Does nothing (in the engine either).
+--- @param propertySet nil
+--- @return nil
+function PropertyClearKeyCallbacks(propertySet)
+end
+
+--- Returns the input property set if the property set is a runtime property set, else nil.
+--- @param propertySet nil
+--- @return propertySet
+function PropertyIsRuntime(propertySet)
+end
+
+--- Returns the number of keys in the property set. Set the second argument to true to count global parent keys as well.
+--- @param propertySet nil
+--- @param countGlobals nil
+--- @return int
+function PropertyNumKeys(propertySet, countGlobals)
+end
+
+--- Moves the given parent property to the front of the parent array. Does not need to contain it, if it does it is moved, else added to the front. This
+--- means that it will be searched first for any non local keys.
+--- @param propertySet nil
+--- @param parentName nil
+--- @return nil
+function PropertyMoveGlobalToFront(propertySet, parentName)
+end
+
+--- Clears all local property keys.
+--- @param propertySet nil
+--- @return nil
+function PropertyClearKeys(propertySet)
+end
+
+--- Gets all global parent property file names.
+--- @param propertySet nil
+--- @return table
+function PropertyGetGlobals(propertySet)
+end
+
+--- Tests if the given property is a container type, such as an array or map.
+--- @param propertySet nil
+--- @param keyName nil
+--- @return bool
+function PropertyIsContainer(propertySet, keyName)
+end
+
+--- Returns true if the given property exists, false otherwise. Optional 3rd parameter to check parents, default true.
+--- @param prop nil
+--- @param keyName nil
+--- @return bool
+function PropertyExists(prop, keyName)
+end
+
+--- Does this property set use this parent? Optional 3rd parameter to check parents, default true
+--- @param propertySet nil
+--- @param parentPropertySet nil
+--- @return bool
+function PropertyHasGlobal(propertySet, parentPropertySet)
+end
+
+--- Is the key 'local' to the property set? This means that it exists in the property set and not through one of the parents.
+--- @param propertySet nil
+--- @param key nil
+--- @return bool
+function PropertyIsLocal(propertySet, key)
+end
+
+--- Make the key 'local' to the property set. See IsLocal.
+--- @param propertySet nil
+--- @param key nil
+--- @return bool
+function PropertyMakeLocal(propertySet, key)
+end
+
+--- Add a global parent to a property set. Parent property set should be a symbol or string filename.
+--- @param propertySet nil
+--- @param parentPropertySet nil
+--- @return nil
+function PropertyAddGlobal(propertySet, parentPropertySet)
+end
+
+--- Add a value to the property set. Valid type names are: "bool", "class Color", etc. Careful. 'class ' etc are not used in new games. Optional 4th argument is the
+--- property value to assign.
+--- @param propertySet nil
+--- @param keyName nil
+--- @param typeName nil
+--- @return nil
+function PropertyCreate(propertySet, keyName, typeName)
+end
+
+--- Set a value in a property set. The key name must exist.
+--- @param propertySet nil
+--- @param keyName nil
+--- @param value nil
+--- @return nil
+function PropertySet(propertySet, keyName, value)
+end
+
+--- Get a value from the property set
+--- @param propertySet nil
+--- @param keyName nil
+--- @return value
+function PropertyGet(propertySet, keyName)
+end
+
+--- Flags this property set to ignore runtime changes (so they aren't saved in save games.
+--- @param propertySet nil
+--- @return nil
+function PropertyDontSaveInSaveGames(propertySet)
+end
+
+--- Import all the keys in property set "keysFromPropertySet" from property set"sourcePropertySet" to property set "destPropertySet". 'keysfromPropertySet' is the filter.
+--- @param destPropertySet nil
+--- @param sourcePropertySet nil
+--- @param keysFromPropertySet nil
+--- @return nil
+function PropertyImportKeyValues(destPropertySet, sourcePropertySet, keysFromPropertySet)
+end
+
+--- Print the keys of the property set
+--- @param propertySet nil
+--- @return nil
+function PropertyPrintKeys(propertySet)
+end
+
+--- Remove a value from the property set
+--- @param propertySet nil
+--- @param keyName nil
+--- @return nil
+function PropertyRemove(propertySet, keyName)
+end
+
+--- Remove a global parent from a property set. Optional 3rd parameter being 1 to keep any local keys overriden by the global parent (default discards)
+--- @param propertySet nil
+--- @param parentPropertySet nil
+--- @return nil
+function PropertyRemoveGlobal(propertySet, parentPropertySet)
+end
+
+--- Get the property set a key is introduced from
+--- @param propertySet nil
+--- @param keyName nil
+--- @return propertySet
+function PropertyGetKeyPropertySet(propertySet, keyName)
+end
+
+--- Get the property set a value is retrieved from. This is different to PropertyGetKeyPropertySet, where it finds the prop where the key is introduced from, while this finds the local'est'
+--- property set (closest to input set) there is an overriding value in for the key.
+--- @param propertySet nil
+--- @param keyName nil
+--- @return propertySet
+function PropertyGetValuePropertySet(propertySet, keyName)
+end
+
+--- Get all the keys in a property set.
+--- @param propertySet nil
+--- @return table
+function PropertyKeys(propertySet)
 end
 
 --- Returns if currently being called from a worker thread.
 --- @return bool
 function IsIsolated()
+end
+
+--- Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that archive can be found. This supports .ttarch2/ttarch/iso/pk2. Physical
+--- path is the path on your local machine. Location ID should be in the format <XXX>/. Please note that the archive must be from the current game snapshot! Otherwise it
+--- will fail to read due to incorrect encryptino and expected format.
+--- @param locationID nil
+--- @param physPath nil
+--- @return nil
+function TTE_MountArchive(locationID, physPath)
+end
+
+--- Mounts the resource system (like creating a concrete directroy location) to the given physical path under the name locationID. Location ID should be in the format <XXX>/. Physical path can
+--- be absolute or relative to your working directory. The last argument can be set to true to use the old telltale engine resource system which had no resource set descriptions.
+--- This means that it will recurse all directories and add them all. Set this to true to just easily get all resources quickly for debugging, so that they are all
+--- in resource system ready to be used.
+--- @param locationID nil
+--- @param physPath nil
+--- @param forceLegacy nil
+--- @return nil
+function TTE_MountSystem(locationID, physPath, forceLegacy)
 end
 
 --- Switches the editor context to a new game snapshot. Note that this can only be called from a mod script at startup or when no files are being read or
@@ -82,9 +780,9 @@ end
 --- is the path on your computer where the file is (or relative to the executable). If two are passed in, the first must be the file name string and the
 --- second is the archive (any version) which the file is located in.
 --- @param filename nil
---- @param optional archive nil
+--- @param --[[optional]] archive nil
 --- @return instance
-function TTE_OpenMetaStream(filename, optional archive)
+function TTE_OpenMetaStream(filename, --[[optional]] archive)
 end
 
 --- Writes the given instance to the file located at the filename argument. Returns if it was successfully written.
@@ -386,10 +1084,10 @@ function MetaMoveInstance(instance, name, parent)
 end
 
 --- Returns true if the given instance (1 argument) else is a collection class. If two arguments, pass in the typename and version number to test.
---- @param instance/typename nil
---- @param optional versionNumber nil
+--- @param instance_Or_typename nil
+--- @param --[[optional]] versionNumber nil
 --- @return bool
-function MetaIsCollection(instance/typename, optional versionNumber)
+function MetaIsCollection(instance_Or_typename, --[[optional]] versionNumber)
 end
 
 --- Converts the given instance to a string. If the class of the instance has a defined to string meta operation, then that is called. All intrinsic types such as integer
@@ -638,9 +1336,9 @@ end
 --- that all remaining bytes should be cached. After this call the meta stream will have effectively read all these bytes so the next read bytes will be after this.
 --- @param stream nil
 --- @param cacheInstance nil
---- @param optional size = -1 nil
+--- @param --[[optional]] size nil
 --- @return nil
-function MetaStreamReadCache(stream, cacheInstance, optional size = -1)
+function MetaStreamReadCache(stream, cacheInstance, --[[optional]] size)
 end
 
 --- See above for information about cacheInstance. Does not write the size. Writes the cached bytes in its entirety to the stream.
@@ -707,11 +1405,13 @@ end
 
 --- Serialises the given instance to/from the given stream in the given serialisation mode. This will decide whether to call the custom serialisation, if there is one, or else to call
 --- the default serialiser. Use this to serialise any class instance to/from the given stream, as opposed to the default serialiser which should be called in a custom serialiser if needed.
+--- Optionally specify a debug name to put into any debug outputs when reading.
 --- @param stream nil
 --- @param instance nil
 --- @param isWrite nil
+--- @param --[[optional]] debugName nil
 --- @return bool
-function MetaSerialise(stream, instance, isWrite)
+function MetaSerialise(stream, instance, isWrite, --[[optional]] debugName)
 end
 
 --- Searches the global symbol table for the given symbol hash (argument must be a symbol). If it is found, the string version is returned, else an empty string.
@@ -745,6 +1445,14 @@ end
 --- @return symbol
 function SymbolCreate(string)
 end
+
+--- Game capabilities
+--- @type number
+kGameCapRawClassNames = 0
+
+--- Game capabilities
+--- @type number
+kGameCapUsesLenc = 0
 
 --- Game capabilities
 --- @type number
@@ -882,6 +1590,10 @@ kMetaMemberMemoryDisable = 0
 --- @type number
 kMetaClassContainer = 0
 
+--- Game capabilities
+--- @type number
+kGameCapNoScriptEncryption = 0
+
 --- Intrinsic String type with class prefix
 --- @type number
 kMetaClassString = 0
@@ -966,8 +1678,12 @@ function CommonMeshPushVertexBuffer(state, numVerts, vertexStride, binaryBuffer)
 end
 
 --- Set the common mesh's index buffer
---- @return 
-function CommonMeshSetIndexBuffer()
+--- @param state nil
+--- @param numIndices nil
+--- @param formatIsUnsignedShort nil
+--- @param binaryBuffer nil
+--- @return nil
+function CommonMeshSetIndexBuffer(state, numIndices, formatIsUnsignedShort, binaryBuffer)
 end
 
 --- Sequential attributes and buffers will be assigned to this new vertex state.
@@ -995,9 +1711,9 @@ end
 --- Set current LOD bounding information
 --- @param state nil
 --- @param boundingBoxInst nil
---- @param [optional] boundingSphereInst nil
+--- @param --[[optional]] boundingSphereInst nil
 --- @return nil
-function CommonMeshSetLODBounds(state, boundingBoxInst, [optional] boundingSphereInst)
+function CommonMeshSetLODBounds(state, boundingBoxInst, --[[optional]] boundingSphereInst)
 end
 
 --- Push a mesh batch. Specify if its a shadow batch.
@@ -1011,9 +1727,9 @@ end
 --- @param state nil
 --- @param isShadowBatch nil
 --- @param boundingBoxInst nil
---- @param [optional] boundingSphereInst nil
+--- @param --[[optional]] boundingSphereInst nil
 --- @return nil
-function CommonMeshSetBatchBounds(state, isShadowBatch, boundingBoxInst, [optional] boundingSphereInst)
+function CommonMeshSetBatchBounds(state, isShadowBatch, boundingBoxInst, --[[optional]] boundingSphereInst)
 end
 
 --- Set batch parameter information
@@ -1053,13 +1769,13 @@ end
 --- x4)
 --- @param state nil
 --- @param buffer nil
---- @param palette table nil
+--- @param palette_table nil
 --- @param vertIndexTab nil
 --- @param fourBoneSkinning nil
 --- @param indexDivisor nil
 --- @param meshName nil
 --- @return nil
-function CommonMeshResolveBonePalettes(state, buffer, palette table, vertIndexTab, fourBoneSkinning, indexDivisor, meshName)
+function CommonMeshResolveBonePalettes(state, buffer, palette_table, vertIndexTab, fourBoneSkinning, indexDivisor, meshName)
 end
 
 --- Sets the name of the common scene
@@ -1185,9 +1901,9 @@ end
 --- @param flags nil
 --- @param type nil
 --- @param format nil
---- @param format_options [see examples / Animation.cpp] nil
+--- @param format_options --[[see examples / Animation.cpp]] nil
 --- @return nil
-function CommonAnimationPushCompressedVector3Keys(state, name, minTime, maxTime, flags, type, format, format_options [see examples / Animation.cpp])
+function CommonAnimationPushCompressedVector3Keys(state, name, minTime, maxTime, flags, type, format, format_options --[[see examples / Animation.cpp]])
 end
 
 --- Push compressed position keys to the animation as an animated value
@@ -1198,9 +1914,9 @@ end
 --- @param flags nil
 --- @param type nil
 --- @param format nil
---- @param format_options [see examples / Animation.cpp] nil
+--- @param format_options --[[see examples / Animation.cpp]] nil
 --- @return nil
-function CommonAnimationPushCompressedQuatKeys(state, name, minTime, maxTime, flags, type, format, format_options [see examples / Animation.cpp])
+function CommonAnimationPushCompressedQuatKeys(state, name, minTime, maxTime, flags, type, format, format_options --[[see examples / Animation.cpp]])
 end
 
 --- Pyush compressed quaternion rotation keys to the animation as an animated value.
@@ -1230,14 +1946,6 @@ kAnimationValueTypeExplicitCompoundValue = 0
 --- Animation value types
 --- @type number
 kAnimationValueTypeAudioFMODParameter = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioSurroundDir = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioHighPassFilter = 0
 
 --- Animation value types
 --- @type number
@@ -1303,13 +2011,9 @@ kAnimationValueTypeContribution = 0
 --- @type number
 kCompressedQuatKeysFormatLegacy0 = 0
 
---- Vertex attribute formats
+--- Trigger on event begin or end
 --- @type number
-kCommonMeshUByte4 = 0
-
---- Legacy normed compressed vector3 keys (0).
---- @type number
-kCompressedVector3KeysFormatLegacy0 = 0
+kCommonInputMapperTypeBeginOrEnd = 0
 
 --- Trigger when an event begins
 --- @type number
@@ -1335,13 +2039,13 @@ kCommonMeshAttributeUVDiffuse = 0
 --- @type number
 kCommonMeshAttributeColour = 0
 
---- Trigger on event begin or end
---- @type number
-kCommonInputMapperTypeBeginOrEnd = 0
-
 --- Animation value types
 --- @type number
 kAnimationValueTypeTargetedMover = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshFormatUnknown = 0
 
 --- Mesh compressed format involving unsigned normed UV values
 --- @type number
@@ -1403,6 +2107,18 @@ kCommonMeshAttributeUVLightMap = 0
 --- @type number
 kCommonTextureFormatDXT1 = 0
 
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioSurroundDir = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioHighPassFilter = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeUnknown = 0
+
 --- Mesh compressed format involving unsigned approximated normed normal vector3 values
 --- @type number
 kCommonMeshCompressedFormatUNormNormalAprox = 0
@@ -1422,22 +2138,6 @@ kCommonTextureFormatRGBA8 = 0
 --- Primitive types
 --- @type number
 kCommonMeshLineList = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeVertexPosition = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeBinormal = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshFloat3 = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeNormal = 0
 
 --- Vertex attribute formats
 --- @type number
@@ -1478,6 +2178,14 @@ kAnimationValueTypeAdditiveMask = 0
 --- Vertex attribute formats
 --- @type number
 kCommonMeshUInt4 = 0
+
+--- Legacy normed compressed vector3 keys (0).
+--- @type number
+kCompressedVector3KeysFormatLegacy0 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUByte4 = 0
 
 --- Animation value types
 --- @type number
@@ -1546,6 +2254,22 @@ kCommonMeshAttributeBlendIndex = 0
 --- Vertex attribute formats
 --- @type number
 kCommonMeshUInt2 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeVertexPosition = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeNormal = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeBinormal = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshFloat3 = 0
 
 --- Animation value types
 --- @type number

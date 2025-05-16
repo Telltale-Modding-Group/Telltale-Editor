@@ -7,46 +7,6 @@
 #include <AnimationManager.hpp>
 #include <TelltaleEditor.hpp>
 
-// TESTS: load all of given type mask in archive
-static void LoadAll(CString mask, Bool bDump)
-{
-    {
-        TelltaleEditor* editor = CreateEditorContext({"BN100","MacOS",""}, false); // editor. dont run UI yet (doesn't exist)
-        
-        Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry();
-        registry->MountSystem("<Data>/", "/Users/lucassaragosa/Desktop/extract/bone");
-        
-        //editor.EnqueueResourceLocationExtractTask(registry, "<ISO>/", "/users/lucassaragosa/desktop/extract", "", true);
-        //editor.Wait();
-    
-        std::set<String> wExt{};
-        StringMask sMask = mask;
-        registry->GetResourceNames(wExt, &sMask);
-        
-        for(auto& fn: wExt)
-        {
-            DataStreamRef ref = registry->FindResource(fn);
-            if(ref)
-            {
-                if(bDump)
-                {
-                    DataStreamRef oref = editor->LoadLibraryResource("TestResources/Dbg/Decrypt/" + fn);
-                    DataStreamRef dref = Meta::MapDecryptingStream(ref);
-                    DataStreamManager::GetInstance()->Transfer(dref, oref, dref->GetSize());
-                    ref->SetPosition(0);
-                }
-                TTE_LOG("-%s", fn.c_str());
-                Meta::ReadMetaStream(fn, ref, editor->LoadLibraryResource("TestResources/Dbg/debug_" + fn + ".txt"));
-            }
-            else
-            {
-                TTE_LOG("No stream for %s", fn.c_str());
-            }
-        }
-        registry->PrintLocations();
-    }
-}
-
 // Run full application, with optional GUI
 I32 CommandLine::Executor_Editor(const std::vector<TaskArgument>& args)
 {
@@ -58,7 +18,7 @@ I32 CommandLine::Executor_Editor(const std::vector<TaskArgument>& args)
             
             // Create resource system and attach to render context for runtime
             Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry();
-            registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone");
+            registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone", true);
             registry->PrintLocations();
             
             // Add a scene runtime layer to run the scene
@@ -91,13 +51,14 @@ I32 CommandLine::Executor_Editor(const std::vector<TaskArgument>& args)
             while((running = context.FrameUpdate(!running)))
                 ;
         }
+        FreeEditorContext();
     }
-    Memory::DumpTrackedMemory();
     return 0;
 }
 
 int main(int argc, char** argv)
 {
-    // TODO CALLBACKS. REMOVE ANIMATION CONTROLLERS FROM MIXER LIST AFTER FINISH (IMPL FASTDELEGATE)
-    return CommandLine::GuardedMain(argc, argv);
+    int exit = CommandLine::GuardedMain(argc, argv);
+    Memory::DumpTrackedMemory();
+    return exit;
 }

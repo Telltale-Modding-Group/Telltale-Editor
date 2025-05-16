@@ -1,9 +1,6 @@
 #include <Resource/ResourceRegistry.hpp>
 #include <Core/Context.hpp>
 
-#include <regex>
-#include <unordered_map>
-
 #include <filesystem>
 
 // STRING MASK
@@ -150,6 +147,8 @@ namespace fs = std::filesystem;
 
 Ptr<RegistryDirectory> RegistryDirectory_System::OpenDirectory(const String& name)
 {
+    if(!fs::exists(_Path))
+        return {};
     fs::path dirPath = fs::path(_Path) / name;
     if(fs::is_directory(dirPath))
     {
@@ -161,6 +160,8 @@ Ptr<RegistryDirectory> RegistryDirectory_System::OpenDirectory(const String& nam
 
 Bool RegistryDirectory_System::GetResourceNames(std::set<String>& resources, const StringMask* optionalMask)
 {
+    if(!fs::exists(_Path))
+        return true;
     StringMask baseMask = EXCLUDE_SYSTEM_FILTER;
     for (const auto& entry : fs::directory_iterator(_Path))
     {
@@ -179,6 +180,8 @@ Bool RegistryDirectory_System::GetResourceNames(std::set<String>& resources, con
 
 Bool RegistryDirectory_System::GetSubDirectories(std::set<String>& directories, const StringMask* optionalMask)
 {
+    if(!fs::exists(_Path))
+        return true;
     StringMask baseMask = EXCLUDE_SYSTEM_FILTER;
     for (const auto& entry : fs::directory_iterator(_Path))
     {
@@ -198,6 +201,8 @@ Bool RegistryDirectory_System::GetSubDirectories(std::set<String>& directories, 
 
 Bool RegistryDirectory_System::GetAllSubDirectories(std::set<String>& directories, const StringMask* optionalMask)
 {
+    if(!fs::exists(_Path))
+        return true;
     const auto basePath = fs::absolute(_Path); // Get absolute path for reference length
     StringMask baseMask = EXCLUDE_SYSTEM_FILTER;
     
@@ -221,6 +226,8 @@ Bool RegistryDirectory_System::GetAllSubDirectories(std::set<String>& directorie
 
 Bool RegistryDirectory_System::HasResource(const Symbol& resourceName, const String*)
 {
+    if(!fs::exists(_Path))
+        return false;
     _LastLocatedResourceStatus = false;
     _LastLocatedResource.clear();
     for (const auto& entry : fs::directory_iterator(_Path))
@@ -241,12 +248,16 @@ Bool RegistryDirectory_System::HasResource(const Symbol& resourceName, const Str
 
 String RegistryDirectory_System::GetResourceName(const Symbol& resource)
 {
+    if(!fs::exists(_Path))
+        return "";
     Bool has = HasResource(resource, nullptr);
     return has ? _LastLocatedResource : "";
 }
 
 Bool RegistryDirectory_System::DeleteResource(const Symbol& resource)
 {
+    if(!fs::exists(_Path))
+        return false;
     if(!HasResource(resource, nullptr))
         return false;
     
@@ -257,6 +268,8 @@ Bool RegistryDirectory_System::DeleteResource(const Symbol& resource)
 
 Bool RegistryDirectory_System::RenameResource(const Symbol& resource, const String& newName)
 {
+    if(!fs::exists(_Path))
+        return false;
     TTE_ASSERT(resource != newName, "Resource name already the same");
     if(!HasResource(resource, nullptr))
         return false;
@@ -278,6 +291,8 @@ Bool RegistryDirectory_System::RenameResource(const Symbol& resource, const Stri
 
 DataStreamRef RegistryDirectory_System::CreateResource(const String& name)
 {
+    if(!fs::exists(_Path))
+        return {};
     fs::path filePath = fs::path(_Path) / name;
     
     _LastLocatedResource = name;
@@ -288,6 +303,8 @@ DataStreamRef RegistryDirectory_System::CreateResource(const String& name)
 
 Bool RegistryDirectory_System::CopyResource(const Symbol& resource, const String& dstResourceNameStr)
 {
+    if(!fs::exists(_Path))
+        return false;
     TTE_ASSERT(resource != dstResourceNameStr, "Resource name already the same");
     if(!HasResource(resource, nullptr))
         return false;
@@ -308,6 +325,8 @@ Bool RegistryDirectory_System::CopyResource(const Symbol& resource, const String
 
 DataStreamRef RegistryDirectory_System::OpenResource(const Symbol& resourceName, String* on)
 {
+    if(!fs::exists(_Path))
+        return {};
     if(!HasResource(resourceName, nullptr))
         return {};
     
@@ -326,7 +345,8 @@ DataStreamRef RegistryDirectory_System::OpenResource(const Symbol& resourceName,
 
 Bool RegistryDirectory_System::GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>> &resources, Ptr<ResourceLocation> &self, const StringMask *optionalMask)
 {
-    
+    if(!fs::exists(_Path))
+        return true;
     for (const auto& entry : fs::directory_iterator(_Path))
     {
         if (entry.is_regular_file())
@@ -952,6 +972,18 @@ Bool ResourceLogicalLocation::GetResources(std::vector<std::pair<Symbol, Ptr<Res
     return true;
 }
 
+RegistryDirectory* ResourceLogicalLocation::LocateConcreteDirectory(const Symbol& resourceName)
+{
+    for(auto& set : SetStack)
+    {
+        Ptr<ResourceLocation> self = set.Resolved;
+        RegistryDirectory* pDirectory = set.Resolved ? set.Resolved->LocateConcreteDirectory(resourceName) : nullptr;
+        if(pDirectory)
+            return pDirectory;
+    }
+    return nullptr;
+}
+
 DataStreamRef ResourceLogicalLocation::LocateResource(const Symbol& name, String* outName)
 {
     for(auto& set : SetStack) // most important part: this priority checks highest first.
@@ -976,305 +1008,396 @@ Bool ResourceLogicalLocation::HasResource(const Symbol &name)
     return false;
 }
 
-// LUA API
-
-static std::regex GetPattern(const String& ending, std::unordered_map<String, std::regex>& pattern_cache)
-{
-    auto it = pattern_cache.find(ending);
-    if (it != pattern_cache.end())
-    {
-        return it->second;
-    }
-    
-    std::string pattern = "/";
-    for (char c : ending)
-    {
-        if (std::isalpha(c))
-        {
-            pattern += "[";
-            pattern += static_cast<char>(std::tolower(c));
-            pattern += static_cast<char>(std::toupper(c));
-            pattern += "]";
-        } else
-        {
-            pattern += c;
-        }
-    }
-    pattern += "$";
-    
-    std::regex compiled_pattern(pattern);
-    pattern_cache[ending] = compiled_pattern;
-    return compiled_pattern;
-}
-
-static Bool MatchDirectory(const String& path, const String& directory, std::unordered_map<String, std::regex>& pattern_cache)
-{
-    std::regex pattern = GetPattern(directory, pattern_cache);
-    return std::regex_search(path, pattern);
-}
-
-U32 luaResourceSetRegister(LuaManager& man) // through this exists in lua, we will implement in C++ for ease
-{
-    std::unordered_map<String, std::regex> pattern_cache{};
-    
-    TTE_ASSERT(man.GetTop() == 1, "RegisterSetDescription(set) only accepts one argument.");
-    ScriptManager::GetGlobal(man, "_resourceRegistryInternal", true);
-    
-    TTE_ASSERT(man.Type(-1) == LuaType::LIGHT_OPAQUE, "No resource registry is bound the current Lua VM!"); // resource registry needed!
-    ResourceRegistry* reg = (ResourceRegistry*)man.ToPointer(-1);
-    man.Pop(1);
-    
-    ResourceSet set{};
-    
-    // see Assembly.lua , this gets called (deferred) in the _resourceRegistry loop. do it upfront.
-    
-    TTE_ASSERT(man.Type(-1) == LuaType::TABLE, "At RegistrySetDescription(set): set was not a table");
-    
-    // --- SET NAME
-    
-    man.PushLString("setName");
-    man.GetTable(1);
-    TTE_ASSERT(man.Type(-1) == LuaType::STRING, "Resource set name does not exist (set.setName)");
-    String setName = set.Name = ScriptManager::PopString(man);
-    
-    // -- PRIORITY
-    
-    man.PushLString("priority");
-    man.GetTable(1);
-    TTE_ASSERT(man.Type(-1) == LuaType::NUMBER, "Resource set priority does not exist (set.priority)");
-    set.Priority = ScriptManager::PopInteger(man);
-    
-    // -- CREATE LOGICAL LOCATION
-    
-    reg->CreateLogicalLocation("<" + set.Name + ">");
-    
-    // -- ENABLE MODE
-    
-    man.PushLString("enableMode");
-    man.GetTable(1);
-    TTE_ASSERT(man.Type(-1) == LuaType::STRING, "Resource set enable mode not exist (set.enableMode)");
-    String enableMode = ScriptManager::PopString(man);
-    Bool bHasMainSet = true;
-    
-    if(CompareCaseInsensitive(enableMode, "constant"))
-    {
-        ;
-    }
-    else if(CompareCaseInsensitive(enableMode, "bootable"))
-    {
-        set.SetFlags.Add(ResourceSetFlags::DYNAMIC);
-        set.SetFlags.Add(ResourceSetFlags::BOOTABLE);
-    }
-    else if(CompareCaseInsensitive(enableMode, "localization"))
-    {
-        set.SetFlags.Add(ResourceSetFlags::DYNAMIC);
-        set.SetFlags.Add(ResourceSetFlags::STICKY);
-    }
-    else bHasMainSet = false;
-    
-    // -- LOGICAL DESTINATION MAPPING
-    
-    if(bHasMainSet)
-    {
-        man.PushLString("logicalDestination");
-        man.GetTable(1);
-        if(man.Type(-1) == LuaType::STRING)
-        {
-            String dest = man.ToString(-1);
-            if(dest.length() > 0)
-            {
-                if(!StringStartsWith(dest, "<") || !StringEndsWith(dest, ">"))
-                    TTE_LOG("WARNING: Logical destination for %s is not valid: %s", set.Name.c_str(), dest.c_str());
-            }
-            set.Mappings["<" + set.Name + ">"] = std::move(dest);
-        }
-        man.Pop(1);
-    }
-    
-    // -- VERSION TYPE
-    
-    man.PushLString("version");
-    man.GetTable(1);
-    TTE_ASSERT(man.Type(-1) == LuaType::STRING, "Resource set version does not exist (set.version)");
-    String version = ScriptManager::PopString(man);
-    
-    if(CompareCaseInsensitive(version, "trunk"))
-    {
-        set.Version = ResourceSetVersion::RESOURCE_SET_TRUNK;
-    }
-    else if(CompareCaseInsensitive(version, "patch"))
-    {
-        set.Version = ResourceSetVersion::RESOURCE_SET_PATCH;
-    }
-    
-    // -- CREATE MAIN SET
-    
-    reg->_ResourceSets.push_back(std::move(set));
-    set = ResourceSet{};
-    
-    // --- GAME DATA SET NAME
-    
-    man.PushLString("gameDataName");
-    man.GetTable(1);
-    TTE_ASSERT(man.Type(-1) == LuaType::STRING, "Resource set name does not exist (set.gameDataName)");
-    set.Name = ScriptManager::PopString(man);
-    
-    // -- GAME DATA PRIORITY
-    
-    man.PushLString("gameDataPriority");
-    man.GetTable(1);
-    TTE_ASSERT(man.Type(-1) == LuaType::NUMBER, "Resource set %s priority does not exist (set.gameDataName)", set.Name.c_str());
-    set.Priority = ScriptManager::PopInteger(man);
-    
-    // -- GAME DATA ENABLE MODE
-    
-    man.PushLString("gameDataEnableMode");
-    man.GetTable(1);
-    TTE_ASSERT(man.Type(-1) == LuaType::STRING, "Resource set %s game data enable mode not exist (set.gameDataEnableMode)", set.Name.c_str());
-    String gameDataEnableMode = ScriptManager::PopString(man);
-    
-    if(CompareCaseInsensitive(gameDataEnableMode, "bootable"))
-    {
-        set.SetFlags.Add(ResourceSetFlags::DYNAMIC);
-        set.SetFlags.Add(ResourceSetFlags::BOOTABLE);
-    }
-    else if(CompareCaseInsensitive(gameDataEnableMode, "localization"))
-    {
-        set.SetFlags.Add(ResourceSetFlags::DYNAMIC);
-        set.SetFlags.Add(ResourceSetFlags::STICKY);
-    }
-    
-    // -- CREATE GAME DATA SET
-    
-    reg->_ResourceSets.push_back(set);
-    
-    // -- LOCAL DIR INCLUDE/EXCLUDE/ETC
-    
-    man.PushLString("localDir");
-    man.GetTable(1);
-    String localDir{};
-    if(man.Type(-1) == LuaType::STRING)
-        localDir = ScriptManager::PopString(man);
-    else
-        man.Pop(1);
-    
-    Bool bExcludeFromSet = false;
-    
-    if(localDir.length())
-    {
-        man.PushLString("localDirExclude");
-        if(man.Type(-1) == LuaType::TABLE)
-        {
-            man.PushNil();
-            while(man.TableNext(2) != 0)
-            {
-                String exclude = ScriptManager::PopString(man);
-                if(MatchDirectory(localDir, exclude, pattern_cache))
-                {
-                    bExcludeFromSet = true;
-                    man.Pop(1);
-                    break;
-                }
-            }
-        }
-        man.Pop(1);
-    }
-    
-    if(!bExcludeFromSet)
-    {
-        man.PushLString("localDirIncludeBase");
-        man.GetTable(1);
-        TTE_ASSERT(man.Type(-1) == LuaType::BOOL, "Resource set %s include base does not exist (set.localDirIncludeBase)", setName.c_str());
-        bExcludeFromSet = !ScriptManager::PopBool(man); // recursive not supported in non tool
-    }
-    
-    if(!bExcludeFromSet)
-    {
-        String dir = "<" + setName + ">/";
-        reg->CreateConcreteDirectoryLocation(dir, localDir);
-        reg->ResourceSetMapLocation(set.Name, dir, "<" + setName + ">");
-    }
-    
-    // -- GAME DATA ARCHIVES
-    
-    man.PushLString("gameDataArchives");
-    man.GetTable(1);
-    if(man.Type(-1) == LuaType::TABLE)
-    {
-        man.PushNil();
-        while(man.TableNext(2) != 0)
-        {
-            String archivePath = ScriptManager::PopString(man);
-            String location = reg->ResourceAddressResolveToConcreteLocationID(archivePath);
-            String resource = reg->ResourceAddressGetResourceName(archivePath);
-            reg->CreateConcreteArchiveLocation(location, resource);
-            reg->ResourceSetMapLocation(set.Name, location + resource + "/", "<" + setName + ">");
-        }
-        man.Pop(1);
-    }
-    man.Pop(1);
-    
-    if(version.length() == 0 || CompareCaseInsensitive(version, "trunk"))
-    {
-        // autoapply resource set
-        reg->_DeferredApplications.push_back(set.Name);
-        
-        if(bHasMainSet && CompareCaseInsensitive(enableMode, "constant"))
-        {
-            reg->_DeferredApplications.push_back(setName); // game data set
-        }
-        
-    }
-    
-    return 0;
-}
-
-static U32 luaResourcePrintLocations(LuaManager& man)
-{
-    TTE_ASSERT(man.GetTop() == 0, "ResourcePrintLocations does not accept arguments!");
-    ScriptManager::GetGlobal(man, "_resourceRegistryInternal", true);
-    
-    TTE_ASSERT(man.Type(-1) == LuaType::LIGHT_OPAQUE, "No resource registry is bound the current Lua VM!"); // resource registry needed!
-    ResourceRegistry* reg = (ResourceRegistry*)man.ToPointer(-1);
-    
-    reg->PrintLocations();
-    
-    return 0;
-}
-
-static U32 luaResourceAddObject(LuaManager& man)
-{
-    return 0;
-}
-
-void InjectResourceAPI(LuaFunctionCollection& Col, Bool bWorker)
-{
-    
-    PUSH_FUNC(Col, "RegisterSetDescription", &luaResourceSetRegister, "nil RegisterSetDescription(set)",
-              "Registers a resource set description to the attached resource registry");
-    PUSH_FUNC(Col, "ResourcePrintLocations", &luaResourcePrintLocations, "nil ResourcePrintLocations()",
-              "Prints all resource locations. Must have an attached resource registry.");
-    PUSH_FUNC(Col, "GameEngine_AddBuildVersionInfo", &luaResourceAddObject, "nil GameEngine_AddBuildVersionInfo(info)",
-              "Adds build information dates. Ignored.");
-    // dummy func. _resCdesc ('c' sometimes). some resdescs just call this. idk why
-}
-
 // RESOURCE REGISTRY
 
 #define SCOPE_LOCK() std::unique_lock<std::recursive_mutex> lck{_Guard}
 
-void ResourceRegistry::_BindVM()
+void ResourceRegistry::ResourceSetNonPurgable(const Symbol &resourceName, Bool bOnOff)
 {
-    TTE_ASSERT(IsCallingFromMain(), "This can only be called from the main thread. Resource sets can only be mounted on the main thread."
-               " This is because the Lua VM version is dependent on the game and there is only one Lua VM with a version specific to the current game.");
-    _LVM.PushOpaque(this);
-    ScriptManager::SetGlobal(_LVM, "_resourceRegistryInternal", true);
+    SCOPE_LOCK();
+    for(auto it = _AliveHandles.begin(); it != _AliveHandles.end(); it++)
+    {
+        if(it->_ResourceName == resourceName)
+        {
+            it->_Flags.Set(HandleFlags::NON_PURGABLE, bOnOff);
+            return;
+        }
+    }
+    for(auto& loaded: _DirtyHandles)
+    {
+        if(loaded._ResourceName == resourceName)
+        {
+            loaded._Flags.Set(HandleFlags::NON_PURGABLE, bOnOff);
+            return;
+        }
+    }
 }
 
-void ResourceRegistry::_UnbindVM()
+String ResourceRegistry::ResourceSetGetLocationID(const Symbol &setName, const Symbol &resourceName)
 {
-    _LVM.PushNil();
-    ScriptManager::SetGlobal(_LVM, "_resourceRegistryInternal", true);
+    SCOPE_LOCK();
+    for(const auto& set : _ResourceSets)
+    {
+        if(setName == set.Name)
+        {
+            for(const auto& mapping: set.Mappings)
+            {
+                Ptr<ResourceLocation> loc = _Locate(mapping.first);
+                if(loc->HasResource(resourceName))
+                    return loc->Name;
+            }
+            break;
+        }
+    }
+    return "";
+}
+
+Bool ResourceRegistry::ResourceExists(const Symbol &resourceName)
+{
+    SCOPE_LOCK();
+    for(auto& alive: _AliveHandles)
+    {
+        if(alive._ResourceName == resourceName)
+            return true;
+    }
+    for(auto& alive: _DirtyHandles)
+    {
+        if(alive._ResourceName == resourceName)
+            return true;
+    }
+    return _Locate("<>")->HasResource(resourceName);
+}
+
+void ResourceRegistry::CopyResource(const Symbol &resourceName, const String &destName)
+{
+    if(resourceName != destName)
+    {
+        RegistryDirectory* pDirectory = _Locate("<>")->LocateConcreteDirectory(resourceName);
+        if(pDirectory)
+        {
+            DataStreamRef stream = pDirectory->OpenResource(resourceName, nullptr);
+            DataStreamRef out = pDirectory->CreateResource(destName);
+            DataStreamManager::GetInstance()->Transfer(stream, out, stream->GetSize());
+        }
+    }
+}
+
+void ResourceRegistry::DeleteResource(const Symbol &resourceName)
+{
+    SCOPE_LOCK();
+    RegistryDirectory* pDirectory = _Locate("<>")->LocateConcreteDirectory(resourceName);
+    if(pDirectory)
+        pDirectory->DeleteResource(resourceName);
+}
+
+String ResourceRegistry::LocateConcreteResourceLocation(const Symbol &resourceName)
+{
+    SCOPE_LOCK();
+    for(const auto& loc: _Locations)
+    {
+        if(loc->GetConcreteDirectory())
+        {
+            if(loc->GetConcreteDirectory()->HasResource(resourceName, nullptr))
+                return loc->Name;
+        }
+    }
+    return "";
+}
+
+ResourceAddress ResourceRegistry::CreateResolvedAddress(const String& resourceName, Bool bDefaultToCache)
+{
+    ResourceAddress addr{};
+    
+    size_t schemeEnd = resourceName.find(':');
+    String scheme;
+    String path;
+    
+    if (schemeEnd != String::npos)
+    {
+        scheme = ToLower(String(resourceName, 0, schemeEnd));
+        path = String(resourceName, schemeEnd + 1);
+        
+        // Skip optional "//" after scheme
+        if (StringStartsWith(path, "//"))
+            path = path.substr(2);
+    }
+    else
+    {
+        // No scheme provided
+        scheme = "locator";
+        path = resourceName;
+    }
+    
+    // Trim leading slashes
+    while (!path.empty() && path[0] == '/')
+        path = path.substr(1);
+    
+    const bool isLocationOnly = !path.empty() && path.back() == '/';
+    
+    if (scheme == "locator")
+    {
+        if (isLocationOnly)
+        {
+            TTE_LOG("Invalid locator address %s: file name is required", resourceName.c_str());
+            return {};
+        }
+        
+        SCOPE_LOCK();
+        addr.Name = FileGetName(path);
+        addr.LocationName = _DefaultLocation;
+    }
+    else if (scheme == "ttcache")
+    {
+        if (path.find('/') != String::npos)
+        {
+            TTE_LOG("Invalid resource address %s: sub-locators not permitted in cache", resourceName.c_str());
+            return {};
+        }
+        addr.IsCache = true;
+        addr.Name = path;
+    }
+    else if (scheme == "logical")
+    {
+        String locationStr = FileGetPath(path);
+        
+        if (locationStr.empty() && !isLocationOnly)
+        {
+            TTE_LOG("Invalid resource address %s: missing logical locator path", resourceName.c_str());
+            return {};
+        }
+        
+        // Ensure LocationName ends in '/' (locators always do)
+        if (!locationStr.empty() && locationStr.back() != '/')
+            locationStr += '/';
+        
+        addr.LocationName = isLocationOnly ? path : locationStr;
+        addr.Name = isLocationOnly ? "" : FileGetName(path);
+        
+        {
+            SCOPE_LOCK();
+            
+            if (!_Locate(addr.LocationName))
+            {
+                TTE_LOG("Logical locator %s could not be resolved for %s", addr.LocationName.c_str(), resourceName.c_str());
+                return {};
+            }
+        }
+    }
+    else if (scheme.empty() && bDefaultToCache)
+    {
+        if (path.find('/') != String::npos)
+        {
+            TTE_LOG("Invalid resource address %s: cache resource must not have directories.", resourceName.c_str());
+            return {};
+        }
+        addr.IsCache = true;
+        addr.Name = path;
+    }
+    else
+    {
+        TTE_LOG("Unknown or unsupported scheme '%s' in resource address %s", scheme.c_str(), resourceName.c_str());
+        return {};
+    }
+    
+    return addr;
+}
+
+
+ResourceAddress ResourceRegistry::CreateResolvedAddress(const Symbol &resourceName)
+{
+    // Locator
+    ResourceAddress addr{};
+    addr.Name = SymbolTable::Find(resourceName);
+    if(addr.Name.length() == 0)
+    {
+        TTE_LOG("Could not resolve resource name from symbol Symbol<%s>", SymbolToHexString(resourceName).c_str());
+        return {};
+    }
+    {
+        SCOPE_LOCK();
+        addr.LocationName = "";
+    }
+    return addr;
+}
+
+Bool ResourceRegistry::RevertResource(const Symbol &resourceName)
+{
+    SCOPE_LOCK();
+    // if dirty, won't worry.
+    HandleObjectInfo hoi{};
+    hoi._ResourceName = resourceName;
+    auto it = _AliveHandles.find(hoi);
+    if(it != _AliveHandles.end() && !it->_Flags.Test(HandleFlags::NON_PURGABLE))
+    {
+        hoi = std::move(*it);
+        hoi._Flags.Add(HandleFlags::NEEDS_SERIALISE_IN);
+        hoi._Flags.Add(HandleFlags::NEEDS_NORMALISATION);
+        hoi._Flags.Remove(HandleFlags::NEEDS_DESTROY);
+        _AliveHandles.erase(it);
+        _ProcessDirtyHandle(std::move(hoi), lck);
+        return true;
+    }
+    return false;
+}
+
+Bool ResourceRegistry::SaveResource(const Symbol &resourceName)
+{
+    SCOPE_LOCK();
+    String name = SymbolTable::Find(resourceName);
+    if(name.length() == 0)
+    {
+        TTE_LOG("Cannot save resource: unknown symbol %s", SymbolToHexString(resourceName).c_str());
+        return false;
+    }
+    HandleObjectInfo hoi{};
+    hoi._ResourceName = resourceName;
+    auto it = _AliveHandles.find(hoi);
+    if(it != _AliveHandles.end())
+    {
+        Ptr<ResourceLocation> pDestLocation{};
+        if(it->_Locator.length() != 0)
+        {
+            pDestLocation = _Locate(it->_Locator);
+        }
+        if(!pDestLocation || !pDestLocation->GetConcreteDirectory())
+        {
+            TTE_LOG("Cannot save resource %s: don't know where to create the file. Please make sure you have it already loaded or call Create first",
+                    name.c_str());
+            return false;
+        }
+        U32 clz = Meta::FindClassByExtension(name, 0);
+        if(!clz)
+        {
+            TTE_LOG("Cannot save resource %s: the file extension is not supported or is not a meta class for saving / common instance.", name.c_str());
+            return false;
+        }
+        RegistryDirectory* pDir = pDestLocation->GetConcreteDirectory();
+        DataStreamRef stream = pDir->CreateResource(name);
+        Bool bResult = false;
+        if(it->_Instance)
+        {
+            // prop / mcd raw
+            bResult = Meta::WriteMetaStream(name, it->_Instance, stream, {});
+        }
+        else
+        {
+            Meta::ClassInstance instance = Meta::CreateInstance(clz);
+            const Meta::Class& clazz = Meta::GetClass(clz);
+            bResult = InstanceTransformation::PerformSpecialiseAsync(it->_Handle, instance, GetThreadLVM());
+            if(bResult)
+                bResult = Meta::WriteMetaStream(name, instance, stream, {});
+        }
+        return bResult;
+    }
+    return false;
+}
+
+Bool ResourceRegistry::CreateResource(const ResourceAddress& address)
+{
+    SCOPE_LOCK();
+    if(!address)
+        return false;
+    U32 clz = Meta::FindClassByExtension(FileGetExtension(address.Name), 0);
+    if(!clz)
+    {
+        TTE_LOG("Cannot create resource %s: the file extension is invalid or does not map to a valid meta class. Only meta described classes "
+                "can be created this way.", address.Name.c_str());
+        return false;
+    }
+    DataStreamRef resource{};
+    if(address.IsCache)
+    {
+        HandleObjectInfo hoi{};
+        hoi._ResourceName = address.Name;
+        if(_AliveHandles.find(hoi) != _AliveHandles.end())
+        {
+            TTE_LOG("Cannot create resource %s: already exists in cache!", address.Name.c_str());
+            return false;
+        }
+        else
+        {
+            for(const auto& dirty : _DirtyHandles)
+            {
+                if(dirty._ResourceName == hoi._ResourceName)
+                {
+                    TTE_LOG("Cannot create resource %s: already exists in cache!", address.Name.c_str());
+                    return false;
+                }
+            }
+        }
+        hoi._Locator = address.LocationName;
+        if(Meta::GetClass(clz).Flags & Meta::_CLASS_PROP)
+        {
+            hoi._Instance = Meta::CreateInstance(clz); // just prop MCD instance
+        }
+        else
+        {
+            CommonInstanceAllocator* allocator = Meta::GetCommonAllocator(clz);
+            if(!allocator)
+            {
+                TTE_LOG("Cannot create resource %s: the common class was not registered for coersion. This means that it is "
+                        "not supported for cache or common instances. If you believe this is an error please contact us!", address.Name.c_str());
+                return false;
+            }
+            hoi._Flags.Add(HandleFlags::LOADED);
+            hoi._Handle = allocator(shared_from_this());
+        }
+        _AliveHandles.insert(std::move(hoi));
+        return true;
+    }
+    Ptr<ResourceLocation> pResolved = _Locate(address.LocationName.length() == 0 ? _DefaultLocation : address.LocationName);
+    if(pResolved)
+    {
+        RegistryDirectory* pDirectory = pResolved->GetConcreteDirectory();
+        if(!pDirectory)
+        {
+            TTE_LOG("Cannot create resource %s: resource location requested (%s) is not concrete. Please provide the concrete location as you are creating"
+                    " the resource and therefore must know where it needs to go!", address.Name.c_str(), address.LocationName.c_str());
+            return false;
+        }
+        if(pDirectory->HasResource(address.Name, &address.Name))
+        {
+            TTE_LOG("Cannot create resource %s: already exists!", address.Name.c_str());
+            return false;
+        }
+        resource = pDirectory->CreateResource(address.Name);
+        if(!resource)
+        {
+            TTE_LOG("Could not create resource %s inside concrete directory %s!", address.Name.c_str(), address.LocationName.c_str());
+            return false;
+        }
+    }
+    Meta::ClassInstance quickSave = Meta::CreateInstance(clz);
+    if(!quickSave)
+    {
+        TTE_LOG("Cannot create instance of %s when creating %s", Meta::GetClass(clz).Name.c_str(), address.Name.c_str());
+        return false;
+    }
+    return Meta::WriteMetaStream(address.Name, std::move(quickSave), resource, {});
+}
+
+Ptr<ResourceRegistry> ResourceRegistry::GetBoundRegistry(LuaManager& man)
+{
+    ScriptManager::GetGlobal(man, "__ResourceRegistry", false);
+    if(man.Type(-1) == LuaType::LIGHT_OPAQUE)
+        return ((ResourceRegistry*)ScriptManager::PopOpaque(man))->shared_from_this();
+    man.Pop(1);
+    return {};
+}
+
+void ResourceRegistry::BindLuaManager(LuaManager& man)
+{
+    man.PushOpaque(this);
+    ScriptManager::SetGlobal(man, "__ResourceRegistry", false);
+}
+
+ResourceRegistry::ResourceRegistry(LuaManager& man) : GameDependentObject("ResourceRegistry"), _LVM(man)
+{
+    TTE_ASSERT(Meta::GetInternalState().GameIndex != -1, "Resource registries can only be when a game is set!");
+    TTE_ASSERT(man.GetVersion() == Meta::GetInternalState().Games[Meta::GetInternalState().GameIndex].LVersion,
+               "The lua manager used for the current game must match the version being used for this resource registry");
+    
+    CreateLogicalLocation("<>");
 }
 
 void ResourceRegistry::_ApplyMountDirectory(RegistryDirectory* pMountPoint, std::unique_lock<std::recursive_mutex>& lck)
@@ -1304,7 +1427,6 @@ void ResourceRegistry::_ApplyMountDirectory(RegistryDirectory* pMountPoint, std:
             if(toExecute.size())
             {
                 lck.unlock(); // ensure we are not locked!
-                _BindVM();
                 
                 String path = pMountPoint->GetPath();
                 std::replace(path.begin(), path.end(), '\\', '/');
@@ -1333,7 +1455,6 @@ void ResourceRegistry::_ApplyMountDirectory(RegistryDirectory* pMountPoint, std:
                 _LVM.PushNil();
                 ScriptManager::SetGlobal(_LVM, "_currentDirectory", true); // reset it
                 
-                _UnbindVM();
             }
             
             // autoapply any needed
@@ -1376,6 +1497,15 @@ String ResourceRegistry::ResourceAddressResolveToConcreteLocationID(const String
 {
     SCOPE_LOCK();
     size_t pos = path.find_last_of("/\\");
+    if(!pos)
+    {
+        return LocateConcreteResourceLocation(path);
+    }
+    else if(pos == path.length() - 1)
+    {
+        auto loc = _Locate(path);
+        return loc ? loc->Name : "";
+    }
     
     while (pos != String::npos)
     {
@@ -1421,8 +1551,7 @@ void ResourceRegistry::PrintLocations()
 
 String ResourceRegistry::ResourceAddressGetResourceName(const String& address)
 {
-    fs::path p{address};
-    return p.filename().string();
+    return FileGetName(address);
 }
 
 void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
@@ -1431,7 +1560,7 @@ void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDi
     // Find all .TTARCH archives. Lets put their priority higher to prefer those resources over filesystem, such that telltale do.
     
     std::set<String> archives{};
-    StringMask mask = _ArchivesMask(true);
+    StringMask mask = _ArchivesMask(UsingLegacyCompat());
     TTE_ASSERT(dir->GetResourceNames(archives, &mask), "Could not gather resource names from %s", fspath.c_str());
     Ptr<ResourceLocation> castedPtr = dir;
     
@@ -1456,11 +1585,13 @@ void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDi
     }
 }
 
-void ResourceRegistry::MountArchive(const String &id, const String &fspath)
+void ResourceRegistry::MountArchive(const String &_id, const String &fspath)
 {
     StringMask mask = _ArchivesMask(UsingLegacyCompat());
     TTE_ASSERT(mask == fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
-    _CheckConcrete(id);
+    String id = _id;
+    if(!StringEndsWith(id, "/"))
+        id += "/";
     SCOPE_LOCK();
     if(_Locate(id) != nullptr)
     {
@@ -1522,8 +1653,23 @@ void ResourceRegistry::MountArchive(const String &id, const String &fspath)
     }
 }
 
+String ResourceRegistry::LocateResource(const void *pResourceMemory)
+{
+    SCOPE_LOCK();
+    for(const auto& h: _AliveHandles)
+    {
+        if(h._Handle.get() == pResourceMemory || h._Instance._GetInternal() == pResourceMemory)
+            return SymbolTable::Find(h._ResourceName);
+    }
+    for(const auto& h: _DirtyHandles)
+    {
+        if(h._Handle.get() == pResourceMemory || h._Instance._GetInternal() == pResourceMemory)
+            return SymbolTable::Find(h._ResourceName);
+    }
+    return "";
+}
 
-void ResourceRegistry::MountSystem(const String &id, const String& _fspath)
+void ResourceRegistry::MountSystem(const String &id, const String& _fspath, Bool force)
 {
     
     // ensure no archives
@@ -1550,7 +1696,7 @@ void ResourceRegistry::MountSystem(const String &id, const String& _fspath)
     auto dir = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_System>, MEMORY_TAG_RESOURCE_REGISTRY, id, fspath);
     _Locations.push_back(dir);
     
-    if(bUsesResourceSys)
+    if(bUsesResourceSys && !force)
         _ApplyMountDirectory(&dir->Directory, lck); // actual resource source system. find resdescs.
     else
     {
@@ -1627,10 +1773,39 @@ void ResourceRegistry::CreateLogicalLocation(const String &name)
     }
 }
 
-void ResourceRegistry::CreateConcreteDirectoryLocation(const String &name, const String &physPath)
+void ResourceRegistry::GetLocationResourceNames(const Symbol &location, std::set<String> &outNames, const StringMask *optionalMask)
 {
+    SCOPE_LOCK();
+    for(const auto& l: _Locations)
+    {
+        if(location == l->Name)
+        {
+            l->GetResourceNames(outNames, optionalMask);
+            return;
+        }
+    }
+}
+
+Bool ResourceRegistry::ResourceLocationExists(const Symbol &name)
+{
+    SCOPE_LOCK();
+    for(const auto& l: _Locations)
+    {
+        if(name == l->Name)
+            return true;
+    }
+    return false;
+}
+
+void ResourceRegistry::CreateConcreteDirectoryLocation(const String &_name, const String &_physPath)
+{
+    String physPath = _physPath;
+    String name = _name;
     // very similar to mount. doesnt search for resource sets.
-    _CheckConcrete(name);
+    if(!StringEndsWith(physPath, "/"))
+        physPath += "/";
+    if(!StringEndsWith(name, "/"))
+        name += "/";
     SCOPE_LOCK();
     if(_Locate(name) != nullptr)
     {
@@ -1710,9 +1885,11 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
     return true;
 }
 
-void ResourceRegistry::CreateConcreteArchiveLocation(const String& name, const String& resourceName)
+void ResourceRegistry::CreateConcreteArchiveLocation(const String& _name, const String& resourceName)
 {
-    _CheckConcrete(name);
+    String name = _name;
+    if(!StringEndsWith(name, "/"))
+        name += "/";
     TTE_ASSERT(_ArchivesMask(UsingLegacyCompat()) == resourceName,
                "The archive %s cannot be loaded as it is not supported in the currently active snapshot %s", resourceName.c_str(), Meta::GetInternalState().GetActiveGame().Name.c_str());
     String archiveID = name + resourceName + "/";
@@ -1809,6 +1986,16 @@ void ResourceRegistry::ResourceSetDisable(const Symbol& name, Bool defer)
     }
 }
 
+void ResourceRegistry::ResourceSetDefaultLocation(const String &id)
+{
+    SCOPE_LOCK();
+    if(_Locate(id))
+    {
+        _DefaultLocation = id;
+        return;
+    }
+}
+
 Bool ResourceRegistry::ResourceSetIsEnabled(const Symbol& name)
 {
     SCOPE_LOCK();
@@ -1891,37 +2078,15 @@ static Bool _PerformHandleNormalise(HandleObjectInfo& handle)
     TTE_ASSERT(handle._Instance, "Cannot normalise handle as the instance is not present / did not load correctly");
     LuaManager& L = GetThreadLVM();
     
-    String fn = Meta::GetInternalState().Classes.find(handle._Instance.GetClassID())->second.NormaliserStringFn;
-    auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
-    TTE_ASSERT(fn.length() && normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found for instance: '%s'. Is this snapshot's normalisation "
-               "routine defined for %s", fn.c_str(), Meta::GetInternalState().Classes.find(handle._Instance.GetClassID())->second.Name.c_str());
-    
-    if(fn.length())
+    const auto& clazz = Meta::GetInternalState().Classes.find(handle._Instance.GetClassID())->second;
+    if((clazz.Flags & Meta::_CLASS_PROP) == 0)
     {
-        ScriptManager::GetGlobal(L, fn, true);
-        if(L.Type(-1) != LuaType::FUNCTION)
-        {
-            L.Pop(1);
-            TTE_ASSERT(L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, LoadChunkMode::BINARY), "Could not load normaliser chunk for %s", fn.c_str());
-        }
-        handle._Instance.PushWeakScriptRef(L, handle._Instance.ObtainParentRef());
-        L.PushOpaque(handle._Handle.get());
-        L.CallFunction(2, 1, false);
-        Bool result;
-        if(!(result=ScriptManager::PopBool(L)))
-        {
-            TTE_LOG("Handle normalise failed in %s", fn.c_str());
-            res = false;
-        }
-        else
-        {
-            handle._Handle->FinaliseNormalisationAsync();
-        }
+        TTE_ASSERT(handle._Handle.get(), "Could not allocate underlying common class instance for Handle<T>!");
+        InstanceTransformation::PerformNormaliseAsync(handle._Handle, handle._Instance, L);
+        // remove instance, not needed
+        handle._Instance = {};
     }
-    
-    // remove instance, not needed
-    handle._Instance = {};
-    
+
     handle._Flags.Add(HandleFlags::LOADED);
     handle._Flags.Remove(HandleFlags::NEEDS_NORMALISATION);
     return res;
@@ -1929,6 +2094,8 @@ static Bool _PerformHandleNormalise(HandleObjectInfo& handle)
 
 void ResourceRegistry::_ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::recursive_mutex>& lck)
 {
+    if(handle._Flags.Test(HandleFlags::NON_PURGABLE))
+        handle._Flags.Remove(HandleFlags::NEEDS_DESTROY);
     if(handle._Flags.Test(HandleFlags::NEEDS_DESTROY))
     {
         handle._OnUnload(*this, lck);
@@ -1967,6 +2134,48 @@ void ResourceRegistry::_ProcessDirtyHandles(Float budget, U64 startStamp, std::u
         _DirtyHandles.pop_back();
         _ProcessDirtyHandle(std::move(handle), lck);
     }
+}
+
+Bool ResourceRegistry::UnloadResource(const Symbol &resourceName)
+{
+    SCOPE_LOCK();
+    Bool bFound = false;
+    HandleObjectInfo proxy{};
+    proxy._ResourceName = resourceName;
+    auto it = _AliveHandles.lower_bound(proxy);
+    // test alive handles
+    if(it != _AliveHandles.end() && it->_ResourceName == resourceName)
+    {
+        Bool bHasLoaded = it->_Flags.Test(HandleFlags::LOADED) && !it->_Flags.Test(HandleFlags::NON_PURGABLE);
+        if(!bHasLoaded)
+        {
+            // unload it
+            HandleObjectInfo&& handle = std::move(_AliveHandles.extract(it).value());
+            handle._Flags.Add(HandleFlags::NEEDS_DESTROY); // everything else ignored
+            _ProcessDirtyHandle(std::move(handle), lck);
+        }
+        return bHasLoaded;
+    }
+    // test currently dirty
+    for(auto it = _DirtyHandles.begin(); it != _DirtyHandles.end(); it++)
+    {
+        if(it->_ResourceName == resourceName)
+        {
+            if(!it->_Flags.Test(HandleFlags::NON_PURGABLE))
+            {
+                it->_Flags.Add(HandleFlags::NEEDS_DESTROY);
+                HandleObjectInfo&& handle = std::move(*it);
+                _DirtyHandles.erase(it);
+                _ProcessDirtyHandle(std::move(handle), lck);
+            }
+            else
+            {
+                return false;
+            }
+            return true;
+        }
+    }
+    return false;
 }
 
 void HandleBase::_SetObject(Ptr<ResourceRegistry> &registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
@@ -2040,20 +2249,21 @@ void HandleBase::EnsureIsLoaded(Ptr<ResourceRegistry> &registry)
         TTE_LOG("Ensure loaded was called with an empty handle");
 }
 
-Ptr<Handleable> HandleBase::_GetObject(Ptr<ResourceRegistry>& registry)
+Ptr<Handleable> HandleBase::_GetObject(Ptr<ResourceRegistry>& registry, Meta::ClassInstance* pClazz)
 {
+    if(!_ResourceName.GetCRC64())
+        return {};
     _Validate();
-    TTE_ASSERT(_ResourceName, "Invalid handle!");
-    registry->_Guard.lock();
+    std::lock_guard<std::recursive_mutex>(registry->_Guard);
     HandleObjectInfo proxy{};
     proxy._ResourceName = _ResourceName;
     auto it = registry->_AliveHandles.lower_bound(proxy);
     if(it != registry->_AliveHandles.end() && it->_ResourceName == _ResourceName)
     {
-        registry->_Guard.unlock();
+        if(pClazz)
+            *pClazz = it->_Instance;
         return it->_Handle;
     }
-    registry->_Guard.unlock();
     return {};
 }
 
@@ -2119,14 +2329,16 @@ Bool ResourceRegistry::_EnsureHandleLoadedLocked(const HandleBase& handle, Bool 
     }
     if(bOnlyQuery)
         return false; // not loaded
-    // CREATE NEW HOI, LOAD IT.
+    // CREATE NEW HOI, LOAD IT. Exception here is props, which there is not Handle memory its just the class.
     HandleObjectInfo hoi{};
     hoi._ResourceName = handle._ResourceName;
     TTE_ASSERT(handle._AllocatorFn, "Allocate function for common class was not set. Handle<T> should be used!");
-    hoi._Handle = handle._AllocatorFn(shared_from_this());
-    TTE_ASSERT(hoi._Handle.get(), "Could not allocate underlying common class instance for Handle<T>!");
     Bool bResult = _SetupHandleResourceLoad(hoi, lck);
-     _ProcessDirtyHandle(std::move(hoi), lck);
+    if(bResult)
+    {
+        hoi._Handle = handle._AllocatorFn(shared_from_this()); // may fail if prop, ok. use class instance!
+        _ProcessDirtyHandle(std::move(hoi), lck);
+    }
     return bResult;
 }
 
@@ -2313,6 +2525,8 @@ void ResourceRegistry::_ReconfigureSets(const std::set<ResourceSet*>& turnOff, c
         if(it->SetFlags.Test(ResourceSetFlags::PENDING_DESTRUCT))
         {
             _DestroyResourceSet(&(*it));
+            if(CompareCaseInsensitive(_DefaultLocation, it->Name))
+                _DefaultLocation = "<>";
             _ResourceSets.erase(it);
         }
         else ++it;
@@ -2444,11 +2658,13 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
                     }
                     else
                     {
-                        // might be in dirty. check and if so then unload it
+                        // might be in dirty. check and if so then unload it (if non-purgable ignore)
                         for(auto it = job->Registry->_DirtyHandles.begin(); it != job->Registry->_DirtyHandles.end(); it++)
                         {
                             if(it->_ResourceName == job->HOI[i]._ResourceName)
                             {
+                                if(it->_Flags.Test(HandleFlags::NON_PURGABLE))
+                                    continue;
                                 it->_Flags.Add(HandleFlags::NEEDS_DESTROY);
                                 job->Registry->_ProcessDirtyHandle(std::move(*it), lck);
                                 job->Registry->_DirtyHandles.erase(it);
@@ -2647,12 +2863,34 @@ void Handleable::OverrideLockedTimeStamp(const HandleLockOwner &owner, Bool bRel
     _LockTimeStamp.store(value, bRelaxed ? std::memory_order_relaxed : std::memory_order_release);
 }
 
-Handleable::Handleable(Ptr<ResourceRegistry> reg)
-{
-    _Registry = reg;
-}
-
 Ptr<ResourceRegistry> Handleable::GetRegistry() const
 {
     return _Registry.expired() ? nullptr : _Registry.lock();
+}
+
+void Meta::_Impl::_Coersion<Handle<Placeholder>>::Extract(Handle<Placeholder>& out, ClassInstance& inst)
+{
+    ClassInstance mem = GetMember(inst, "mHandle", true); // mHandle must exist (It should in all games).
+    TTE_ASSERT(Is(mem, "Symbol") || Is(mem, "class Symbol"), "Handle<T>::mHandle is not a Symbol");
+    Symbol val{};
+    Meta::ExtractCoercableInstance(val, mem);
+    out.SetObject(val);
+}
+
+void Meta::_Impl::_Coersion<Handle<Placeholder>>::Import(const Handle<Placeholder>& in, ClassInstance& inst)
+{
+    ClassInstance mem = GetMember(inst, "mHandle", true);
+    TTE_ASSERT(Is(mem, "Symbol") || Is(mem, "class Symbol"), "Handle<T>::mHandle is not a Symbol");
+    Symbol val = in.GetObject();
+    Meta::ImportCoercableInstance(val, mem);
+}
+
+void Meta::_Impl::_Coersion<Handle<Placeholder>>::ImportLua(const Handle<Placeholder>& in, LuaManager& man)
+{
+    man.PushLString(SymbolTable::FindOrHashString(in.GetObject()));
+}
+
+void Meta::_Impl::_Coersion<Handle<Placeholder>>::ExtractLua(Handle<Placeholder>& out, LuaManager& man, I32 stackIndex)
+{
+    out.SetObject(ScriptManager::ToSymbol(man, stackIndex));
 }

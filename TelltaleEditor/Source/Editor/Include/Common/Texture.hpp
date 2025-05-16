@@ -43,7 +43,7 @@ RenderSurfaceFormat FromSDLFormat(SDL_GPUTextureFormat format);
 // ==================================================
 
 /// A texture.
-class RenderTexture : public Handleable
+class RenderTexture : public HandleableRegistered<RenderTexture>
 {
 private:
     
@@ -98,6 +98,11 @@ private:
     
 public:
     
+    static constexpr CString ClassHandle = "Handle<D3DTexture>;Handle<T3Texture>";
+    static constexpr CString Class = "D3DTexture;T3Texture";
+    
+    inline RenderTexture(Ptr<ResourceRegistry> reg) : HandleableRegistered<RenderTexture>(std::move(reg)) {}
+    
     static U32 CalculatePitch(RenderSurfaceFormat format, U32 mipWidth, U32 mipHeight);
     static U32 CalculateSlicePitch(RenderSurfaceFormat format, U32 mipWidth, U32 mipHeight);
     
@@ -116,11 +121,8 @@ public:
     void EnsureMip(RenderContext*, U32 mipIndex);
     
     void SetName(CString name);
-    
-    inline RenderTexture(Ptr<ResourceRegistry> reg) : Handleable(reg) {}
+
     ~RenderTexture(); // RenderContext specific.
-    
-    RenderTexture& operator=(RenderTexture&&) = default;
     
     static void RegisterScriptAPI(LuaFunctionCollection& Col); // registry normalisation api
     

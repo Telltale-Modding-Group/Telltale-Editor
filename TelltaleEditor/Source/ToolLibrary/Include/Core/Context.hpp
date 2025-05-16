@@ -86,6 +86,7 @@ public:
     }
     
     // Creates a resource registry for the given game. Only use in the current game! Must be destroyed before a switch.
+    // This binds itself to the library LVM!
     Ptr<ResourceRegistry> CreateResourceRegistry();
     
 private:

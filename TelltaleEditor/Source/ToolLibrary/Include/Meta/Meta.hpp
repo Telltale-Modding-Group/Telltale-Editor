@@ -3,7 +3,7 @@
 #include <Core/Config.hpp>
 #include <Scheduler/JobScheduler.hpp>
 #include <Resource/DataStream.hpp>
-#include <Scripting/LuaManager.hpp>
+#include <Scripting/ScriptManager.hpp>
 #include <Core/BitSet.hpp>
 #include <Core/Math.hpp>
 #include <Core/GameCaps.hpp>
@@ -17,6 +17,22 @@
 
 class PropertySet;
 class FunctionBase;
+
+template<typename T>
+struct TRect
+{
+    T top, right, bottom, left;
+};
+
+template<typename T>
+struct TRange
+{
+    T min, max;
+};
+
+template class TRect<Float>;
+template class TRange<Float>;
+template class TRange<U32>;
 
 // maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
 #define MAX_VERSION_NUMBER 10
@@ -130,6 +146,7 @@ namespace Meta {
         CLASS_NON_BLOCKED = 16, // this class is not blocked in serialisation
         CLASS_ATTACHABLE = 32, // can have children attached to it, used in PropertySet and other big complex types
         CLASS_PROXY = 64, // proxy type which is used for telltale game errors. disables all block sizes in members of this type.
+        _CLASS_PROP = 128, // Internal flag denoting this class is the property set class (undergoes specific treatment in resource API)
     };
     
     // Enum / flag descriptor for a member in a class
@@ -170,6 +187,7 @@ namespace Meta {
         
         // CREATED INTERNALLY.
         U64 TypeHash = 0;
+        U64 ToolTypeHash = 0; // without specifiers.
         
         String Extension; // file extension if this class is a full file
         
@@ -185,6 +203,8 @@ namespace Meta {
         
         // RUNTIME DATA, INTERNAL.
         U32 RTSize = 0; // runtime internal size of the class, automatically generated unless intrinsic.
+        U32 RTPaddingChildren = 0, RTPaddingCallbacks = 0; // to be able to reverse the padding
+        U32 RTSizeRaw; // size without any children array or prop stuff
         
         // C++ IMPL FOR INTRINSICS/CONTAINERS/NON-POD
         void (*Constructor)(void* pMemory, U32 ClassID, ParentWeakReference host) = nullptr;
@@ -235,28 +255,29 @@ namespace Meta {
         
         U32 _ClassChildrenArrayOff(Class& clazz); // internal children refs vector offset
         
-        U32 _ClassRuntimeSize(Class& clazz, ParentWeakReference& parentRef); // internal runtime total size of class with parent
+        U32 _ClassPropertyCallbacksArrayOff(Class& clazz);
         
         U32 _Register(LuaManager& man, Class&& c, I32 classTableStackIndex); // register new class and calc CRCs
         
         U32 _DoLuaVersionCRC(LuaManager& man, I32 classTableStackIndex); // calculate version crc32
         
         // internally construct type into memory. concrete is actual ref if its a top level so members have it as its parent
-        void _DoConstruct(Class* pClass, U8* pMemory, ParentWeakReference host, ParentWeakReference& concrete);
+        void _DoConstruct(Class* pClass, U8* pMemory, ParentWeakReference host, ParentWeakReference& concrete, Bool bTopLevel);
         
-        void _DoDestruct(Class* pClass, U8* pMemory); // internally call destruct
+        void _DoDestruct(Class* pClass, U8* pMemory, Bool bTopLevel); // internally call destruct
         
         // internally copy type
-        void _DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete);
+        void _DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete, Bool bSrcTopLevel, Bool bTopLevel);
         
         // internally move type
-        void _DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete);
+        void _DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete, Bool bSrcTopLevel, Bool bTopLevel);
         
         String _PerformToString(U8* pMemory, Class* pClass);
         
         // for c++ controlled: host is empty. if script object: host MUST be a reference to a higher level parent.
         // if host argument is attachable, name can be specified and it will be appended to the child list for host
-        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host, Symbol name); // allocates but does not construct anything in the memory
+        // allocates but does not construct anything in the memory
+        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host, Symbol name, U8* pAlloc = nullptr, U32 allocSize = 0);
         
         // some serialisers have 'host' argument: top level class object
         Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString memberName, Member* hostMember = nullptr);
@@ -382,7 +403,6 @@ namespace Meta {
         BlowfishKey MasterKey; // key used for all platforms
         Flags Fl; // flags
         U32 ArchiveVersion = 0; // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
-        String PropsClassName; // class name for property set class. eg 'class PropertySet'
         GameCapabilitiesBitSet Caps;
         
         inline Bool UsesArchive2() const
@@ -408,15 +428,23 @@ namespace Meta {
         
         friend ClassInstance GetMember(ClassInstance& inst, const String& name, Bool bInsist);
         
-        friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&, Symbol);
+        friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&, Symbol, U8*, U32);
         
         friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member, Member*);
         
         friend ClassInstance CreateInstance(U32 ClassID, ClassInstance host, Symbol n);
         
+        friend ClassInstance CreateTemporaryInstance(U8* Alloc, U32 AlZ, U32 ClassID);
+        
         friend ClassInstance CopyInstance(ClassInstance instance, ClassInstance host, Symbol n);
         
         friend ClassInstance MoveInstance(ClassInstance instance, ClassInstance host, Symbol n);
+        
+        friend void _Impl::_DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc, ParentWeakReference host,
+                                     ParentWeakReference& concrete, Bool bSrcTopLevel, Bool bTopLevel);
+        
+        friend void _Impl::_DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete,
+                                     Bool bSrcTopLevel, Bool bTopLevel);
         
     public:
         
@@ -430,8 +458,19 @@ namespace Meta {
         inline ClassInstance() : _InstanceClassID(0), _InstanceMemory(nullptr) {}
         
         // returns if the instance is valid, if the parent (if has one) is valid
-        inline operator Bool() const {
+        inline operator Bool() const
+        {
             return Expired() ? false : _InstanceClassID && (_InstanceMemory ? true : false); // call bool operator on ptr
+        }
+        
+        inline Bool operator==(const ClassInstance& rhs) const
+        {
+            return _GetInternal() == rhs._GetInternal();
+        }
+        
+        inline Bool operator!=(const ClassInstance& rhs) const
+        {
+            return _GetInternal() != rhs._GetInternal();
         }
         
         // Internal use. Returns the deleter
@@ -459,6 +498,11 @@ namespace Meta {
         
         // Internal use. Gets the memory pointer
         inline U8* _GetInternal()
+        {
+            return Expired() ? nullptr : _InstanceMemory.get();
+        }
+        
+        inline const U8* _GetInternal() const
         {
             return Expired() ? nullptr : _InstanceMemory.get();
         }
@@ -503,11 +547,7 @@ namespace Meta {
         
     private:
         
-        void ExecuteCallbacks(); // execute callbacks passing in current value.
-        
-        void AddCallback(Ptr<FunctionBase>&& cb);
-        
-        void ClearCallbacks();
+        void* _GetInternalPropertySetData(); // used by prop to store callback array. not per key. key doesnt have to exist yet.
         
         // Use by _MakeInstance. Deleter is defined in the meta.cpp TU.
         inline ClassInstance(U32 storedID, U8* memory, std::function<void(U8*)> _deleter, ParentWeakReference attachTo) :
@@ -524,7 +564,6 @@ namespace Meta {
         U32 _InstanceClassID; // class id
         Ptr<U8> _InstanceMemory; // memory pointer to instance in memory
         ParentWeakReference _ParentAttachMemory; // weak reference to top level parent this instance is controlled by. NO ACCESS is
-        std::vector<Ptr<FunctionBase>> _Callbacks; // prop callbacks for child instances. called when 
         // ever given to the parent. this is such that, for example, in async jobs the parent is kept constant and untouched by each child.
         
     };
@@ -645,6 +684,8 @@ namespace Meta {
         _COL_IS_SARRAY = 256, // is a SArray type
     };
     
+    using CollectionComparatorLess = Bool(void* user, Meta::ClassInstance lhs, Meta::ClassInstance rhs);
+    
     // Both dynamic and static arrays, maps and other containers all use this type internally. (DCArray/SArray/Map/Set/Queue/...)
     // This represents a collection of (optionally keyed) class instances stored in an array.
     // This is the internal type, use without underscore version (ref ptr)
@@ -679,6 +720,10 @@ namespace Meta {
         ClassInstance GetValue(U32 index); // gets the value at the given index
         
         ClassInstance GetKey(U32 index); // gets the key at the given index. must be a keyed collection!
+        
+        // Sorts the container. User data is passed to each comparator call.
+        // THIS WILL COMPARE KEYS IF IT IS A KEYED COLLECTION. ELSE WILL COMPARE VALUES!
+        void Sort(void* user, CollectionComparatorLess* pComparator);
         
         // Index must be less than size. Replaces. If copy is false, then that key or value is moved from the argument instead.
         void SetIndex(U32 index, ClassInstance key, ClassInstance value, Bool bCopyKey, Bool bCopyVal);
@@ -775,10 +820,10 @@ namespace Meta {
     // Find a class by its extension eg 'scene' for .scene files
     U32 FindClassByExtension(const String& ext, U32 versionNumber);
     
-    // Same version using the string instead of the hash of the file name (lower case, use symbol)
+    // Same version using the string instead of the hash of the file name. INCLUDE 'CLASS ' etc. It will try again if not found with no class or other specifiers.
     inline U32 FindClass(const String& typeName, U32 versionNumber)
     {
-        return FindClass(Symbol(typeName).GetCRC64(), versionNumber);
+        return FindClass(Symbol(MakeTypeName(typeName)).GetCRC64(), versionNumber);
     }
     
     // Optional parameters
@@ -817,13 +862,22 @@ namespace Meta {
     // type (ie a non top-level) type, then pass the parent instance as the second argument along with the name to give to that child
     // class. This is needed as child classes are all named. If you just want it to hold a reference, generate a random symbol, or a known
     // one that is only set once, as if it already exists the previous one will be replaced in the underlying map.
+    // Don't use host as a property set, ie dont attach to them!
     ClassInstance CreateInstance(U32 ClassID, ClassInstance host = {}, Symbol name = {});
     
+    // See CreateInstance. Creates a temporary instance in the buffer.
+    // The instance must not be passed around! Only use it when you know its temporary to pass values around, such that its destructed before Buffer is out of scope.
+    // BUFFER SIZE! Ensure it is at least 32 bytes larger than the expected size of the class (If not do big on the stack, not too big). As an extra checking block
+    // is inserted after it in memory to make sure you don't pass it around, as well as top level child class array just in case.
+    ClassInstance CreateTemporaryInstance(U8* Buffer, U32 BufferSize, U32 ClassID);
+    
     // Creates an exact copy of the given instance. Thread safe between game switches. See CreateInstance second/third argument information.
+    // Don't use host as a property set, ie dont attach to them!
     ClassInstance CopyInstance(ClassInstance instance, ClassInstance host = {}, Symbol name = {});
     
     // Moves the instance argument to a new instance, leaving the old one still alive but with none of its previous data (now in new returned one).
     // Thread safe between game switches. See CreateInstance second/third argument information.
+    // Don't use host as a property set, ie dont attach to them!
     ClassInstance MoveInstance(ClassInstance instance, ClassInstance host = {}, Symbol name = {});
     
     // Acquires a reference to the given script object on the stack. After using ClassInstance::PushScriptRef, this can be used on the pushed value
@@ -965,264 +1019,79 @@ namespace Meta {
     // Gets the internal state. Its important that this is constant as it should NOT change between game switches.
     const InternalState& GetInternalState();
     
-    // ============= ============= ============= ============= C++ <-> META  =============  =============  =============  =============
-    
-    template<Bool _Valid = true> struct _CoercePODBase
+    namespace _Impl
     {
-        static constexpr Bool IsValid = _Valid;
-    };
-    
-    template<typename T>
-    struct CoersionPOD : _CoercePODBase<false>
-    {
-        
-        static inline void Extract(T& dest, ClassInstance& src)
-        {
-            TTE_ASSERT(false, "No implementation defined for T");
-        }
-        
-        static inline void Import(const T& src, ClassInstance& dest)
-        {
-            TTE_ASSERT(false, "No implementation defined for T");
-        }
-        
-    };
-    
-    // INLINED EXTRACTORS TO HELP COERCE TYPES FROM META SYSTEM INTO C++ WHICH DON'T CHANGE OVER GAMES
-    
-#define _COERCABLE_HELPER(_T) template<> struct CoersionPOD<_T> : _CoercePODBase<> \
-    { static inline void Extract(_T& out, ClassInstance& inst) { out = COERCE(inst._GetInternal(), _T); } \
-    static inline void Import(const _T& src, ClassInstance& inst) { COERCE(inst._GetInternal(), _T) = src; } }; \
-    
-    _COERCABLE_HELPER(Bool)
-    _COERCABLE_HELPER(String)
-    _COERCABLE_HELPER(I32)
-    _COERCABLE_HELPER(U32)
-    _COERCABLE_HELPER(U8)
-    _COERCABLE_HELPER(I8)
-    _COERCABLE_HELPER(U16)
-    _COERCABLE_HELPER(I16)
-    _COERCABLE_HELPER(I64)
-    _COERCABLE_HELPER(U64)
-    _COERCABLE_HELPER(Symbol)
-    _COERCABLE_HELPER(Float)
-    _COERCABLE_HELPER(double)
-    
-#undef _COERCABLE_HELPER
+        template<typename T>
+        struct _Coersion;
+    }
     
     /**
      Extracts into out the contents of the class. This is useful for intrinsic types which never change in the engine such as Vector2, Transform or Quaternions.
      The type must be implemented in this header, which is likely is. If not, make a PR please.
      */
-    template<typename T> void ExtractPODInstance(T& out, Meta::ClassInstance& inst)
+    template<typename T> void ExtractCoercableInstance(T& out, Meta::ClassInstance& inst)
     {
-        static_assert(CoersionPOD<T>::IsValid, "Extractor for T has not been implemented!");
-        CoersionPOD<T>::Extract(out, inst);
+        static_assert(_Impl::_Coersion<T>::IsValid, "Extractor for T has not been implemented!");
+        _Impl::_Coersion<T>::Extract(out, inst);
     }
     
     /**
      Imports T 'in' into the class instance inst. This is useful for intrinsic types which never change in the engine such as Vector2, Transform or Quaternions.
      The type must be implemented in this header, which is likely is. If not, make a PR please.
      */
-    template<typename T> void ImportPODInstance(const T& in, Meta::ClassInstance& inst)
+    template<typename T> void ImportCoercableInstance(const T& in, Meta::ClassInstance& inst)
     {
-        static_assert(CoersionPOD<T>::IsValid, "Extractor for T has not been implemented!");
-        CoersionPOD<T>::Import(in, inst);
+        static_assert(_Impl::_Coersion<T>::IsValid, "Instance importer for T has not been implemented!");
+        _Impl::_Coersion<T>::Import(in, inst);
     }
     
-    template<> struct CoersionPOD<Vector2> : _CoercePODBase<>
+    /**
+     Puts the lua value on the stack into T.
+     */
+    template<typename T> void ExtractCoercableLuaValue(T& out, LuaManager& man, I32 stackIndex)
     {
-        static inline void Extract(Vector2& out, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "x", true);
-            ExtractPODInstance(out.x, temp);
-            temp = Meta::GetMember(inst, "y", true);
-            ExtractPODInstance(out.y, temp);
-        }
-        static inline void Import(const Vector2& in, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "x", true);
-            ImportPODInstance(in.x, temp);
-            temp = Meta::GetMember(inst, "y", true);
-            ImportPODInstance(in.y, temp);
-        }
-    };
+        _Impl::_Coersion<T>::ExtractLua(out, man, stackIndex);
+    }
     
-    template<> struct CoersionPOD<Vector3> : _CoercePODBase<>
+    /**
+     Pushes a lua value with the same value as T onto the stack.
+     */
+    template<typename T> void ImportCoercableLuaValue(const T& in, LuaManager& man)
     {
-        static inline void Extract(Vector3& out, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "x", true);
-            ExtractPODInstance(out.x, temp);
-            temp = Meta::GetMember(inst, "y", true);
-            ExtractPODInstance(out.y, temp);
-            temp = Meta::GetMember(inst, "z", true);
-            ExtractPODInstance(out.z, temp);
-        }
-        static inline void Import(const Vector3& in, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "x", true);
-            ImportPODInstance(in.x, temp);
-            temp = Meta::GetMember(inst, "y", true);
-            ImportPODInstance(in.y, temp);
-            temp = Meta::GetMember(inst, "z", true);
-            ImportPODInstance(in.z, temp);
-        }
-    };
+        _Impl::_Coersion<T>::ImportLua(in, man);
+    }
     
-    template<> struct CoersionPOD<Vector4> : _CoercePODBase<>
-    {
-        static inline void Extract(Vector4& out, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "x", true);
-            ExtractPODInstance(out.x, temp);
-            temp = Meta::GetMember(inst, "y", true);
-            ExtractPODInstance(out.y, temp);
-            temp = Meta::GetMember(inst, "z", true);
-            ExtractPODInstance(out.z, temp);
-            temp = Meta::GetMember(inst, "w", true);
-            ExtractPODInstance(out.w, temp);
-        }
-        static inline void Import(const Vector4& in, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "x", true);
-            ImportPODInstance(in.x, temp);
-            temp = Meta::GetMember(inst, "y", true);
-            ImportPODInstance(in.y, temp);
-            temp = Meta::GetMember(inst, "z", true);
-            ImportPODInstance(in.z, temp);
-            temp = Meta::GetMember(inst, "w", true);
-            ImportPODInstance(in.w, temp);
-        }
-    };
+    /**
+     Pushes a lua value with the same value as the class instance.
+     */
+    inline Bool CoerceMetaToLua(LuaManager& man, ClassInstance& inst);
     
-    template<> struct CoersionPOD<Quaternion> : _CoercePODBase<>
-    {
-        static inline void Extract(Quaternion& out, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "x", true);
-            ExtractPODInstance(out.x, temp);
-            temp = Meta::GetMember(inst, "y", true);
-            ExtractPODInstance(out.y, temp);
-            temp = Meta::GetMember(inst, "z", true);
-            ExtractPODInstance(out.z, temp);
-            temp = Meta::GetMember(inst, "w", true);
-            ExtractPODInstance(out.w, temp);
-        }
-        static inline void Import(const Quaternion& in, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "x", true);
-            ImportPODInstance(in.x, temp);
-            temp = Meta::GetMember(inst, "y", true);
-            ImportPODInstance(in.y, temp);
-            temp = Meta::GetMember(inst, "z", true);
-            ImportPODInstance(in.z, temp);
-            temp = Meta::GetMember(inst, "w", true);
-            ImportPODInstance(in.w, temp);
-        }
-    };
+    /**
+     Puts into class instance inst the value on the stack at stack index.
+     */
+    inline Bool CoerceLuaToMeta(LuaManager& man, I32 stackIndex, ClassInstance& inst);
     
-    template<> struct CoersionPOD<Colour> : _CoercePODBase<>
-    {
-        static inline void Extract(Colour& out, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "r", true);
-            ExtractPODInstance(out.r, temp);
-            temp = Meta::GetMember(inst, "g", true);
-            ExtractPODInstance(out.g, temp);
-            temp = Meta::GetMember(inst, "b", true);
-            ExtractPODInstance(out.b, temp);
-            temp = Meta::GetMember(inst, "a", true);
-            ExtractPODInstance(out.a, temp);
-        }
-        static inline void Import(const Colour& in, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "r", true);
-            ImportPODInstance(in.r, temp);
-            temp = Meta::GetMember(inst, "g", true);
-            ImportPODInstance(in.g, temp);
-            temp = Meta::GetMember(inst, "b", true);
-            ImportPODInstance(in.b, temp);
-            temp = Meta::GetMember(inst, "a", true);
-            ImportPODInstance(in.a, temp);
-        }
-    };
+    /**
+     Pushes onto the stack the C++ type erased pObj which has associated meta type class.
+     */
+    inline Bool CoerceTypeErasedToLua(LuaManager& man, void* pObj, U32 clz);
     
-    template<> struct CoersionPOD<BoundingBox> : _CoercePODBase<>
-    {
-        static inline void Extract(BoundingBox& out, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "mMin", true);
-            ExtractPODInstance(out._Min, temp);
-            temp = Meta::GetMember(inst, "mMax", true);
-            ExtractPODInstance(out._Max, temp);
-        }
-        static inline void Import(const BoundingBox& in, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "mMin", true);
-            ImportPODInstance(in._Min, temp);
-            temp = Meta::GetMember(inst, "mMax", true);
-            ImportPODInstance(in._Max, temp);
-        }
-    };
+    /**
+     Gets the common instance allocator for the given class. The class must be a common class or it will return nullptr. Example classes, Mesh, Chore, Texture or Skeleton etc.
+     */
+    inline CommonInstanceAllocator* GetCommonAllocator(U32 clz);
     
-    template<> struct CoersionPOD<Sphere> : _CoercePODBase<>
-    {
-        static inline void Extract(Sphere& out, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "mRadius", true);
-            ExtractPODInstance(out._Radius, temp);
-            temp = Meta::GetMember(inst, "mCenter", true);
-            ExtractPODInstance(out._Center, temp);
-        }
-        static inline void Import(const Sphere& in, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "mRadius", true);
-            ImportPODInstance(in._Radius, temp);
-            temp = Meta::GetMember(inst, "mCenter", true);
-            ImportPODInstance(in._Center, temp);
-        }
-    };
+}
+
+// Register current class (T) to coersion. 
+#define REGISTER_MY_COERSION(_Tp) (void)Meta::_Impl::_CoersionRegistrar<_Tp>::_ForceInstantiate();
+
+namespace InstanceTransformation
+{
     
-    template<> struct CoersionPOD<Transform> : _CoercePODBase<>
-    {
-        static inline void Extract(Transform& out, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "mRot", true);
-            ExtractPODInstance(out._Rot, temp);
-            temp = Meta::GetMember(inst, "mTrans", true);
-            ExtractPODInstance(out._Trans, temp);
-        }
-        static inline void Import(const Transform& in, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "mRot", true);
-            ImportPODInstance(in._Rot, temp);
-            temp = Meta::GetMember(inst, "mTrans", true);
-            ImportPODInstance(in._Trans, temp);
-        }
-    };
+    Bool PerformNormaliseAsync(Ptr<Handleable> pCommonInstanceOut, Meta::ClassInstance inInstance, LuaManager& lvm);
     
-    template<> struct CoersionPOD<Polar> : _CoercePODBase<>
-    {
-        static inline void Extract(Polar& out, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "mR", true);
-            ExtractPODInstance(out.R, temp);
-            temp = Meta::GetMember(inst, "mTheta", true);
-            ExtractPODInstance(out.Theta, temp);
-            temp = Meta::GetMember(inst, "mPhi", true);
-            ExtractPODInstance(out.Phi, temp);
-        }
-        static inline void Import(const Polar& in, ClassInstance& inst)
-        {
-            ClassInstance temp = Meta::GetMember(inst, "mR", true);
-            ImportPODInstance(in.R, temp);
-            temp = Meta::GetMember(inst, "mTheta", true);
-            ImportPODInstance(in.Theta, temp);
-            temp = Meta::GetMember(inst, "mPhi", true);
-            ImportPODInstance(in.Phi, temp);
-        }
-    };
+    Bool PerformSpecialiseAsync(Ptr<Handleable> pCommonInstance, Meta::ClassInstance outInstance, LuaManager& lvm);
     
 }
 
@@ -1262,3 +1131,5 @@ inline Bool SerialiseDataU64(DataStreamRef& stream, Meta::Class* clazz, void* pM
     // Endianness checks in the future?
     return IsWrite ? stream->Write(const_cast<const U8*>((U8*)pMemory), 8) : stream->Read((U8*)pMemory, 8);
 }
+
+#include <Meta/MetaCoersion.inl>
