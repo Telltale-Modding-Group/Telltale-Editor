@@ -2276,7 +2276,7 @@ Ptr<Handleable> HandleBase::_GetObject(Ptr<ResourceRegistry>& registry, Meta::Cl
 {
     if(!_ResourceName.GetCRC64())
         return {};
-    std::lock_guard<std::recursive_mutex>(registry->_Guard);
+    std::lock_guard<std::recursive_mutex> _Lk(registry->_Guard);
     HandleObjectInfo proxy{};
     proxy._ResourceName = _ResourceName;
     auto it = registry->_AliveHandles.lower_bound(proxy);

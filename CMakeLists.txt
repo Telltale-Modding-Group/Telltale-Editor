@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(BUILD_SHARED_LIBS OFF) # Build static libraries
-set(CMAKE_CXX_FLAGS_RELEASE "-O3") # optimization compiler flag
 include(CMakeDependentOption)
 
 if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR) # Prevent in-source builds
@@ -17,7 +16,14 @@ if(PROJECT_SOURCE_DIR STREQUAL PROJECT_BINARY_DIR) # Prevent in-source builds
 endif()
 
 if(NOT WIN32)
-set(CMAKE_CXX_FLAGS_DEBUG "-g") # debug info compiler flag. windows puts a warning that it doesnt know this option
+    # GCC/Clang (Linux, macOS)
+    set(CMAKE_CXX_FLAGS_DEBUG "-g")
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+else()
+    # MSVC (Windows)
+    set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od")    # /Zi = debug info, /Od = no optimization
+    set(CMAKE_EXE_LINKER_FLAGS_DEBUG "/DEBUG") # linker flag for .pdb generation
+    set(CMAKE_CXX_FLAGS_RELEASE "/O2")     # /O2 = optimize for speed
 endif()
 
 set(TELLTALE_EDITOR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")

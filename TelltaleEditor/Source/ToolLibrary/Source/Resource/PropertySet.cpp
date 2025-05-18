@@ -562,17 +562,6 @@ void PropertySet::InjectScriptAPI(LuaFunctionCollection& Col)
     PUSH_FUNC(Col, "PropertyKeys", &luaPropertyKeys, "table PropertyKeys(propertySet)", "Get all the keys in a property set.");
 }
 
-static Bool _MoveFrontComparator(void* user, Meta::ClassInstance L, Meta::ClassInstance R)
-{
-    Symbol parent = COERCE(user, Symbol);
-    HandlePropertySet lProp, rProp{};
-    Meta::ExtractCoercableInstance(lProp, L);
-    Meta::ExtractCoercableInstance(rProp, R);
-    Bool isLParent = (lProp.GetObject() == parent);
-    Bool isRParent = (rProp.GetObject() == parent);
-    return isLParent && !isRParent;
-}
-
 void PropertySet::MoveParentToFront(Meta::ClassInstance prop, Symbol parent)
 {
     Meta::ClassInstance parentMember = Meta::GetMember(prop, "mParentList", true);
@@ -581,21 +570,19 @@ void PropertySet::MoveParentToFront(Meta::ClassInstance prop, Symbol parent)
         Meta::ClassInstanceCollection& array = Meta::CastToCollection(parentMember);
         for (U32 i = 0; i < array.GetSize(); ++i)
         {
-            Meta::ClassInstance parent = array.GetValue(i);
             HandlePropertySet hParent{};
-            Meta::ExtractCoercableInstance(hParent, parent);
             if(hParent.GetObject() == parent)
             {
-                array.PopValue(i, parent);
                 if(i == 0)
-                    return; // already ok
+                    return; // already ok (at front)
+                Meta::ClassInstance u{};
+                array.PopValue(i, u);
                 break;
             }
         }
         Meta::ClassInstance global = Meta::CreateInstance(Meta::FindClass(PropertySet::ClassHandle, 0));
         Meta::ImportCoercableInstance(parent, global);
-        array.PushValue(global, false); // move it.
-        array.Sort(&global, &_MoveFrontComparator);
+        array.Insert({}, std::move(global), 0, false, false);
     }
 }
 
