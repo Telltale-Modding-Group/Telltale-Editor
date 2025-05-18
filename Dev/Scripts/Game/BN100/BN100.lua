@@ -239,7 +239,7 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(bb)
 
 	local enumNavMode = NewClass("enum NavCam::Mode", 0)
-	enumNavMode.Flags = kMetaClassNonBlocked -- this is a wrapper. needed so versions match, just remaps int
+	enumNavMode.Flags = kMetaClassNonBlocked + kMetaClassEnumWrapper -- this is a wrapper. needed so versions match, just remaps int
 	enumNavMode.Members[1] = NewMember("mVal", kMetaInt, kMetaMemberVersionDisable + kMetaMemberEnum)
 	AddEnum(enumNavMode, 1, "eNone", 1)
 	AddEnum(enumNavMode, 1, "eLookAt", 2)
@@ -251,6 +251,7 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(enumNavMode)
 
 	local navCamMode = NewClass("class Enum<enum NavCam::Mode,1,2>", 0)
+	navCamMode.Flags = kMetaClassEnumWrapper
 	navCamMode.Members[1] = NewMember("mVal", enumNavMode, kMetaMemberEnum) 
 	-- mVal type name for versioning must be enum NavCam::Mode, not int, so we need the wrapper above
 	MetaRegisterClass(navCamMode)
@@ -909,7 +910,7 @@ function RegisterBone100(vendor, platform)
 	local dlgType = {}
     dlgType.VersionIndex = 0
     dlgType.Name = "enum DialogUtils::DialogElemT"
-    dlgType.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic
+    dlgType.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic + kMetaClassEnumWrapper
     dlgType.Members = {}
     dlgType.Members[1] = NewMember("mVal", kMetaInt, kMetaMemberVersionDisable + kMetaMemberEnum)  
 	AddEnum(dlgType, 1, "eExchange", 1)

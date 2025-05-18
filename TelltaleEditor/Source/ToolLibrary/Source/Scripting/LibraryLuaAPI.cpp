@@ -577,7 +577,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 return 1;
             }
             
-            if(FindClass(name, n) != 0)
+            if(FindClass(Symbol(name).GetCRC64(), n, true) != 0)
             {
                 TTE_LOG("At MetaRegisterDuplicate: new duplicated class name and version number already exist (%s:%u)", name.c_str(), n);
                 man.PushNil();
@@ -2932,6 +2932,103 @@ namespace TTE
         return 0;
     }
     
+    static U32 luaPrintSets(LuaManager& man)
+    {
+        Ptr<ResourceRegistry> reg = ResourceRegistry::GetBoundRegistry(man);
+        if(reg)
+        {
+            reg->PrintSets();
+        }
+        else
+        {
+            TTE_LOG("At TTE_PrintResourceSets: no resource registry found");
+        }
+        return 0;
+    }
+    
+    static U32 luaContainerToTable(LuaManager& man)
+    {
+        if(man.GetTop() != 1)
+        {
+            TTE_LOG("Expected one argument");
+            man.PushNil();
+            return 1;
+        }
+        Meta::ClassInstance inst = Meta::AcquireScriptInstance(man, 1);
+        man.PushTable();
+        Meta::ClassInstanceCollection& col = CastToCollection(inst);
+        Bool bKeyed = col.IsKeyedCollection();
+        for(U32 i = 0; i < col.GetSize(); i++)
+        {
+            // KEY
+            if(bKeyed)
+            {
+                Meta::ClassInstance key = col.GetKey(i);
+                if(!CoerceMetaToLua(man, key))
+                {
+                    TTE_LOG("Could not coerce collection because the key type was not coercable as of this type (type %s).",
+                            Meta::GetClass(key.GetClassID()).Name.c_str());
+                    man.Pop(1);
+                    man.PushNil();
+                    return 1;
+                }
+            }
+            else
+            {
+                man.PushInteger(i+1);
+            }
+            Meta::ClassInstance value = col.GetValue(i);
+            if(!CoerceMetaToLua(man, value))
+            {
+                TTE_LOG("Could not coerce collection because the value type was not coercable as of this type (type %s).",
+                        Meta::GetClass(value.GetClassID()).Name.c_str());
+                man.Pop(bKeyed ? 2 : 1);
+                man.PushNil();
+                return 1;
+            }
+            man.SetTable(-3);
+        }
+        return 1;
+    }
+    
+    static U32 luaTableToCollection(LuaManager& man)
+    {
+        if(man.GetTop() != 2)
+        {
+            TTE_LOG("Expected two arguments");
+            return 0;
+        }
+        Meta::ClassInstance inst = Meta::AcquireScriptInstance(man, 1);
+        Meta::ClassInstanceCollection& col = Meta::CastToCollection(inst);
+        Bool bKeyed = col.IsKeyedCollection();
+        ITERATE_TABLE(it, 2)
+        {
+            Meta::ClassInstance k{},v{};
+            if(bKeyed)
+            {
+                k = Meta::CreateInstance(col.GetKeyClass());
+                if(!Meta::CoerceLuaToMeta(man, it.KeyIndex(), k))
+                {
+                    TTE_LOG("Could not coerce collection from ;ua because the key type could not be coerced (type %s).",
+                            Meta::GetClass(k.GetClassID()).Name.c_str());
+                    return 0;
+                }
+            }
+            v = Meta::CreateInstance(col.GetValueClass());
+            if(!Meta::CoerceLuaToMeta(man, it.ValueIndex(), v))
+            {
+                TTE_LOG("Could not coerce collection from Lua because the value type could not be coerced (type %s).",
+                        Meta::GetClass(v.GetClassID()).Name.c_str());
+                return 0;
+            }
+            if(bKeyed)
+                col.Push(std::move(k), std::move(v), false, false);
+            else
+                col.PushValue(std::move(v), false);
+        }
+        return 0;
+    }
+    
 }
 
 static U32 luaMetaIsIsolated(LuaManager& man)
@@ -2956,6 +3053,15 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     
     if(!bWorker)
     {
+        Col.Functions.push_back({"TTE_TableToContainer", &TTE::luaTableToCollection, "table TTE_TableToContainer(container)",
+            "Converts the container into a lua table and returns it. For keyed container, they are the table keys. For non keyed, they are 0 based indices."
+        });
+        Col.Functions.push_back({"TTE_ContainerToTable", &TTE::luaContainerToTable, "table TTE_ContainerToTable(container, table)",
+            "Inserts all key-value mappings from the input table into the container. For non keyed containers (eg arrays) keys are ignored and its added at the back."
+        });
+        Col.Functions.push_back({"TTE_PrintResourceSets", &TTE::luaMountArchive, "nil TTE_PrintResourceSets()",
+            "Prints to the console all of the resource sets in the resource system, Must have a resource system attached!"
+        });
         Col.Functions.push_back({"TTE_MountArchive", &TTE::luaMountArchive, "nil TTE_MountArchive(locationID, physPath)",
             "Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that archive"
             " can be found. This supports .ttarch2/ttarch/iso/pk2. Physical path is the path on your local machine. Location ID should be in the format "
@@ -2963,7 +3069,7 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
             "expected format."
         });
         Col.Functions.push_back({"TTE_MountSystem", &TTE::luaMountSystem, "nil TTE_MountSystem(locationID, physPath, forceLegacy)",
-            "Mounts the resource system (like creating a concrete directroy location) to the given physical path under the name locationID."
+            "Mounts the resource system (like creating a concrete directory location) to the given physical path under the name locationID."
             " Location ID should be in the format <XXX>/. Physical path can be absolute or relative to your working directory. "
             "The last argument can be set to true to use the old telltale engine resource system which had no resource set descriptions. "
             "This means that it will recurse all directories and add them all. Set this to true to just easily get all resources quickly for debugging,"
@@ -3300,6 +3406,7 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     PUSH_GLOBAL_I(Col, "kMetaClassAbstract", Meta::CLASS_ABSTRACT, "Class is abstract");
     PUSH_GLOBAL_I(Col, "kMetaClassAttachable", Meta::CLASS_ATTACHABLE, "Class is attachable");
     PUSH_GLOBAL_I(Col, "kMetaClassProxy", Meta::CLASS_PROXY, "Proxy class disables member blocking");
+    PUSH_GLOBAL_I(Col, "kMetaClassEnumWrapper", Meta::CLASS_ENUM_WRAPPER, "Is an enum wrapper class. Should have one member (normally mVal), as integer value.");
     
     PUSH_GLOBAL_I(Col, "kMetaMemberEnum", Meta::MEMBER_ENUM, "Member is an enum");
     PUSH_GLOBAL_I(Col, "kMetaMemberFlag", Meta::MEMBER_FLAG, "Member is a flag");

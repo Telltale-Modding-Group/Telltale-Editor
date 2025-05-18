@@ -103,14 +103,8 @@ protected:
     Ptr<Handleable> _GetObject(Ptr<ResourceRegistry>& registry, Meta::ClassInstance* pClassOut = nullptr);
     
     Symbol _ResourceName;
-    CommonInstanceAllocator* _AllocatorFn; // for creating the common class
     
-    inline HandleBase(Symbol rn, CommonInstanceAllocator* alloc) : _ResourceName(rn), _AllocatorFn(alloc) {}
-    
-    inline void _Validate()
-    {
-        TTE_ASSERT(_AllocatorFn, "HandleBase calls must be done via a Handle<T> class, as the type of common class must be known!");
-    }
+    inline HandleBase(Symbol rn) : _ResourceName(rn) {}
     
     void _SetObject(Ptr<ResourceRegistry>& registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded);
     
@@ -126,11 +120,6 @@ public:
     template<typename T>
     inline void SetObject(Ptr<ResourceRegistry>& registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
     {
-        if(!_AllocatorFn)
-        {
-            _AllocatorFn = &AllocateCommon<T>;
-        }
-        else TTE_ASSERT(_AllocatorFn == &AllocateCommon<T>, "Cannot switch between handle underlying type! It must stay the same");
         _SetObject(registry, name, bUnloadOld, bEnsureLoaded);
     }
     
@@ -162,7 +151,7 @@ class Handle : public HandleBase
     
     static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
     
-    inline Handle(Symbol rn) : HandleBase(rn, &AllocateCommon<T>), _Cached{}
+    inline Handle(Symbol rn) : HandleBase(rn), _Cached{}
     {
         REGISTER_MY_COERSION(Handle<T>);
     }
@@ -240,13 +229,13 @@ class Handle<Placeholder> : public HandleBase
 
     Meta::ClassInstance _Cached;
     
-    inline Handle(Symbol rn) : HandleBase(rn, &AllocateCommon<Placeholder>), _Cached{}
+    inline Handle(Symbol rn) : HandleBase(rn), _Cached{}
     {
     }
     
 public:
     
-    inline Handle() : HandleBase(Symbol(), &AllocateCommon<Placeholder>) {}
+    inline Handle() : HandleBase(Symbol()) {}
     
     // Gets the underlying resouce. The resource will always be valid but may not be loaded. You can use other functionality to ensure its loaded.
     inline Meta::ClassInstance GetObject(Ptr<ResourceRegistry> registry, Bool bEnsureLoaded)
@@ -1028,7 +1017,8 @@ public:
     Bool RevertResource(const Symbol& resourceName);
     
     // Saves the given resource name. Must be loaded in the cache else returns false and does nothing. Saves to the first resource location matching its name (use sets!)
-    Bool SaveResource(const Symbol& resourceName);
+    // Optionally if you don't want it to save to its default output location using resource sets, specify a non-empty location being the resource location name.
+    Bool SaveResource(const Symbol& resourceName, const String& location);
     
     // Deletes the resource
     void DeleteResource(const Symbol& resourceName);
@@ -1169,3 +1159,4 @@ private:
     ResourceRegistry(LuaManager& man);
     
 };
+

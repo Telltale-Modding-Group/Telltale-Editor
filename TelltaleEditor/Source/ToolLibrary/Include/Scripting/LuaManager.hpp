@@ -68,6 +68,12 @@ using LuaCFunction = U32 (*)(LuaManager& L);
 // Used to compile scripts in this header.
 typedef int (*lua_Writer) (lua_State *L, const void* p, size_t sz, void* ud);
 
+struct LuaManagerPointerSlot
+{
+    std::atomic_flag _St{true};
+    std::atomic<U32> _Wk{1};
+};
+
 // Lua Manager class for managing lua calling and versioning. Not thread safe.
 class LuaManager
 {
@@ -260,7 +266,7 @@ private:
     
     friend class LuaManagerRef;
     
-    std::atomic_uint* _WeakRefSlot = nullptr;
+    LuaManagerPointerSlot* _WeakRefSlot = nullptr;
     
 };
 
@@ -269,28 +275,24 @@ class LuaManagerRef
 {
     
     LuaManager* _Manager = nullptr;
-    std::atomic_uint* _WeakRefSlot = nullptr;
+    LuaManagerPointerSlot* _WeakRefSlot = nullptr;
     
 public:
     
     inline LuaManagerRef(LuaManager& man)
     {
-        if(man._WeakRefSlot == nullptr)
+        if(!man._WeakRefSlot)
         {
-            _WeakRefSlot = man._WeakRefSlot = TTE_NEW(std::atomic_uint, MEMORY_TAG_SCRIPTING);
-            *_WeakRefSlot = 1;
+            man._WeakRefSlot = TTE_NEW(LuaManagerPointerSlot, MEMORY_TAG_SCRIPTING);
         }
-        else
-        {
-            _WeakRefSlot = man._WeakRefSlot;
-            _WeakRefSlot->fetch_add(1, std::memory_order_relaxed);
-        }
+        _WeakRefSlot = man._WeakRefSlot;
+        _WeakRefSlot->_Wk.fetch_add(1, std::memory_order_relaxed);
         _Manager = &man;
     }
     
     inline Bool Expired() const
     {
-        return _WeakRefSlot == nullptr || _WeakRefSlot->load(std::memory_order_relaxed) == 0;
+        return _WeakRefSlot == nullptr || !_WeakRefSlot->_St.test();
     }
     
     inline LuaManager& Get() const
@@ -313,7 +315,8 @@ public:
         _Manager = rhs._Manager;
         _WeakRefSlot = rhs._WeakRefSlot;
         if(_WeakRefSlot)
-            _WeakRefSlot->fetch_add(1);
+            _WeakRefSlot->_Wk.fetch_add(1, std::memory_order_relaxed);
+        return *this;
     }
     
     inline LuaManagerRef(LuaManagerRef&& rhs) {this->operator=(std::move(rhs));}
@@ -322,9 +325,15 @@ public:
     
     inline ~LuaManagerRef()
     {
-        if(_WeakRefSlot && _WeakRefSlot->load(std::memory_order_relaxed) == 1)
+        if (_WeakRefSlot)
         {
-            TTE_FREE(_WeakRefSlot);
+            if (_WeakRefSlot->_Wk.fetch_sub(1, std::memory_order_acq_rel) == 1)
+            {
+                if (!_WeakRefSlot->_St.test())
+                {
+                    TTE_FREE(_WeakRefSlot);
+                }
+            }
             _WeakRefSlot = nullptr;
         }
         _Manager = nullptr;

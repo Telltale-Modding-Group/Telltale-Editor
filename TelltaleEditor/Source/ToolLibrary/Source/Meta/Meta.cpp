@@ -252,8 +252,12 @@ namespace Meta {
                 cls.RTSize += sizeof(PropertySet::InternalData);
             }
             
-            if(cls.Members.size() == 1 && cls.Members[0].Descriptors.size() > 0 && State.Classes[cls.Members[0].ClassID].RTSize == 4)
+            if(cls.Flags & CLASS_ENUM_WRAPPER)
             {
+                if(cls.Members.size() != 1)
+                {
+                    TTE_LOG("WARNING: Enum wrapper class %s should have 1 member but has %d! Output may be wrong!", cls.Name.c_str(), (U32)cls.Members.size());
+                }
                 cls.ToString = &_EnumFlagToString;
             }
             
@@ -319,7 +323,7 @@ namespace Meta {
         
         String _EnumFlagToString(Class* pClass, const void* pVal)
         {
-            return _EnumFlagMemberToString(pClass->Members[0], pVal);
+            return pClass->Members.size() > 0 ? _EnumFlagMemberToString(pClass->Members[0], pVal) : "<ENUM_WRAPPER_CLASS_NO_MEMBER_FOUND>";
         }
         
         Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member, Member* hostMember)
@@ -805,6 +809,11 @@ namespace Meta {
                 // destruct child map
                 U8* mapMem = pInstanceMemory + _ClassChildrenArrayOff(*pClass);
                 ((ClassChildMap*)mapMem)->~ClassChildMap();
+            }
+            if(pClass->Flags & _CLASS_PROP)
+            {
+                U8* cbMem = pInstanceMemory + _ClassPropertyCallbacksArrayOff(*pClass);
+                ((PropertySet::InternalData*)cbMem)->~InternalData();
             }
             // If the whole class has a destructor, call it (eg String)
             if(pClass->Destructor)
@@ -1334,7 +1343,6 @@ namespace Meta {
     {
         if(man.Type(stackIndex) != LuaType::FULL_OPAQUE)
         {
-            TTE_LOG("Cannot acquire script instance at stack index %d: type is %s", stackIndex, man.Typename(man.Type(stackIndex)));
             return {};
         }
         
@@ -1467,18 +1475,19 @@ namespace Meta {
         return 0;
     }
     
-    U32 FindClass(U64 typeHash, U32 versionNumber)
+    U32 FindClass(U64 typeHash, U32 versionNumber, Bool bExact)
     {
         U32 id = _Impl::_GenerateClassID(typeHash, versionNumber);
-        if(State.Classes.find(id) == State.Classes.end())
+        Bool bFound = State.Classes.find(id) != State.Classes.end();
+        if(!bFound)
         {
             for(auto& clz: State.Classes)
             {
-                if(clz.second.ToolTypeHash == typeHash)
+                if(clz.second.ToolTypeHash == typeHash && clz.second.VersionNumber == versionNumber)
                     return clz.first;
             }
         }
-        return id;
+        return bFound ? id : 0;
     }
     
     // initialise the snapshot State.Classes
@@ -1657,6 +1666,9 @@ namespace Meta {
             TTE_ASSERT(false, "Invalid arguments passed into WriteMetaStream");
             return false;
         }
+        
+        if(params.Version == StreamVersion::UNSPECIFIED)
+            params.Version = GetInternalState().GetActiveGame().MetaVersion;
         
         Stream metaStream{};
         U8 Buffer[32]{};
@@ -2619,8 +2631,60 @@ namespace Meta {
         SetIndexInternal(_Size - 1, k, v, copyk, copyv);
     }
     
+    void ClassInstanceCollection::Insert(ClassInstance key, ClassInstance value, I32 index, Bool ck, Bool cv)
+    {
+        if(index >= _Size)
+            Push(std::move(key), std::move(value), ck, cv);
+        else
+        {
+            AdvanceTransienceFenceInternal();
+            Bool bSkipKey = (_ColFl & _COL_KEY_SKIP_MV) != 0;
+            Bool bSkipVal = (_ColFl & _COL_VAL_SKIP_MV) != 0;
+            Bool bSkipKeyDT = (_ColFl & _COL_KEY_SKIP_DT) != 0;
+            Bool bSkipValDT = (_ColFl & _COL_VAL_SKIP_DT) != 0;
+            Bool bKeyed = IsKeyedCollection();
+            Bool bFullPOD = (!bKeyed || bSkipKey) && bSkipVal;
+            Reserve(_Size + 1);
+            if (bFullPOD)
+            {
+                U8* dst = _Memory + (_PairSize * (index + 1));
+                U8* src = _Memory + (_PairSize * index);
+                U32 count = (_Size - index) * _PairSize;
+                memmove(dst, src, count);
+            }
+            else
+            {
+                for(I32 i = (I32)_Size - 1; i >= index; i--)
+                {
+                    U8* currentKey = _Memory + (_PairSize * i);
+                    U8* currentValue = currentKey + _PairSize - _ValuSize;
+                    U8* intoKey = _Memory + (_PairSize * (i+1));
+                    U8* intoValue = intoKey + _PairSize - _ValuSize;
+                    if(bKeyed)
+                    {
+                        if(bSkipKey)
+                            memcpy(intoKey, currentKey, _PairSize - _ValuSize);
+                        else
+                            _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], intoKey, currentKey, _PrntRef, _PrntRef, false, false);
+                        if(!bSkipKeyDT)
+                            _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], currentKey, false);
+                    }
+                    if(bSkipVal)
+                        memcpy(intoValue, currentValue, _ValuSize);
+                    else
+                        _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], intoValue, currentValue, _PrntRef, _PrntRef, false, false);
+                    if(!bSkipValDT)
+                        _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], currentValue, false);
+                }
+            }
+            SetIndexInternal(index, std::move(key), std::move(value), ck, cv);
+            _Size++; // bump size
+        }
+    }
+    
     void ClassInstanceCollection::SetIndex(U32 i, ClassInstance k, ClassInstance v, Bool copyk, Bool copyv)
     {
+        AdvanceTransienceFenceInternal();
         if(i < GetSize())
         {
             // destruct previous
@@ -2696,6 +2760,7 @@ namespace Meta {
     
     void ClassInstanceCollection::Sort(void *user, CollectionComparatorLess *pComparator)
     {
+        AdvanceTransienceFenceInternal();
         U8 fasterMemory[128]{};
         Memory::FastBufferAllocator alloc{};
         TTE_ASSERT(pComparator, "Invalid comparator! Null.");
@@ -2853,6 +2918,164 @@ namespace Meta {
         return SubRef(State.Classes[_ColID].ArrayValClass, _Memory + (++i * _PairSize) - _ValuSize);
     }
     
+    // COERSION IMP
+    
+    CommonInstanceAllocator* GetCommonAllocator(U32 clz)
+    {
+        String clsName = MakeTypeName(GetClass(clz).Name);
+        auto& reg = _Impl::_CoersionRegistry();
+        for(auto& v: reg)
+        {
+            if(StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
+            {
+                return v.Allocator;
+            }
+        }
+        return nullptr;
+    }
+    
+    Bool CoerceTypeErasedToLua(LuaManager& man, void* pObj, U32 clz)
+    {
+        String clsName = MakeTypeName(GetClass(clz).Name);
+        auto& reg = _Impl::_CoersionRegistry();
+        for(auto& v: reg)
+        {
+            if(StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
+            {
+                v.ImportLua(pObj, man);
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    Bool CoerceMetaToLua(LuaManager& man, ClassInstance& inst, ClassInstanceCollection* pOwningCollection, I32 ci)
+    {
+        const auto& clazz = GetClass(inst.GetClassID());
+        String clsName = MakeTypeName(clazz.Name);
+        auto& reg = _Impl::_CoersionRegistry();
+        for(auto& v: reg)
+        {
+            if(StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
+            {
+                v.MetaToLua(man, inst);
+                return true;
+            }
+        }
+        if(clazz.Flags & CLASS_CONTAINER || clazz.Flags & _CLASS_PROP)
+        {
+            if(pOwningCollection && ci >= 0)
+                pOwningCollection->PushTransientScriptRef(man, ci, false, inst.ObtainParentRef());
+            else
+                inst.PushWeakScriptRef(man, inst.ObtainParentRef());
+            return true;
+        }
+        else if((clazz.Flags & CLASS_ENUM_WRAPPER) && clazz.Members.size() > 0 && clazz.Members[0].Flags & MEMBER_ENUM)
+        {
+            // ENUM
+            U32 off = 0;
+            const auto* pEnumClazz = &clazz;
+            while(true)
+            {
+                off += pEnumClazz->Members[0].RTOffset;
+                if(Meta::GetClass(pEnumClazz->Members[0].ClassID).Members.size() == 0)
+                    break;
+                pEnumClazz = &Meta::GetClass(pEnumClazz->Members[0].ClassID); // a lot of the times theres like 2 wrapper classes. so stupid i know.
+            }
+            I32 value = COERCE(inst._GetInternal() + off, I32);
+            for(const auto& desc: pEnumClazz->Members[0].Descriptors)
+            {
+                if(value == desc.Value)
+                {
+                    man.PushLString(desc.Name);
+                    return true;
+                }
+            }
+            TTE_LOG("WARNING: When coercing to Lua enum '%s' the enum value does not correspond to an associated enum. Returning the integer string", clazz.Name.c_str());
+            man.PushLString(std::to_string(value));
+            return true;
+        }
+        return false;
+    }
+    
+    Bool CoerceLuaToMeta(LuaManager& man, I32 stackIndex, ClassInstance& inst)
+    {
+        stackIndex = man.ToAbsolute(stackIndex);
+        const auto& clazz = GetClass(inst.GetClassID());
+        String clsName = MakeTypeName(clazz.Name);
+        auto& reg = _Impl::_CoersionRegistry();
+        for(auto& v: reg)
+        {
+            if(StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
+            {
+                v.LuaToMeta(man, stackIndex, inst);
+                return true;
+            }
+        }
+        if(clazz.Flags & CLASS_CONTAINER)
+        {
+            ClassInstance col = AcquireScriptInstance(man, stackIndex);
+            // destruct current, copy construct this collection into it (maybe should have added move/copy assignment instead of constructor... oh well)
+            ClassChildMap children{};
+            Bool bChildren = (inst.IsTopLevel() || (GetClass(inst.GetClassID()).Flags & CLASS_ATTACHABLE));
+            if(bChildren)
+                children = std::move(*inst._GetInternalChildrenRefs());
+            _Impl::_DoDestruct(const_cast<Class*>(&GetClass(inst.GetClassID())), inst._GetInternal(), inst.IsTopLevel());
+            ParentWeakReference p = inst.ObtainParentRef();
+            _Impl::_DoCopyConstruct(const_cast<Class*>(&GetClass(inst.GetClassID())), inst._GetInternal(), col._GetInternal(),
+                                    inst.ObtainParentRef(), p, col.IsTopLevel(), inst.IsTopLevel());
+            if(bChildren)
+                *inst._GetInternalChildrenRefs() = std::move(children);
+            return true;
+        }
+        else if(clazz.Flags & _CLASS_PROP)
+        {
+            ClassInstance from = AcquireScriptInstance(man, stackIndex);
+            PropertySet::ClearKeys(inst);
+            PropertySet::ClearParents(inst);
+            PropertySet::ImportKeysValuesAndParents(inst, from, true, true, {}, false, false, ResourceRegistry::GetBoundRegistry(man));
+            return true;
+        }
+        else if((clazz.Flags & CLASS_ENUM_WRAPPER) && clazz.Members.size() > 0 && clazz.Members[0].Flags & MEMBER_ENUM)
+        {
+            // ENUM
+            I32& value = COERCE(inst._GetInternal() + clazz.Members[0].RTOffset, I32);
+            if(man.Type(stackIndex) == LuaType::NUMBER)
+            {
+                value = man.ToInteger(stackIndex);
+            }
+            else if(man.Type(stackIndex) == LuaType::STRING)
+            {
+                String v = man.ToString(stackIndex);
+                U32 off = 0;
+                const auto* pEnumClazz = &clazz;
+                while(true)
+                {
+                    off += pEnumClazz->Members[0].RTOffset;
+                    if(Meta::GetClass(pEnumClazz->Members[0].ClassID).Members.size() == 0)
+                        break;
+                    pEnumClazz = &Meta::GetClass(pEnumClazz->Members[0].ClassID); // a lot of the times theres like 2 wrapper classes. so stupid i know.
+                }
+                I32 value = COERCE(inst._GetInternal() + off, I32);
+                for(const auto& desc: pEnumClazz->Members[0].Descriptors)
+                {
+                    if(CompareCaseInsensitive(v, desc.Name))
+                    {
+                        value = desc.Value;
+                        return true;
+                    }
+                }
+                TTE_LOG("WARNING: When coercing from Lua, the enum '%s', the input enum '%s' is not a valid enum value for this enum", clazz.Name.c_str(), v.c_str());
+            }
+            else
+            {
+                TTE_LOG("WARNING: When coercing from Lua, the enum '%s', the input is not a string or integer: %s", clazz.Name.c_str(), man.Typename(man.Type(stackIndex)));
+            }
+            return true;
+        }
+        return false;
+    }
+    
 }
 
 const Meta::RegGame* ToolContext::GetActiveGame()
@@ -2920,4 +3143,69 @@ Bool InstanceTransformation::PerformSpecialiseAsync(Ptr<Handleable> pCommonInsta
         return false;
     }
     return true;
+}
+
+IMPL_COERSION_FN(AnimOrChore, Extract, void)(AnimOrChore& out, Meta::ClassInstance& inst)
+{
+    HandlePropertySet hProxy{};
+    ClassInstance mem = Meta::GetMember(inst, "mhAnim", true);
+    ExtractCoercableInstance(hProxy, mem);
+    out.HandleAnim = SymbolTable::Find(hProxy.GetObject());
+    mem = Meta::GetMember(inst, "mhChore", true);
+    ExtractCoercableInstance(hProxy, mem);
+    out.HandleChore = SymbolTable::Find(hProxy.GetObject());
+}
+
+IMPL_COERSION_FN(AnimOrChore, Import, void)(const AnimOrChore& in, ClassInstance& inst)
+{
+    HandlePropertySet hProxy{};
+    hProxy.SetObject(in.HandleAnim);
+    ClassInstance mem = Meta::GetMember(inst, "mhAnim", true);
+    ImportCoercableInstance(hProxy, inst);
+    hProxy.SetObject(in.HandleChore);
+    mem = Meta::GetMember(inst, "mhChore", true);
+    ImportCoercableInstance(hProxy, inst);
+}
+
+IMPL_COERSION_FN(AnimOrChore, ImportLua, void)(const AnimOrChore& in, LuaManager& man)
+{
+    if(in.HandleAnim.length())
+    {
+        man.PushLString(in.HandleAnim);
+    }
+    else if(in.HandleChore.length())
+    {
+        man.PushLString(in.HandleChore);
+    }
+    else
+    {
+        man.PushLString("");
+    }
+}
+
+IMPL_COERSION_FN(AnimOrChore, ExtractLua, void)(AnimOrChore& out, LuaManager& man, I32 stackIndex)
+{
+    if(man.Type(stackIndex) == LuaType::STRING)
+    {
+        Symbol fileName = ScriptManager::ToSymbol(man, stackIndex);
+        String resolved = SymbolTable::Find(fileName);
+        if(StringEndsWith(resolved, ".chore"))
+        {
+            out.HandleAnim = "";
+            out.HandleChore = resolved;
+        }
+        else if(StringEndsWith(resolved, ".anm"))
+        {
+            out.HandleAnim = resolved;
+            out.HandleChore = "";
+        }
+        else
+        {
+            out.HandleAnim = out.HandleChore = "";
+        }
+    }
+    else
+    {
+        TTE_LOG("WARNING: When coercing from Lua AnimOrChore: input is not a string");
+    }
 }

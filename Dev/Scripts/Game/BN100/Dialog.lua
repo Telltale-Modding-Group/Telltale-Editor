@@ -1,8 +1,8 @@
 -- Dialog Implementation
 
 function SerialiseDialogBaseBone1(stream, instance, write)
-    arrayRefs = MetaGetMember(instance, "_mStyleRefs")
-    hasRefs = ContainerGetNumElements(arrayRefs) > 0
+    local arrayRefs = MetaGetMember(instance, "_mStyleRefs")
+    local hasRefs = ContainerGetNumElements(arrayRefs) > 0
     if write and hasRefs then MetaSetClassValue(MetaGetMember(instance, "mbHasStyleGuides"), true) end
 
     if not MetaSerialiseDefault(stream, instance, write) then return false end
@@ -27,13 +27,13 @@ function SerialiseDialogResourceBone1(stream, instance, write)
         if num == 0 then
             return true -- nothing
         end
-        ids = {}
+        local ids = {}
         for i=1,num do
             ids[i] = MetaStreamReadInt(stream)
         end
-        array = MetaGetMember(instance, memberName)
+        local array = MetaGetMember(instance, memberName)
         for i=1,num do
-            newBase = ContainerEmplaceElement(array) -- transient reference. newBase access only valid until another call to modify the container.
+            local newBase = ContainerEmplaceElement(array) -- transient reference. newBase access only valid until another call to modify the container.
             if not MetaSerialise(stream, newBase, false) then
                 return false
             end
@@ -42,12 +42,12 @@ function SerialiseDialogResourceBone1(stream, instance, write)
         return true
     end
 
-    numDialogDialogs = MetaStreamReadInt(stream)
-    numDialogBranches = MetaStreamReadInt(stream)
-    numDialogItems = MetaStreamReadInt(stream)
-    numDialogExchanges = MetaStreamReadInt(stream)
-    numDialogLines = MetaStreamReadInt(stream)
-    numDialogTexts = MetaStreamReadInt(stream)
+    local numDialogDialogs = MetaStreamReadInt(stream)
+    local numDialogBranches = MetaStreamReadInt(stream)
+    local numDialogItems = MetaStreamReadInt(stream)
+    local numDialogExchanges = MetaStreamReadInt(stream)
+    local numDialogLines = MetaStreamReadInt(stream)
+    local numDialogTexts = MetaStreamReadInt(stream)
 
     if not ReadDialogBaseArray(numDialogDialogs, "_mDialogDialogs") then
         return false

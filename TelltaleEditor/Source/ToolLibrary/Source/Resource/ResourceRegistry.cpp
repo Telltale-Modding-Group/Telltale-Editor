@@ -1143,7 +1143,7 @@ ResourceAddress ResourceRegistry::CreateResolvedAddress(const String& resourceNa
         }
         
         SCOPE_LOCK();
-        addr.Name = FileGetName(path);
+        addr.Name = FileGetFilename(path);
         addr.LocationName = _DefaultLocation;
     }
     else if (scheme == "ttcache")
@@ -1171,7 +1171,7 @@ ResourceAddress ResourceRegistry::CreateResolvedAddress(const String& resourceNa
             locationStr += '/';
         
         addr.LocationName = isLocationOnly ? path : locationStr;
-        addr.Name = isLocationOnly ? "" : FileGetName(path);
+        addr.Name = isLocationOnly ? "" : FileGetFilename(path);
         
         {
             SCOPE_LOCK();
@@ -1240,7 +1240,7 @@ Bool ResourceRegistry::RevertResource(const Symbol &resourceName)
     return false;
 }
 
-Bool ResourceRegistry::SaveResource(const Symbol &resourceName)
+Bool ResourceRegistry::SaveResource(const Symbol &resourceName, const String& locator)
 {
     SCOPE_LOCK();
     String name = SymbolTable::Find(resourceName);
@@ -1255,17 +1255,22 @@ Bool ResourceRegistry::SaveResource(const Symbol &resourceName)
     if(it != _AliveHandles.end())
     {
         Ptr<ResourceLocation> pDestLocation{};
-        if(it->_Locator.length() != 0)
+        if(locator.length() == 0 || locator == "<>")
         {
-            pDestLocation = _Locate(it->_Locator);
+            pDestLocation = it->_Locator.length() ? _Locate(it->_Locator) : _DefaultLocation.length() ? _Locate(_DefaultLocation) : _Locate("<>");
+        }
+        else
+        {
+            pDestLocation = _Locate(locator);
         }
         if(!pDestLocation || !pDestLocation->GetConcreteDirectory())
         {
-            TTE_LOG("Cannot save resource %s: don't know where to create the file. Please make sure you have it already loaded or call Create first",
+            TTE_LOG("Cannot save resource %s: don't know where to create the file. Please make sure you have it already loaded or call Create first."
+                    " Double check the location path if specified which may be invalid.",
                     name.c_str());
             return false;
         }
-        U32 clz = Meta::FindClassByExtension(name, 0);
+        U32 clz = Meta::FindClassByExtension(FileGetExtension(name), 0);
         if(!clz)
         {
             TTE_LOG("Cannot save resource %s: the file extension is not supported or is not a meta class for saving / common instance.", name.c_str());
@@ -1288,6 +1293,10 @@ Bool ResourceRegistry::SaveResource(const Symbol &resourceName)
                 bResult = Meta::WriteMetaStream(name, instance, stream, {});
         }
         return bResult;
+    }
+    else
+    {
+        TTE_LOG("Cannot save resource %s: not loaded", name.c_str());
     }
     return false;
 }
@@ -1551,7 +1560,7 @@ void ResourceRegistry::PrintLocations()
 
 String ResourceRegistry::ResourceAddressGetResourceName(const String& address)
 {
-    return FileGetName(address);
+    return FileGetFilename(address);
 }
 
 void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
@@ -2072,7 +2081,7 @@ void ResourceRegistry::ReconfigureResourceSets(const std::set<Symbol>& turnOff, 
     _ReconfigureSets(toff, ton, lck, bDeferUnloads);
 }
 
-static Bool _PerformHandleNormalise(HandleObjectInfo& handle)
+static Bool _PerformHandleNormalise(HandleObjectInfo& handle, Ptr<ResourceRegistry> pRegistry)
 {
     Bool res = true;
     TTE_ASSERT(handle._Instance, "Cannot normalise handle as the instance is not present / did not load correctly");
@@ -2081,7 +2090,22 @@ static Bool _PerformHandleNormalise(HandleObjectInfo& handle)
     const auto& clazz = Meta::GetInternalState().Classes.find(handle._Instance.GetClassID())->second;
     if((clazz.Flags & Meta::_CLASS_PROP) == 0)
     {
-        TTE_ASSERT(handle._Handle.get(), "Could not allocate underlying common class instance for Handle<T>!");
+        if(!handle._Handle)
+        {
+            CommonInstanceAllocator* pAllocator = Meta::GetCommonAllocator(handle._Instance.GetClassID());
+            if(pAllocator)
+            {
+                handle._Handle = pAllocator(pRegistry);
+            }
+            else
+            {
+                // should be registered in the registry! if not likely because the compiler did not register it from the instantiation of the template.
+                TTE_LOG("Could not allocate common instance for class %s! The instance allocator was not found in the coersion registry. This likely means the compiler has failed"
+                        " us or more likely this class cannot be used as a resource at the moment because it is not supported!", Meta::GetClass(handle._Instance.GetClassID()).Name.c_str());
+                handle._Flags.Remove(HandleFlags::NEEDS_NORMALISATION);
+                return false;
+            }
+        }
         InstanceTransformation::PerformNormaliseAsync(handle._Handle, handle._Instance, L);
         // remove instance, not needed
         handle._Instance = {};
@@ -2101,6 +2125,7 @@ void ResourceRegistry::_ProcessDirtyHandle(HandleObjectInfo&& handle, std::uniqu
         handle._OnUnload(*this, lck);
         return;
     }
+    Bool bInsert = true;
     String name = {};
     if(handle._Flags.Test(HandleFlags::NEEDS_SERIALISE_IN))
     {
@@ -2121,9 +2146,10 @@ void ResourceRegistry::_ProcessDirtyHandle(HandleObjectInfo&& handle, std::uniqu
     }
     if(handle._Flags.Test(HandleFlags::NEEDS_NORMALISATION))
     {
-        _PerformHandleNormalise(handle);
+        bInsert = _PerformHandleNormalise(handle, shared_from_this());
     }
-    _AliveHandles.insert(std::move(handle)); // make normal again
+    if(bInsert)
+        _AliveHandles.insert(std::move(handle)); // make normal again
 }
 
 void ResourceRegistry::_ProcessDirtyHandles(Float budget, U64 startStamp, std::unique_lock<std::recursive_mutex>& lck)
@@ -2180,7 +2206,6 @@ Bool ResourceRegistry::UnloadResource(const Symbol &resourceName)
 
 void HandleBase::_SetObject(Ptr<ResourceRegistry> &registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded)
 {
-    _Validate();
     // IF OLD NEEDS UNLOAD
     if(_ResourceName && bUnloadOld)
     {
@@ -2236,24 +2261,21 @@ void HandleObjectInfo::_OnUnload(ResourceRegistry &registry, std::unique_lock<st
 
 Bool HandleBase::IsLoaded(Ptr<ResourceRegistry> &registry)
 {
-    _Validate();
     return _ResourceName ? registry->_EnsureHandleLoadedLocked(*this, true) : false;
 }
 
 void HandleBase::EnsureIsLoaded(Ptr<ResourceRegistry> &registry)
 {
-    _Validate();
     if(_ResourceName)
         registry->_EnsureHandleLoadedLocked(*this, false);
     else
-        TTE_LOG("Ensure loaded was called with an empty handle");
+        TTE_LOG("WARNING: Handle<T>::EnsureLoaded() called but resource name not assigned");
 }
 
 Ptr<Handleable> HandleBase::_GetObject(Ptr<ResourceRegistry>& registry, Meta::ClassInstance* pClazz)
 {
     if(!_ResourceName.GetCRC64())
         return {};
-    _Validate();
     std::lock_guard<std::recursive_mutex>(registry->_Guard);
     HandleObjectInfo proxy{};
     proxy._ResourceName = _ResourceName;
@@ -2332,11 +2354,9 @@ Bool ResourceRegistry::_EnsureHandleLoadedLocked(const HandleBase& handle, Bool 
     // CREATE NEW HOI, LOAD IT. Exception here is props, which there is not Handle memory its just the class.
     HandleObjectInfo hoi{};
     hoi._ResourceName = handle._ResourceName;
-    TTE_ASSERT(handle._AllocatorFn, "Allocate function for common class was not set. Handle<T> should be used!");
     Bool bResult = _SetupHandleResourceLoad(hoi, lck);
     if(bResult)
     {
-        hoi._Handle = handle._AllocatorFn(shared_from_this()); // may fail if prop, ok. use class instance!
         _ProcessDirtyHandle(std::move(hoi), lck);
     }
     return bResult;
@@ -2574,7 +2594,6 @@ U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles, Bool bO
             HandleBase handle = resourceHandles.back();
             resourceHandles.pop_back();
             pJob->HOI[j]._ResourceName = handle._ResourceName;
-            pJob->Allocators[j] = handle._AllocatorFn;
         }
         
         JobDescriptor J{};
@@ -2624,7 +2643,7 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
             {
                 // Normalise
                 job->HOI[i]._Handle = job->Allocators[i](job->Registry);
-                bFail = !_PerformHandleNormalise(job->HOI[i]);
+                bFail = !_PerformHandleNormalise(job->HOI[i], job->Registry);
                 job->HOI[i]._Instance = {}; // ignore instance, not needed
             }
         }else bFail = true;

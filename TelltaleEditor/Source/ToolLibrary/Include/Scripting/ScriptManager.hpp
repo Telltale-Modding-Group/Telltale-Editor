@@ -376,12 +376,12 @@ inline void InjectFullLuaAPI(LuaManager& man, Bool bWorker)
     ScriptManager::RegisterCollection(man, Col);
     CString dumpTable =
     R"(
-    function DumpTable(o)
+    function TableToString(o)
        if type(o) == 'table' then
           local s = '{ '
           for k,v in pairs(o) do
              if type(k) ~= 'number' then k = '"'..k..'"' end
-             s = s .. '['..k..'] = ' .. DumpTable(v) .. ','
+             s = s .. '['..k..'] = ' .. TableToString(v) .. ', '
           end
           return s .. '} '
        else
@@ -389,5 +389,5 @@ inline void InjectFullLuaAPI(LuaManager& man, Bool bWorker)
        end
     end
     )";
-    man.RunText(dumpTable, (U32)strlen(dumpTable), false, "DumpTable.lua");
+    man.RunText(dumpTable, (U32)strlen(dumpTable), false, "TableToString.lua");
 }

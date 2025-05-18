@@ -506,24 +506,45 @@ end
 function ContainerRemoveElement(container, index)
 end
 
---- Insert at an item at the end of the container
+--- Get the element name at the given index in the container. For keyed containers such as Map<K,V> then this will return the key as a string, for non keyed will
+--- return the index as a string - 0 based as a string.
 --- @param container nil
---- @param element nil
---- @return nil
-function ContainerInsertElement(container, element)
+--- @param index nil
+--- @return string
+function ContainerGetElementName(container, index)
 end
 
---- Emplace and return an element at the end of the container
+--- Sets an element in the container by either direct index. If a keyed container such as Map<K,V> then provide the key value there instead. Element is the value.
+--- @param container nil
+--- @param index_or_key nil
+--- @param element nil
+--- @return nil
+function ContainerSetElement(container, index_or_key, element)
+end
+
+--- Insert at an item at the end of the container. Specify the key value if its a map type (3rd argument), if not a default value is used (0, empty
+--- string etc).
+--- @param container nil
+--- @param element nil
+--- @param --[[optional]] key nil
+--- @return nil
+function ContainerInsertElement(container, element, --[[optional]] key)
+end
+
+--- Emplace and return an element at the end of the container. This is part of TTE only. Please note this returns the meta class instance and not the lua type
+--- equivalent. For other use like Telltale API, use set element (new games) or just insert element.
 --- @param container nil
 --- @return obj
 function ContainerEmplaceElement(container)
 end
 
---- Get the item in the container
+--- Get the item in the container. If the container is keyed then pass in the key, else the 0-based index. This returns the element as a lua type if possible
+--- (see documentation on coercable types). If not, this will return the meta instance for that element. This is for values such as compound classes such as skeleton entry for example,
+--- which aren't intrinsically convertible like strings.
 --- @param container nil
---- @param _index nil
+--- @param index_or_key nil
 --- @return obj
-function ContainerGetElement(container, _index)
+function ContainerGetElement(container, index_or_key)
 end
 
 --- Clear the container
@@ -663,13 +684,14 @@ end
 function PropertyAddGlobal(propertySet, parentPropertySet)
 end
 
---- Add a value to the property set. Valid type names are: "bool", "class Color", etc. Careful. 'class ' etc are not used in new games. Optional 4th argument is the
---- property value to assign.
+--- Add a value to the property set. Valid type names are: "bool", "Color", etc. Optional 4th argument is the property value to assign. Don't include and 'class ' etc specifiers,
+--- for compatibility with all games (you can if you really want)
 --- @param propertySet nil
 --- @param keyName nil
 --- @param typeName nil
+--- @param --[[optional]] value nil
 --- @return nil
-function PropertyCreate(propertySet, keyName, typeName)
+function PropertyCreate(propertySet, keyName, typeName, --[[optional]] value)
 end
 
 --- Set a value in a property set. The key name must exist.
@@ -705,6 +727,13 @@ end
 --- @param propertySet nil
 --- @return nil
 function PropertyPrintKeys(propertySet)
+end
+
+--- Returns the type name of the property value type
+--- @param propertySet nil
+--- @param key nil
+--- @return string
+function PropertyGetKeyType(propertySet, key)
 end
 
 --- Remove a value from the property set
@@ -747,6 +776,24 @@ end
 function IsIsolated()
 end
 
+--- Converts the container into a lua table and returns it. For keyed container, they are the table keys. For non keyed, they are 0 based indices.
+--- @param container nil
+--- @return table
+function TTE_TableToContainer(container)
+end
+
+--- Inserts all key-value mappings from the input table into the container. For non keyed containers (eg arrays) keys are ignored and its added at the back.
+--- @param container nil
+--- @param table nil
+--- @return table
+function TTE_ContainerToTable(container, table)
+end
+
+--- Prints to the console all of the resource sets in the resource system, Must have a resource system attached!
+--- @return nil
+function TTE_PrintResourceSets()
+end
+
 --- Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that archive can be found. This supports .ttarch2/ttarch/iso/pk2. Physical
 --- path is the path on your local machine. Location ID should be in the format <XXX>/. Please note that the archive must be from the current game snapshot! Otherwise it
 --- will fail to read due to incorrect encryptino and expected format.
@@ -756,7 +803,7 @@ end
 function TTE_MountArchive(locationID, physPath)
 end
 
---- Mounts the resource system (like creating a concrete directroy location) to the given physical path under the name locationID. Location ID should be in the format <XXX>/. Physical path can
+--- Mounts the resource system (like creating a concrete directory location) to the given physical path under the name locationID. Location ID should be in the format <XXX>/. Physical path can
 --- be absolute or relative to your working directory. The last argument can be set to true to use the old telltale engine resource system which had no resource set descriptions.
 --- This means that it will recurse all directories and add them all. Set this to true to just easily get all resources quickly for debugging, so that they are all
 --- in resource system ready to be used.
@@ -1494,14 +1541,6 @@ kMeta__Int64 = 0
 --- @type number
 kMetaLongLong = 0
 
---- Alias for signed 32-bit integer
---- @type number
-kMetaInt32 = 0
-
---- Wide character (typically UTF-16)
---- @type number
-kMetaWideChar = 0
-
 --- Alias for signed 16-bit integer
 --- @type number
 kMetaShort = 0
@@ -1530,17 +1569,13 @@ kMetaSignedChar = 0
 --- @type number
 kMetaUnsignedInt8 = 0
 
+--- Is an enum wrapper class. Should have one member (normally mVal), as integer value.
+--- @type number
+kMetaClassEnumWrapper = 0
+
 --- Intrinsic signed 8-bit integer
 --- @type number
 kMetaInt8 = 0
-
---- Alias for unsigned 64-bit integer
---- @type number
-kMeta__UnsignedInt64 = 0
-
---- Intrinsic 64-bit floating point
---- @type number
-kMetaDouble = 0
 
 --- Member is an enum
 --- @type number
@@ -1549,6 +1584,14 @@ kMetaMemberEnum = 0
 --- Alias for signed 32-bit integer (Windows)
 --- @type number
 kMetaLong = 0
+
+--- Intrinsic 64-bit floating point
+--- @type number
+kMetaDouble = 0
+
+--- Alias for unsigned 64-bit integer
+--- @type number
+kMeta__UnsignedInt64 = 0
 
 --- Intrinsic signed 64-bit integer
 --- @type number
@@ -1585,6 +1628,14 @@ kMetaFloat = 0
 --- Member is excluded from memory
 --- @type number
 kMetaMemberMemoryDisable = 0
+
+--- Alias for signed 32-bit integer
+--- @type number
+kMetaInt32 = 0
+
+--- Wide character (typically UTF-16)
+--- @type number
+kMetaWideChar = 0
 
 --- Container flag
 --- @type number

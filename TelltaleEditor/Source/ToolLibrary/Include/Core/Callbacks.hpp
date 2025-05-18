@@ -142,11 +142,11 @@ struct LuaFunctionImpl : FunctionBase
         if(NumArgs == 4) TTE_ASSERT(pArg4, "Argument 4 not provided");
         if(RegistryIndex != -1)
         {
+            man.GetReg(RegistryIndex);
             if(NumArgs >= 1) TTE_ASSERT(Meta::CoerceTypeErasedToLua(man, pArg1, classArg1), "Argument 1 could not be coerced into Lua");
             if(NumArgs >= 2) TTE_ASSERT(Meta::CoerceTypeErasedToLua(man, pArg2, classArg2), "Argument 2 could not be coerced into Lua");
             if(NumArgs >= 3) TTE_ASSERT(Meta::CoerceTypeErasedToLua(man, pArg2, classArg3), "Argument 3 could not be coerced into Lua");
             if(NumArgs == 4) TTE_ASSERT(Meta::CoerceTypeErasedToLua(man, pArg3, classArg4), "Argument 4 could not be coerced into Lua");
-            man.GetReg(RegistryIndex);
             ScriptManager::Execute(man, NumArgs, 0, false);
         }
     }
@@ -165,11 +165,11 @@ struct LuaFunctionImpl : FunctionBase
         if(NumArgs == 4) TTE_ASSERT(arg4, "Argument 4 not provided");
         if(RegistryIndex != -1)
         {
+            man.GetReg(RegistryIndex);
             if(NumArgs >= 1) TTE_ASSERT(Meta::CoerceMetaToLua(man, arg1), "Argument 1 could not be coerced into Lua");
             if(NumArgs >= 2) TTE_ASSERT(Meta::CoerceMetaToLua(man, arg2), "Argument 2 could not be coerced into Lua");
             if(NumArgs >= 3) TTE_ASSERT(Meta::CoerceMetaToLua(man, arg3), "Argument 3 could not be coerced into Lua");
             if(NumArgs >= 4) TTE_ASSERT(Meta::CoerceMetaToLua(man, arg4), "Argument 4 could not be coerced into Lua");
-            man.GetReg(RegistryIndex);
             ScriptManager::Execute(man, NumArgs, 0, false);
         }
     }

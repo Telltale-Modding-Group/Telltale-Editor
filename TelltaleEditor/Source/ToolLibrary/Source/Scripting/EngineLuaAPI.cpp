@@ -15,6 +15,60 @@ using namespace Meta; // include all meta from this TU
 
 // ==================================================== CONTAINER API ====================================================
 
+static Bool luaContainerHelperModify(LuaManager& man, I32 container, I32 containerIndex, I32 value, I32 key, CString func)
+{
+    ClassInstance inst = AcquireScriptInstance(man, container);
+    
+    if(inst && IsCollection(inst))
+    {
+        ClassInstanceCollection& collection = CastToCollection(inst);
+        ClassInstance k{},v{};
+        Bool bKeyed = collection.IsKeyedCollection();
+        Bool bCopyK = true, bCopyV = true;
+        if(bKeyed && key != -1)
+        {
+            k = AcquireScriptInstance(man, key);
+            if(!k)
+            {
+                // Coerce
+                k = CreateInstance(collection.GetKeyClass());
+                if(!Meta::CoerceLuaToMeta(man, key, k))
+                {
+                    TTE_LOG("At %s: could not coerce key input value to %s", func, GetClass(collection.GetKeyClass()).Name.c_str());
+                    return false;
+                }
+                bCopyK = false;
+            }
+        }
+        if(value != -1)
+        {
+            v = AcquireScriptInstance(man, value);
+            if(!v)
+            {
+                // Coerce
+                v = CreateInstance(collection.GetValueClass());
+                if(!Meta::CoerceLuaToMeta(man, value, v))
+                {
+                    TTE_LOG("At %s: could not coerce input value to %s", func, GetClass(collection.GetValueClass()).Name.c_str());
+                    return false;
+                }
+                bCopyV = false;
+            }
+        }
+        if(containerIndex < 0 || containerIndex > collection.GetSize())
+        {
+            containerIndex = (I32)collection.GetSize();
+        }
+        collection.Insert(std::move(k), std::move(v), containerIndex, bCopyK, bCopyV);
+        return true;
+    }
+    else
+    {
+        TTE_LOG("At %s: container was null or invalid", func);
+    }
+    return false;
+}
+
 static U32 luaContainerGetNumElements(LuaManager& man)
 {
     TTE_ASSERT(man.GetTop() == 1, "Requires one argument");
@@ -35,19 +89,9 @@ static U32 luaContainerGetNumElements(LuaManager& man)
 
 static U32 luaContainerInsertElement(LuaManager& man)
 {
-    TTE_ASSERT(man.GetTop() == 2, "Requires two args");
+    TTE_ASSERT(man.GetTop() == 2 || man.GetTop() == 3, "Requires two/three args");
     
-    ClassInstance inst = AcquireScriptInstance(man, -2);
-    
-    if(inst && IsCollection(inst))
-    {
-        ClassInstanceCollection& collection = CastToCollection(inst);
-        collection.PushValue(AcquireScriptInstance(man, -1), true); // copy value to container
-    }
-    else
-    {
-        TTE_LOG("At ContainerInsertElement: container was null or invalid");
-    }
+    luaContainerHelperModify(man, 1, -1, 2, man.GetTop() == 3 ? 3 : -1, "ContainerInsertElement");
     
     return 0;
 }
@@ -71,8 +115,48 @@ static U32 luaContainerRemoveElement(LuaManager& man)
     return 0;
 }
 
+static U32 luaContainerGetElementName(LuaManager& man)
+{
+    TTE_ASSERT(man.GetTop() == 2, "Requires two args");
+    
+    ClassInstance inst = AcquireScriptInstance(man, 1);
+    
+    if(inst && IsCollection(inst))
+    {
+        ClassInstanceCollection& collection = CastToCollection(inst);
+        I32 index = man.ToInteger(2);
+        if(index < collection.GetSize())
+        {
+            String str{};
+            // Perform MetaOperation_ToString.
+            if(collection.IsKeyedCollection())
+            {
+                ClassInstance val = collection.GetKey(index);
+                str = Meta::PerformToString(val);
+            }
+            else
+            {
+                str = std::to_string(index);
+            }
+            man.PushLString(str);
+        }
+        else
+        {
+            man.PushNil();
+        }
+    }
+    else
+    {
+        TTE_LOG("At ContainerGetElementName: container was null or invalid");
+        man.PushNil();
+    }
+    
+    return 1;
+}
+
 static U32 luaContainerGetElement(LuaManager& man)
 {
+    U8 Accel[128]{0};
     TTE_ASSERT(man.GetTop() == 2, "Requires two args");
     
     ClassInstance inst = AcquireScriptInstance(man, -2);
@@ -80,14 +164,50 @@ static U32 luaContainerGetElement(LuaManager& man)
     if(inst && IsCollection(inst))
     {
         ClassInstanceCollection& collection = CastToCollection(inst);
-        I32 index = man.ToInteger(-1);
-        if(index >= collection.GetSize())
+        if(collection.IsKeyedCollection())
         {
-            TTE_ASSERT(false, "Cannot access element index %d in container, out of bounds. Is the loop using 0 based indices?", index);
+            Meta::ClassInstance comparee = Meta::CreateTemporaryInstance(Accel, 128, collection.GetKeyClass());
+            if(!Meta::CoerceLuaToMeta(man, 2, comparee))
+            {
+                TTE_LOG("At ContainerGetElement: the keyed container (%s) key type (%s) could not be created from input key argument. The argument must be key type.",
+                        GetClass(collection.GetArrayClass()).Name.c_str(), GetClass(collection.GetKeyClass()).Name.c_str());
+                man.PushNil();
+                return 1;
+            }
+            U32 size = collection.GetSize();
+            for(U32 i = 0; i < size; i++)
+            {
+                ClassInstance key = collection.GetKey(i);
+                if(Meta::PerformEquality(key, comparee))
+                {
+                    ClassInstance valuePush = collection.GetValue(i);
+                    if(!Meta::CoerceMetaToLua(man, valuePush, &collection, i))
+                    {
+                        // push MCD instance
+                        collection.PushTransientScriptRef(man, i, false, valuePush.ObtainParentRef());
+                    }
+                    return 1;
+                }
+            }
             man.PushNil();
-            return 1;
+            return 1; // not in container
         }
-        collection.PushTransientScriptRef(man, (U32)index, false, inst.ObtainParentRef());
+        else
+        {
+            I32 index = man.ToInteger(2);
+            if(index >= collection.GetSize() || index < 0)
+            {
+                TTE_LOG("At ContainerGetElement: cannot access element index %d in container, out of bounds. Is the loop using 0 based indices?", index);
+                man.PushNil();
+                return 1;
+            }
+            ClassInstance valuePush = collection.GetValue((U32)index);
+            if(!Meta::CoerceMetaToLua(man, valuePush, &collection, index))
+            {
+                // push meta class instance version
+                collection.PushTransientScriptRef(man, (U32)index, false, valuePush.ObtainParentRef());
+            }
+        }
     }
     else
     {
@@ -116,6 +236,23 @@ static U32 luaContainerReserve(LuaManager& man)
         U32 num = (U32)man.ToInteger(2);
         TTE_ASSERT(num < 0x10000, "Container too large!");
         CastToCollection(inst).Reserve(num);
+    }
+    return 0;
+}
+
+// nil set(container, keyOrIndex, element)
+static U32 luaContainerSetElement(LuaManager& man)
+{
+    TTE_ASSERT(man.GetTop() == 3, "Requires three arguments"); // for some reason they check if prop is 4th arg and load it. havent see used in dist.
+    ClassInstance inst = AcquireScriptInstance(man, -1);
+    Bool bKeyed = inst && IsCollection(inst) && CastToCollection(inst).IsKeyedCollection();
+    if(bKeyed)
+    {
+        luaContainerHelperModify(man, 1, -1, 3, 2, "ContainerSetElement");
+    }
+    else
+    {
+        luaContainerHelperModify(man, 1, 2, 3, -1, "ContainerSetElement");
     }
     return 0;
 }
@@ -424,7 +561,16 @@ static U32 luaResourceRevert(LuaManager& man)
 static U32 luaResourceSave(LuaManager& man)
 {
     GET_REGISTRY();
-    man.PushBool(reg->SaveResource(ScriptManager::ToSymbol(man, 1)));
+    ResourceAddress addr = reg->CreateResolvedAddress(man.ToString(1), false);
+    if(addr)
+    {
+        man.PushBool(reg->SaveResource(addr.GetName(), addr.GetLocationName()));
+    }
+    else
+    {
+        TTE_LOG("At Save: could not save %s: invalid resource address", man.ToString(1).c_str());
+        man.PushBool(false);
+    }
     return 1;
 }
 
@@ -1113,9 +1259,33 @@ U32 luaLoad(LuaManager& man)
             hoi._OpenStream = fileLoc->LocateResource(addr.GetName(), nullptr);
             if(!hoi._OpenStream)
             {
-                TTE_LOG("WARNING: At Load(): could not open file stream from %s for %s", addr.GetLocationName().c_str(), addr.GetName().c_str());
+                TTE_LOG("WARNING: At Load(): could not open file stream from %s for %s. Resource load ignored.", addr.GetLocationName().c_str(), addr.GetName().c_str());
+                man.PushNil();
             }
-            reg->_ProcessDirtyHandle(std::move(hoi), lck);
+            else
+            {
+                reg->_ProcessDirtyHandle(std::move(hoi), lck);
+                hoi._ResourceName = addr.GetName();
+                auto it = reg->_AliveHandles.find(hoi);
+                if(it != reg->_AliveHandles.end())
+                {
+                    if(it->_Instance)
+                    {
+                        // Prop
+                        Meta::ClassInstance inst = it->_Instance;
+                        inst.PushWeakScriptRef(man, inst.ObtainParentRef());
+                    }
+                    else
+                    {
+                        // Anything else
+                        ScriptManager::PushWeakScriptReference(man, it->_Handle);
+                    }
+                }
+                else
+                {
+                    man.PushNil();
+                }
+            }
         }
     }
     return 1;
@@ -1301,19 +1471,30 @@ LuaFunctionCollection luaGameEngine(Bool bWorker)
     // 'LuaContainer'
     col.Functions.push_back({"ContainerGetNumElements", &luaContainerGetNumElements,
         "int ContainerGetNumElements(container)", "Get the number of elements in a container."
-        
     });
     col.Functions.push_back({"ContainerRemoveElement", &luaContainerRemoveElement,
         "nil ContainerRemoveElement(container, index)", "Remove the item at index from the container"
     });
+    col.Functions.push_back({"ContainerGetElementName", &luaContainerGetElementName,
+        "string ContainerGetElementName(container, index)", "Get the element name at the given index in the container. For keyed containers "
+        "such as Map<K,V> then this will return the key as a string, for non keyed will return the index as a string - 0 based as a string."
+    });
+    col.Functions.push_back({"ContainerSetElement", &luaContainerSetElement,
+        "nil ContainerSetElement(container, index_or_key, element)", "Sets an element in the container by either direct index. If a keyed container such as "
+        "Map<K,V> then provide the key value there instead. Element is the value."
+    });
     col.Functions.push_back({"ContainerInsertElement", &luaContainerInsertElement,
-        "nil ContainerInsertElement(container, element)", "Insert at an item at the end of the container"
+        "nil ContainerInsertElement(container, element, --[[optional]] key)", "Insert at an item at the end of the container."
+        " Specify the key value if its a map type (3rd argument), if not a default value is used (0, empty string etc)."
     });
     col.Functions.push_back({"ContainerEmplaceElement", &luaContainerEmplaceElement,
-        "obj ContainerEmplaceElement(container)", "Emplace and return an element at the end of the container"
+        "obj ContainerEmplaceElement(container)", "Emplace and return an element at the end of the container. This is part of TTE only. Please note this returns"
+        " the meta class instance and not the lua type equivalent. For other use like Telltale API, use set element (new games) or just insert element."
     });
     col.Functions.push_back({"ContainerGetElement", &luaContainerGetElement,
-        "obj ContainerGetElement(container,_index)", "Get the item in the container"
+        "obj ContainerGetElement(container,index_or_key)", "Get the item in the container. If the container is keyed then pass in the key, else the 0-based index."
+        " This returns the element as a lua type if possible (see documentation on coercable types). If not, this will return the meta instance for that element."
+        " This is for values such as compound classes such as skeleton entry for example, which aren't intrinsically convertible like strings."
     });
     col.Functions.push_back({"ContainerClear", &luaContainerClear,
         "nil ContainerClear(container)", "Clear the container"

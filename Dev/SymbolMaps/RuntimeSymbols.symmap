@@ -2758,3 +2758,9 @@ Thorn
 Villager1
 Villager2
 Villager3
+NavCam - Orbit Max
+NavCam - Orbit Min
+NavCam - Orbit Offset
+NavCam - Mode
+logical://<Data>/prefs_menu.prop
+Prop - Some Value

@@ -28,7 +28,7 @@ end
 
 function RegisterCSI3TTArchive(MetaCI)
 
-    mapArchiveFolders = RegisterCSI3Collection(MetaCI, "HashMap<String,TTArchiveFolder>", 0, kMetaString, "TTArchiveFolder")
+    local mapArchiveFolders = RegisterCSI3Collection(MetaCI, "HashMap<String,TTArchiveFolder>", 0, kMetaString, "TTArchiveFolder")
 
     -- NOT USED ANYMORE. USE BUFFERS ARE FASTER AND NO LUA ACCESS NEEDED ANYWAY (REDUNDANT TYPE BELOW, ALTHOUGH I THINK IT MAY EXIST)
     local archiveEntry = { VersionIndex = 0 } -- guessed, just here so we can use it as a container

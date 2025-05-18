@@ -15,8 +15,12 @@
 #include <functional>
 #include <map>
 
+// ======================================== PRE DECLARATIONS ========================================
+
 class PropertySet;
 class FunctionBase;
+
+// ======================================= META UTILITY TYPES =======================================
 
 template<typename T>
 struct TRect
@@ -30,9 +34,17 @@ struct TRange
     T min, max;
 };
 
+// Telltale helper class used a lot! Exclusive OR: either a chore or animation handle
+struct AnimOrChore
+{
+    String HandleAnim;
+    String HandleChore;
+};
+
 template class TRect<Float>;
 template class TRange<Float>;
 template class TRange<U32>;
+using Rect = TRect<I32>;
 
 // maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
 #define MAX_VERSION_NUMBER 10
@@ -84,6 +96,7 @@ namespace Meta {
         MSV6 = 6, // 6
         BMS3 = 7, // Legacy CSI3/PS2. Binary Meta Stream 3
         EMS3 = 8, // Legacy CSI3/PS2. Haven't seen any files use it. Encrypted Meta Stream 3
+        UNSPECIFIED = 9,
     };
     
     // A binary meta stream. Used internally.
@@ -146,7 +159,8 @@ namespace Meta {
         CLASS_NON_BLOCKED = 16, // this class is not blocked in serialisation
         CLASS_ATTACHABLE = 32, // can have children attached to it, used in PropertySet and other big complex types
         CLASS_PROXY = 64, // proxy type which is used for telltale game errors. disables all block sizes in members of this type.
-        _CLASS_PROP = 128, // Internal flag denoting this class is the property set class (undergoes specific treatment in resource API)
+        CLASS_ENUM_WRAPPER = 128, // enum class wrapper. has one member integer (normally mVal)
+        _CLASS_PROP = 256, // Internal flag denoting this class is the property set class (undergoes specific treatment in resource API)
     };
     
     // Enum / flag descriptor for a member in a class
@@ -728,6 +742,9 @@ namespace Meta {
         // Index must be less than size. Replaces. If copy is false, then that key or value is moved from the argument instead.
         void SetIndex(U32 index, ClassInstance key, ClassInstance value, Bool bCopyKey, Bool bCopyVal);
         
+        // Inserts into at a specific index, shifting elements above up if needed. If bigger than size, pushes back like normal.
+        void Insert(ClassInstance key, ClassInstance value, I32 index, Bool bCopyKey, Bool bCopyVal);
+        
         // Pushes a new element
         // If a map, key should be non-null.
         // For any collection, value or key can be nullptr meaning a new one is constructed.
@@ -811,8 +828,10 @@ namespace Meta {
     
     // ================================= PUBLIC META API =================================
     
-    // Get the class ID of the given type from its information. ClassIDs are ALWAYS internal and do not store to disc. Returns 0 if not found
-    U32 FindClass(U64 typeHash, U32 versionNumber);
+    // Get the class ID of the given type from its information. ClassIDs are ALWAYS internal and do not store to disc. Returns 0 if not found.
+    // Pass in an exact match optionally last (default false).
+    // This means that if no class for 'class PropertySet' is found, an attempt to find without 'class '/etc erased 'PropertySet' is not done
+    U32 FindClass(U64 typeHash, U32 versionNumber, Bool bExactMatch = false);
     
     // Same as find class but finds by version CRC instead of version number
     U32 FindClassByCRC(U64 typeHash, U32 versionCRC);
@@ -820,17 +839,18 @@ namespace Meta {
     // Find a class by its extension eg 'scene' for .scene files
     U32 FindClassByExtension(const String& ext, U32 versionNumber);
     
-    // Same version using the string instead of the hash of the file name. INCLUDE 'CLASS ' etc. It will try again if not found with no class or other specifiers.
-    inline U32 FindClass(const String& typeName, U32 versionNumber)
+    // Same version using the string instead of the hash of the file name. INCLUDE 'CLASS ' etc. It will try again if not found with no class or other specifiers. (unless you want exact match..)
+    // See FindClass with type hash for the last argument default
+    inline U32 FindClass(const String& typeName, U32 versionNumber, Bool bExactMatch = false)
     {
-        return FindClass(Symbol(MakeTypeName(typeName)).GetCRC64(), versionNumber);
+        return FindClass(Symbol(typeName).GetCRC64(), versionNumber, bExactMatch);
     }
     
     // Optional parameters
     struct MetaStreamParams
     {
         
-        StreamVersion Version = StreamVersion::MSV6;
+        StreamVersion Version = StreamVersion::UNSPECIFIED;
         
         // Optionally compress each meta section
         Compression::Type Compression[STREAM_SECTION_COUNT] = {Compression::Type::END_LIBRARY, Compression::Type::END_LIBRARY, Compression::Type::END_LIBRARY};
@@ -1063,23 +1083,24 @@ namespace Meta {
     
     /**
      Pushes a lua value with the same value as the class instance.
+     Specify optionally to push meta instances (for prop and collections) as transients (if coercing from a collection value for example) specify the collection it is inside of (as well as its index in it, still pass in inst for parent ref)
      */
-    inline Bool CoerceMetaToLua(LuaManager& man, ClassInstance& inst);
+    Bool CoerceMetaToLua(LuaManager& man, ClassInstance& inst, ClassInstanceCollection* pOwningCollection = nullptr, I32 collectionIndex = -1);
     
     /**
      Puts into class instance inst the value on the stack at stack index.
      */
-    inline Bool CoerceLuaToMeta(LuaManager& man, I32 stackIndex, ClassInstance& inst);
+    Bool CoerceLuaToMeta(LuaManager& man, I32 stackIndex, ClassInstance& inst);
     
     /**
      Pushes onto the stack the C++ type erased pObj which has associated meta type class.
      */
-    inline Bool CoerceTypeErasedToLua(LuaManager& man, void* pObj, U32 clz);
+    Bool CoerceTypeErasedToLua(LuaManager& man, void* pObj, U32 clz);
     
     /**
      Gets the common instance allocator for the given class. The class must be a common class or it will return nullptr. Example classes, Mesh, Chore, Texture or Skeleton etc.
      */
-    inline CommonInstanceAllocator* GetCommonAllocator(U32 clz);
+    CommonInstanceAllocator* GetCommonAllocator(U32 clz);
     
 }
 

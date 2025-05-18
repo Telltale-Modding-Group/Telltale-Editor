@@ -10,7 +10,7 @@ function SerialisePropertySet_V0(metaStream, propInstance, isWrite)
 	MetaStreamBeginBlock(metaStream, isWrite) -- rest is inside a block in the binary
 
 	if isWrite then
-        
+        MetaStreamWriteString(metaStream, "I need to be implemented")
     else
 		local numTypes = MetaStreamReadInt(metaStream)
 		for i=1,numTypes do

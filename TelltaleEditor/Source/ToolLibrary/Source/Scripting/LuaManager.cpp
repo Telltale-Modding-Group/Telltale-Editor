@@ -17,9 +17,13 @@ LuaManager::~LuaManager()
         TTE_DEL(_Adapter);
         _Adapter = nullptr;
     }
-    if(_WeakRefSlot)
+    if (_WeakRefSlot)
     {
-        _WeakRefSlot->store(0, std::memory_order_relaxed);
+        _WeakRefSlot->_St.test_and_set();
+        if (_WeakRefSlot->_Wk.fetch_sub(1, std::memory_order_acq_rel) == 1)
+        {
+            TTE_FREE(_WeakRefSlot);
+        }
         _WeakRefSlot = nullptr;
     }
 }
