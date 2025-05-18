@@ -1,1 +1,1 @@
-target_sources(${TARGET_NAME} PRIVATE DataStream.cpp TTArchive.cpp Blowfish.cpp TTArchive2.cpp Compression.cpp ResourceRegistry.cpp ISO9660.cpp Pack2.cpp)
+target_sources(${TARGET_NAME} PRIVATE DataStream.cpp TTArchive.cpp Blowfish.cpp TTArchive2.cpp Compression.cpp ResourceRegistry.cpp ISO9660.cpp Pack2.cpp PropertySet.cpp)

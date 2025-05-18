@@ -3,14 +3,15 @@
 #include <Core/Config.hpp>
 #include <Core/Math.hpp>
 #include <Meta/Meta.hpp>
-
 #include <Renderer/RenderAPI.hpp>
 #include <Scripting/ScriptManager.hpp>
+#include <Common/Texture.hpp>
+#include <Resource/ResourceRegistry.hpp>
 
 /**
- The common mesh format which we normalise and specialise telltale classes to.
+ Group of meshes. The actual common mesh handleable format is MeshInstance, see below.
  */
-struct Mesh
+struct Mesh : HandleLockOwner
 {
     
     // separate triangle sets for default and shadow parts
@@ -35,8 +36,16 @@ struct Mesh
         U32 NumPrimitives = 0;
         U32 NumIndices = 0;
         //I32 TextureIndices[RenderViewType::NUM]{-1, -1}; // index into textures array for the bound texture.
-        //I32 MaterialIndex = -1; // material index
+        I32 MaterialIndex = -1; // material index
         //U32 AdjacencyStartIndex = 0;
+        
+    };
+    
+    // A material used by a mesh batch.
+    struct MeshMaterial
+    {
+        
+        Handle<RenderTexture> DiffuseTexture;
         
     };
     
@@ -76,8 +85,14 @@ struct Mesh
     };
     
     // Renderable objects are a list of meshes (in props it has the 'D3D Mesh List' key or 'D3D Mesh'. base mesh + list
-    struct MeshInstance
+    // The common mesh format which we normalise and specialise telltale classes to.
+    class MeshInstance : public HandleableRegistered<MeshInstance>
     {
+        
+        friend class RenderContext;
+        friend class Scene;
+        friend class MeshAPI;
+        friend struct MeshNormalisationTask;
         
         String Name;
         Flags MeshFlags;
@@ -87,17 +102,37 @@ struct Mesh
         
         std::vector<LODInstance> LODs; // mesh LODs
         std::vector<VertexState> VertexStates; // vertex states (draw call bind sets), containing verts/inds/etc.
+        std::vector<MeshMaterial> Materials;
         
-        void FinaliseNormalisationAsync();
+        struct
+        {
+            
+            Ptr<RenderBuffer> BoneMatrixBuffer; // TODO move into bone matrix cache and volume packing
+            
+        } RuntimeData;
+        
+    public:
+        
+        static constexpr CString ClassHandle = "Handle<D3DMesh>";
+        static constexpr CString Class = "D3DMesh";
+        
+        inline MeshInstance(Ptr<ResourceRegistry> reg) : HandleableRegistered<MeshInstance>(std::move(reg)) {}
+        
+        virtual void FinaliseNormalisationAsync() override;
         
     };
-    
-    std::vector<MeshInstance> MeshList; // list of meshes
     
     // Registers mesh normalisers and specialisers
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
     
     // creates bounding box for sphere
     static Sphere CreateSphereForBox(BoundingBox bb);
+    
+    
+    
+    // adds a mesh instance, which should have been previously normalised into.
+    void AddMesh(Ptr<ResourceRegistry>& registry, Handle<Mesh::MeshInstance> handle);
+    
+    std::vector<Ptr<MeshInstance>> MeshList; // list of meshes
     
 };

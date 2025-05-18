@@ -8,18 +8,6 @@ Bool AsyncTTETaskDelegate(const JobThread& thread, void* argA, void* argB)
     return pTask->PerformAsync(thread, (ToolContext*)argB);
 }
 
-// SCENE NORMALISATION
-
-Bool SceneNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* pLockedContext)
-{
-    return true;
-}
-
-void SceneNormalisationTask::Finalise(TelltaleEditor& editor)
-{
-    *OutputUnsafe = std::move(Working);
-}
-
 // MESH NORMALISATION
 
 Bool MeshNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* pLockedContext)
@@ -28,10 +16,16 @@ Bool MeshNormalisationTask::PerformAsync(const JobThread& thread, ToolContext* p
     auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
     TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found for mesh instance: '%s'", fn.c_str());
     
-    TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, LoadChunkMode::BINARY), "Could not load chunk for %s", fn.c_str());
+    ScriptManager::GetGlobal(thread.L, fn, true);
+    if(thread.L.Type(-1) != LuaType::FUNCTION)
+    {
+        thread.L.Pop(1);
+        TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary,
+                                      normaliser->second.Size, LoadChunkMode::BINARY), "Could not load normaliser chunk for %s", fn.c_str());
+    }
     
     Instance.PushWeakScriptRef(thread.L, Instance.ObtainParentRef());
-    thread.L.PushOpaque(this);
+    thread.L.PushOpaque(&Renderable);
     
     thread.L.CallFunction(2, 1, false);
     
@@ -54,7 +48,8 @@ void MeshNormalisationTask::Finalise(TelltaleEditor& editor)
     TTE_ASSERT(Output->ExistsAgent(Agent), "Agent does not exist anymore for output mesh normalisation");
     
     // move processed new mesh renderable instance to array, ready to be used
-    Output->GetAgentModule<SceneModuleType::RENDERABLE>(Agent).Renderable.MeshList.push_back(std::move(Renderable));
+    Ptr<Mesh::MeshInstance> localHandle = TTE_NEW_PTR(Mesh::MeshInstance, MEMORY_TAG_COMMON_INSTANCE, std::move(Renderable));
+    Output->GetAgentModule<SceneModuleType::RENDERABLE>(Agent).Renderable.MeshList.push_back(std::move(localHandle));
 }
 
 // TEXTURE NORMALISATION
@@ -65,10 +60,16 @@ Bool TextureNormalisationTask::PerformAsync(const JobThread& thread, ToolContext
     auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
     TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found for texture instance: '%s'", fn.c_str());
     
-    TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary, normaliser->second.Size, LoadChunkMode::BINARY), "Could not load chunk for %s", fn.c_str());
+    ScriptManager::GetGlobal(thread.L, fn, true);
+    if(thread.L.Type(-1) != LuaType::FUNCTION)
+    {
+        thread.L.Pop(1);
+        TTE_ASSERT(thread.L.LoadChunk(fn, normaliser->second.Binary,
+                                      normaliser->second.Size, LoadChunkMode::BINARY), "Could not load normaliser chunk for %s", fn.c_str());
+    }
     
     Instance.PushWeakScriptRef(thread.L, Instance.ObtainParentRef());
-    thread.L.PushOpaque(this);
+    thread.L.PushOpaque(&Local);
     
     thread.L.CallFunction(2, 1, false);
     
@@ -80,7 +81,7 @@ Bool TextureNormalisationTask::PerformAsync(const JobThread& thread, ToolContext
     }
     else
     {
-        Output->FinishNormalisationAsync();
+        Output->FinaliseNormalisationAsync();
     }
     
     return result;
@@ -91,16 +92,16 @@ void TextureNormalisationTask::Finalise(TelltaleEditor& editor)
     RenderTexture* pTexture = const_cast<RenderTexture*>(Output.get());
     RenderContext* pContext = pTexture->_Context;
     SDL_GPUTexture* pTextureH = pTexture->_Handle;
-    U32 flags = pTexture->TextureFlags;
+    U32 flags = pTexture->_TextureFlags;
     *pTexture = std::move(Local);
     pTexture->_Context = pContext;
     pTexture->_Handle = pTextureH;
-    pTexture->TextureFlags += flags; // concat flags
+    pTexture->_TextureFlags += flags; // concat flags
 }
 
 // RESOURCE SYSTEM EXTRACTION
 
-static Bool _DoResourcesExtract(Ptr<ResourceRegistry>& reg, const String& outputFolder, std::set<String>::const_iterator begin, std::set<String>::const_iterator end, Bool bFolders)
+static Bool _DoResourcesExtract(Ptr<ResourceRegistry>& reg, const String& outputFolder, std::set<String>::const_iterator begin, std::set<String>::const_iterator end, Bool bFolders, ResourceExtractCallback* callback)
 {
     for(auto it = begin; it != end; it++)
     {
@@ -132,8 +133,10 @@ static Bool _DoResourcesExtract(Ptr<ResourceRegistry>& reg, const String& output
                 sfs::create_directories(p);
             
             src->SetPosition(0);
+            src = Meta::MapDecryptingStream(src);
             DataStreamRef out = DataStreamManager::GetInstance()->CreateFileStream(fileName);
             DataStreamManager::GetInstance()->Transfer(src, out, src->GetSize());
+            callback(fileName);
         } // quietly ignore for now
     }
     return true;
@@ -149,7 +152,7 @@ static Bool _DoResourcesExtractAsync(const JobThread& thread, void* pRawTask, vo
     std::advance(it, index * ((U32)task->WorkingFiles->size() / task->AsyncWorkers));
     auto itend = it;
     std::advance(itend, ((U32)task->WorkingFiles->size() / task->AsyncWorkers));
-    return _DoResourcesExtract(task->Registry, task->Folder, it, itend, task->Folders);
+    return _DoResourcesExtract(task->Registry, task->Folder, it, itend, task->Folders, task->Callback);
 }
 
 Bool ResourcesExtractionTask::PerformAsync(const JobThread &thread, ToolContext *pLockedContext)
@@ -159,7 +162,7 @@ Bool ResourcesExtractionTask::PerformAsync(const JobThread &thread, ToolContext 
     std::set<String> files{};
     
     {
-        std::lock_guard<std::mutex> G{Registry->_Guard};
+        std::lock_guard<std::recursive_mutex> G{Registry->_Guard};
         Ptr<ResourceLocation> loc = Registry->_Locate(Logical);
         TTE_ASSERT(loc != nullptr, "The location %s could not be found!", Logical.c_str());
         loc->GetResourceNames(files, UseMask ? &Mask : nullptr);
@@ -183,7 +186,7 @@ Bool ResourcesExtractionTask::PerformAsync(const JobThread &thread, ToolContext 
     
     auto it = files.cbegin();
     std::advance(it, (AsyncWorkers - 1) * ((U32)files.size() / AsyncWorkers));
-    Bool bResult = _DoResourcesExtract(Registry, Folder, it, files.cend(), Folders);
+    Bool bResult = _DoResourcesExtract(Registry, Folder, it, files.cend(), Folders, Callback);
     
     return bResult && JobScheduler::Instance->Wait(AsyncWorkers - 1, H);
 }

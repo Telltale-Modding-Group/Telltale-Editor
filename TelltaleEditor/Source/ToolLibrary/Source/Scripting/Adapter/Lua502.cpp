@@ -318,3 +318,18 @@ I32 LuaAdapter_502::ToInteger(I32 index)
 {
     return (I32)lua_tonumber(_State, (int)index);
 }
+
+void LuaAdapter_502::GetReg(I32 ref)
+{
+    lua_rawgeti(_State, LUA_REGISTRYINDEX, ref);
+}
+
+I32 LuaAdapter_502::RefReg()
+{
+    return luaL_ref(_State, LUA_REGISTRYINDEX);
+}
+
+void LuaAdapter_502::UnrefReg(I32 ref)
+{
+    luaL_unref(_State, LUA_REGISTRYINDEX, ref);
+}

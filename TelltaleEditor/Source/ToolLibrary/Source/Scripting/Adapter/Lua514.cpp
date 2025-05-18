@@ -306,6 +306,21 @@ Float LuaAdapter_514::ToFloat(I32 index)
     return (Float)lua_tonumber(_State, (int)index);
 }
 
+void LuaAdapter_514::GetReg(I32 ref)
+{
+    lua_rawgeti(_State, LUA_REGISTRYINDEX, ref);
+}
+
+I32 LuaAdapter_514::RefReg()
+{
+    return luaL_ref(_State, LUA_REGISTRYINDEX);
+}
+
+void LuaAdapter_514::UnrefReg(I32 ref)
+{
+    luaL_unref(_State, LUA_REGISTRYINDEX, ref);
+}
+
 String LuaAdapter_514::ToString(I32 index)
 {
     return String(lua_tolstring(_State, (int)index, 0));

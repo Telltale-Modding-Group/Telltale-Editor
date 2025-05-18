@@ -25,7 +25,7 @@ public:
     inline Symbol(const String &value) { _Hash = CRC64LowerCase((const U8 *)value.c_str(), (U32)value.length()); }
     
     // Constructs with C string
-    inline Symbol(CString s) : Symbol(String(s)) {}
+    inline Symbol(CString s, Bool bRegisterSymbolMap = false);
     
     // Constructs from a hash
     inline Symbol(U64 hash) : _Hash(hash) {}
@@ -92,8 +92,17 @@ public:
         return ""; // not found
     }
     
-    // DO NOT CREATE INSTANCES OF THESE UNLESS THEY ARE GLOBALS AND ONLY GET DESTROYED AT PROGRAM END!
-    SymbolTable();
+    // Same as normal find, else 'Symbol<xxx>' with hash
+    inline static String FindOrHashString(Symbol sym)
+    {
+        String val = Find(sym);
+        if(val.length() == 0)
+            val = SymbolToHexString(sym);
+        return val;
+    }
+    
+    // DO NOT CREATE NON PRIVATE INSTANCES OF THESE UNLESS THEY ARE GLOBALS AND ONLY GET DESTROYED AT PROGRAM END!
+    SymbolTable(Bool bPrivate = false);
     ~SymbolTable() = default;
     
     void Register(const String&); // Registers a symbol to the table
@@ -115,5 +124,22 @@ private:
     
 };
 
-extern SymbolTable RuntimeSymbols; // runtime loaded symbols
-extern SymbolTable GameSymbols; // per game symbols
+inline SymbolTable& GetRuntimeSymbols() // runtime loaded symbols
+{
+    static SymbolTable symbols{};
+    return symbols;
+}
+
+inline SymbolTable& GetGameSymbols() // game-specific runtime symbols
+{
+    static SymbolTable symbols{};
+    return symbols;
+}
+
+inline Symbol::Symbol(CString s, Bool bRegisterSymbolMap) : Symbol(String(s))
+{
+    if(bRegisterSymbolMap)
+    {
+        GetRuntimeSymbols().Register(s);
+    }
+}

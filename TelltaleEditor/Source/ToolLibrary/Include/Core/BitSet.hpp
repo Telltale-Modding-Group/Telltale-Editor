@@ -163,6 +163,9 @@ public:
     
 };
 
+template<typename EnumClass, EnumClass FirstValue, EnumClass EndValue>
+using BitSetRanged = BitSet<EnumClass, (U32)EndValue - (U32)FirstValue, FirstValue>;
+
 /**
  Simple type to help with flags.
  */
@@ -186,6 +189,15 @@ public:
     inline void Add(IntOrEnum fl)
     {
         _Value |= (U32)fl;
+    }
+    
+    template<typename IntOrEnum>
+    inline void Set(IntOrEnum fl, Bool bOnOff)
+    {
+        if(bOnOff)
+            Add(fl);
+        else
+            Remove(fl);
     }
     
     template<typename IntOrEnum>

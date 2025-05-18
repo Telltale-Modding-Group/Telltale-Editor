@@ -3,8 +3,10 @@
 #include <Core/Config.hpp>
 #include <Scheduler/JobScheduler.hpp>
 #include <Resource/DataStream.hpp>
-#include <Scripting/LuaManager.hpp>
+#include <Scripting/ScriptManager.hpp>
 #include <Core/BitSet.hpp>
+#include <Core/Math.hpp>
+#include <Core/GameCaps.hpp>
 
 #include <climits>
 #include <vector>
@@ -12,6 +14,37 @@
 #include <sstream>
 #include <functional>
 #include <map>
+
+// ======================================== PRE DECLARATIONS ========================================
+
+class PropertySet;
+class FunctionBase;
+
+// ======================================= META UTILITY TYPES =======================================
+
+template<typename T>
+struct TRect
+{
+    T top, right, bottom, left;
+};
+
+template<typename T>
+struct TRange
+{
+    T min, max;
+};
+
+// Telltale helper class used a lot! Exclusive OR: either a chore or animation handle
+struct AnimOrChore
+{
+    String HandleAnim;
+    String HandleChore;
+};
+
+template class TRect<Float>;
+template class TRange<Float>;
+template class TRange<U32>;
+using Rect = TRect<I32>;
 
 // maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
 #define MAX_VERSION_NUMBER 10
@@ -63,6 +96,7 @@ namespace Meta {
         MSV6 = 6, // 6
         BMS3 = 7, // Legacy CSI3/PS2. Binary Meta Stream 3
         EMS3 = 8, // Legacy CSI3/PS2. Haven't seen any files use it. Encrypted Meta Stream 3
+        UNSPECIFIED = 9,
     };
     
     // A binary meta stream. Used internally.
@@ -125,6 +159,8 @@ namespace Meta {
         CLASS_NON_BLOCKED = 16, // this class is not blocked in serialisation
         CLASS_ATTACHABLE = 32, // can have children attached to it, used in PropertySet and other big complex types
         CLASS_PROXY = 64, // proxy type which is used for telltale game errors. disables all block sizes in members of this type.
+        CLASS_ENUM_WRAPPER = 128, // enum class wrapper. has one member integer (normally mVal)
+        _CLASS_PROP = 256, // Internal flag denoting this class is the property set class (undergoes specific treatment in resource API)
     };
     
     // Enum / flag descriptor for a member in a class
@@ -153,7 +189,7 @@ namespace Meta {
     struct RegGame;
     
     // Weak reference to the parent. Deep into member trees, these point to the top level class, eg: array of materials , top level is D3DMesh
-    using ParentWeakReference = std::weak_ptr<U8>;
+    using ParentWeakReference = WeakPtr<U8>;
     
     // A type class. This as well as Member are used internally. Refer to classes using the index (U32 - internal version CRC).
     // Refer to members by name string
@@ -165,6 +201,7 @@ namespace Meta {
         
         // CREATED INTERNALLY.
         U64 TypeHash = 0;
+        U64 ToolTypeHash = 0; // without specifiers.
         
         String Extension; // file extension if this class is a full file
         
@@ -180,6 +217,8 @@ namespace Meta {
         
         // RUNTIME DATA, INTERNAL.
         U32 RTSize = 0; // runtime internal size of the class, automatically generated unless intrinsic.
+        U32 RTPaddingChildren = 0, RTPaddingCallbacks = 0; // to be able to reverse the padding
+        U32 RTSizeRaw; // size without any children array or prop stuff
         
         // C++ IMPL FOR INTRINSICS/CONTAINERS/NON-POD
         void (*Constructor)(void* pMemory, U32 ClassID, ParentWeakReference host) = nullptr;
@@ -220,6 +259,8 @@ namespace Meta {
         
         Bool _CheckPlatformForGame(RegGame&, const String& platform);
         
+        Bool _CheckVendorForGame(RegGame&, const String& platform);
+        
         Bool _CheckPlatform(const String& platform);
         
         U32 _PerformLegacyClassHash(const String& name);
@@ -228,28 +269,29 @@ namespace Meta {
         
         U32 _ClassChildrenArrayOff(Class& clazz); // internal children refs vector offset
         
-        U32 _ClassRuntimeSize(Class& clazz, ParentWeakReference& parentRef); // internal runtime total size of class with parent
+        U32 _ClassPropertyCallbacksArrayOff(Class& clazz);
         
         U32 _Register(LuaManager& man, Class&& c, I32 classTableStackIndex); // register new class and calc CRCs
         
         U32 _DoLuaVersionCRC(LuaManager& man, I32 classTableStackIndex); // calculate version crc32
         
         // internally construct type into memory. concrete is actual ref if its a top level so members have it as its parent
-        void _DoConstruct(Class* pClass, U8* pMemory, ParentWeakReference host, ParentWeakReference& concrete);
+        void _DoConstruct(Class* pClass, U8* pMemory, ParentWeakReference host, ParentWeakReference& concrete, Bool bTopLevel);
         
-        void _DoDestruct(Class* pClass, U8* pMemory); // internally call destruct
+        void _DoDestruct(Class* pClass, U8* pMemory, Bool bTopLevel); // internally call destruct
         
         // internally copy type
-        void _DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete);
+        void _DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete, Bool bSrcTopLevel, Bool bTopLevel);
         
         // internally move type
-        void _DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete);
+        void _DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete, Bool bSrcTopLevel, Bool bTopLevel);
         
         String _PerformToString(U8* pMemory, Class* pClass);
         
         // for c++ controlled: host is empty. if script object: host MUST be a reference to a higher level parent.
         // if host argument is attachable, name can be specified and it will be appended to the child list for host
-        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host, Symbol name); // allocates but does not construct anything in the memory
+        // allocates but does not construct anything in the memory
+        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& host, Symbol name, U8* pAlloc = nullptr, U32 allocSize = 0);
         
         // some serialisers have 'host' argument: top level class object
         Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString memberName, Member* hostMember = nullptr);
@@ -371,9 +413,11 @@ namespace Meta {
         std::map<String, BlowfishKey> PlatformToEncryptionKey;
         std::multimap<String, String, FolderAssociateComparator> FolderAssociates; // mask to folder name, eg '*.dlg' into Dialogs/, and 'module_*.prop' into Properties/Primitives/, '*.prop' => Properties/
         std::vector<String> ValidPlatforms; // game platforms
+        std::vector<String> ValidVendors; // if non zero it must be specified. eg 'DevBuild' for early dev releases etc. see script
         BlowfishKey MasterKey; // key used for all platforms
         Flags Fl; // flags
         U32 ArchiveVersion = 0; // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
+        GameCapabilitiesBitSet Caps;
         
         inline Bool UsesArchive2() const
         {
@@ -390,21 +434,31 @@ namespace Meta {
         
         // FRIENDS FOR ACCESSING PRIVATE FUNCTIONALITY
         
+        friend class ::PropertySet;
+        
         friend class ClassInstanceCollection;
         
         friend class ClassInstanceScriptRef;
         
         friend ClassInstance GetMember(ClassInstance& inst, const String& name, Bool bInsist);
         
-        friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&, Symbol);
+        friend ClassInstance _Impl::_MakeInstance(U32, ClassInstance&, Symbol, U8*, U32);
         
         friend Bool _Impl::_Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member, Member*);
         
         friend ClassInstance CreateInstance(U32 ClassID, ClassInstance host, Symbol n);
         
+        friend ClassInstance CreateTemporaryInstance(U8* Alloc, U32 AlZ, U32 ClassID);
+        
         friend ClassInstance CopyInstance(ClassInstance instance, ClassInstance host, Symbol n);
         
         friend ClassInstance MoveInstance(ClassInstance instance, ClassInstance host, Symbol n);
+        
+        friend void _Impl::_DoCopyConstruct(Class* pClass, U8* pDst, const U8* pSrc, ParentWeakReference host,
+                                     ParentWeakReference& concrete, Bool bSrcTopLevel, Bool bTopLevel);
+        
+        friend void _Impl::_DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete,
+                                     Bool bSrcTopLevel, Bool bTopLevel);
         
     public:
         
@@ -418,8 +472,19 @@ namespace Meta {
         inline ClassInstance() : _InstanceClassID(0), _InstanceMemory(nullptr) {}
         
         // returns if the instance is valid, if the parent (if has one) is valid
-        inline operator Bool() const {
+        inline operator Bool() const
+        {
             return Expired() ? false : _InstanceClassID && (_InstanceMemory ? true : false); // call bool operator on ptr
+        }
+        
+        inline Bool operator==(const ClassInstance& rhs) const
+        {
+            return _GetInternal() == rhs._GetInternal();
+        }
+        
+        inline Bool operator!=(const ClassInstance& rhs) const
+        {
+            return _GetInternal() != rhs._GetInternal();
         }
         
         // Internal use. Returns the deleter
@@ -447,6 +512,11 @@ namespace Meta {
         
         // Internal use. Gets the memory pointer
         inline U8* _GetInternal()
+        {
+            return Expired() ? nullptr : _InstanceMemory.get();
+        }
+        
+        inline const U8* _GetInternal() const
         {
             return Expired() ? nullptr : _InstanceMemory.get();
         }
@@ -490,6 +560,8 @@ namespace Meta {
         ClassChildMap* _GetInternalChildrenRefs();
         
     private:
+        
+        void* _GetInternalPropertySetData(); // used by prop to store callback array. not per key. key doesnt have to exist yet.
         
         // Use by _MakeInstance. Deleter is defined in the meta.cpp TU.
         inline ClassInstance(U32 storedID, U8* memory, std::function<void(U8*)> _deleter, ParentWeakReference attachTo) :
@@ -626,6 +698,8 @@ namespace Meta {
         _COL_IS_SARRAY = 256, // is a SArray type
     };
     
+    using CollectionComparatorLess = Bool(void* user, Meta::ClassInstance lhs, Meta::ClassInstance rhs);
+    
     // Both dynamic and static arrays, maps and other containers all use this type internally. (DCArray/SArray/Map/Set/Queue/...)
     // This represents a collection of (optionally keyed) class instances stored in an array.
     // This is the internal type, use without underscore version (ref ptr)
@@ -661,8 +735,15 @@ namespace Meta {
         
         ClassInstance GetKey(U32 index); // gets the key at the given index. must be a keyed collection!
         
+        // Sorts the container. User data is passed to each comparator call.
+        // THIS WILL COMPARE KEYS IF IT IS A KEYED COLLECTION. ELSE WILL COMPARE VALUES!
+        void Sort(void* user, CollectionComparatorLess* pComparator);
+        
         // Index must be less than size. Replaces. If copy is false, then that key or value is moved from the argument instead.
         void SetIndex(U32 index, ClassInstance key, ClassInstance value, Bool bCopyKey, Bool bCopyVal);
+        
+        // Inserts into at a specific index, shifting elements above up if needed. If bigger than size, pushes back like normal.
+        void Insert(ClassInstance key, ClassInstance value, I32 index, Bool bCopyKey, Bool bCopyVal);
         
         // Pushes a new element
         // If a map, key should be non-null.
@@ -747,8 +828,10 @@ namespace Meta {
     
     // ================================= PUBLIC META API =================================
     
-    // Get the class ID of the given type from its information. ClassIDs are ALWAYS internal and do not store to disc. Returns 0 if not found
-    U32 FindClass(U64 typeHash, U32 versionNumber);
+    // Get the class ID of the given type from its information. ClassIDs are ALWAYS internal and do not store to disc. Returns 0 if not found.
+    // Pass in an exact match optionally last (default false).
+    // This means that if no class for 'class PropertySet' is found, an attempt to find without 'class '/etc erased 'PropertySet' is not done
+    U32 FindClass(U64 typeHash, U32 versionNumber, Bool bExactMatch = false);
     
     // Same as find class but finds by version CRC instead of version number
     U32 FindClassByCRC(U64 typeHash, U32 versionCRC);
@@ -756,17 +839,18 @@ namespace Meta {
     // Find a class by its extension eg 'scene' for .scene files
     U32 FindClassByExtension(const String& ext, U32 versionNumber);
     
-    // Same version using the string instead of the hash of the file name (lower case, use symbol)
-    inline U32 FindClass(const String& typeName, U32 versionNumber)
+    // Same version using the string instead of the hash of the file name. INCLUDE 'CLASS ' etc. It will try again if not found with no class or other specifiers. (unless you want exact match..)
+    // See FindClass with type hash for the last argument default
+    inline U32 FindClass(const String& typeName, U32 versionNumber, Bool bExactMatch = false)
     {
-        return FindClass(Symbol(typeName).GetCRC64(), versionNumber);
+        return FindClass(Symbol(typeName).GetCRC64(), versionNumber, bExactMatch);
     }
     
     // Optional parameters
     struct MetaStreamParams
     {
         
-        StreamVersion Version = StreamVersion::MSV6;
+        StreamVersion Version = StreamVersion::UNSPECIFIED;
         
         // Optionally compress each meta section
         Compression::Type Compression[STREAM_SECTION_COUNT] = {Compression::Type::END_LIBRARY, Compression::Type::END_LIBRARY, Compression::Type::END_LIBRARY};
@@ -798,13 +882,22 @@ namespace Meta {
     // type (ie a non top-level) type, then pass the parent instance as the second argument along with the name to give to that child
     // class. This is needed as child classes are all named. If you just want it to hold a reference, generate a random symbol, or a known
     // one that is only set once, as if it already exists the previous one will be replaced in the underlying map.
+    // Don't use host as a property set, ie dont attach to them!
     ClassInstance CreateInstance(U32 ClassID, ClassInstance host = {}, Symbol name = {});
     
+    // See CreateInstance. Creates a temporary instance in the buffer.
+    // The instance must not be passed around! Only use it when you know its temporary to pass values around, such that its destructed before Buffer is out of scope.
+    // BUFFER SIZE! Ensure it is at least 32 bytes larger than the expected size of the class (If not do big on the stack, not too big). As an extra checking block
+    // is inserted after it in memory to make sure you don't pass it around, as well as top level child class array just in case.
+    ClassInstance CreateTemporaryInstance(U8* Buffer, U32 BufferSize, U32 ClassID);
+    
     // Creates an exact copy of the given instance. Thread safe between game switches. See CreateInstance second/third argument information.
+    // Don't use host as a property set, ie dont attach to them!
     ClassInstance CopyInstance(ClassInstance instance, ClassInstance host = {}, Symbol name = {});
     
     // Moves the instance argument to a new instance, leaving the old one still alive but with none of its previous data (now in new returned one).
     // Thread safe between game switches. See CreateInstance second/third argument information.
+    // Don't use host as a property set, ie dont attach to them!
     ClassInstance MoveInstance(ClassInstance instance, ClassInstance host = {}, Symbol name = {});
     
     // Acquires a reference to the given script object on the stack. After using ClassInstance::PushScriptRef, this can be used on the pushed value
@@ -861,7 +954,17 @@ namespace Meta {
             }
         }
         TTE_ASSERT(false, "Member %s::%s does not exist! Abort!!", pClass->Name.c_str(), name.c_str());
-        return *((T*)0); // !! abort.
+        return *((T*)FileNull()); // !! abort.
+    }
+    
+    inline Bool IsSymbolClass(const Class& clazz)
+    {
+        return CompareCaseInsensitive(clazz.Name, "class Symbol") || CompareCaseInsensitive(clazz.Name, "Symbol");
+    }
+    
+    inline Bool IsStringClass(const Class& clazz)
+    {
+        return CompareCaseInsensitive(clazz.Name, "class String") || CompareCaseInsensitive(clazz.Name, "String");
     }
     
     // Returns if the given instance has a member of the given name
@@ -880,6 +983,8 @@ namespace Meta {
         }
         return false;
     }
+    
+    const Class& GetClass(U32 id);
     
     // If the given instance class is a collection, this returns the modifyable collection for it. DO NOT access this after arrayType is not alive.
     // Thread safe between game switches.
@@ -900,7 +1005,6 @@ namespace Meta {
         std::map<Symbol, CompiledScript> Specialisers{};
         I32 GameIndex = -1;
         String VersionCalcFun{}; // lua function which calculates version crc for a type.
-        
         
         struct DeferredRegister
         {
@@ -934,6 +1038,81 @@ namespace Meta {
     
     // Gets the internal state. Its important that this is constant as it should NOT change between game switches.
     const InternalState& GetInternalState();
+    
+    namespace _Impl
+    {
+        template<typename T>
+        struct _Coersion;
+    }
+    
+    /**
+     Extracts into out the contents of the class. This is useful for intrinsic types which never change in the engine such as Vector2, Transform or Quaternions.
+     The type must be implemented in this header, which is likely is. If not, make a PR please.
+     */
+    template<typename T> void ExtractCoercableInstance(T& out, Meta::ClassInstance& inst)
+    {
+        static_assert(_Impl::_Coersion<T>::IsValid, "Extractor for T has not been implemented!");
+        _Impl::_Coersion<T>::Extract(out, inst);
+    }
+    
+    /**
+     Imports T 'in' into the class instance inst. This is useful for intrinsic types which never change in the engine such as Vector2, Transform or Quaternions.
+     The type must be implemented in this header, which is likely is. If not, make a PR please.
+     */
+    template<typename T> void ImportCoercableInstance(const T& in, Meta::ClassInstance& inst)
+    {
+        static_assert(_Impl::_Coersion<T>::IsValid, "Instance importer for T has not been implemented!");
+        _Impl::_Coersion<T>::Import(in, inst);
+    }
+    
+    /**
+     Puts the lua value on the stack into T.
+     */
+    template<typename T> void ExtractCoercableLuaValue(T& out, LuaManager& man, I32 stackIndex)
+    {
+        _Impl::_Coersion<T>::ExtractLua(out, man, stackIndex);
+    }
+    
+    /**
+     Pushes a lua value with the same value as T onto the stack.
+     */
+    template<typename T> void ImportCoercableLuaValue(const T& in, LuaManager& man)
+    {
+        _Impl::_Coersion<T>::ImportLua(in, man);
+    }
+    
+    /**
+     Pushes a lua value with the same value as the class instance.
+     Specify optionally to push meta instances (for prop and collections) as transients (if coercing from a collection value for example) specify the collection it is inside of (as well as its index in it, still pass in inst for parent ref)
+     */
+    Bool CoerceMetaToLua(LuaManager& man, ClassInstance& inst, ClassInstanceCollection* pOwningCollection = nullptr, I32 collectionIndex = -1);
+    
+    /**
+     Puts into class instance inst the value on the stack at stack index.
+     */
+    Bool CoerceLuaToMeta(LuaManager& man, I32 stackIndex, ClassInstance& inst);
+    
+    /**
+     Pushes onto the stack the C++ type erased pObj which has associated meta type class.
+     */
+    Bool CoerceTypeErasedToLua(LuaManager& man, void* pObj, U32 clz);
+    
+    /**
+     Gets the common instance allocator for the given class. The class must be a common class or it will return nullptr. Example classes, Mesh, Chore, Texture or Skeleton etc.
+     */
+    CommonInstanceAllocator* GetCommonAllocator(U32 clz);
+    
+}
+
+// Register current class (T) to coersion. 
+#define REGISTER_MY_COERSION(_Tp) (void)Meta::_Impl::_CoersionRegistrar<_Tp>::_ForceInstantiate();
+
+namespace InstanceTransformation
+{
+    
+    Bool PerformNormaliseAsync(Ptr<Handleable> pCommonInstanceOut, Meta::ClassInstance inInstance, LuaManager& lvm);
+    
+    Bool PerformSpecialiseAsync(Ptr<Handleable> pCommonInstance, Meta::ClassInstance outInstance, LuaManager& lvm);
     
 }
 
@@ -973,3 +1152,5 @@ inline Bool SerialiseDataU64(DataStreamRef& stream, Meta::Class* clazz, void* pM
     // Endianness checks in the future?
     return IsWrite ? stream->Write(const_cast<const U8*>((U8*)pMemory), 8) : stream->Read((U8*)pMemory, 8);
 }
+
+#include <Meta/MetaCoersion.inl>

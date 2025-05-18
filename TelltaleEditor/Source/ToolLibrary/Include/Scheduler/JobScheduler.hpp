@@ -183,6 +183,9 @@ struct JobThread
     // Current job being executed.
     Job CurrentJob;
     
+    U8* FastBuffer;
+    U32 FastBufferSize, FastBufferOffset;
+    
     // Lua state for this thread.
     mutable LuaManager L;
     
@@ -269,7 +272,7 @@ struct JobList
 
 /// <summary>
 /// JobScheduler. This is very similar to Telltale Games' JobScheduler.
-/// Written by Lucas
+/// Written by Lucas (did I put that there?)
 /// </summary>
 class JobScheduler
 {

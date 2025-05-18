@@ -1,1 +1,1 @@
-target_sources(${TARGET_NAME} PRIVATE Meta.hpp)
+target_sources(${TARGET_NAME} PRIVATE Meta.hpp MetaCoersion.inl)

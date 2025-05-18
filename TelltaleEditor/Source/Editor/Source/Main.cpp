@@ -2,137 +2,63 @@
 
 #include <Common/Scene.hpp> 
 #include <Renderer/RenderContext.hpp>
+#include <Runtime/SceneRuntime.hpp>
 #include <Meta/Meta.hpp>
-
+#include <AnimationManager.hpp>
 #include <TelltaleEditor.hpp>
 
-// Simply run mod.lua
-static void RunMod()
-{
-    
-    ToolContext* Context = CreateToolContext();
-    Context->Switch({"BN100", "MacOS", ""});
-    
-    {
-        
-        // for now assume user has called 'editorui.exe "../../Dev/mod.lua"
-        String src = Context->LoadLibraryStringResource("mod.lua");
-        Context->GetLibraryLVM().RunText(src.c_str(), (U32)src.length(), false, "mod.lua"); // dont lock the context, allow any modding.
-        Context->GetLibraryLVM().GC(); // gc after
-        
-    }
-    
-    DestroyToolContext();
-    
-    DumpTrackedMemory(); // dump all memort leaks. after destroy context, nothing should exist
-}
-
 // Run full application, with optional GUI
-static void RunRender()
+I32 CommandLine::Executor_Editor(const std::vector<TaskArgument>& args)
 {
     {
-        TelltaleEditor editor{{"BN100","MacOS",""}, false}; // editor. dont run UI yet (doesn't exist)
+        TelltaleEditor* editor = CreateEditorContext({"BN100","MacOS",""}, false); // editor. dont run UI yet (doesn't exist)
         {
             // This simple examples loads a scene and runs it
             RenderContext context("Bone: Out from Boneville");
             
             // Create resource system and attach to render context for runtime
-            Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
-            registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone");
+            Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry();
+            registry->MountSystem("<Archives>/", "/Users/lucassaragosa/Desktop/Game/Bone", true);
             registry->PrintLocations();
             
-            context.AttachResourceRegistry(registry);
+            // Add a scene runtime layer to run the scene
+            auto runtimeLayer = context.PushLayer<SceneRuntime>(registry);
+
+            // 2. load a mesh
+            //Handle<Mesh::MeshInstance> hMesh{};
+            //hMesh.SetObject(registry, "sk03_thorn.d3dmesh", false, true);
             
-            // Loading and previewing a mesh example
+            // 3. create a dummy scene, add an agent, attach a renderable module to it.
+            Handle<Scene> hScene{};
+            hScene.SetObject(registry, "ui_adventure.scene", false, false);
+            Ptr<Scene> pScene = hScene.GetObject(registry, true);
             
-            // load all textures.
-            /*std::set<String> tex{};
-             StringMask m("*.d3dtx");
-             registry->GetResourceNames(tex, &m);
-             std::vector<Ptr<RenderTexture>> loadedTextures{};
-             for(auto& t: tex)
-             {
-             auto s = registry->FindResource(t);
-             Meta::ClassInstance textureInstance{};
-             if( (textureInstance = Meta::ReadMetaStream(t, s)) )
-             {
-             Ptr<RenderTexture> tex = TTE_NEW_PTR(RenderTexture, MEMORY_TAG_TEMPORARY);
-             loadedTextures.push_back(tex);
-             editor.EnqueueNormaliseTextureTask(textureInstance, tex);
-             }
-             else TTE_LOG("Failed %s", t.c_str());
-             }*/
+            //SceneModuleTypes types{};
+            //types.Set(SceneModuleType::RENDERABLE, true);
+            //types.Set(SceneModuleType::SKELETON, true);
+            //scene.AddAgent("Agent", types, {});
             
-            // 1. load a mesh
-            DataStreamRef stream = registry->FindResource("adv_forestWaterfall.d3dmesh");
-            DataStreamRef debugStream = editor.LoadLibraryResource("TestResources/debug.txt");
-            Meta::ClassInstance inst = Meta::ReadMetaStream("adv_forestWaterfall.d3dmesh", stream, std::move(debugStream));
+            // 4. set agent module info
+            //scene.GetAgentModule<SceneModuleType::RENDERABLE>("Agent").Renderable.AddMesh(registry, hMesh);
+            //scene.GetAgentModule<SceneModuleType::SKELETON>("Agent").Skl.SetObject(registry, "sk03_thorn.skl", true, true);
             
-            // 2. create a dummy scene, add an agent, attach a renderable module to it.
-            Scene scene{};
-            SceneModuleTypes types{};
-            types.Set(SceneModuleType::RENDERABLE, true);
-            scene.AddAgent("Mesh Test Agent", types);
+            // 5. push scene to renderer
+            runtimeLayer.lock()->PushScene(std::move(*pScene)); // push scene to render
             
-            // 3. normalise the mesh above into the scene agent 'Icon' in the scene, from telltale specific to the common format
-            editor.EnqueueNormaliseMeshTask(&scene, "Mesh Test Agent", std::move(inst));
-            editor.Wait();
-            
-            // 4. push scene to renderer
-            
-            context.PushScene(std::move(scene)); // push scene to render
-            
-            // 5. Run renderer and show the mesh!
+            // 6. Run renderer and show the mesh!
             context.CapFrameRate(40); // 40 FPS cap
             Bool running = true;
             while((running = context.FrameUpdate(!running)))
                 ;
         }
+        FreeEditorContext();
     }
-    DumpTrackedMemory();
-}
-
-// TESTS: load all of given type mask in archive
-static void LoadAll(CString mask)
-{
-    {
-        TelltaleEditor editor{{"CSI3","PC",""}, false}; // editor. dont run UI yet (doesn't exist)
-        
-        Ptr<ResourceRegistry> registry = editor.CreateResourceRegistry();
-        registry->MountSystem("<Data>/", "/Users/lucassaragosa/Desktop/extract");
-        
-        //editor.EnqueueResourceLocationExtractTask(registry, "<ISO>/", "/users/lucassaragosa/desktop/extract", "", true);
-        //editor.Wait();
-        
-        std::set<String> wExt{};
-        StringMask sMask = mask;
-        registry->GetResourceNames(wExt, &sMask);
-        
-        for(auto& fn: wExt)
-        {
-            DataStreamRef ref = registry->FindResource(fn);
-            if(ref)
-            {
-                DataStreamRef oref = editor.LoadLibraryResource("TestResources/Dbg/Decrypt/" + fn);
-                DataStreamRef dref = Meta::MapDecryptingStream(ref);
-                DataStreamManager::GetInstance()->Transfer(dref, oref, dref->GetSize());
-                ref->SetPosition(0);
-                Meta::ReadMetaStream(fn, ref, editor.LoadLibraryResource("TestResources/Dbg/debug_" + fn + ".txt"));
-            }
-            else
-            {
-                TTE_LOG("No stream for %s", fn.c_str());
-            }
-        }
-        
-        registry->PrintLocations();
-        
-    }
-}
-
-int main()
-{
-    //LoadAll("!*.lenc");
-    RunRender();
     return 0;
+}
+
+int main(int argc, char** argv)
+{
+    int exit = CommandLine::GuardedMain(argc, argv);
+    Memory::DumpTrackedMemory();
+    return exit;
 }

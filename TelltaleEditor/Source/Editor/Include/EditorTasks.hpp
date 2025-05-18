@@ -8,6 +8,7 @@
 #include <Resource/TTArchive2.hpp>
 #include <Resource/ResourceRegistry.hpp>
 
+#include <type_traits>
 #include <vector>
 
 class TelltaleEditor;
@@ -28,25 +29,7 @@ struct EditorTask
     // finalise it: eg moving async finished work into main thread object. always main thread call
     virtual void Finalise(TelltaleEditor&) = 0;
     
-    inline virtual ~EditorTask() {}
-    
-};
-
-// Normalises a scene from high level snapshot dependent lua into the common Scene format (Scene.hpp)
-struct SceneNormalisationTask : EditorTask
-{
-    
-    inline SceneNormalisationTask(U32 id) : EditorTask(false, id) {}
-    
-    virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override;
-    
-    virtual void Finalise(TelltaleEditor&) override;
-    
-    Scene* OutputUnsafe; // output scene
-    
-    Scene Working; // working scene to normalise to. in finalise this is moved to output
-    
-    Meta::ClassInstance Instance; // instance in the meta system
+    virtual ~EditorTask() = default;
     
 };
 
@@ -54,7 +37,7 @@ struct SceneNormalisationTask : EditorTask
 struct MeshNormalisationTask : EditorTask
 {
     
-    inline MeshNormalisationTask(U32 id) : EditorTask(false, id) {}
+    inline MeshNormalisationTask(U32 id, Ptr<ResourceRegistry> registry) : EditorTask(false, id), Renderable(registry) {}
     
     virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override;
     
@@ -64,7 +47,7 @@ struct MeshNormalisationTask : EditorTask
     
     Symbol Agent; // agent name
     
-    Mesh::MeshInstance Renderable; // output object.
+    Mesh::MeshInstance Renderable; // internal object.
     
     Meta::ClassInstance Instance; // D3DMesh instance in the meta system
     
@@ -74,7 +57,7 @@ struct MeshNormalisationTask : EditorTask
 struct TextureNormalisationTask : EditorTask
 {
     
-    inline TextureNormalisationTask(U32 id) : EditorTask(false, id) {}
+    inline TextureNormalisationTask(U32 id, Ptr<ResourceRegistry> registry) : EditorTask(false, id), Local(registry) {}
     
     virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override;
     
@@ -85,6 +68,33 @@ struct TextureNormalisationTask : EditorTask
     RenderTexture Local; // local object
     
     Meta::ClassInstance Instance; // D3DTexture/T3Texture meta instance
+    
+};
+
+// Normalises any other common type
+template<typename T>
+struct CommonNormalisationTask : EditorTask
+{
+    
+    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
+    
+    inline CommonNormalisationTask(U32 id, Ptr<ResourceRegistry> registry) : EditorTask(false, id), Local(registry) {}
+    
+    virtual Bool PerformAsync(const JobThread& thread, ToolContext* pLockedContext) override
+    {
+        return InstanceTransformation::PerformNormaliseAsync(TTE_PROXY_PTR(&Local, Handleable), Instance, thread.L);
+    }
+    
+    virtual void Finalise(TelltaleEditor&) override
+    {
+        *Output.get() = std::move(Local);
+    }
+    
+    Ptr<Handleable> Output; // output object. Do not access while normalisation. Use Local object.
+    
+    T Local; // local object
+    
+    Meta::ClassInstance Instance; // meta instance
     
 };
 
@@ -105,6 +115,9 @@ struct ArchiveExtractionTask : EditorTask
     TTArchive2* Archive2 = nullptr;
     
 };
+
+// Called when filename has been extracted
+using ResourceExtractCallback = void(const String& fileName);
 
 // Extracts from resource sys
 struct ResourcesExtractionTask : EditorTask
@@ -128,6 +141,7 @@ struct ResourcesExtractionTask : EditorTask
     
     U32 AsyncWorkers = 0; // per thread
     std::set<String>* WorkingFiles;
+    ResourceExtractCallback* Callback = nullptr;
     
 };
 

@@ -2,6 +2,8 @@
 
 #include <Core/Config.hpp>
 
+#include <atomic>
+
 class DataStream;
 
 // This is the low level LUA API. This deals with calls to the lua library for compilation and running of scripts. Decompilation is also managed here
@@ -44,6 +46,17 @@ enum class LuaType {
     //THREAD = 8,
 };
 
+// Constant meta tables. In the telltale engine these types are treated differently. They have 'operator overloading' essentially, so you can multiply vec3s as normal.
+// Setup these manually. This is done in the Editor so if not using that, ignore these.
+enum class LuaConstantMetaTable
+{
+    VECTOR3, // Overloading tostring, add, sub, mul, eq, unm, index and newindex (for xyz). Must be user data, sizeof = 12, class being, well, Vector3 3x floats.
+    PROP, // Overloading prop["Key"] = Value => PropertySet::Set(prop, "Key", Value (from lua type)) and getter. __index, __newindex. MANAGED BY EDITOR, NOT THIS LIB.
+    CONTAINER, // same as above
+    AGENT, // Same as prop. Agent properties for index and newindex. Managed by editor, not tool library.
+    NUM = 4,
+};
+
 // For use below
 class LuaAdapterBase;
 class LuaManager;
@@ -56,6 +69,12 @@ using LuaCFunction = U32 (*)(LuaManager& L);
 
 // Used to compile scripts in this header.
 typedef int (*lua_Writer) (lua_State *L, const void* p, size_t sz, void* ud);
+
+struct LuaManagerPointerSlot
+{
+    std::atomic_bool _St{true};
+    std::atomic<U32> _Wk{1};
+};
 
 // Lua Manager class for managing lua calling and versioning. Not thread safe.
 class LuaManager
@@ -79,6 +98,19 @@ public:
     // Checks if we can add <extra> elements onto the stack without causing a stack overflow.
     Bool CheckStack(U32 extra);
     
+    // Sets one of the constant meta tables for the given stack index.
+    void SetConstantMetaTable(I32 index, LuaConstantMetaTable mt);
+    
+    // Internal use by Editor. Pops from top of stack.
+    void RegisterConstantMetaTable(LuaConstantMetaTable mt);
+    
+    // Releases reference ref from the registry table. The entry is removed from the table, so that the referred object can be collected.
+    // The reference ref is also freed to be used again.
+    void UnrefReg(I32 ref);
+    
+    // Creates and returns a reference, in the registry table, for the object at the top of the stack (and pops the object).
+    I32 RefReg();
+    
     // Runs the garbage collector
     void GC();
     
@@ -87,6 +119,9 @@ public:
     
     // Pushes _G/_ENV table onto the stack
     void PushEnv();
+    
+    // Pushes Lua C registry table index to the stack
+    void GetReg(I32 ref);
     
     // Pushes a signed integer onto the stack
     void PushInteger(I32 value);
@@ -228,6 +263,84 @@ private:
     LuaVersion _Version = LuaVersion::LUA_NONE; // This lua version
     
     LuaAdapterBase *_Adapter = nullptr; // Adapter for the version, see below
+    
+    I32 _ConstantMetaTables[(I32)LuaConstantMetaTable::NUM]{};
+    
+    friend class LuaManagerRef;
+    
+    LuaManagerPointerSlot* _WeakRefSlot = nullptr;
+    
+};
+
+// Weak reference to the lua VM.
+class LuaManagerRef
+{
+    
+    LuaManager* _Manager = nullptr;
+    LuaManagerPointerSlot* _WeakRefSlot = nullptr;
+    
+public:
+    
+    inline LuaManagerRef(LuaManager& man)
+    {
+        if(!man._WeakRefSlot)
+        {
+            man._WeakRefSlot = TTE_NEW(LuaManagerPointerSlot, MEMORY_TAG_SCRIPTING);
+        }
+        _WeakRefSlot = man._WeakRefSlot;
+        _WeakRefSlot->_Wk.fetch_add(1, std::memory_order_relaxed);
+        _Manager = &man;
+    }
+    
+    inline Bool Expired() const
+    {
+        return _WeakRefSlot == nullptr || !_WeakRefSlot->_St.load();
+    }
+    
+    inline LuaManager& Get() const
+    {
+        TTE_ASSERT(!Expired(), "LVM expired!");
+        return *_Manager;
+    }
+    
+    inline LuaManagerRef& operator=(LuaManagerRef&& rhs)
+    {
+        _Manager = rhs._Manager;
+        _WeakRefSlot = rhs._WeakRefSlot;
+        rhs._Manager = nullptr;
+        rhs._WeakRefSlot = nullptr;
+        return *this;
+    }
+    
+    inline LuaManagerRef& operator=(const LuaManagerRef& rhs)
+    {
+        _Manager = rhs._Manager;
+        _WeakRefSlot = rhs._WeakRefSlot;
+        if(_WeakRefSlot)
+            _WeakRefSlot->_Wk.fetch_add(1, std::memory_order_relaxed);
+        return *this;
+    }
+    
+    inline LuaManagerRef(LuaManagerRef&& rhs) {this->operator=(std::move(rhs));}
+    
+    inline LuaManagerRef(const LuaManagerRef& rhs) {this->operator=(rhs);}
+    
+    inline ~LuaManagerRef()
+    {
+        if (_WeakRefSlot)
+        {
+            if (_WeakRefSlot->_Wk.fetch_sub(1, std::memory_order_acq_rel) == 1)
+            {
+                if (!_WeakRefSlot->_St.load())
+                {
+                    TTE_FREE(_WeakRefSlot);
+                }
+            }
+            _WeakRefSlot = nullptr;
+        }
+        _Manager = nullptr;
+    }
+    
 };
 
 // Base class for lua version adapters (see below for each). Each includes the lua headers from the given version in its own translation unit for
@@ -261,11 +374,17 @@ public:
     
     virtual I32 GetTop() = 0;
     
+    virtual I32 RefReg() = 0;
+    
+    virtual void UnrefReg(I32) = 0;
+    
     virtual Bool LoadChunk(const String& nm, const U8*, U32, LoadChunkMode) = 0;
     
     virtual void* CreateUserData(U32 size) = 0;
     
     virtual void GC() = 0;
+    
+    virtual  void GetReg(I32 ref) = 0;
     
     virtual void GetTable(I32 index, Bool bRaw) = 0;
     
@@ -340,6 +459,12 @@ public:
     virtual void Push(LuaType type, void* pValue) override;
     
     virtual void Pop(U32 N) override;
+    
+    virtual void GetReg(I32 ref) override;
+    
+    virtual I32 RefReg() override;
+    
+    virtual void UnrefReg(I32) override;
     
     virtual I32 GetTop() override;
     
@@ -426,6 +551,10 @@ public:
     
     virtual void SetTable(I32 index, Bool bRaw) override;
     
+    virtual I32 RefReg() override;
+    
+    virtual void UnrefReg(I32) override;
+    
     virtual void GC() override;
     
     virtual Bool DoDump(lua_Writer writer, void* ud) override;
@@ -439,6 +568,8 @@ public:
     virtual I32 TableNext(I32 index) override;
     
     virtual LuaType Type(I32 index) override;
+    
+    virtual void GetReg(I32 ref) override;
     
     virtual Bool Compare(I32 lhs, I32 rhs, LuaOp op) override;
     
@@ -551,6 +682,12 @@ public:
     
     virtual I32 UpvalueIndex(I32 index) override;
     
+    virtual void GetReg(I32 ref) override;
+    
     virtual I32 ToInteger(I32 index) override;
+    
+    virtual I32 RefReg() override;
+    
+    virtual void UnrefReg(I32) override;
     
 };

@@ -258,6 +258,21 @@ Bool LuaAdapter_523::GetMetatable(I32 index)
     return lua_getmetatable(_State, index) != 0;
 }
 
+void LuaAdapter_523::GetReg(I32 ref)
+{
+    lua_rawgeti(_State, LUA_REGISTRYINDEX, ref);
+}
+
+I32 LuaAdapter_523::RefReg()
+{
+    return luaL_ref(_State, LUA_REGISTRYINDEX);
+}
+
+void LuaAdapter_523::UnrefReg(I32 ref)
+{
+    luaL_unref(_State, LUA_REGISTRYINDEX, ref);
+}
+
 Bool LuaAdapter_523::SetMetatable(I32 index)
 {
     return lua_setmetatable(_State, index) != 0;

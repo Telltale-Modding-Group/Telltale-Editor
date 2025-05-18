@@ -1,4 +1,9 @@
 #include <Core/Math.hpp>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 Colour Colour::Black{0.f,0.f,0.f,1.0f};
 Colour Colour::White{ 1.f,1.f,1.f,1.0f };
@@ -571,6 +576,7 @@ Bool Sphere::CollideWithCone(Vector3 &conePos, Vector3 &coneNorm, float coneRadi
     float penetration = MAX((finalX * dy + finalY * dx + finalZ * dz), 0.0f);
     if (penetration - coneRadius < 0.0f)
         coneRadius = penetration;
+        coneRadius = penetration;
     
     // Finally, check if the sphere collides with the cone using the distance between their centers
     return (sphereRadius * sphereRadius) > ((dy - finalY * coneRadius) * (dy - finalY * coneRadius) +
@@ -578,42 +584,71 @@ Bool Sphere::CollideWithCone(Vector3 &conePos, Vector3 &coneNorm, float coneRadi
                                             (dz - finalZ * coneRadius) * (dz - finalZ * coneRadius));
 }
 
-Quaternion Quaternion::Slerp(Quaternion q, const Quaternion& q0, float t)
+Quaternion Quaternion::Rotate(const Vector3& from, const Vector3& to)
 {
-    // Extract the components of the two quaternions and the interpolation factor
-    float x = q.x, y = q.y, z = q.z, w = q.w;
-    float x0 = q0.x, y0 = q0.y, z0 = q0.z, w0 = q0.w;
+    Vector3 f = Vector3::Normalize(from);
+    Vector3 t = Vector3::Normalize(to);
     
-    // Calculate the dot product between the quaternions
-    float dot = (x * x0) + (y * y0) + (z * z0) + (w * w0);
+    Float dot = Vector3::Dot(f, t);
     
-    // Ensure the dot product is within a valid range for acos
-    float t1 = 1.0f - t;
+    // Vectors are the same
+    if (dot >= 0.99999f)
+        return kIdentity;
     
-    Quaternion result;
-    
-    // If the dot product is less than 1, we need to compute the slerp
-    if (dot < 0.999999f)
-    {
-        // Calculate the angle between the two quaternions
-        float theta = acosf(dot);
-        
-        // Compute the sine of the angle
-        float invSinTheta = 1.0f / sinf(theta);
-        
-        // Adjust the interpolation factors
-        t1 = sinf(t1 * theta) * invSinTheta;
-        t = sinf(t * theta) * invSinTheta;
+    // Vectors are opposite
+    if (dot <= -0.99999f) {
+        Vector3 ortho = Vector3::Orthogonal(f);
+        return Quaternion(ortho, static_cast<Float>(M_PI));
     }
     
-    // Perform the spherical linear interpolation
-    result.x = (x0 * t1) + (x * t);
-    result.y = (y0 * t1) + (y * t);
-    result.z = (z0 * t1) + (z * t);
-    result.w = (w0 * t1) + (w * t);
+    Vector3 axis = Vector3::Normalize(Vector3::Cross(f, t));
+    Float angle = acosf(dot);
     
+    return Quaternion(axis, angle);
+}
+
+Quaternion Quaternion::Slerp(Quaternion q0, const Quaternion& q1, float t)
+{
+    // Compute the cosine of the angle between the two vectors.
+    float dot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
+    
+    Quaternion q1Copy = q1;
+    
+    // If the dot product is negative, negate q1 to take the shorter path. THIS IS STORED AS A FLAG IN QUAT COMPRESSED TO CHANGE THIS.
+    /*if (dot < 0.0f)
+    {
+        dot = -dot;
+        q1Copy.x = -q1Copy.x;
+        q1Copy.y = -q1Copy.y;
+        q1Copy.z = -q1Copy.z;
+        q1Copy.w = -q1Copy.w;
+    }*/
+    
+    const float DOT_THRESHOLD = 0.9995f;
+    if (dot > DOT_THRESHOLD)
+    {
+        // If the quaternions are very close, use linear interpolation
+        return NLerp(q0, q1, t).Normalized();
+    }
+    
+    // Since dot is in range [0, DOT_THRESHOLD], acos is safe
+    float theta_0 = acosf(dot);        // theta_0 = angle between input vectors
+    float theta = theta_0 * t;          // theta = angle between q0 and result
+    float sin_theta = sinf(theta);
+    float sin_theta_0 = sinf(theta_0);  // compute once for efficiency
+    
+    float s0 = cosf(theta) - dot * sin_theta / sin_theta_0;
+    float s1 = sin_theta / sin_theta_0;
+    
+    Quaternion result = {
+        (q0.x * s0) + (q1Copy.x * s1),
+        (q0.y * s0) + (q1Copy.y * s1),
+        (q0.z * s0) + (q1Copy.z * s1),
+        (q0.w * s0) + (q1Copy.w * s1)
+    };
     return result;
 }
+
 
 Quaternion Quaternion::NLerp(const Quaternion& q0, const Quaternion& q, float t)
 {
@@ -678,72 +713,49 @@ Quaternion Quaternion::BetweenVector3(const Vector3& va, const Vector3& vb)
     return res;
 }
 
-Vector3 operator*(const Vector3& vec, const Quaternion& quat)
+Vector3 operator*(const Vector3& v, const Quaternion& q)
 {
-    // Extract quaternion components
-    float qx = quat.x, qy = quat.y, qz = quat.z, qw = quat.w;
-    
-    // Compute vector quaternion components
-    float vx = vec.x, vy = vec.y, vz = vec.z;
-    
-    // Calculate intermediary products
-    float t2 = qw * vx + qy * vz - qz * vy;
-    float t3 = qw * vy + qz * vx - qx * vz;
-    float t4 = qw * vz + qx * vy - qy * vx;
-    float t5 = -qx * vx - qy * vy - qz * vz;
-    
-    // Final rotated vector components
-    float resultX = t2 * qw + t5 * -qx + t3 * -qz - t4 * -qy;
-    float resultY = t3 * qw + t5 * -qy + t4 * -qx - t2 * -qz;
-    float resultZ = t4 * qw + t5 * -qz + t2 * -qy - t3 * -qx;
-    
-    return Vector3(resultX, resultY, resultZ);
+    Vector3 qVec(q.x, q.y, q.z);
+    Vector3 t = 2.0f * Vector3::Cross(qVec, v);
+    return v + q.w * t + Vector3::Cross(qVec, t);
 }
 
 Matrix4 MatrixRotation(const Quaternion& q) {
-    Matrix4 ret{};
+    float xx = q.x * q.x;
+    float yy = q.y * q.y;
+    float zz = q.z * q.z;
+    float xy = q.x * q.y;
+    float xz = q.x * q.z;
+    float yz = q.y * q.z;
+    float wx = q.w * q.x;
+    float wy = q.w * q.y;
+    float wz = q.w * q.z;
     
-    // Precomputed terms for efficiency
-    float twoQx = q.x + q.x;
-    float twoQy = q.y + q.y;
-    float twoQz = q.z + q.z;
+    Matrix4 mat = {};
     
-    float twoQxQy = q.x * twoQy;
-    float twoQxQz = q.x * twoQz;
-    float twoQxQw = q.w * twoQx;
+    mat._Entries[0][0] = 1.0f - 2.0f * (yy + zz);
+    mat._Entries[0][1] = 2.0f * (xy + wz);
+    mat._Entries[0][2] = 2.0f * (xz - wy);
+    mat._Entries[0][3] = 0.0f;
     
-    float twoQyQz = q.y * twoQz;
-    float twoQyQw = q.w * twoQy;
+    mat._Entries[1][0] = 2.0f * (xy - wz);
+    mat._Entries[1][1] = 1.0f - 2.0f * (xx + zz);
+    mat._Entries[1][2] = 2.0f * (yz + wx);
+    mat._Entries[1][3] = 0.0f;
     
-    float twoQzQw = q.w * twoQz;
+    mat._Entries[2][0] = 2.0f * (xz + wy);
+    mat._Entries[2][1] = 2.0f * (yz - wx);
+    mat._Entries[2][2] = 1.0f - 2.0f * (xx + yy);
+    mat._Entries[2][3] = 0.0f;
     
-    float twoQxSq = q.x * twoQx;
-    float twoQySq = q.y * twoQy;
-    float twoQzSq = q.z * twoQz;
+    mat._Entries[3][0] = 0.0f;
+    mat._Entries[3][1] = 0.0f;
+    mat._Entries[3][2] = 0.0f;
+    mat._Entries[3][3] = 1.0f;
     
-    // Fill in the rotation matrix
-    ret._Entries[0][0] = 1.0f - twoQySq - twoQzSq;
-    ret._Entries[0][1] = twoQxQy + twoQzQw;
-    ret._Entries[0][2] = twoQxQz - twoQyQw;
-    ret._Entries[0][3] = 0.0f;
-    
-    ret._Entries[1][0] = twoQxQy - twoQzQw;
-    ret._Entries[1][1] = 1.0f - twoQxSq - twoQzSq;
-    ret._Entries[1][2] = twoQyQz + twoQxQw;
-    ret._Entries[1][3] = 0.0f;
-    
-    ret._Entries[2][0] = twoQxQz + twoQyQw;
-    ret._Entries[2][1] = twoQyQz - twoQxQw;
-    ret._Entries[2][2] = 1.0f - twoQxSq - twoQySq;
-    ret._Entries[2][3] = 0.0f;
-    
-    ret._Entries[3][0] = 0.0f;
-    ret._Entries[3][1] = 0.0f;
-    ret._Entries[3][2] = 0.0f;
-    ret._Entries[3][3] = 1.0f;
-    
-    return ret;
+    return mat;
 }
+
 
 Matrix4 MatrixTranslation(const Vector3& Translation)
 {
@@ -783,7 +795,6 @@ Matrix4 MatrixScaling(float ScaleX, float ScaleY, float ScaleZ)
     ret._Entries[3][3] = 1.0f;  // Homogeneous coordinate
     return ret;
 }
-
 
 Matrix4 MatrixRotationYawPitchRollDegrees(float yaw, float pitch, float roll)
 {

@@ -1,9 +1,17 @@
+#define _META_COERSION_IMPL
 #include <Meta/Meta.hpp>
 #include <Core/Context.hpp>
 #include <Scripting/LuaManager.hpp>
 #include <Core/Symbol.hpp>
+#include <Core/Callbacks.hpp>
+#include <Resource/PropertySet.hpp>
+
 #include <sstream>
 #include <map>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846f
+#endif
 
 // ===================================================================         META
 // ===================================================================
@@ -26,6 +34,16 @@ namespace Meta {
         {
             for(auto& p: game.ValidPlatforms)
                 if(CompareCaseInsensitive(p, platform))
+                    return true;
+            return false;
+        }
+        
+        Bool _CheckVendorForGame(RegGame& game, const String& vendor)
+        {
+            if(game.ValidVendors.size() == 0)
+                return true; // most have only 1 branch/vendor
+            for(auto& p: game.ValidVendors)
+                if(CompareCaseInsensitive(p, vendor))
                     return true;
             return false;
         }
@@ -156,7 +174,10 @@ namespace Meta {
             TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread"); // modifications to State.Classes should only happen at beginning on main.
             
             cls.TypeHash = CRC64LowerCase((const U8*)cls.Name.c_str(), (U32)cls.Name.length());
-            RuntimeSymbols.Register(cls.Name);
+            String tool = MakeTypeName(cls.Name);
+            Bool bIsProp = CompareCaseInsensitive(tool, "PropertySet");
+            cls.ToolTypeHash = CRC64LowerCase((const U8*)tool.c_str(), (U32)tool.length());
+            GetRuntimeSymbols().Register(cls.Name);
             U32 crc = _DoLuaVersionCRC(man, stackIndex);
             if(crc == 0)
                 return 0; // errored
@@ -213,15 +234,30 @@ namespace Meta {
                         }
                     }
                 }
+                cls.RTSizeRaw = cls.RTSize;
                 if(cls.Flags & CLASS_ATTACHABLE)
                 {
-                    cls.RTSize += TTE_PADDING(cls.RTSize, 8);
+                    cls.RTPaddingChildren = TTE_PADDING(cls.RTSize, 8);
+                    cls.RTSize += cls.RTPaddingChildren;
                     cls.RTSize += sizeof(ClassChildMap);
                 }
             }
             
-            if(cls.Members.size() == 1 && cls.Members[0].Descriptors.size() > 0 && State.Classes[cls.Members[0].ClassID].RTSize == 4)
+            if(bIsProp)
             {
+                cls.Flags |= _CLASS_PROP;
+                cls.Flags |= CLASS_ATTACHABLE; // ensure
+                cls.RTPaddingCallbacks = TTE_PADDING(cls.RTSize, 8);
+                cls.RTSize += cls.RTPaddingCallbacks;
+                cls.RTSize += sizeof(PropertySet::InternalData);
+            }
+            
+            if(cls.Flags & CLASS_ENUM_WRAPPER)
+            {
+                if(cls.Members.size() != 1)
+                {
+                    TTE_LOG("WARNING: Enum wrapper class %s should have 1 member but has %d! Output may be wrong!", cls.Name.c_str(), (U32)cls.Members.size());
+                }
                 cls.ToString = &_EnumFlagToString;
             }
             
@@ -233,6 +269,12 @@ namespace Meta {
                 _CalculateCollectionSizes(pKey, pVal, _v, p, _fl);
                 cls.RTSize += p * cls.ArraySize;
             }
+            
+            if(cls.RTSize > 8)
+                cls.RTSize += TTE_PADDING(cls.RTSize, 8);
+            
+            if(!cls.RTSizeRaw)
+                cls.RTSizeRaw = cls.RTSize;
             
             cls.LegacyHash = _PerformLegacyClassHash(cls.Name);
             
@@ -281,7 +323,7 @@ namespace Meta {
         
         String _EnumFlagToString(Class* pClass, const void* pVal)
         {
-            return _EnumFlagMemberToString(pClass->Members[0], pVal);
+            return pClass->Members.size() > 0 ? _EnumFlagMemberToString(pClass->Members[0], pVal) : "<ENUM_WRAPPER_CLASS_NO_MEMBER_FOUND>";
         }
         
         Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member, Member* hostMember)
@@ -358,7 +400,7 @@ namespace Meta {
             else if(clazz->SerialiseScriptFn.length() > 0) // RUN LUA SERIALISER FUNCTION
             {
                 
-                LuaManager& man = JobScheduler::IsRunningFromWorker() ? JobScheduler::GetCurrentThread().L : GetToolContext()->GetLibraryLVM();
+                LuaManager& man = GetThreadLVM();
                 
                 if(stream.DebugOutputFile)
                 {
@@ -416,7 +458,7 @@ namespace Meta {
                 
                 man.CallFunction(3, 1, true); // call, locked.
                 
-                result = ScriptManager::PopBool(GetToolContext()->GetLibraryLVM()); // check result
+                result = ScriptManager::PopBool(man); // check result
                 
                 if(!result)
                 {
@@ -559,6 +601,20 @@ namespace Meta {
             return result;
         }
         
+        U32 _PerformLegacyClassHash(const String& name)
+        {
+            U32 ind = 0;
+            U32 l = (U32)name.length();
+            U32 hash = 0;
+            for(U32 i = 0; i < l; i++)
+            {
+                U32 shift = 8*ind;
+                ind=(ind+1) & 3;
+                hash = hash ^ ((U8)name[i] << shift);
+            }
+            return hash;
+        }
+        
         // calculate the crc32 version (important!) for the given class.
         U32 _DoLuaVersionCRC(LuaManager& man, I32 classTableStackIndex)
         {
@@ -582,51 +638,67 @@ namespace Meta {
         }
         
         // get class by crc (Use map)
-        Class* _GetClass(U32 i) {
+        Class* _GetClass(U32 i)
+        {
             return &State.Classes[i];
         }
         
         U32 _ClassChildrenArrayOff(Class& clazz)
         {
-            U32 sz = clazz.RTSize;
+            U32 offset = clazz.RTSize;
             
-            if((clazz.Flags & CLASS_ATTACHABLE) != 0)
+            if(clazz.Flags & _CLASS_PROP) // remove prop array from size (stored at end)
             {
-                // not top level but attachable. subtract from size its included
-                sz -= sizeof(ClassChildMap);
+                offset -= sizeof(PropertySet::InternalData);
+                offset -= clazz.RTPaddingCallbacks;
             }
             
-            return sz;
+            if(clazz.Flags & CLASS_ATTACHABLE)
+            {
+                // remove children from size
+                TTE_ASSERT(offset > sizeof(ClassChildMap), "Child map does not exist. Internal error");
+                offset -= sizeof(ClassChildMap);
+                // keep padding
+            } // else RTSize doesnt include it anywhere its just top level so after.
+            else
+            {
+                offset += TTE_PADDING(offset, 8);
+            }
+            
+            return offset;
         }
         
-        U32 _PerformLegacyClassHash(const String& name)
+        U32 _ClassPropertyCallbacksArrayOff(Class& clazz)
         {
-            U32 ind = 0;
-            U32 l = (U32)name.length();
-            U32 hash = 0;
-            for(U32 i = 0; i < l; i++)
-            {
-                U32 shift = 8*ind;
-                ind=(ind+1) & 3;
-                hash = hash ^ ((U8)name[i] << shift);
-            }
-            return hash;
+            TTE_ASSERT(clazz.Flags & _CLASS_PROP, "Class must be prop");
+            U32 offset = clazz.RTSize;
+            offset -= sizeof(PropertySet::InternalData);
+            // keep align
+            return offset;
         }
-        
+
+        // MEMORY LAYOUT:
+        // <CLASS MEMBERS / MAIN MEMORY>
+        // <CLASS CHILD MAP PADDING> <= IF ATTACHABLE FROM HERE ON OR TOP LEVEL.
+        // <CLASS CHILD MAP>
+        // <KEY CALLBACKS PADDING> <= IF PROP FROM HERE ON
+        // <KEY CALLBACKS VECTOR>
         U32 _ClassRuntimeSize(Class& clazz, Bool forceChildArray)
         {
-            U32 sz = _ClassChildrenArrayOff(clazz);
+            U32 sz = clazz.RTSize;
             
-            if(forceChildArray)
+            if(forceChildArray && ((clazz.Flags & CLASS_ATTACHABLE) == 0)) // if not already attachable but its top level, add child array
             {
                 // top level
+                sz += TTE_PADDING(sz, 8);
                 sz += sizeof(ClassChildMap); // child ref array. if attachable its included in the size already so can be used in collections etc
+                // no key callbacks array as prop is attachable.
             }
-            
+
             return sz;
         }
         
-        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& topLevelParent, Symbol name)
+        ClassInstance _MakeInstance(U32 ClassID, ClassInstance& topLevelParent, Symbol name, U8* Alloc, U32 AlZ)
         {
             auto it = State.Classes.find(ClassID);
             if(it == State.Classes.end()){
@@ -656,8 +728,13 @@ namespace Meta {
                 }
             }
             
+            Bool bNeedsFree = !(Alloc && (sz + 8 <= AlZ));
+            U8* const upvalue_TempBlockCheck = bNeedsFree ? nullptr : &Alloc[sz];
+            if(upvalue_TempBlockCheck)
+                memcpy(upvalue_TempBlockCheck, "I<3Lucas", 8);
+            
             // allocate
-            U8* pMemory = TTE_ALLOC(sz, MEMORY_TAG_META_TYPE);
+            U8* pMemory = bNeedsFree ? TTE_ALLOC(sz, MEMORY_TAG_META_TYPE) : Alloc;
             
             ClassInstance inst = ClassInstance{ClassID, pMemory, [=](U8* pMem){ // use a c++11 lambda so we get a closure.
                 
@@ -665,10 +742,16 @@ namespace Meta {
                 // this is the only time we use lambdas here, as they work quite well for this case, as otherwise there is no other way to
                 // have a reference to these unless its also stored in the memory block, which would not work in collections.
                 
-                _Impl::_DoDestruct(&State.Classes[upvalue_ClassID], pMem); // call destructor
+                _Impl::_DoDestruct(&State.Classes[upvalue_ClassID], pMem, upvalue_TopLevel); // call destructor
                 
                 // free memory
-                TTE_FREE((U8*)pMem); // return with deleter
+                if(upvalue_TempBlockCheck)
+                {
+                    TTE_ASSERT(memcmp(upvalue_TempBlockCheck, "I<3Lucas", 8) == 0, "Corrupted memory block when testing temporary instance validity."
+                               " Was a class instance using CreateTemporaryInstance() kept alive outside of the stack frame it was created in?");
+                }
+                else
+                    TTE_FREE((U8*)pMem); // free memory
                 
             }, host};
             
@@ -683,21 +766,26 @@ namespace Meta {
         }
         
         // perform constructor.
-        void _DoConstruct(Class* pClass, U8* pInstanceMemory, ParentWeakReference host, ParentWeakReference& concrete)
+        void _DoConstruct(Class* pClass, U8* pInstanceMemory, ParentWeakReference host, ParentWeakReference& concrete, Bool bTopLevel)
         {
             ParentWeakReference _{};
-            if(pClass->Flags & CLASS_ATTACHABLE)
+            if(pClass->Flags & CLASS_ATTACHABLE || bTopLevel)
             {
                 // construct child map
                 U8* mapMem = pInstanceMemory + _ClassChildrenArrayOff(*pClass);
                 new(mapMem) ClassChildMap();
+            }
+            if(pClass->Flags & _CLASS_PROP)
+            {
+                U8* cbMem = pInstanceMemory + _ClassPropertyCallbacksArrayOff(*pClass);
+                new(cbMem) PropertySet::InternalData();
             }
             // If the whole class has a constructor, call it (eg String)
             if(pClass->Constructor)
             {
                 pClass->Constructor(pInstanceMemory, pClass->ClassID, host);
             }
-            else if((pClass->Flags & CLASS_INTRINSIC) && pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
+            else if(pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
                 // the class has no explicit constructor, but is intrinsic, memset.
             {
                 memset(pInstanceMemory, 0, pClass->RTSize); // set to zero (eg int types)
@@ -708,26 +796,31 @@ namespace Meta {
                     host = concrete;
                 for(auto& member: pClass->Members)
                 {
-                    _DoConstruct(&State.Classes[member.ClassID], pInstanceMemory + member.RTOffset, host, _); // again
+                    _DoConstruct(&State.Classes[member.ClassID], pInstanceMemory + member.RTOffset, host, _, false); // again
                 }
             }
         }
         
         // perform destructor
-        void _DoDestruct(Class* pClass, U8* pInstanceMemory)
+        void _DoDestruct(Class* pClass, U8* pInstanceMemory, Bool bTopLevel)
         {
-            if(pClass->Flags & CLASS_ATTACHABLE)
+            if(pClass->Flags & CLASS_ATTACHABLE || bTopLevel)
             {
                 // destruct child map
                 U8* mapMem = pInstanceMemory + _ClassChildrenArrayOff(*pClass);
                 ((ClassChildMap*)mapMem)->~ClassChildMap();
+            }
+            if(pClass->Flags & _CLASS_PROP)
+            {
+                U8* cbMem = pInstanceMemory + _ClassPropertyCallbacksArrayOff(*pClass);
+                ((PropertySet::InternalData*)cbMem)->~InternalData();
             }
             // If the whole class has a destructor, call it (eg String)
             if(pClass->Destructor)
             {
                 pClass->Destructor(pInstanceMemory, pClass->ClassID);
             }
-            else if((pClass->Flags & CLASS_INTRINSIC) && pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
+            else if(pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
             {
                 memset(pInstanceMemory, 0, pClass->RTSize); // set to zero on destroys (eg int types)
             }
@@ -735,28 +828,27 @@ namespace Meta {
             {
                 for(auto& member: pClass->Members)
                 {
-                    _DoDestruct(&State.Classes[member.ClassID], pInstanceMemory + member.RTOffset); // again
+                    _DoDestruct(&State.Classes[member.ClassID], pInstanceMemory + member.RTOffset, false); // again
                 }
             }
         }
         
         // perform copy
-        void _DoCopyConstruct(Class* pClass, U8* pMemory, const U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete)
+        void _DoCopyConstruct(Class* pClass, U8* pMemory, const U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete, Bool bSrcTopLevel, Bool bTopLevel)
         {
             ParentWeakReference _{};
-            if(pClass->Flags & CLASS_ATTACHABLE)
+            if(pClass->Flags & _CLASS_PROP)
             {
-                // copy child map
-                const ClassChildMap* srcMap = (const ClassChildMap*)(pSrc + _ClassChildrenArrayOff(*pClass));
-                ClassChildMap* dstMap = (ClassChildMap*)(pMemory + _ClassChildrenArrayOff(*pClass));
-                new(dstMap) ClassChildMap(*srcMap);
+                const PropertySet::InternalData* srcMem = (const PropertySet::InternalData*)(pSrc + _ClassPropertyCallbacksArrayOff(*pClass));
+                PropertySet::InternalData* dstMem = (PropertySet::InternalData*)(pMemory + _ClassPropertyCallbacksArrayOff(*pClass));
+                new(dstMem) PropertySet::InternalData(*srcMem); // shallow copy, ok just callbacks.
             }
             // If the whole class has a copy constructor, call it (eg String)
             if(pClass->CopyConstruct)
             {
                 pClass->CopyConstruct(pSrc, pMemory, host);
             }
-            else if((pClass->Flags & CLASS_INTRINSIC) && pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
+            else if(pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE)) // symbols isnt intrinsic but if no copy construct or members, memcpy.
             {
                 memcpy(pMemory, pSrc, pClass->RTSize);
             }
@@ -767,28 +859,45 @@ namespace Meta {
                     if((IsWeakPtrUnbound(host) || host.expired()) && !IsWeakPtrUnbound(concrete) && !concrete.expired())
                         host = concrete;
                     _DoCopyConstruct(&State.Classes[member.ClassID], pMemory + member.RTOffset,
-                                     pSrc + member.RTOffset, host, _); // again
+                                     pSrc + member.RTOffset, host, _, false, false); // again
                 }
+            }
+            if(pClass->Flags & CLASS_ATTACHABLE)
+            {
+                // Do this LAST here because copy instance requires full type
+                // copy child map
+                const ClassChildMap* srcMap = (const ClassChildMap*)(pSrc + _ClassChildrenArrayOff(*pClass));
+                ClassChildMap* dstMap = (ClassChildMap*)(pMemory + _ClassChildrenArrayOff(*pClass));
+                new (dstMap) ClassChildMap();
+                // Copy children (deep). User should be careful if editing props in sub-arrays and the array is modified.
+                for(const auto& src: *srcMap)
+                {
+                    CopyInstance(src.second, ClassInstance(pClass->ClassID, pMemory, {}), src.first);
+                }
+            }
+            else if(bTopLevel)
+            {
+                ClassChildMap* dstMap = (ClassChildMap*)(pMemory + _ClassChildrenArrayOff(*pClass));
+                new (dstMap) ClassChildMap(); // ignore source
             }
         }
         
         // perform move
-        void _DoMoveConstruct(Class* pClass, U8* pMemory, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete)
+        void _DoMoveConstruct(Class* pClass, U8* pMemory, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete, Bool bSrcTopLevel, Bool bTopLevel)
         {
             ParentWeakReference _{};
-            if(pClass->Flags & CLASS_ATTACHABLE)
+            if(pClass->Flags & _CLASS_PROP)
             {
-                // move child map
-                ClassChildMap* srcMap = (ClassChildMap*)(pSrc + _ClassChildrenArrayOff(*pClass));
-                ClassChildMap* dstMap = (ClassChildMap*)(pMemory + _ClassChildrenArrayOff(*pClass));
-                new(dstMap) ClassChildMap(std::move(*srcMap));
+                PropertySet::InternalData* srcMem = (PropertySet::InternalData*)(pSrc + _ClassPropertyCallbacksArrayOff(*pClass));
+                PropertySet::InternalData* dstMem = (PropertySet::InternalData*)(pMemory + _ClassPropertyCallbacksArrayOff(*pClass));
+                new(dstMem) PropertySet::InternalData(std::move(*srcMem));
             }
             // If the whole class has a move constructor, call it (eg String)
             if(pClass->MoveConstruct)
             {
                 pClass->MoveConstruct(pSrc, pMemory, host);
             }
-            else if((pClass->Flags & CLASS_INTRINSIC) && pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
+            else if(pClass->Members.size() == 0 && !(pClass->Flags & CLASS_ATTACHABLE))
             {
                 memcpy(pMemory, pSrc, pClass->RTSize); // just in case, we wont clear to zeros.
             }
@@ -799,8 +908,25 @@ namespace Meta {
                     if((IsWeakPtrUnbound(host) || host.expired()) && !IsWeakPtrUnbound(concrete) && !concrete.expired())
                         host = concrete;
                     _DoMoveConstruct(&State.Classes[member.ClassID], pMemory + member.RTOffset,
-                                     pSrc + member.RTOffset, host, _); // again
+                                     pSrc + member.RTOffset, host, _, false, false); // again
                 }
+            }
+            if(pClass->Flags & CLASS_ATTACHABLE)
+            {
+                // move child map. cant just move the map. child parent refs need new parent to be this.
+                ClassChildMap* srcMap = (ClassChildMap*)(pSrc + _ClassChildrenArrayOff(*pClass));
+                ClassChildMap* dstMap = (ClassChildMap*)(pMemory + _ClassChildrenArrayOff(*pClass));
+                new(dstMap) ClassChildMap();
+                // Move children (deep)
+                for(const auto& src: *srcMap)
+                {
+                    MoveInstance(src.second, ClassInstance(pClass->ClassID, pMemory, {}), src.first);
+                }
+            }
+            else if(bTopLevel)
+            {
+                ClassChildMap* dstMap = (ClassChildMap*)(pMemory + _ClassChildrenArrayOff(*pClass));
+                new (dstMap) ClassChildMap(); // ignore source
             }
         }
         
@@ -977,7 +1103,7 @@ namespace Meta {
                     if(!SerialiseString(stream, host, nullptr, &symbol, false))
                         return false; // string too large, corrupt.
                     
-                    RuntimeSymbols.Register(symbol); // register it as for remapping back to a string
+                    GetRuntimeSymbols().Register(symbol); // register it as for remapping back to a string
                     
                     sym = Symbol(std::move(symbol)); // assign symbol
                 }
@@ -1105,6 +1231,13 @@ namespace Meta {
     // ===================================================================          META LUA API
     // ===================================================================
     
+    void* ClassInstance::_GetInternalPropertySetData()
+    {
+        Class& clz = State.Classes.find(_InstanceClassID)->second;
+        TTE_ASSERT(clz.Flags & _CLASS_PROP, "This can only be used on PropertySet");
+        return _GetInternal() + _Impl::_ClassPropertyCallbacksArrayOff(clz);
+    }
+    
     // garbage collector function for script refs to class instances
     U32 luaClassInstanceGC(LuaManager& man)
     {
@@ -1210,7 +1343,6 @@ namespace Meta {
     {
         if(man.Type(stackIndex) != LuaType::FULL_OPAQUE)
         {
-            TTE_LOG("Cannot acquire script instance at stack index %d: type is %s", stackIndex, man.Typename(man.Type(stackIndex)));
             return {};
         }
         
@@ -1218,16 +1350,28 @@ namespace Meta {
         
         if(pRef == nullptr || pRef->GetClassID() == 0)
             return {};
-        
+         
         return pRef->Acquire();
+    }
+    
+    ClassInstance CreateTemporaryInstance(U8* Alloc, U32 AlZ, U32 ClassID)
+    {
+        ClassInstance _{}; Symbol __{};
+        ClassInstance instance = _Impl::_MakeInstance(ClassID, _, __, Alloc, AlZ);
+        ParentWeakReference asParent{instance._InstanceMemory};
+        
+        _Impl::_DoConstruct(&State.Classes[ClassID], instance._GetInternal(), {}, asParent, true);
+        
+        return instance;
     }
     
     ClassInstance CreateInstance(U32 ClassID, ClassInstance host, Symbol n)
     {
         ClassInstance instance = _Impl::_MakeInstance(ClassID, host, n);
         ParentWeakReference asParent{instance._InstanceMemory};
+        Bool bTopLevel = instance.IsTopLevel();
         
-        _Impl::_DoConstruct(&State.Classes[ClassID], instance._GetInternal(), host.ObtainParentRef(), asParent);
+        _Impl::_DoConstruct(&State.Classes[ClassID], instance._GetInternal(), host.ObtainParentRef(), asParent, bTopLevel);
         
         return instance;
     }
@@ -1238,10 +1382,10 @@ namespace Meta {
             return ClassInstance{};
         
         ClassInstance instanceNew = _Impl::_MakeInstance(instance.GetClassID(), host, n);
-        ParentWeakReference asParent{instance._InstanceMemory};
+        ParentWeakReference asParent{instanceNew._InstanceMemory};
         
         _Impl::_DoCopyConstruct(&State.Classes[instance.GetClassID()], instanceNew._GetInternal(),
-                                instance._GetInternal(), host.ObtainParentRef(), asParent);
+                                instance._GetInternal(), host.ObtainParentRef(), asParent, instance.IsTopLevel(), instanceNew.IsTopLevel());
         
         return instanceNew;
     }
@@ -1252,10 +1396,10 @@ namespace Meta {
             return ClassInstance{};
         
         ClassInstance instanceNew = _Impl::_MakeInstance(instance.GetClassID(), host, n);
-        ParentWeakReference asParent{instance._InstanceMemory};
+        ParentWeakReference asParent{instanceNew._InstanceMemory};
         
         _Impl::_DoMoveConstruct(&State.Classes[instance.GetClassID()], instanceNew._GetInternal(),
-                                instance._GetInternal(), host.ObtainParentRef(), asParent);
+                                instance._GetInternal(), host.ObtainParentRef(), asParent, instance.IsTopLevel(), instanceNew.IsTopLevel());
         
         return instanceNew;
     }
@@ -1331,10 +1475,19 @@ namespace Meta {
         return 0;
     }
     
-    U32 FindClass(U64 typeHash, U32 versionNumber)
+    U32 FindClass(U64 typeHash, U32 versionNumber, Bool bExact)
     {
         U32 id = _Impl::_GenerateClassID(typeHash, versionNumber);
-        return State.Classes.find(id) == State.Classes.end() ? 0 : id; // ensure it exists before we return it.
+        Bool bFound = State.Classes.find(id) != State.Classes.end();
+        if(!bFound)
+        {
+            for(auto& clz: State.Classes)
+            {
+                if(clz.second.ToolTypeHash == typeHash && clz.second.VersionNumber == versionNumber)
+                    return clz.first;
+            }
+        }
+        return bFound ? id : 0;
     }
     
     // initialise the snapshot State.Classes
@@ -1357,6 +1510,11 @@ namespace Meta {
                 if(!_Impl::_CheckPlatformForGame(game, snap.Platform))
                 {
                     TTE_ASSERT(false, "The platform '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
+                    return;
+                }
+                if(!_Impl::_CheckVendorForGame(game, snap.Vendor))
+                {
+                    TTE_ASSERT(false, "The vendor '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
                     return;
                 }
                 break;
@@ -1389,9 +1547,9 @@ namespace Meta {
             ScriptManager::Execute(GetToolContext()->GetLibraryLVM(), 3, 1, true);
             if(!ScriptManager::PopBool(GetToolContext()->GetLibraryLVM()))
             {
-                TTE_LOG("RegisterAll failed!");
+                TTE_LOG("Failed to register game meta class descriptions!");
             }
-            else // success, so init blowfish encryption for the game
+            else // success, so init blowfish encryption for the game and other stuff
             {
                 
                 // Process deferred
@@ -1446,7 +1604,7 @@ namespace Meta {
             }
         }
         
-        TTE_LOG("Meta fully initialised with snapshot of %s: registered %d classes", snap.ID.c_str(), (U32)State.Classes.size());
+        TTE_LOG("Meta fully initialised with snapshot of %s: registered %d classes\n\n", snap.ID.c_str(), (U32)State.Classes.size());
         State.GameIndex = (I32)gameIdx;
     }
     
@@ -1475,47 +1633,16 @@ namespace Meta {
         TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
         TTE_ASSERT(GetToolContext(), "Tool context not created");
         
-        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaLibraryAPI(false)); // Register editor library
-        ScriptManager::RegisterCollection(GetToolContext()->GetLibraryLVM(), luaGameEngine(false)); // Register telltale engine
-        
-        // Global LUA flag constants for use in the library init scripts
-        
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_NON_BLOCKED);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassNonBlocked", true); // class is not blocked
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_INTRINSIC);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassIntrinsic", true); // class is intrinsic
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_ALLOW_ASYNC);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassAllowAsync", true); // class can be serialised async faster
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_CONTAINER);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassContainer", true); // container flag
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_ABSTRACT);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassAbstract", true); // abstract
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_ATTACHABLE);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassAttachable", true); // abstract
-        GetToolContext()->GetLibraryLVM().PushInteger(CLASS_PROXY);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaClassProxy", true); // proxy fix, disable all member blocking
-        
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_ENUM);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberEnum", true); // member is an enum
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_FLAG);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberFlag", true); // member is a flag
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_BASE);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberBaseClass", true); // member is a base class
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_MEMORY_DISABLE);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberMemoryDisable", true); // member not in memory (no Class needed)
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_SERIALISE_DISABLE);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberSerialiseDisable", true); // member not on disk
-        GetToolContext()->GetLibraryLVM().PushInteger(MEMBER_VERSION_HASH_DISABLE);
-        ScriptManager::SetGlobal(GetToolContext()->GetLibraryLVM(), "kMetaMemberVersionDisable", true); // no version include
+        InjectFullLuaAPI(GetToolContext()->GetLibraryLVM(), false);
         
         // Setup games script
         
         ScriptManager::RunText(GetToolContext()->GetLibraryLVM(),
-                               GetToolContext()->LoadLibraryStringResource("Games.lua"), "Games.lua", false); // Initialise games
+                               GetToolContext()->LoadLibraryStringResource("Scripts/Games.lua"), "Games.lua", false); // Initialise games
         
         // Setup State.Classes script
         
-        String src = GetToolContext()->LoadLibraryStringResource("Classes.lua");
+        String src = GetToolContext()->LoadLibraryStringResource("Scripts/Classes.lua");
         ScriptManager::RunText(GetToolContext()->GetLibraryLVM(), src, "Classes.lua", false);
         src.clear();
         
@@ -1527,8 +1654,6 @@ namespace Meta {
         TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
         
         State.Games.clear();
-        
-        TTE_LOG("Meta shutdown");
     }
     
     Bool WriteMetaStream(const String& name, ClassInstance instance, DataStreamRef& stream, MetaStreamParams params)
@@ -1541,6 +1666,9 @@ namespace Meta {
             TTE_ASSERT(false, "Invalid arguments passed into WriteMetaStream");
             return false;
         }
+        
+        if(params.Version == StreamVersion::UNSPECIFIED)
+            params.Version = GetInternalState().GetActiveGame().MetaVersion;
         
         Stream metaStream{};
         U8 Buffer[32]{};
@@ -1879,7 +2007,7 @@ namespace Meta {
                 
                 Buffer[len] = 0;
                 String str((CString)Buffer);
-                RuntimeSymbols.Register(str);
+                GetRuntimeSymbols().Register(str);
                 typeHash = CRC64LowerCase(Buffer, len);
             }
             else
@@ -2039,6 +2167,15 @@ namespace Meta {
         return instance; // OK / FAIL
     }
     
+    const Class& GetClass(U32 id)
+    {
+        auto it = GetInternalState().Classes.find(id);
+        TTE_ASSERT(it != GetInternalState().Classes.end(), "Could not find class by id");
+        return it->second;
+    }
+    
+    
+    
     // ===================================================================         COLLECTIONS
     // ===================================================================
     
@@ -2083,19 +2220,18 @@ namespace Meta {
                     
                     //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].Constructor,
                     //           "Meta collection class: no value constructor found");
-                    _Impl::_DoConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem, _PrntRef, _);
+                    _Impl::_DoConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem, _PrntRef, _, false);
                     
                 }
             }
             else
             {
-                memset(this + sizeof(ClassInstanceCollection), 0,  _ValuSize * _Size);
+                memset((U8*)this + sizeof(ClassInstanceCollection), 0,  _ValuSize * _Size);
             }
         }
         
         // setup transience block
         _TransienceFence = TTE_NEW_PTR(std::atomic<U32>, MEMORY_TAG_TRANSIENT_FENCE, 0);
-        
     }
     
     void ClassInstanceCollection::AdvanceTransienceFenceInternal()
@@ -2123,7 +2259,7 @@ namespace Meta {
                     
                     //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].Destructor,
                     //           "Meta collection class: no value destructor found");
-                    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem);
+                    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem, false);
                     
                 }
             }
@@ -2162,7 +2298,7 @@ namespace Meta {
                     
                     //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].Destructor,
                     //           "Meta collection class: no value destructor found");
-                    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem);
+                    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem, false);
                     
                 }
             }
@@ -2180,7 +2316,7 @@ namespace Meta {
                     //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].MoveConstruct,
                     //         "Meta collection class: no value move constructor found");
                     
-                    _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMem, pSrcMem, host, _);
+                    _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMem, pSrcMem, host, _, false, false);
                     
                 }
             }
@@ -2197,7 +2333,6 @@ namespace Meta {
         // move transience fence
         _TransienceFence = std::move(rhs._TransienceFence);
         rhs._TransienceFence = TTE_NEW_PTR(std::atomic<U32>, MEMORY_TAG_TRANSIENT_FENCE, 0); // rhs still is valid give it a new slot
-        
     }
     
     ClassInstanceCollection::ClassInstanceCollection(const ClassInstanceCollection& rhs, ParentWeakReference host)
@@ -2230,7 +2365,7 @@ namespace Meta {
                     
                     //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].Destructor,
                     //           "Meta collection class: no value destructor found");
-                    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem);
+                    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem, false);
                     
                 }
             }
@@ -2255,7 +2390,7 @@ namespace Meta {
                     // copy construct the value
                     //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].CopyConstruct,
                     //           "Meta collection class: no value copy constructor found");
-                    _Impl::_DoCopyConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset, host, _);
+                    _Impl::_DoCopyConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset, host, _, false, false);
                     
                 }
             }
@@ -2266,6 +2401,7 @@ namespace Meta {
             _Memory = nullptr;
             if(rhs._Cap > 0)
             {
+                _Cap = _Size = 0;
                 Reserve(rhs._Cap);
                 _Size = rhs._Size; // same size after this call
                 
@@ -2290,7 +2426,7 @@ namespace Meta {
                             // copy construct the key
                             //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayKeyClass && State.Classes[State.Classes[_ColID].ArrayKeyClass].CopyConstruct,
                             //    	    "Meta collection class: no key copy constructor found");
-                            _Impl::_DoCopyConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem, host, _);
+                            _Impl::_DoCopyConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem, host, _, false, false);
                         }
                         else
                         {
@@ -2307,7 +2443,7 @@ namespace Meta {
                             // copy construct the value
                             // TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].CopyConstruct,
                             //            "Meta collection class: no value copy constructor found");
-                            _Impl::_DoCopyConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset, host, _);
+                            _Impl::_DoCopyConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMem + offset, pSrcMem + offset, host, _, false, false);
                         }
                         else
                         {
@@ -2397,7 +2533,7 @@ namespace Meta {
                         // move construct the key
                         //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayKeyClass && State.Classes[State.Classes[_ColID].ArrayKeyClass].MoveConstruct,
                         //           "Meta collection class: no key move constructor found");
-                        _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem, _PrntRef, _);
+                        _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem, _PrntRef, _, false, false);
                     }
                     else
                     {
@@ -2415,7 +2551,7 @@ namespace Meta {
                         // TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].MoveConstruct,
                         //            "Meta collection class: no value move constructor found");
                         _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass],
-                                                pDstMem + offset, pSrcMem + offset, _PrntRef, _);
+                                                pDstMem + offset, pSrcMem + offset, _PrntRef, _, false, false);
                     }
                     else
                     {
@@ -2460,14 +2596,14 @@ namespace Meta {
                     {
                         //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayKeyClass && State.Classes[State.Classes[_ColID].ArrayKeyClass].Destructor,
                         //           "Meta collection class: no key destructor found");
-                        _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pMem);
+                        _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pMem, false);
                     }
                     
                     if(!bSkipVal) // if we need to destruct the value
                     {
                         //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].Destructor,
                         //           "Meta collection class: no value destructor found");
-                        _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem + _PairSize - _ValuSize);
+                        _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem + _PairSize - _ValuSize, false);
                     }
                     
                 }
@@ -2495,8 +2631,60 @@ namespace Meta {
         SetIndexInternal(_Size - 1, k, v, copyk, copyv);
     }
     
+    void ClassInstanceCollection::Insert(ClassInstance key, ClassInstance value, I32 index, Bool ck, Bool cv)
+    {
+        if(index >= _Size)
+            Push(std::move(key), std::move(value), ck, cv);
+        else
+        {
+            AdvanceTransienceFenceInternal();
+            Bool bSkipKey = (_ColFl & _COL_KEY_SKIP_MV) != 0;
+            Bool bSkipVal = (_ColFl & _COL_VAL_SKIP_MV) != 0;
+            Bool bSkipKeyDT = (_ColFl & _COL_KEY_SKIP_DT) != 0;
+            Bool bSkipValDT = (_ColFl & _COL_VAL_SKIP_DT) != 0;
+            Bool bKeyed = IsKeyedCollection();
+            Bool bFullPOD = (!bKeyed || bSkipKey) && bSkipVal;
+            Reserve(_Size + 1);
+            if (bFullPOD)
+            {
+                U8* dst = _Memory + (_PairSize * (index + 1));
+                U8* src = _Memory + (_PairSize * index);
+                U32 count = (_Size - index) * _PairSize;
+                memmove(dst, src, count);
+            }
+            else
+            {
+                for(I32 i = (I32)_Size - 1; i >= index; i--)
+                {
+                    U8* currentKey = _Memory + (_PairSize * i);
+                    U8* currentValue = currentKey + _PairSize - _ValuSize;
+                    U8* intoKey = _Memory + (_PairSize * (i+1));
+                    U8* intoValue = intoKey + _PairSize - _ValuSize;
+                    if(bKeyed)
+                    {
+                        if(bSkipKey)
+                            memcpy(intoKey, currentKey, _PairSize - _ValuSize);
+                        else
+                            _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], intoKey, currentKey, _PrntRef, _PrntRef, false, false);
+                        if(!bSkipKeyDT)
+                            _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], currentKey, false);
+                    }
+                    if(bSkipVal)
+                        memcpy(intoValue, currentValue, _ValuSize);
+                    else
+                        _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], intoValue, currentValue, _PrntRef, _PrntRef, false, false);
+                    if(!bSkipValDT)
+                        _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], currentValue, false);
+                }
+            }
+            SetIndexInternal(index, std::move(key), std::move(value), ck, cv);
+            _Size++; // bump size
+        }
+    }
+    
     void ClassInstanceCollection::SetIndex(U32 i, ClassInstance k, ClassInstance v, Bool copyk, Bool copyv)
     {
+        AdvanceTransienceFenceInternal();
         if(i < GetSize())
         {
             // destruct previous
@@ -2513,14 +2701,14 @@ namespace Meta {
                 {
                     //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayKeyClass && State.Classes[State.Classes[_ColID].ArrayKeyClass].Destructor,
                     //           "Meta collection class: no key destructor found");
-                    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pMem);
+                    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pMem, false);
                 }
                 
                 if(!bSkipVal) // if we need to destruct the value
                 {
                     //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].Destructor,
                     //           "Meta collection class: no value destructor found");
-                    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem);
+                    _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pMem, false);
                 }
             }
             
@@ -2541,16 +2729,16 @@ namespace Meta {
             {
                 ClassInstance me{_ColID, (U8*)this, _PrntRef};
                 // construct new key without copy or move
-                _Impl::_DoConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pDstMemory, _PrntRef, _);
+                _Impl::_DoConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pDstMemory, _PrntRef, _, false);
             }
             else
             {
                 if(copyk) // copy or move from value
                     _Impl::_DoCopyConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass],
-                                            pDstMemory, k._GetInternal(), _PrntRef, _);
+                                            pDstMemory, k._GetInternal(), _PrntRef, _, k.IsTopLevel(), false);
                 else
                     _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass],
-                                            pDstMemory, k._GetInternal(), _PrntRef, _);
+                                            pDstMemory, k._GetInternal(), _PrntRef, _, k.IsTopLevel(), false);
             }
         }
         
@@ -2559,14 +2747,72 @@ namespace Meta {
         if(!v)
         {
             ClassInstance me{_ColID, (U8*)this, _PrntRef};
-            _Impl::_DoConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMemory, _PrntRef, _);
+            _Impl::_DoConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMemory, _PrntRef, _, false);
         }
         else
         {
             if(copyv) // copy or move from value
-                _Impl::_DoCopyConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMemory, v._GetInternal(), _PrntRef, _);
+                _Impl::_DoCopyConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMemory, v._GetInternal(), _PrntRef, _, v.IsTopLevel(), false);
             else
-                _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMemory, v._GetInternal(), _PrntRef, _);
+                _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass], pDstMemory, v._GetInternal(), _PrntRef, _, v.IsTopLevel(), false);
+        }
+    }
+    
+    void ClassInstanceCollection::Sort(void *user, CollectionComparatorLess *pComparator)
+    {
+        AdvanceTransienceFenceInternal();
+        U8 fasterMemory[128]{};
+        Memory::FastBufferAllocator alloc{};
+        TTE_ASSERT(pComparator, "Invalid comparator! Null.");
+        // Helper fast locals
+        ParentWeakReference _{};
+        U32 size = GetSize();
+        Bool keyed = IsKeyedCollection();
+        Bool bAllOk = false;
+        U8* tempMemory;
+        if(_PairSize < 128)
+            tempMemory = fasterMemory;
+        else
+            tempMemory = alloc.Alloc(_PairSize, 8);
+        memset(fasterMemory, 0, 128);
+        U8* tempKeyMemory = tempMemory;
+        U8* tempValueMemory = tempKeyMemory + _PairSize - _ValuSize;
+        Class* keyClazz = keyed ? const_cast<Class*>(&GetClass(GetKeyClass())) : nullptr;
+        Class* valClazz = const_cast<Class*>(&GetClass(GetValueClass()));
+        // Classic bubble early out sort.
+        while(!bAllOk)
+        {
+            bAllOk = true;
+            for(U32 i = 0; i < size-1; i++)
+            {
+                Bool comparatorResult = keyed ? pComparator(user, GetKey(i), GetKey(i + 1)) : pComparator(user, GetValue(i), GetValue(i + 1));
+                if(!comparatorResult)
+                {
+                    bAllOk = false;
+                    // Swap
+                    
+                    U8* keyValue1 = _Memory + (i*_PairSize), *keyValue2 = _Memory + ((i+1)*_PairSize);
+                    U8* valValue1 = _Memory + (((i+0)*_PairSize) - _ValuSize), *valValue2 = _Memory + (((i+1)*_PairSize) - _ValuSize);
+                    
+                    // Move val1 into temp
+                    if(keyed)
+                        _Impl::_DoMoveConstruct(keyClazz, tempKeyMemory, keyValue1, _PrntRef, _, false, false);
+                    _Impl::_DoMoveConstruct(valClazz, tempValueMemory, valValue1, _PrntRef, _, false, false);
+                    memset(keyValue1, 0, _PairSize); // reset key and value memory
+                    
+                    // Move val2 into val1
+                    if(keyed)
+                        _Impl::_DoMoveConstruct(keyClazz, keyValue1, keyValue2, _PrntRef, _, false, false);
+                    _Impl::_DoMoveConstruct(valClazz, valValue1, valValue2, _PrntRef, _, false, false);
+                    memset(keyValue2, 0, _PairSize); // reset key and value memory
+                    
+                    // Move temp into val2
+                    if(keyed)
+                        _Impl::_DoMoveConstruct(keyClazz, keyValue2, tempKeyMemory, _PrntRef, _, false, false);
+                    _Impl::_DoMoveConstruct(valClazz, valValue2, tempValueMemory, _PrntRef, _, false, false);
+                    memset(tempMemory, 0, _PairSize); // reset key and value memory
+                }
+            }
         }
     }
     
@@ -2593,13 +2839,13 @@ namespace Meta {
         {
             keyOut = _Impl::_MakeInstance(State.Classes[_ColID].ArrayKeyClass, empty, Symbol{});
             _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass],
-                                    keyOut._GetInternal(), GetKey(index)._GetInternal(), _PrntRef, _);
-            _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], GetKey(index)._GetInternal());
+                                    keyOut._GetInternal(), GetKey(index)._GetInternal(), _PrntRef, _, false, true);
+            _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], GetKey(index)._GetInternal(), false);
         }
         valOut = _Impl::_MakeInstance(State.Classes[_ColID].ArrayValClass, empty, Symbol{});
         _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass],
-                                valOut._GetInternal(), GetValue(index)._GetInternal(), _PrntRef, _);
-        _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], GetValue(index)._GetInternal());
+                                valOut._GetInternal(), GetValue(index)._GetInternal(), _PrntRef, _, false, true);
+        _Impl::_DoDestruct(&State.Classes[State.Classes[_ColID].ArrayValClass], GetValue(index)._GetInternal(), false);
         
         // check if we we can skip move constructor with memcpy
         Bool bSkipKey = (_ColFl & _COL_KEY_SKIP_MV) != 0;
@@ -2620,7 +2866,7 @@ namespace Meta {
                 // move construct the key
                 //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayKeyClass && State.Classes[State.Classes[_ColID].ArrayKeyClass].MoveConstruct,
                 //           "Meta collection class: no key move constructor found");
-                _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem, _PrntRef, _);
+                _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayKeyClass], pDstMem, pSrcMem, _PrntRef, _, false, false);
             }
             else
             {
@@ -2637,7 +2883,7 @@ namespace Meta {
                 //TTE_ASSERT(_ColID && State.Classes[_ColID].ArrayValClass && State.Classes[State.Classes[_ColID].ArrayValClass].MoveConstruct,
                 //            "Meta collection class: no value move constructor found");
                 _Impl::_DoMoveConstruct(&State.Classes[State.Classes[_ColID].ArrayValClass],
-                                        pDstMem + offset, pSrcMem + offset, _PrntRef, _);
+                                        pDstMem + offset, pSrcMem + offset, _PrntRef, _, false, false);
             }
             else
             {
@@ -2672,9 +2918,294 @@ namespace Meta {
         return SubRef(State.Classes[_ColID].ArrayValClass, _Memory + (++i * _PairSize) - _ValuSize);
     }
     
+    // COERSION IMP
+    
+    CommonInstanceAllocator* GetCommonAllocator(U32 clz)
+    {
+        String clsName = MakeTypeName(GetClass(clz).Name);
+        auto& reg = _Impl::_CoersionRegistry();
+        for(auto& v: reg)
+        {
+            if(StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
+            {
+                return v.Allocator;
+            }
+        }
+        return nullptr;
+    }
+    
+    Bool CoerceTypeErasedToLua(LuaManager& man, void* pObj, U32 clz)
+    {
+        String clsName = MakeTypeName(GetClass(clz).Name);
+        auto& reg = _Impl::_CoersionRegistry();
+        for(auto& v: reg)
+        {
+            if(StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
+            {
+                v.ImportLua(pObj, man);
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    Bool CoerceMetaToLua(LuaManager& man, ClassInstance& inst, ClassInstanceCollection* pOwningCollection, I32 ci)
+    {
+        const auto& clazz = GetClass(inst.GetClassID());
+        String clsName = MakeTypeName(clazz.Name);
+        auto& reg = _Impl::_CoersionRegistry();
+        for(auto& v: reg)
+        {
+            if(StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
+            {
+                v.MetaToLua(man, inst);
+                return true;
+            }
+        }
+        if(clazz.Flags & CLASS_CONTAINER || clazz.Flags & _CLASS_PROP)
+        {
+            if(pOwningCollection && ci >= 0)
+                pOwningCollection->PushTransientScriptRef(man, ci, false, inst.ObtainParentRef());
+            else
+                inst.PushWeakScriptRef(man, inst.ObtainParentRef());
+            return true;
+        }
+        else if((clazz.Flags & CLASS_ENUM_WRAPPER) && clazz.Members.size() > 0 && clazz.Members[0].Flags & MEMBER_ENUM)
+        {
+            // ENUM
+            U32 off = 0;
+            const auto* pEnumClazz = &clazz;
+            while(true)
+            {
+                off += pEnumClazz->Members[0].RTOffset;
+                if(Meta::GetClass(pEnumClazz->Members[0].ClassID).Members.size() == 0)
+                    break;
+                pEnumClazz = &Meta::GetClass(pEnumClazz->Members[0].ClassID); // a lot of the times theres like 2 wrapper classes. so stupid i know.
+            }
+            I32 value = COERCE(inst._GetInternal() + off, I32);
+            for(const auto& desc: pEnumClazz->Members[0].Descriptors)
+            {
+                if(value == desc.Value)
+                {
+                    man.PushLString(desc.Name);
+                    return true;
+                }
+            }
+            TTE_LOG("WARNING: When coercing to Lua enum '%s' the enum value does not correspond to an associated enum. Returning the integer string", clazz.Name.c_str());
+            man.PushLString(std::to_string(value));
+            return true;
+        }
+        return false;
+    }
+    
+    Bool CoerceLuaToMeta(LuaManager& man, I32 stackIndex, ClassInstance& inst)
+    {
+        stackIndex = man.ToAbsolute(stackIndex);
+        const auto& clazz = GetClass(inst.GetClassID());
+        String clsName = MakeTypeName(clazz.Name);
+        auto& reg = _Impl::_CoersionRegistry();
+        for(auto& v: reg)
+        {
+            if(StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
+            {
+                v.LuaToMeta(man, stackIndex, inst);
+                return true;
+            }
+        }
+        if(clazz.Flags & CLASS_CONTAINER)
+        {
+            ClassInstance col = AcquireScriptInstance(man, stackIndex);
+            // destruct current, copy construct this collection into it (maybe should have added move/copy assignment instead of constructor... oh well)
+            ClassChildMap children{};
+            Bool bChildren = (inst.IsTopLevel() || (GetClass(inst.GetClassID()).Flags & CLASS_ATTACHABLE));
+            if(bChildren)
+                children = std::move(*inst._GetInternalChildrenRefs());
+            _Impl::_DoDestruct(const_cast<Class*>(&GetClass(inst.GetClassID())), inst._GetInternal(), inst.IsTopLevel());
+            ParentWeakReference p = inst.ObtainParentRef();
+            _Impl::_DoCopyConstruct(const_cast<Class*>(&GetClass(inst.GetClassID())), inst._GetInternal(), col._GetInternal(),
+                                    inst.ObtainParentRef(), p, col.IsTopLevel(), inst.IsTopLevel());
+            if(bChildren)
+                *inst._GetInternalChildrenRefs() = std::move(children);
+            return true;
+        }
+        else if(clazz.Flags & _CLASS_PROP)
+        {
+            ClassInstance from = AcquireScriptInstance(man, stackIndex);
+            PropertySet::ClearKeys(inst);
+            PropertySet::ClearParents(inst);
+            PropertySet::ImportKeysValuesAndParents(inst, from, true, true, {}, false, false, ResourceRegistry::GetBoundRegistry(man));
+            return true;
+        }
+        else if((clazz.Flags & CLASS_ENUM_WRAPPER) && clazz.Members.size() > 0 && clazz.Members[0].Flags & MEMBER_ENUM)
+        {
+            // ENUM
+            I32& value = COERCE(inst._GetInternal() + clazz.Members[0].RTOffset, I32);
+            if(man.Type(stackIndex) == LuaType::NUMBER)
+            {
+                value = man.ToInteger(stackIndex);
+            }
+            else if(man.Type(stackIndex) == LuaType::STRING)
+            {
+                String v = man.ToString(stackIndex);
+                U32 off = 0;
+                const auto* pEnumClazz = &clazz;
+                while(true)
+                {
+                    off += pEnumClazz->Members[0].RTOffset;
+                    if(Meta::GetClass(pEnumClazz->Members[0].ClassID).Members.size() == 0)
+                        break;
+                    pEnumClazz = &Meta::GetClass(pEnumClazz->Members[0].ClassID); // a lot of the times theres like 2 wrapper classes. so stupid i know.
+                }
+                I32 value = COERCE(inst._GetInternal() + off, I32);
+                for(const auto& desc: pEnumClazz->Members[0].Descriptors)
+                {
+                    if(CompareCaseInsensitive(v, desc.Name))
+                    {
+                        value = desc.Value;
+                        return true;
+                    }
+                }
+                TTE_LOG("WARNING: When coercing from Lua, the enum '%s', the input enum '%s' is not a valid enum value for this enum", clazz.Name.c_str(), v.c_str());
+            }
+            else
+            {
+                TTE_LOG("WARNING: When coercing from Lua, the enum '%s', the input is not a string or integer: %s", clazz.Name.c_str(), man.Typename(man.Type(stackIndex)));
+            }
+            return true;
+        }
+        return false;
+    }
+    
 }
 
 const Meta::RegGame* ToolContext::GetActiveGame()
 {
     return Meta::State.GameIndex == -1 ? nullptr : &Meta::State.Games[Meta::State.GameIndex];
+}
+
+Bool InstanceTransformation::PerformNormaliseAsync(Ptr<Handleable> pCommonInstanceOut, Meta::ClassInstance Instance, LuaManager& L)
+{
+    String fn = Meta::GetInternalState().Classes.find(Instance.GetClassID())->second.NormaliserStringFn;
+    auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
+    TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found: '%s'", fn.c_str());
+    
+    ScriptManager::GetGlobal(L, fn, true);
+    if(L.Type(-1) != LuaType::FUNCTION)
+    {
+        L.Pop(1);
+        TTE_ASSERT(L.LoadChunk(fn, normaliser->second.Binary,
+                               normaliser->second.Size, LoadChunkMode::BINARY), "Could not load normaliser chunk for %s", fn.c_str());
+    }
+    
+    Instance.PushWeakScriptRef(L, Instance.ObtainParentRef());
+    L.PushOpaque(pCommonInstanceOut.get());
+    
+    L.CallFunction(2, 1, false);
+    
+    Bool result;
+    
+    if(!(result=ScriptManager::PopBool(L)))
+    {
+        TTE_LOG("Normalise failed for %s", fn.c_str());
+        return false;
+    }
+    else
+    {
+        pCommonInstanceOut->FinaliseNormalisationAsync();
+    }
+    return true;
+}
+
+Bool InstanceTransformation::PerformSpecialiseAsync(Ptr<Handleable> pCommonInstance, Meta::ClassInstance Instance, LuaManager& L)
+{
+    String fn = Meta::GetInternalState().Classes.find(Instance.GetClassID())->second.SpecialiserStringFn;
+    auto sp = Meta::GetInternalState().Normalisers.find(fn);
+    TTE_ASSERT(sp != Meta::GetInternalState().Normalisers.end(), "Specialiser not found: '%s'", fn.c_str());
+    
+    ScriptManager::GetGlobal(L, fn, true);
+    if(L.Type(-1) != LuaType::FUNCTION)
+    {
+        L.Pop(1);
+        TTE_ASSERT(L.LoadChunk(fn, sp->second.Binary,
+                               sp->second.Size, LoadChunkMode::BINARY), "Could not load specialiser chunk for %s", fn.c_str());
+    }
+    
+    Instance.PushWeakScriptRef(L, Instance.ObtainParentRef());
+    L.PushOpaque(pCommonInstance.get());
+    
+    L.CallFunction(2, 1, false);
+    
+    Bool result;
+    
+    if(!(result=ScriptManager::PopBool(L)))
+    {
+        TTE_LOG("Specialise failed for %s", fn.c_str());
+        return false;
+    }
+    return true;
+}
+
+IMPL_COERSION_FN(AnimOrChore, Extract, void)(AnimOrChore& out, Meta::ClassInstance& inst)
+{
+    HandlePropertySet hProxy{};
+    ClassInstance mem = Meta::GetMember(inst, "mhAnim", true);
+    ExtractCoercableInstance(hProxy, mem);
+    out.HandleAnim = SymbolTable::Find(hProxy.GetObject());
+    mem = Meta::GetMember(inst, "mhChore", true);
+    ExtractCoercableInstance(hProxy, mem);
+    out.HandleChore = SymbolTable::Find(hProxy.GetObject());
+}
+
+IMPL_COERSION_FN(AnimOrChore, Import, void)(const AnimOrChore& in, ClassInstance& inst)
+{
+    HandlePropertySet hProxy{};
+    hProxy.SetObject(in.HandleAnim);
+    ClassInstance mem = Meta::GetMember(inst, "mhAnim", true);
+    ImportCoercableInstance(hProxy, inst);
+    hProxy.SetObject(in.HandleChore);
+    mem = Meta::GetMember(inst, "mhChore", true);
+    ImportCoercableInstance(hProxy, inst);
+}
+
+IMPL_COERSION_FN(AnimOrChore, ImportLua, void)(const AnimOrChore& in, LuaManager& man)
+{
+    if(in.HandleAnim.length())
+    {
+        man.PushLString(in.HandleAnim);
+    }
+    else if(in.HandleChore.length())
+    {
+        man.PushLString(in.HandleChore);
+    }
+    else
+    {
+        man.PushLString("");
+    }
+}
+
+IMPL_COERSION_FN(AnimOrChore, ExtractLua, void)(AnimOrChore& out, LuaManager& man, I32 stackIndex)
+{
+    if(man.Type(stackIndex) == LuaType::STRING)
+    {
+        Symbol fileName = ScriptManager::ToSymbol(man, stackIndex);
+        String resolved = SymbolTable::Find(fileName);
+        if(StringEndsWith(resolved, ".chore"))
+        {
+            out.HandleAnim = "";
+            out.HandleChore = resolved;
+        }
+        else if(StringEndsWith(resolved, ".anm"))
+        {
+            out.HandleAnim = resolved;
+            out.HandleChore = "";
+        }
+        else
+        {
+            out.HandleAnim = out.HandleChore = "";
+        }
+    }
+    else
+    {
+        TTE_LOG("WARNING: When coercing from Lua AnimOrChore: input is not a string");
+    }
 }

@@ -67,6 +67,11 @@ public:
         _Folders.clear();
     }
     
+    inline Bool IsActive()
+    {
+        return _Files.size() > 0;
+    }
+    
 private:
     
     friend class RegistryDirectory_TTArchive;

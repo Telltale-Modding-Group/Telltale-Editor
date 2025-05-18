@@ -1,15 +1,12 @@
 #include <Renderer/RenderContext.hpp>
 #include <Core/Context.hpp>
-
-#include <Core/Thread.hpp>
+#include <Common/InputMapper.hpp>
 
 #include <chrono>
 #include <cfloat>
 #include <sstream>
 #include <iostream>
 #include <algorithm>
-
-#define INTERNAL_START_PRIORITY 0x0F0C70FF
 
 // ============================ ENUM MAPPINGS
 
@@ -47,7 +44,7 @@ static struct AttributeFormatInfo {
     RenderBufferAttributeFormat IntrinsicType = RenderBufferAttributeFormat::UNKNOWN;
     CString ConstantName;
 }
-SDL_VertexAttributeMappings[13]
+SDL_VertexAttributeMappings[21]
 {
     {RenderBufferAttributeFormat::F32x1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, 1, 4, RenderBufferAttributeFormat::F32x1, "kCommonMeshFloat1"},
     {RenderBufferAttributeFormat::F32x2, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, 2, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat2"},
@@ -61,6 +58,14 @@ SDL_VertexAttributeMappings[13]
     {RenderBufferAttributeFormat::U32x2, SDL_GPU_VERTEXELEMENTFORMAT_UINT2, 2, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt2"},
     {RenderBufferAttributeFormat::U32x3, SDL_GPU_VERTEXELEMENTFORMAT_UINT3, 3, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt3"},
     {RenderBufferAttributeFormat::U32x4, SDL_GPU_VERTEXELEMENTFORMAT_UINT4, 4, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt4"},
+    {RenderBufferAttributeFormat::U8x2, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte2"},
+    {RenderBufferAttributeFormat::U8x4, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte4"},
+    {RenderBufferAttributeFormat::I8x2, SDL_GPU_VERTEXELEMENTFORMAT_BYTE2, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte2"},
+    {RenderBufferAttributeFormat::I8x4, SDL_GPU_VERTEXELEMENTFORMAT_BYTE4, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte4"},
+    {RenderBufferAttributeFormat::U8x2_NORM, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2_NORM, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte2Norm"},
+    {RenderBufferAttributeFormat::U8x4_NORM, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte4Norm"},
+    {RenderBufferAttributeFormat::I8x2_NORM, SDL_GPU_VERTEXELEMENTFORMAT_BYTE2_NORM, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte2Norm"},
+    {RenderBufferAttributeFormat::I8x4_NORM, SDL_GPU_VERTEXELEMENTFORMAT_BYTE4_NORM, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte4Norm"},
     {RenderBufferAttributeFormat::UNKNOWN, SDL_GPU_VERTEXELEMENTFORMAT_INVALID, 0, 0, RenderBufferAttributeFormat::F32x1, "kCommonMeshFormatUnknown"},
     // add above this!
 };
@@ -106,29 +111,34 @@ SDL_PrimitiveMappings[3]
 void RegisterRenderConstants(LuaFunctionCollection& Col)
 {
     U32 i = 0;
-    while(SDL_VertexAttributeMappings[i].Format != RenderBufferAttributeFormat::UNKNOWN)
+    Bool bEnd = false;
+    while(!bEnd)
     {
-        PUSH_GLOBAL_I(Col, SDL_VertexAttributeMappings[i].ConstantName, (U32)SDL_VertexAttributeMappings[i].Format);
+        PUSH_GLOBAL_I(Col, SDL_VertexAttributeMappings[i].ConstantName, (U32)SDL_VertexAttributeMappings[i].Format, "Vertex attribute formats");
+        bEnd = SDL_VertexAttributeMappings[i].Format == RenderBufferAttributeFormat::UNKNOWN;
         i++;
     }
     i = 0;
     while(SDL_PrimitiveMappings[i].Type != RenderPrimitiveType::UNKNOWN)
     {
-        PUSH_GLOBAL_I(Col, SDL_PrimitiveMappings[i].ConstantName, (U32)SDL_PrimitiveMappings[i].Type);
+        PUSH_GLOBAL_I(Col, SDL_PrimitiveMappings[i].ConstantName, (U32)SDL_PrimitiveMappings[i].Type, "Primitive types");
         i++;
     }
     i = 0;
     while(SDL_FormatMappings[i].Format != RenderSurfaceFormat::UNKNOWN)
     {
-        PUSH_GLOBAL_I(Col, SDL_FormatMappings[i].ConstantName, (U32)SDL_FormatMappings[i].Format);
+        PUSH_GLOBAL_I(Col, SDL_FormatMappings[i].ConstantName, (U32)SDL_FormatMappings[i].Format, "Surface formats");
         i++;
     }
     i = 0;
-    while(AttribInfoMap[i].Type != RenderAttributeType::UNKNOWN)
+    bEnd = false;
+    while(!bEnd)
     {
-        PUSH_GLOBAL_I(Col, AttribInfoMap[i].ConstantName, (U32)AttribInfoMap[i].Type);
+        PUSH_GLOBAL_I(Col, AttribInfoMap[i].ConstantName, (U32)AttribInfoMap[i].Type, "Vertex attributes");
+        bEnd = AttribInfoMap[i].Type == RenderAttributeType::UNKNOWN;
         i++;
     }
+    bEnd = false;
 }
 
 inline SDL_GPUPrimitiveType ToSDLPrimitiveType(RenderPrimitiveType format)
@@ -177,6 +187,28 @@ void RenderContext::Shutdown()
     }
 }
 
+Bool RenderContext::IsLeftHanded()
+{
+    CString device = SDL_GetGPUDeviceDriver(_Device);
+    if(CompareCaseInsensitive(device, "metal"))
+    {
+        return false; // RIGHT
+    }
+    else if(CompareCaseInsensitive(device, "vulkan"))
+    {
+        return false; // RIGHT
+    }
+    else if(CompareCaseInsensitive(device, "direct3d12"))
+    {
+        return true; // LEFT
+    }
+    else
+    {
+        TTE_ASSERT(false, "Unknown graphics device driver: %s", device);
+        return false;
+    }
+}
+
 Bool RenderContext::IsRowMajor()
 {
     CString device = SDL_GetGPUDeviceDriver(_Device);
@@ -206,6 +238,7 @@ RenderContext::RenderContext(String wName, U32 cap)
     
     CapFrameRate(cap);
     _HotResourceThresh = DEFAULT_HOT_RESOURCE_THRESHOLD;
+    _HotLockThresh = DEFAULT_LOCKED_HANDLE_THRESHOLD;
     
     _MainFrameIndex = 0;
     _PopulateJob = JobHandle();
@@ -213,11 +246,28 @@ RenderContext::RenderContext(String wName, U32 cap)
     _Frame[1].Reset(*this, 2);
     
     // Create window and renderer
-    _Window = SDL_CreateWindow(wName.c_str(), 780, 326, 0);
-    _Device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_MSL | SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXBC, false, nullptr);
+   // _Window = SDL_CreateWindow(wName.c_str(), 780, 326, 0);
+    _Window = SDL_CreateWindow(wName.c_str(), 1920 >> 1, 1080 >> 1, 0);
+    Bool bDebug = false;
+#ifdef DEBUG
+    bDebug = true;
+#endif
+    _Device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_MSL | SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXBC, bDebug, nullptr);
     SDL_ClaimWindowForGPUDevice(_Device, _Window);
     _BackBuffer = SDL_GetWindowSurface(_Window);
     
+}
+
+RenderLayer::RenderLayer(String name, RenderContext& context) : _Context(context), _Name(std::move(name))
+{
+#ifdef DEBUG
+    TTE_ASSERT(dynamic_cast<HandleLockOwner*>(this) == nullptr, "Render layers cannot derive from handle lock owners. The owner must be the render context.");
+#endif
+}
+
+void RenderLayer::GetWindowSize(U32& width, U32& height)
+{
+    SDL_GetWindowSize(_Context._Window, (int*)&width, (int*)&height);
 }
 
 RenderContext::~RenderContext()
@@ -232,24 +282,26 @@ RenderContext::~RenderContext()
         _PopulateJob.Reset();
     }
     
-    for(auto& scene: _AsyncScenes)
-    {
-        scene.OnAsyncRenderDetach(*this);
-    }
-    
-    _AsyncScenes.clear();
+    for(auto& locked: _LockedResources)
+        locked->Unlock(*this);
     
     // CLEANUP
+    
+    for(U32 i = 0; i < (U32)RenderTargetConstantID::NUM; i++)
+        _ConstantTargets[i].reset();
     
     for(auto& transfer: _AvailTransferBuffers)
         SDL_ReleaseGPUTransferBuffer(_Device, transfer.Handle);
     
+    _LockedResources.clear();
     _DefaultMeshes.clear();
     _DefaultTextures.clear();
     _Samplers.clear();
     _Pipelines.clear();
     _LoadedShaders.clear();
     _AvailTransferBuffers.clear();
+    _LayerStack.clear();
+    _DeltaLayers.clear();
     
     _Frame[0].Reset(*this, UINT64_MAX);
     _Frame[1].Reset(*this, UINT64_MAX);
@@ -264,21 +316,40 @@ RenderContext::~RenderContext()
 
 // ============================ HIGH LEVEL RENDER FUNCTIONS
 
+void RenderContext::PopLayer()
+{
+    std::lock_guard<std::mutex> G{_Lock};
+    _DeltaLayers.push_back(Ptr<RenderLayer>(nullptr));
+}
+
+void RenderContext::_PushLayer(Ptr<RenderLayer> pLayer)
+{
+    std::lock_guard<std::mutex> G{_Lock};
+    _DeltaLayers.push_back(std::move(pLayer));
+}
+
 // USER CALL: called every frame by user to render the previous frame
 Bool RenderContext::FrameUpdate(Bool isLastFrame)
 {
-    TTE_ASSERT(_AttachedRegistry, "No attached resource registry! Please attach one into the render context before rendering.");
     
     // 1. locals
     Bool bUserWantsQuit = false;
     
     // 2. poll SDL events
     SDL_Event e {0};
+    std::vector<RuntimeInputEvent> events{};
+    I32 w,h{};
+    SDL_GetWindowSize(_Window, &w, &h);
+    Vector2 windowSize((Float)w, (Float)h);
     while( SDL_PollEvent( &e ) )
     {
         if( e.type == SDL_EVENT_QUIT )
         {
             bUserWantsQuit = true;
+        }
+        else
+        {
+            InputMapper::ConvertRuntimeEvents(e, events, (SDL_GetWindowFlags(_Window) & SDL_WINDOW_INPUT_FOCUS) != 0, windowSize);
         }
     }
     
@@ -314,14 +385,7 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
             RenderCommandBuffer* pMainCommandBuffer = _NewCommandBuffer();
             
             // setup swapchain tex
-            pFrame->BackBuffer = pFrame->Heap.New<RenderTexture>();
-            pFrame->BackBuffer->TextureFlags += RenderTexture::TEXTURE_FLAG_DELEGATED;
-            pFrame->BackBuffer->_Context = this;
-            pFrame->BackBuffer->Format = FromSDLFormat(SDL_GetGPUSwapchainTextureFormat(_Device, _Window));
-            TTE_ASSERT(SDL_WaitAndAcquireGPUSwapchainTexture(pMainCommandBuffer->_Handle,
-                                                             _Window, &pFrame->BackBuffer->_Handle,
-                                                             &pFrame->BackBuffer->Width,  &pFrame->BackBuffer->Height),
-                       "Failed to acquire backend swapchain texture at frame %lld: %s", pFrame->FrameNumber, SDL_GetError());
+            _ResolveBackBuffers(*pMainCommandBuffer);
             
             if(pFrame->FrameNumber == 1)
             {
@@ -385,6 +449,7 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
     
     _MainFrameIndex ^= 1; // swap
     GetFrame(true).Reset(*this, GetFrame(true).FrameNumber + 2); // increase populater frame index (+2 from swap, dont worry)
+    GetFrame(true)._Events = std::move(events);
     
     // free resources which are not needed
     if(_Flags & RENDER_CONTEXT_NEEDS_PURGE)
@@ -393,6 +458,10 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
         PurgeResources();
     }
     _FreePendingDeletions(GetFrame(false).FrameNumber);
+    
+    // Purge any cold locks. This will free any unused resources by the renderer. They will be destroyed after
+    // the populater job is fired off, as we may have the last reference to these resources so freeing them might take a while
+    std::vector<Ptr<Handleable>> freedLocks = _PurgeColdLocks();
     
     // 7. Kick off populater job to render the last thread data (if needed)
     if(!isLastFrame && !bUserWantsQuit)
@@ -407,7 +476,27 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
         _PopulateJob = JobScheduler::Instance->Post(job);
     }
     
+    freedLocks.clear();
+    
     return !bUserWantsQuit && !isLastFrame;
+}
+
+std::vector<Ptr<Handleable>> RenderContext::_PurgeColdLocks()
+{
+    TTE_ASSERT(IsCallingFromMain(), "Can only be called from main thread"); // No lock needed as called between
+    U64 ts = GetRenderFrameNumber();
+    std::vector<Ptr<Handleable>> toUnlock{};
+    for(auto it = _LockedResources.begin(); it != _LockedResources.end();)
+    {
+        if(GetTimeStampDifference((*it)->GetLockedTimeStamp(*this, true), ts) >= _HotLockThresh)
+        {
+            (*it)->Unlock(*this);
+            toUnlock.push_back(std::move(*it));
+            _LockedResources.erase(it);
+        }
+        else ++it;
+    }
+    return std::move(toUnlock);
 }
 
 void RenderContext::_PurgeColdResources(RenderFrame* pFrame)
@@ -429,34 +518,139 @@ void RenderFrame::Reset(RenderContext& context, U64 newFrameNumber)
 {
     CommandBuffers.clear();
     _Autorelease.clear(); // will free ptrs if needed
+    _Events.clear();
     FrameNumber = newFrameNumber;
-    NumDrawCalls = 0;
-    DrawCalls = nullptr;
+    Views = nullptr;
     Heap.Rollback(); // free all objects, but keep memory
     UpdateList = Heap.New<RenderFrameUpdateList>(context, *this);
 }
 
 // ============================ TEXTURES & RENDER TARGET
 
-void RenderTexture::Create2D(RenderContext* pContext, U32 width, U32 height, RenderSurfaceFormat format, U32 nMips)
+void RenderTexture::SetName(CString name)
 {
-    _Context = pContext;
-    if(_Context && !_Handle)
+    _Name = name;
+}
+
+void RenderTexture::EnsureMip(RenderContext* c, U32 mipIndex)
+{
+    _Context = c;
+    if(GetHandle(_Context))
     {
-        Width = width;
-        Height = height;
-        Format = format;
-        
-        // TODO mip maps.
-        
+        if(!_UploadedMips.Test(1u << mipIndex))
+        {
+            Ptr<RenderTexture> myself = std::dynamic_pointer_cast<RenderTexture>(shared_from_this());
+            for(U32 slice = 0; slice < _Depth; slice++)
+            {
+                for(U32 face = 0; face < _ArraySize; face++)
+                {
+                    _Context->GetFrame(true).UpdateList->UpdateTexture(myself, mipIndex, slice, face);
+                }
+            }
+            _UploadedMips.Add(1u << mipIndex);
+        }
+    }
+}
+
+SDL_GPUTexture* RenderTexture::GetHandle(RenderContext* context)
+{
+    _Context = context;
+    if(_Handle == nullptr)
+    {
+        SDL_GPUTextureCreateInfo info{};
+        info.width = _Width;
+        info.height = _Height;
+        info.format = GetSDLFormatInfo(_Format).SDLFormat;
+        info.num_levels = _NumMips;
+        info.layer_count_or_depth = _Depth * _ArraySize;
+        info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+        info.type = SDL_GPU_TEXTURETYPE_2D; // TODO
+        info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        info.props = SDL_CreateProperties();
+        SDL_SetStringProperty(info.props, SDL_PROP_GPU_TEXTURE_CREATE_NAME_STRING, _Name.length() ? _Name.c_str() : "Unnamed TTE Texture");
+        _Handle = SDL_CreateGPUTexture(context->_Device, &info);
+        SDL_DestroyProperties(info.props);
+    }
+    return _Handle;
+}
+
+void RenderTexture::_Release()
+{
+    if(_Handle)
+    {
+        if(!_TextureFlags.Test(TEXTURE_FLAG_DELEGATED))
+        {
+            SDL_ReleaseGPUTexture(_Context->_Device, _Handle);
+        }
+        _Handle = nullptr;
+        _TextureFlags.Remove(TEXTURE_FLAG_DELEGATED);
+    }
+}
+
+void RenderTexture::CreateTarget(RenderContext &context, Flags flags, RenderSurfaceFormat format, U32 width,
+                                 U32 height, U32 nMips, U32 nSlices, U32 arraySize, Bool bIsDepth, SDL_GPUTexture *handle)
+{
+    _Context = &context;
+    _Release();
+    _Width = width;
+    _Height = height;
+    _Format = format;
+    _Depth = nSlices;
+    _NumMips = nMips;
+    _ArraySize = arraySize;
+    _TextureFlags = flags;
+    _Handle = handle;
+    if(!handle)
+    {
         SDL_GPUTextureCreateInfo info{};
         info.width = width;
         info.height = height;
         info.format = GetSDLFormatInfo(format).SDLFormat;
         info.num_levels = nMips;
+        info.type = SDL_GPU_TEXTURETYPE_2D;
+        info.sample_count = SDL_GPU_SAMPLECOUNT_1; // increase eventually
+        info.layer_count_or_depth = _Depth * _ArraySize;
+        info.usage = bIsDepth ? SDL_GPU_TEXTUREUSAGE_DEPTH_STENCIL_TARGET : SDL_GPU_TEXTUREUSAGE_COLOR_TARGET;
+        info.props = SDL_CreateProperties();
+        SDL_SetStringProperty(info.props, SDL_PROP_GPU_TEXTURE_CREATE_NAME_STRING, _Name.length() ? _Name.c_str() : "Unnamed TTE Target");
+        _Handle = SDL_CreateGPUTexture(_Context->_Device, &info);
+        SDL_DestroyProperties(info.props);
+    }
+}
+
+void RenderTexture::Create2D(RenderContext* pContext, U32 width, U32 height, RenderSurfaceFormat format, U32 nMips)
+{
+    _Context = pContext;
+    if(_Context && !_Handle)
+    {
+        _Width = width;
+        _Height = height;
+        _Format = format;
+        _Depth = _ArraySize = 1;
+        _NumMips = nMips;
+        
+        TTE_ASSERT(_NumMips == 1, "TODO");
+        _Images.clear();
+        Image img{};
+        img.Width = width;
+        img.Height = height;
+        img.RowPitch = (U32)(GetSDLFormatInfo(format).BytesPerPixel * img.Width);
+        img.SlicePitch = img.RowPitch * height;
+        _Images.push_back(std::move(img));
+        
+        SDL_GPUTextureCreateInfo info{};
+        info.type = SDL_GPU_TEXTURETYPE_2D; // TODO 2d/3d arrays. also fix TWO above versions
+        info.width = width;
+        info.height = height;
+        info.format = GetSDLFormatInfo(format).SDLFormat;
+        info.num_levels = nMips;
         info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+        info.layer_count_or_depth = 1;
         info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        info.props = SDL_CreateProperties();
+        SDL_SetStringProperty(info.props, SDL_PROP_GPU_TEXTURE_CREATE_NAME_STRING, _Name.length() ? _Name.c_str() : "Unnamed TTE Texture");
         _Handle = SDL_CreateGPUTexture(pContext->_Device, &info);
+        SDL_DestroyProperties(info.props);
     }
 }
 
@@ -481,7 +675,10 @@ Ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
     info.mipmap_mode = (SDL_GPUSamplerMipmapMode)desc.MipMode;
     info.min_lod = 0.f;
     info.max_lod = 1000.f;
+    info.props = SDL_CreateProperties();
+    SDL_SetStringProperty(info.props, SDL_PROP_GPU_SAMPLER_CREATE_NAME_STRING, "TTE Sampler");
     desc._Handle = SDL_CreateGPUSampler(_Device, &info);
+    SDL_DestroyProperties(info.props);
     desc._Context = this;
     Ptr<RenderSampler> pSampler = TTE_NEW_PTR(RenderSampler, MEMORY_TAG_RENDERER);
     *pSampler = std::move(desc);
@@ -493,9 +690,7 @@ Ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
 
 RenderTexture::~RenderTexture()
 {
-    if(_Handle && _Context && !TextureFlags.Test(TEXTURE_FLAG_DELEGATED))
-        SDL_ReleaseGPUTexture(_Context->_Device, _Handle);
-    _Handle = nullptr;
+    _Release();
 }
 
 void RenderContext::_FreePendingDeletions(U64 frame)
@@ -517,12 +712,13 @@ void RenderContext::_FreePendingDeletions(U64 frame)
 }
 
 void RenderCommandBuffer::UploadTextureDataSlow(Ptr<RenderTexture> &texture,
-                                                DataStreamRef src, U64 srcOffset, U32 mip, U32 slice, U32 dataZ)
+                                                DataStreamRef src, U64 srcOffset, U32 mip, U32 slice, U32 face, U32 dataZ)
 {
     if(_CurrentPass)
         TTE_ASSERT(_CurrentPass->_CopyHandle != nullptr, "A render pass cannot be active unless its a copy pass if uploading textures.");
+    texture->_Context = _Context;
     
-    texture->LastUsedFrame = _Context->GetFrame(false).FrameNumber;
+    texture->_LastUsedFrame = _Context->GetFrame(false).FrameNumber;
     
     _RenderTransferBuffer tBuffer = _Context->_AcquireTransferBuffer(dataZ, *this);
     
@@ -536,19 +732,22 @@ void RenderCommandBuffer::UploadTextureDataSlow(Ptr<RenderTexture> &texture,
     if(bStartPass)
         StartCopyPass();
     
+    U32 w,h,r,s{};
+    texture->GetImageInfo(mip, slice, face, w, h, r, s);
+    
     SDL_GPUTextureTransferInfo srcinf{};
     SDL_GPUTextureRegion dst{};
     srcinf.offset = 0;
-    srcinf.rows_per_layer = texture->Height; // 3D textures this will change
-    srcinf.pixels_per_row = texture->Width; // assume width tight packing no padding.
+    srcinf.rows_per_layer = h;
+    srcinf.pixels_per_row = w;
     srcinf.transfer_buffer = tBuffer.Handle;
-    dst.texture = texture->_Handle;
+    dst.texture = texture->GetHandle(_Context);
     dst.mip_level = mip;
-    dst.layer = slice;
-    dst.x = dst.y = dst.z = 0; // upload whole subimage for any slice/mip for now.
-    dst.w = texture->Width;
-    dst.h = texture->Height;
-    dst.d = 1; // depth count one for now.
+    dst.layer = (slice * texture->_ArraySize) + face;
+    dst.x = dst.y = dst.z = 0;
+    dst.w = w;
+    dst.h = h;
+    dst.d = 1;
     
     SDL_UploadToGPUTexture(_CurrentPass->_CopyHandle, &srcinf, &dst, false);
     
@@ -560,6 +759,7 @@ void RenderCommandBuffer::UploadTextureDataSlow(Ptr<RenderTexture> &texture,
 
 Bool RenderContext::_FindProgram(String name, Ptr<RenderShader> &vert, Ptr<RenderShader> &frag)
 {
+    TTE_ASSERT(name.length(), "Shader program name was not set. Was a shader not set in a draw call?");
     vert = _FindShader(name + "/Vertex", RenderShaderType::VERTEX);
     frag = _FindShader(name + "/Frag", RenderShaderType::FRAGMENT);
     return vert != nullptr && frag != nullptr;
@@ -745,7 +945,10 @@ Ptr<RenderShader> RenderContext::_FindShader(String name, RenderShaderType type)
         TTE_ASSERT(set.CountBits() > 0, "No vertex attributes specified for vertex shader %s", name.c_str());
     
     sh->Name = name;
+    info.props = SDL_CreateProperties();
+    SDL_SetStringProperty(info.props, SDL_PROP_GPU_SHADER_CREATE_NAME_STRING, name.c_str());
     sh->Handle = SDL_CreateGPUShader(_Device, &info);
+    SDL_DestroyProperties(info.props);
     sh->Context = this;
     sh->Attribs = set;
     
@@ -820,6 +1023,83 @@ U64 RenderContext::_HashPipelineState(RenderPipelineState &state)
     return Hash;
 }
 
+RenderStateBlob::Entry RenderStateBlob::_GetEntry(RenderStateType type)
+{
+    TTE_ASSERT((U32)type < (U32)RenderStateType::NUM, "Invalid entry type");
+    TTE_ASSERT(_Entries[(U32)type].Type == type, "Render state blob entries static array is modified and indices do not match enums");
+    return _Entries[(U32)type];
+}
+
+U32 RenderStateBlob::GetValue(RenderStateType type) const
+{
+    const Entry& entry = _Entries[(U32)type];
+    U32 value = (_Words[entry.WordIndex] >> entry.WordShift) & ((1u << entry.BitWidth) - 1);
+    return value;
+}
+
+void RenderStateBlob::SetValue(RenderStateType type, U32 value)
+{
+    const Entry& entry = _Entries[(U32)type];
+    U32 mask = (1u << entry.BitWidth) - 1;
+    TTE_ASSERT((value & (mask ^ 0xFFFFFFFFu)) == 0, "When setting render state %s, the value %d is out of range", entry.Name, value);
+    _Words[entry.WordIndex] &= ~(mask << entry.WordShift);
+    _Words[entry.WordIndex] |= (value << entry.WordShift);
+}
+
+RenderStateBlob::RenderStateBlob()
+{
+    *this = Default;
+}
+
+RenderStateBlob RenderStateBlob::Default{};
+
+void RenderStateBlob::Initialise()
+{
+    U32 wordBitIndex = 0;
+    U32 wordIndex = 0;
+    for(U32 i = 0; i < (U32)RenderStateType::NUM; i++)
+    {
+        if(wordBitIndex + _Entries[i].BitWidth >= 32)
+        {
+            _Entries[i].WordShift = 0;
+            _Entries[i].WordIndex = ++wordIndex;
+            wordBitIndex = _Entries[i].BitWidth;
+        }
+        else
+        {
+            _Entries[i].WordIndex = wordIndex;
+            _Entries[i].WordShift = wordBitIndex;
+            wordBitIndex += _Entries[i].BitWidth;
+        }
+    }
+    for(U32 i = 0; i < (U32)RenderStateType::NUM; i++)
+    {
+        Default.SetValue((RenderStateType)i, _Entries[i].Default);
+    }
+}
+
+static SDL_GPUBlendFactor GetColourBlendAlphaEquiv(SDL_GPUBlendFactor in)
+{
+    switch (in)
+    {
+        case SDL_GPU_BLENDFACTOR_ZERO:            return SDL_GPU_BLENDFACTOR_ZERO;
+        case SDL_GPU_BLENDFACTOR_ONE:             return SDL_GPU_BLENDFACTOR_ONE;
+        case SDL_GPU_BLENDFACTOR_SRC_COLOR:       return SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+        case SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_COLOR: return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+        case SDL_GPU_BLENDFACTOR_DST_COLOR:       return SDL_GPU_BLENDFACTOR_DST_ALPHA;
+        case SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_COLOR: return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
+        case SDL_GPU_BLENDFACTOR_SRC_ALPHA:       return SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+        case SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA: return SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+        case SDL_GPU_BLENDFACTOR_DST_ALPHA:       return SDL_GPU_BLENDFACTOR_DST_ALPHA;
+        case SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA: return SDL_GPU_BLENDFACTOR_ONE_MINUS_DST_ALPHA;
+        case SDL_GPU_BLENDFACTOR_CONSTANT_COLOR:  return SDL_GPU_BLENDFACTOR_CONSTANT_COLOR;
+        case SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR: return SDL_GPU_BLENDFACTOR_ONE_MINUS_CONSTANT_COLOR;
+        case SDL_GPU_BLENDFACTOR_SRC_ALPHA_SATURATE: return SDL_GPU_BLENDFACTOR_SRC_ALPHA;
+        default: return in;
+    }
+}
+
+
 void RenderPipelineState::Create()
 {
     if(_Internal._Handle == nullptr)
@@ -830,14 +1110,95 @@ void RenderPipelineState::Create()
         // calculate hash
         Hash = _Internal._Context->_HashPipelineState(*this);
         
-        // create
         SDL_GPUGraphicsPipelineCreateInfo info{};
         
-        // TARGETS: for now only use the swapchain render target
-        info.target_info.num_color_targets = 1;
-        SDL_GPUColorTargetDescription sc{};
-        sc.format = SDL_GetGPUSwapchainTextureFormat(_Internal._Context->_Device, _Internal._Context->_Window);
-        info.target_info.color_target_descriptions = &sc;
+        // RENDER TARGETS
+        info.target_info.num_color_targets = NumColourTargets;
+        TTE_ASSERT(NumColourTargets <= 8, "Too many colour targets");
+        SDL_GPUColorTargetDescription sc[8]{};
+        for(U32 i = 0; i < NumColourTargets; i++)
+        {
+            sc[i].format = GetSDLFormatInfo(TargetFormat[i]).SDLFormat;
+        }
+        info.target_info.color_target_descriptions = sc;
+        
+        // DEPTH TARGET
+        
+        if(DepthFormat != RenderSurfaceFormat::UNKNOWN)
+        {
+            info.target_info.has_depth_stencil_target = true;
+            info.target_info.depth_stencil_format = GetSDLFormatInfo(DepthFormat).SDLFormat;
+        }
+        
+        // RASTERISER STATE
+        info.rasterizer_state.cull_mode = (SDL_GPUCullMode)RState.GetValue(RenderStateType::CULL_MODE);
+        info.rasterizer_state.fill_mode = (SDL_GPUFillMode)RState.GetValue(RenderStateType::FILL_MODE);
+        info.rasterizer_state.front_face = (SDL_GPUFrontFace)RState.GetValue(RenderStateType::WINDING);
+        info.rasterizer_state.depth_bias_constant_factor = RState.GetValue(RenderStateType::Z_OFFSET) == 1 ? 16.0f : 0.0f;
+        info.rasterizer_state.depth_bias_clamp = 0.0f; // no clamp
+        Bool bClip = (Bool)RState.GetValue(RenderStateType::Z_CLIPPING);
+        Bool bInvert = (Bool)RState.GetValue(RenderStateType::Z_INVERSE);
+        Bool bBias = (Bool)RState.GetValue(RenderStateType::Z_BIAS);
+        if(bBias)
+            info.rasterizer_state.depth_bias_slope_factor = bInvert ? -1.0f : 1.0f;
+        else
+            info.rasterizer_state.depth_bias_slope_factor = 0.0f;
+        info.rasterizer_state.enable_depth_bias = true;
+        info.rasterizer_state.enable_depth_clip = bClip;
+        
+        // DEPTH STENCIL STATE
+        info.depth_stencil_state.enable_depth_test = (Bool)RState.GetValue(RenderStateType::Z_ENABLE);
+        info.depth_stencil_state.enable_depth_write = (Bool)RState.GetValue(RenderStateType::Z_WRITE_ENABLE);
+        info.depth_stencil_state.enable_stencil_test = (Bool)RState.GetValue(RenderStateType::STENCIL_ENABLE);
+        info.depth_stencil_state.compare_mask = (U8)RState.GetValue(RenderStateType::STENCIL_READ_MASK);
+        info.depth_stencil_state.write_mask = (U8)RState.GetValue(RenderStateType::STENCIL_WRITE_MASK);
+        info.depth_stencil_state.front_stencil_state.compare_op =
+            info.depth_stencil_state.back_stencil_state.compare_op = (SDL_GPUCompareOp)RState.GetValue(RenderStateType::STENCIL_COMPARE_FUNC);
+        info.depth_stencil_state.front_stencil_state.depth_fail_op =
+            info.depth_stencil_state.back_stencil_state.depth_fail_op = (SDL_GPUStencilOp)RState.GetValue(RenderStateType::STENCIL_DEPTH_FAIL_OP);
+        info.depth_stencil_state.front_stencil_state.fail_op =
+            info.depth_stencil_state.back_stencil_state.fail_op = (SDL_GPUStencilOp)RState.GetValue(RenderStateType::STENCIL_FAIL_OP);
+        info.depth_stencil_state.front_stencil_state.pass_op =
+            info.depth_stencil_state.back_stencil_state.pass_op = (SDL_GPUStencilOp)RState.GetValue(RenderStateType::STENCIL_PASS_OP);
+        SDL_GPUCompareOp zcompare = (SDL_GPUCompareOp)RState.GetValue(RenderStateType::Z_COMPARE_FUNC);
+        if(bInvert)
+        {
+            if(zcompare == SDL_GPU_COMPAREOP_LESS)
+                zcompare = SDL_GPU_COMPAREOP_GREATER;
+            else if(zcompare == SDL_GPU_COMPAREOP_LESS_OR_EQUAL)
+                zcompare = SDL_GPU_COMPAREOP_GREATER_OR_EQUAL;
+            else if(zcompare == SDL_GPU_COMPAREOP_GREATER)
+                zcompare = SDL_GPU_COMPAREOP_LESS;
+            else if(zcompare == SDL_GPU_COMPAREOP_GREATER_OR_EQUAL)
+                zcompare = SDL_GPU_COMPAREOP_LESS_OR_EQUAL;
+        }
+        info.depth_stencil_state.compare_op = zcompare;
+        
+        // BLEND STATE
+        Bool bSeparate = (Bool)RState.GetValue(RenderStateType::SEPARATE_ALPHA_BLEND);
+        sc[0].blend_state.enable_color_write_mask = true;
+        sc[0].blend_state.enable_blend = (Bool)RState.GetValue(RenderStateType::BLEND_ENABLE);
+        sc[0].blend_state.color_write_mask = (SDL_GPUColorComponentFlags)RState.GetValue(RenderStateType::COLOUR_WRITE_ENABLE_MASK);
+        sc[0].blend_state.color_blend_op = (SDL_GPUBlendOp)RState.GetValue(RenderStateType::BLEND_OP);
+        sc[0].blend_state.src_color_blendfactor = (SDL_GPUBlendFactor)RState.GetValue(RenderStateType::SOURCE_BLEND);
+        sc[0].blend_state.dst_color_blendfactor = (SDL_GPUBlendFactor)RState.GetValue(RenderStateType::DEST_BLEND);
+        if(bSeparate)
+        {
+            sc[0].blend_state.alpha_blend_op = (SDL_GPUBlendOp)RState.GetValue(RenderStateType::ALPHA_BLEND_OP);
+            sc[0].blend_state.src_alpha_blendfactor = (SDL_GPUBlendFactor)RState.GetValue(RenderStateType::ALPHA_SOURCE_BLEND);
+            sc[0].blend_state.dst_alpha_blendfactor = (SDL_GPUBlendFactor)RState.GetValue(RenderStateType::ALPHA_DEST_BLEND);
+        }
+        else
+        {
+            sc[0].blend_state.alpha_blend_op = (SDL_GPUBlendOp)RState.GetValue(RenderStateType::BLEND_OP);
+            sc[0].blend_state.src_alpha_blendfactor = GetColourBlendAlphaEquiv((SDL_GPUBlendFactor)RState.GetValue(RenderStateType::SOURCE_BLEND));
+            sc[0].blend_state.dst_alpha_blendfactor = GetColourBlendAlphaEquiv((SDL_GPUBlendFactor)RState.GetValue(RenderStateType::DEST_BLEND));
+        }
+        
+        // TODO MULTISAMPLE
+        info.multisample_state.enable_mask = false;
+        
+        // SHADER PROGRAM
         
         Ptr<RenderShader> vert, frag{};
         TTE_ASSERT(_Internal._Context->_FindProgram(ShaderProgram, vert, frag), "Could not fetch shader program: %s", ShaderProgram.c_str());
@@ -847,16 +1208,7 @@ void RenderPipelineState::Create()
         
         info.primitive_type = ToSDLPrimitiveType(PrimitiveType);
         
-        info.depth_stencil_state.enable_depth_test = false;
-        info.depth_stencil_state.enable_depth_write = false;
-        info.depth_stencil_state.enable_stencil_test = false;
-        
-        info.rasterizer_state.enable_depth_clip = false;
-        info.rasterizer_state.fill_mode = SDL_GPU_FILLMODE_FILL;
-        info.rasterizer_state.cull_mode = SDL_GPU_CULLMODE_NONE;
-        info.rasterizer_state.front_face = SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE;
-        
-        info.multisample_state.enable_mask = false;
+        // VERTEX STATE
         
         info.vertex_input_state.num_vertex_buffers = VertexState.NumVertexBuffers;
         info.vertex_input_state.num_vertex_attributes = VertexState.NumVertexAttribs;
@@ -896,8 +1248,10 @@ void RenderPipelineState::Create()
         
         info.vertex_input_state.vertex_attributes = attrib;
         info.vertex_input_state.vertex_buffer_descriptions = desc;
-        
+        info.props = SDL_CreateProperties();
+        SDL_SetStringProperty(info.props, SDL_PROP_GPU_GRAPHICSPIPELINE_CREATE_NAME_STRING, "TTE Pipeline");
         _Internal._Handle = SDL_CreateGPUGraphicsPipeline(_Internal._Context->_Device, &info);
+        SDL_DestroyProperties(info.props);
         TTE_ASSERT(_Internal._Handle != nullptr, "Could not create pipeline state: %s", SDL_GetError());
         
     }
@@ -943,6 +1297,7 @@ RenderCommandBuffer* RenderContext::_NewCommandBuffer()
     RenderCommandBuffer* pBuffer = frame.Heap.New<RenderCommandBuffer>();
     
     pBuffer->_Handle = SDL_AcquireGPUCommandBuffer(_Device);
+    TTE_ASSERT(pBuffer->_Handle, "Could not acquire a new command buffer: %s", SDL_GetError());
     pBuffer->_Context = this;
     
     frame.CommandBuffers.push_back(pBuffer);
@@ -963,6 +1318,25 @@ void RenderCommandBuffer::StartCopyPass()
     _CurrentPass = pPass;
 }
 
+RenderPass RenderCommandBuffer::EndPass()
+{
+    _Context->AssertMainThread();
+    TTE_ASSERT(_CurrentPass, "No active pass");
+    
+    if(_CurrentPass->_Handle)
+        SDL_EndGPURenderPass(_CurrentPass->_Handle);
+    else
+        SDL_EndGPUCopyPass(_CurrentPass->_CopyHandle);
+    RenderPass pass = std::move(*_CurrentPass);
+    SDL_PopGPUDebugGroup(_Handle);
+    pass._Handle = nullptr;
+    pass._CopyHandle = nullptr;
+    _CurrentPass = nullptr;
+    _BoundPipeline.reset();
+    return pass;
+}
+
+
 void RenderCommandBuffer::StartPass(RenderPass&& pass)
 {
     _Context->AssertMainThread();
@@ -970,19 +1344,70 @@ void RenderCommandBuffer::StartPass(RenderPass&& pass)
     TTE_ASSERT(pass._Handle == nullptr, "Duplicate render pass!");
     TTE_ASSERT(_CurrentPass == nullptr, "Already within a pass. End the current pass before starting a new one.");
     
-    // todo improve this. allow different target descs.
-    SDL_GPUColorTargetInfo swChain{};
-    swChain.texture = _Context->GetFrame(false).BackBuffer->_Handle;
-    swChain.load_op = SDL_GPU_LOADOP_CLEAR;
-    swChain.store_op = SDL_GPU_STOREOP_STORE;
-    swChain.clear_color.r = pass.ClearCol.r;
-    swChain.clear_color.g = pass.ClearCol.g;
-    swChain.clear_color.b = pass.ClearCol.b;
-    swChain.clear_color.a = pass.ClearCol.a;
+    SDL_GPUColorTargetInfo targets[8]{};
+    U32 nTargets = 0;
+    Bool hasDepth = pass.Targets.Depth.Target != nullptr;
+    while(nTargets < 8 && pass.Targets.Target[nTargets].Target != nullptr)
+    {
+        RenderTargetResolvedSurface& src = pass.Targets.Target[nTargets];
+        SDL_GPUColorTargetInfo& target = targets[nTargets++];
+        target.cycle = target.cycle_resolve_texture = false;
+        if(pass.DoClearColour)
+        {
+            target.load_op = SDL_GPU_LOADOP_CLEAR;
+            target.clear_color = SDL_FColor{pass.ClearColour.r, pass.ClearColour.g, pass.ClearColour.b, pass.ClearColour.a};
+        }
+        else
+        {
+            target.load_op = SDL_GPU_LOADOP_LOAD;
+        }
+        target.mip_level = src.Mip;
+        target.layer_or_depth_plane = src.Slice;
+        target.store_op = SDL_GPU_STOREOP_STORE;
+        target.resolve_layer = target.resolve_mip_level = 0;
+        target.resolve_texture = nullptr;
+        target.texture = src.Target->GetHandle(_Context);
+    }
+    
+    SDL_GPUDepthStencilTargetInfo depth{};
+    if(hasDepth)
+    {
+        depth.cycle = false;
+        if(pass.DoClearDepth)
+        {
+            depth.clear_depth = pass.ClearDepth;
+            depth.load_op = SDL_GPU_LOADOP_CLEAR;
+        }
+        else
+        {
+            depth.load_op = SDL_GPU_LOADOP_LOAD;
+        }
+        if(pass.DoClearStencil)
+        {
+            depth.clear_stencil = pass.ClearStencil;
+            depth.stencil_load_op = SDL_GPU_LOADOP_CLEAR;
+        }
+        else
+        {
+            depth.stencil_load_op = SDL_GPU_LOADOP_LOAD;
+        }
+        depth.texture = pass.Targets.Depth.Target->GetHandle(_Context);
+        depth.store_op = SDL_GPU_STOREOP_STORE;
+        depth.stencil_store_op = SDL_GPU_STOREOP_STORE;
+    }
+    
+    if(pass.Name)
+    {
+        SDL_PushGPUDebugGroup(_Handle, pass.Name);
+    }
+    else
+    {
+        SDL_PushGPUDebugGroup(_Handle, "Unnamed TTE Pass");
+    }
     
     RenderPass* pPass = _Context->GetFrame(false).Heap.New<RenderPass>();
     *pPass = std::move(pass);
-    pPass->_Handle = SDL_BeginGPURenderPass(_Handle, &swChain, 1, nullptr);
+    pPass->_Handle = SDL_BeginGPURenderPass(_Handle, nTargets ? targets : 0, nTargets, hasDepth ? &depth : nullptr);
     
     _BoundPipeline.reset();
     _CurrentPass = pPass;
@@ -1157,7 +1582,7 @@ void RenderCommandBuffer::BindTextures(U32 slot, U32 num, RenderShaderType shade
     {
         binds[i].sampler = pSamplers[i]->_Handle;
         binds[i].texture = pTextures[i]->_Handle;
-        pTextures[i]->LastUsedFrame = frame;
+        pTextures[i]->_LastUsedFrame = frame;
         pSamplers[i]->LastUsedFrame = frame;
     }
     
@@ -1197,22 +1622,6 @@ void RenderCommandBuffer::BindDefaultTexture(U32 slot, RenderShaderType shaderTy
     TTE_ASSERT(false, "Default texture could not be found");
 }
 
-void RenderCommandBuffer::BindDefaultMesh(DefaultRenderMeshType type)
-{
-    _Context->AssertMainThread();
-    for(auto& def: _Context->_DefaultMeshes)
-    {
-        if(def.Type == type)
-        {
-            BindPipeline(def.PipelineState);
-            BindIndexBuffer(def.IndexBuffer, 0, true);
-            BindVertexBuffers(&def.VertexBuffer, nullptr, 0, 1);
-            return;
-        }
-    }
-    TTE_ASSERT(false, "Default mesh could not be found");
-}
-
 void RenderCommandBuffer::BindGenericBuffers(U32 slot, U32 num, Ptr<RenderBuffer>* pBuffers, RenderShaderType shaderSlot)
 {
     _Context->AssertMainThread();
@@ -1237,23 +1646,6 @@ void RenderCommandBuffer::BindGenericBuffers(U32 slot, U32 num, Ptr<RenderBuffer
     else
         TTE_ASSERT(false, "Unknown render shader type");
     
-}
-
-RenderPass RenderCommandBuffer::EndPass()
-{
-    _Context->AssertMainThread();
-    TTE_ASSERT(_CurrentPass, "No active pass");
-    
-    if(_CurrentPass->_Handle)
-        SDL_EndGPURenderPass(_CurrentPass->_Handle);
-    else
-        SDL_EndGPUCopyPass(_CurrentPass->_CopyHandle);
-    RenderPass pass = std::move(*_CurrentPass);
-    pass._Handle = nullptr;
-    pass._CopyHandle = nullptr;
-    _CurrentPass = nullptr;
-    _BoundPipeline.reset();
-    return pass;
 }
 
 void RenderCommandBuffer::Submit()
@@ -1309,7 +1701,7 @@ void RenderCommandBuffer::BindPipeline(Ptr<RenderPipelineState> &state)
 
 // ============================ BUFFERS
 
-Ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes)
+Ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes, String N)
 {
     Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
     buffer->_Context = this;
@@ -1321,12 +1713,15 @@ Ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes)
     inf.props = 0;
     inf.usage = SDL_GPU_BUFFERUSAGE_VERTEX;
     
+    inf.props = SDL_CreateProperties();
+    SDL_SetStringProperty(inf.props, SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, N.c_str());
     buffer->_Handle = SDL_CreateGPUBuffer(_Device, &inf);
+    SDL_DestroyProperties(inf.props);
     
     return buffer;
 }
 
-Ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes)
+Ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes, String N)
 {
     Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
     buffer->_Context = this;
@@ -1338,12 +1733,15 @@ Ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes)
     inf.props = 0;
     inf.usage = SDL_GPU_BUFFERUSAGE_GRAPHICS_STORAGE_READ;
     
+    inf.props = SDL_CreateProperties();
+    SDL_SetStringProperty(inf.props, SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, N.c_str());
     buffer->_Handle = SDL_CreateGPUBuffer(_Device, &inf);
+    SDL_DestroyProperties(inf.props);
     
     return buffer;
 }
 
-Ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes)
+Ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes, String N)
 {
     Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
     buffer->_Context = this;
@@ -1355,7 +1753,10 @@ Ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes)
     inf.props = 0;
     inf.usage = SDL_GPU_BUFFERUSAGE_INDEX;
     
+    inf.props = SDL_CreateProperties();
+    SDL_SetStringProperty(inf.props, SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, N.c_str());
     buffer->_Handle = SDL_CreateGPUBuffer(_Device, &inf);
+    SDL_DestroyProperties(inf.props);
     
     return buffer;
 }
@@ -1465,7 +1866,10 @@ _RenderTransferBuffer RenderContext::_AcquireTransferBuffer(U32 size, RenderComm
     inf.size = buffer.Capacity;
     inf.props = 0;
     inf.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+    inf.props = SDL_CreateProperties();
+    SDL_SetStringProperty(inf.props, SDL_PROP_GPU_TRANSFERBUFFER_CREATE_NAME_STRING, "Acquired TTE Transfer Buffer");
     buffer.Handle = SDL_CreateGPUTransferBuffer(_Device, &inf);
+    SDL_DestroyProperties(inf.props);
     buffer.LastUsedFrame = cmds._Context->GetFrame(false).FrameNumber;
     cmds._AcquiredTransferBuffers.push_back(buffer);
     
@@ -1552,6 +1956,8 @@ void RenderContext::SetParameterDefaultTexture(RenderFrame& frame, ShaderParamet
 void RenderContext::SetParameterTexture(RenderFrame& frame, ShaderParametersGroup* group, ShaderParameterType type,
                                         Ptr<RenderTexture> tex, RenderSampler* sampler)
 {
+    if(!DbgCheckOwned(tex))
+        return;
     U32 ind = (U32)-1;
     for(U32 i = 0; i < group->NumParameters; i++)
     {
@@ -1650,30 +2056,7 @@ void RenderContext::SetParameterIndexBuffer(RenderFrame& frame, ShaderParameters
     group->GetParameter(ind).GenericValue.Offset = (U32)startIndex;
 }
 
-// ================================== SCENE MANAGEMENT & RENDERING BULK
-
-void* RenderContext::AllocateMessageArguments(U32 sz)
-{
-    return TTE_ALLOC(sz, MEMORY_TAG_TEMPORARY);
-}
-
-void RenderContext::SendMessage(SceneMessage message)
-{
-    if(message.Type == SceneMessageType::START_INTERNAL)
-        TTE_ASSERT(message.Priority == INTERNAL_START_PRIORITY, "Cannot post a start scene message"); // priority set internally
-    std::lock_guard<std::mutex> _L{_MessagesLock};
-    _AsyncMessages.push(std::move(message));
-}
-
-void RenderContext::PushScene(Scene&& scene)
-{
-    Scene* pTemporary = TTE_NEW(Scene, MEMORY_TAG_TEMPORARY, std::move(scene)); // should be TTE_ALLOC, but handled separately.
-    SceneMessage msg{};
-    msg.Arguments = pTemporary;
-    msg.Priority = INTERNAL_START_PRIORITY;
-    msg.Type = SceneMessageType::START_INTERNAL;
-    SendMessage(msg);
-}
+// ================================== RENDERING BULK
 
 void RenderContext::PurgeResources()
 {
@@ -1694,6 +2077,33 @@ void RenderContext::PurgeResources()
         _Flags |= RENDER_CONTEXT_NEEDS_PURGE;
 }
 
+Bool RenderContext::DbgCheckOwned(const Ptr<Handleable> handle) const
+{
+    Bool bOwned = handle->OwnedBy(*this, false); // dont lock, it should have been. important!!
+#if DEBUG
+    TTE_ASSERT(bOwned, "Common resource used in render context was not locked before use."); // c++ error
+#endif
+    return bOwned;
+}
+
+Bool RenderContext::TouchResource(const Ptr<Handleable> handle)
+{
+    if(handle->OwnedBy(*this, false))
+    {
+        // ideal case
+        handle->OverrideLockedTimeStamp(*this, true, IsCallingFromMain() ? GetRenderFrameNumber() : GetCurrentFrameNumber());
+        return true;
+    }
+    Bool bResult = handle->Lock(*this);
+    if(bResult)
+    {
+        std::lock_guard<std::mutex> G{_Lock};
+        handle->OverrideLockedTimeStamp(*this, false, IsCallingFromMain() ? GetRenderFrameNumber() : GetCurrentFrameNumber());
+        _LockedResources.push_back(handle);
+    }
+    return bResult;
+}
+
 ShaderParametersStack* RenderContext::AllocateParametersStack(RenderFrame& frame)
 {
     return frame.Heap.NewNoDestruct<ShaderParametersStack>(); // on heap no destruct needed its very lightweight
@@ -1703,92 +2113,41 @@ ShaderParametersStack* RenderContext::AllocateParametersStack(RenderFrame& frame
 Bool RenderContext::_Populate(const JobThread& jobThread, void* pRenderCtx, void* pDT)
 {
     
-    // LOCALS
-    
     Float dt = *((Float*)&pDT);
     RenderContext* pContext = static_cast<RenderContext*>(pRenderCtx);
     RenderFrame& frame = pContext->GetFrame(true);
     
-    // PERFORM SCENE MESSAGES
-    
-    pContext->_MessagesLock.lock();
-    std::priority_queue<SceneMessage> messages = std::move(pContext->_AsyncMessages);
-    pContext->_MessagesLock.unlock();
-    
-    while(!messages.empty())
     {
-        SceneMessage msg = messages.top(); messages.pop();
-        if(msg.Type == SceneMessageType::START_INTERNAL)
+        // update delta layers
+        std::lock_guard<std::mutex> G{pContext->_Lock};
+        for(auto& dl: pContext->_DeltaLayers)
         {
-            // Start a scene
-            pContext->_AsyncScenes.emplace_back(std::move(*((Scene*)msg.Arguments)));
-            pContext->_AsyncScenes.back().OnAsyncRenderAttach(*pContext); // on attach. ready to prepare this frame.
-            TTE_DEL((Scene*)msg.Arguments); // delete the temp alloc
-            continue;
-        }
-        for(auto sceneit = pContext->_AsyncScenes.begin(); sceneit != pContext->_AsyncScenes.end(); sceneit++)
-        {
-            Scene& scene = *sceneit;
-            if(CompareCaseInsensitive(scene.GetName(), msg.Scene))
+            if(dl)
             {
-                const SceneAgent* pAgent = nullptr;
-                if(msg.Agent)
-                {
-                    auto it = scene._Agents.find(msg.Agent);
-                    if(it != scene._Agents.end())
-                    {
-                        pAgent = &(*it);
-                    }
-                    else
-                    {
-                        String sym = SymbolTable::Find(msg.Agent);
-                        TTE_LOG("WARN: cannot execute render scene message as agent %s was not found", sym.c_str());
-                    }
-                }
-                if(msg.Agent.GetCRC64() == 0 || pAgent != nullptr)
-                {
-                    if(msg.Type == SceneMessageType::STOP)
-                    {
-                        scene.OnAsyncRenderDetach(*pContext);
-                        pContext->_AsyncScenes.erase(sceneit); // remove the scene. done.
-                    }
-                    else
-                    {
-                        scene.AsyncProcessRenderMessage(*pContext, msg, pAgent);
-                        if(msg.Arguments)
-                        {
-                            TTE_FREE(msg.Arguments); // free any arguments
-                        }
-                    }
-                }
-                break;
+                pContext->_LayerStack.push_back(std::move(dl));
+            }
+            else
+            {
+                TTE_ASSERT(pContext->_LayerStack.size(), "Trying to pop layer but stack is empty");
+                pContext->_LayerStack.pop_back();
             }
         }
+        pContext->_DeltaLayers.clear();
     }
     
-    // HIGH LEVEL RENDER (ASYNC)
-    for(auto& scene : pContext->_AsyncScenes)
-        scene.PerformAsyncRender(*pContext, frame, dt);
+    // process events
+    if(frame._Events.size())
+    {
+        for(auto it = pContext->_LayerStack.rbegin(); it != pContext->_LayerStack.rend(); it++)
+            (*it)->AsyncProcessEvents(frame._Events);
+    }
+    
+    RenderNDCScissorRect rect{}; // full screen for now
+    for(auto& layer: pContext->_LayerStack)
+        rect = layer->AsyncUpdate(frame, rect, dt);
     
     return true;
 }
-
-void RenderContext::PushRenderInst(RenderFrame& frame, ShaderParametersStack* params, RenderInst &&inst)
-{
-    if(params != nullptr)
-        TTE_ASSERT(frame.Heap.Contains(params), "Shader parameter stack must be allocated from render context!");
-    if(inst._DrawDefault == DefaultRenderMeshType::NONE && (inst._VertexStateInfo.NumVertexBuffers == 0 || inst._VertexStateInfo.NumVertexAttribs == 0))
-        TTE_ASSERT(false, "Cannot push a render instance draw if the vertex state has not been specified");
-    
-    RenderInst* instance = frame.Heap.New<RenderInst>();
-    *instance = std::move(inst);
-    instance->_Parameters = params;
-    
-    frame.NumDrawCalls++;
-    instance->_Next = frame.DrawCalls;
-    frame.DrawCalls = instance;
-}
-
 
 void RenderContext::_Render(Float dt, RenderCommandBuffer* pMainCommandBuffer)
 {
@@ -1796,104 +2155,18 @@ void RenderContext::_Render(Float dt, RenderCommandBuffer* pMainCommandBuffer)
     
     // LOW LEVEL RENDER (MAIN THREAD) THE PREVIOUS FRAME.
     
-    // 1. temp alloc and resort draw calls to sorted order.
+    RenderSceneContext context{};
+    context.DeltaTime = dt;
+    context.CommandBuf = pMainCommandBuffer;
     
-    RenderInst** sortedRenderInsts = (RenderInst**)frame.Heap.Alloc(sizeof(RenderInst*) * frame.NumDrawCalls);
-    RenderInst* inst = frame.DrawCalls;
-    for(U32 i = 0; i < frame.NumDrawCalls; i++)
-    {
-        sortedRenderInsts[i] = inst;
-        inst = inst->_Next;
-    }
-    std::sort(sortedRenderInsts, sortedRenderInsts + frame.NumDrawCalls, RenderInstSorter{}); // sort by sort key
-    
-    // 2. perform any uploads. Right now execute before any draws. In future we could optimise and use fences interleaved. Dont think even telltale do that.
+    // perform any uploads. Right now execute before any draws. In future we could optimise and use fences interleaved. Dont think even telltale do that.
     //RenderCommandBuffer* pCopyCommands = _NewCommandBuffer();
     frame.UpdateList->BeginRenderFrame(pMainCommandBuffer);
     
-    // 3. execute draws
-    
-    // TEMP PASS. NEED MORE COMPLEX PASS DESCRIPTORS IN FUTURE.
-    RenderPass passdesc{};
-    passdesc.ClearCol = Colour::Black;  // obviously if we want more complex passes we have to code them specifically higher level
-    
-    pMainCommandBuffer->StartPass(std::move(passdesc));
-    
-    for(U32 i = 0; i < frame.NumDrawCalls; i++)
-        _Draw(frame, *sortedRenderInsts[i], *pMainCommandBuffer);
-    
-    pMainCommandBuffer->EndPass();
+    _ExecuteFrame(frame, context);
     
     frame.UpdateList->EndRenderFrame();
     
-}
-
-// renderer: perform draw.
-void RenderContext::_Draw(RenderFrame& frame, RenderInst inst, RenderCommandBuffer& cmds)
-{
-    
-    DefaultRenderMesh* pDefaultMesh = nullptr;
-    
-    Ptr<RenderPipelineState> state{};
-    if(inst._DrawDefault == DefaultRenderMeshType::NONE)
-    {
-        TTE_ASSERT(inst.Program.c_str(), "Render instance shader program not set");
-        
-        // Find pipeline state for draw
-        RenderPipelineState pipelineDesc{};
-        pipelineDesc.PrimitiveType = inst._PrimitiveType;
-        pipelineDesc.VertexState = inst._VertexStateInfo;
-        pipelineDesc.ShaderProgram = std::move(inst.Program);
-        // more stuff in the future.
-        
-        state = _FindPipelineState(std::move(pipelineDesc));
-    }
-    else
-    {
-        for(auto& def: _DefaultMeshes)
-        {
-            if(def.Type == inst._DrawDefault)
-            {
-                state = def.PipelineState; // use default
-                pDefaultMesh = &def;
-                break;
-            }
-        }
-        TTE_ASSERT(state.get() && pDefaultMesh, "Default mesh not found or not initialised yet");
-        // set num indices
-        inst._IndexCount = pDefaultMesh->NumIndices;
-    }
-    
-    // bind pipeline
-    cmds.BindPipeline(state);
-    
-    // if no parameters allocate now
-    if(!inst._Parameters)
-        inst._Parameters = AllocateParametersStack(frame);
-    
-    // default meshes we set the index and vertex buffer
-    if(inst._DrawDefault != DefaultRenderMeshType::NONE)
-    {
-        // push high level parameter stack with index and vertex buffer
-        ShaderParameterTypes params{};
-        params.Set(ShaderParameterType::PARAMETER_VERTEX0IN, true);
-        params.Set(ShaderParameterType::PARAMETER_INDEX0IN, true);
-        
-        ShaderParametersGroup* inputGroup = AllocateParameters(frame, params);
-        
-        SetParameterVertexBuffer(frame, inputGroup, ShaderParameterType::PARAMETER_VERTEX0IN,
-                                 pDefaultMesh->VertexBuffer, 0);
-        SetParameterIndexBuffer(frame, inputGroup, ShaderParameterType::PARAMETER_INDEX0IN,
-                                pDefaultMesh->IndexBuffer, 0);
-        
-        PushParameterGroup(frame, inst._Parameters, inputGroup);
-    }
-    
-    // bind shader inputs
-    cmds.BindParameters(frame, inst._Parameters);
-    
-    // draw!
-    cmds.DrawIndexed(inst._IndexCount, inst._InstanceCount, inst._StartIndex, inst._BaseIndex, 0);
 }
 
 // ===================================== RENDER FRAME UPDATE LIST =====================================
@@ -1953,7 +2226,7 @@ void RenderFrameUpdateList::BeginRenderFrame(RenderCommandBuffer *pCopyCommands)
             
             SDL_GPUTransferBufferLocation src{};
             src.offset = (U32)offset;
-            src.transfer_buffer = local.Handle;
+            src.transfer_buffer = myBuffer->Handle;
             SDL_GPUBufferRegion dst{};
             dst.size = upload->Data.BufferSize;
             dst.offset = (U32)upload->DestPosition;
@@ -2002,7 +2275,7 @@ void RenderFrameUpdateList::BeginRenderFrame(RenderCommandBuffer *pCopyCommands)
             
             SDL_GPUTransferBufferLocation src{};
             src.offset = (U32)offset;
-            src.transfer_buffer = local.Handle;
+            src.transfer_buffer = myBuffer->Handle;
             SDL_GPUBufferRegion dst{};
             dst.size = (U32)upload->UploadSize;
             dst.offset = (U32)upload->DestPosition;
@@ -2022,6 +2295,48 @@ void RenderFrameUpdateList::BeginRenderFrame(RenderCommandBuffer *pCopyCommands)
             }
         }
         
+        // TEXTURES
+        for(MetaTextureUpload* upload = _MetaTexUploads; upload; upload = upload->Next)
+        {
+            U32 w,h,r,s{};
+            U32 totalw,totalh,depth,arrz{};
+            upload->Texture->GetImageInfo(upload->Mip, upload->Slice, upload->Face, w, h, r, s);
+            
+            U32 bytes = (U32)upload->Data.BufferSize;
+            if(!bytes)
+                bytes = RenderTexture::CalculateSlicePitch(upload->Texture->_Format, w, h);
+                
+            _RenderTransferBuffer local = _Context._AcquireTransferBuffer(bytes, *pCopyCommands);
+            
+            U8* staging = (U8*)SDL_MapGPUTransferBuffer(_Context._Device, local.Handle, false);
+            
+            //memcpy(staging, upload->Data.BufferData.get(), upload->Data.BufferSize);
+            if(!upload->Data.BufferData.get() || upload->Data.BufferSize == 0)
+                memset(staging, 0x00, bytes); // black empty tex
+            else
+                memcpy(staging, upload->Data.BufferData.get(), bytes);
+            
+            SDL_UnmapGPUTransferBuffer(_Context._Device, local.Handle);
+            
+            SDL_GPUTextureTransferInfo srcinf{};
+            SDL_GPUTextureRegion dst{};
+            srcinf.offset = 0;
+            srcinf.rows_per_layer = h;
+            srcinf.pixels_per_row = w; // assume width tight packing no padding.
+            srcinf.transfer_buffer = local.Handle;
+            dst.texture = upload->Texture->GetHandle(&_Context);
+            dst.mip_level = upload->Mip;
+            upload->Texture->GetDimensions(totalw, totalh, depth, arrz);
+            dst.layer = (upload->Slice * arrz) + upload->Face;
+            dst.x = dst.y = dst.z = 0; // upload whole subimage for any slice/mip for now.
+            dst.w = w;
+            dst.h = h;
+            dst.d = 1; // upload one depth
+            
+            SDL_UploadToGPUTexture(pCopyCommands->_CurrentPass->_CopyHandle, &srcinf, &dst, false);
+            
+        }
+        
         if(groupStaging.Handle)
         {
             SDL_UnmapGPUTransferBuffer(_Context._Device, groupStaging.Handle);
@@ -2039,6 +2354,27 @@ void RenderFrameUpdateList::BeginRenderFrame(RenderCommandBuffer *pCopyCommands)
 void RenderFrameUpdateList::EndRenderFrame()
 {
     
+}
+void RenderFrameUpdateList::_DismissTexture(const Ptr<RenderTexture>& tex, U32 mip, U32 slice, U32 face)
+{
+    {
+        MetaTextureUpload* uploadPrev = nullptr;
+        for(MetaTextureUpload* upload = _MetaTexUploads; upload; upload = upload->Next)
+        {
+            if(upload->Texture == tex && upload->Mip == mip && upload->Slice == slice && upload->Face == face)
+            {
+                _TotalBufferUploadSize -= upload->Data.BufferSize;
+                _TotalNumUploads--;
+                if(uploadPrev)
+                    uploadPrev->Next = upload->Next;
+                else
+                    _MetaTexUploads = upload->Next;
+                *upload = MetaTextureUpload{}; // reset
+                break;
+            }
+            uploadPrev = upload;
+        }
+    }
 }
 
 void RenderFrameUpdateList::_DismissBuffer(const Ptr<RenderBuffer> &buf)
@@ -2117,4 +2453,27 @@ void RenderFrameUpdateList::UpdateBufferDataStream(const DataStreamRef &srcStrea
     _StreamUploads = upload;
     _TotalBufferUploadSize += nBytes;
     _TotalNumUploads++;
+}
+
+void RenderFrameUpdateList::UpdateTexture(const Ptr<RenderTexture>& destTexture, U32 mip, U32 slice, U32 face)
+{
+    if(!_Context.DbgCheckOwned(destTexture))
+        return;
+    destTexture->_Context = &_Context;
+    if(destTexture->_LastUpdatedFrame == _Frame.FrameNumber)
+    {
+        _DismissTexture(destTexture, mip, slice, face);
+    }
+    else
+    {
+        destTexture->_LastUpdatedFrame = _Frame.FrameNumber;
+    }
+    MetaTextureUpload* upload = _Frame.Heap.New<MetaTextureUpload>();
+    upload->Data = destTexture->_Images[destTexture->GetImageIndex(mip, slice, face)].Data;
+    upload->Mip = mip;
+    upload->Texture = destTexture;
+    upload->Next = _MetaTexUploads;
+    _MetaTexUploads = upload;
+    _TotalNumUploads++;
+    _TotalBufferUploadSize += upload->Data.BufferSize;
 }

@@ -237,6 +237,11 @@ struct alignas(4) Vector3 {
         return sqrtf(DistanceSquared(other));
     }
     
+    inline Bool operator==(const Vector3& rhs) const
+    {
+        return CompareFloatFuzzy(x, rhs.x, 1e-8f) && CompareFloatFuzzy(y, rhs.y, 1e-8f) && CompareFloatFuzzy(z, rhs.z, 1e-8f);
+    }
+    
     // Returns component by index
     inline float operator[](int index) const
     {
@@ -326,6 +331,16 @@ struct alignas(4) Vector3 {
     inline Vector3(Vector2 xy) : Vector3(xy,0.f) {}
     
     inline Vector3(Vector4 xyz);
+    
+    inline static Vector3 Orthogonal(const Vector3& v)
+    {
+        if (fabsf(v.x) < fabsf(v.y) && fabsf(v.x) < fabsf(v.z))
+            return Vector3::Normalize({0, -v.z, v.y});
+        else if (fabsf(v.y) < fabsf(v.z))
+            return Vector3::Normalize({-v.z, 0, v.x});
+        else
+            return Vector3::Normalize({-v.y, v.x, 0});
+    }
     
     // Cross product of two vectors, determinant of {xhat,yhat,zhat, v1, v2} 3x3 matrix
     inline static Vector3 XProduct(const Vector3& v1, const Vector3& v2)
@@ -531,6 +546,16 @@ struct alignas(4) Vector4 {
     }
     
 };
+
+inline Colour Vector4ToColour(Vector4 v)
+{
+    return Colour(v.x, v.y, v.z, v.w);
+}
+
+inline Vector4 ColourToVector4(Colour c)
+{
+    return Vector4(c.r, c.g, c.b, c.a);
+}
 
 inline Vector3::Vector3(Vector4 rhs)
 {
@@ -944,7 +969,7 @@ struct Quaternion {
         GetEuler(out.x, out.y, out.z);
     }
     
-    inline bool IsNormalized()
+    inline bool IsNormalized() const
     {
         float v1 = (Vector4{ x, y, z, w}).MagnitudeSquared();
         return v1 >= 0.95f && v1 <= 1.05f;
@@ -952,19 +977,25 @@ struct Quaternion {
     
     inline void Normalize()
     {
-        float mag = (Vector3{ x, y, z }).Magnitude();
-        x *= mag;
-        y *= mag;
-        z *= mag;
+        if(CompareFloatFuzzy(w, 1.0f, 0.01f))
+            return;
+        Float mag = sqrtf(x * x + y * y + z * z + w * w);
+        if (mag > 9.9999997e-21) {
+            Float invMag = 1.0f / mag;
+            x *= invMag;
+            y *= invMag;
+            z *= invMag;
+            w *= invMag;
+        }
     }
     
     inline Quaternion operator*(const Quaternion& rhs) const
     {
         Quaternion res{};
-        res.x = (x * rhs.w) + (rhs.x * w) + (y * rhs.z) - (z * rhs.y);
-        res.y = (y * rhs.w) + (rhs.y * w) + (z * rhs.x) - (rhs.z * x);
-        res.z = (z * rhs.w) + (rhs.z * w) + (x * rhs.y) - (y * rhs.x);
-        res.w = (w * rhs.w) - (rhs.x * w) - (rhs.y * y) - (rhs.z * z);
+        res.x = w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y;
+        res.y = w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x;
+        res.z = w * rhs.z + x * rhs.y - y * rhs.x + z * rhs.w;
+        res.w = w * rhs.w - x * rhs.x - y * rhs.y - z * rhs.z;
         return res;
     }
     
@@ -978,10 +1009,48 @@ struct Quaternion {
     static Quaternion NLerp(const Quaternion& q0, const Quaternion& q, float t);
     
     // Perform spherical interpolation
-    static Quaternion Slerp(Quaternion q, const Quaternion& q0, float t);
+    static Quaternion Slerp(Quaternion q0, const Quaternion& q1, float t);
+    
+    static Quaternion Rotate(const Vector3& from, const Vector3& to);
     
     // Creates a quaternion which rotates from va to vb
     static Quaternion BetweenVector3(const Vector3& va, const Vector3& vb);
+    
+    static inline Float Dot(const Quaternion& a, const Quaternion& b)
+    {
+        return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
+    }
+    
+    inline Quaternion operator*(Float f) const
+    {
+        return { x * f, y * f, z * f, w * f };
+    }
+    
+    inline Quaternion operator-(const Quaternion& other) const
+    {
+        return { x - other.x, y - other.y, z - other.z, w - other.w };
+    }
+    
+    inline Quaternion operator+(const Quaternion& other) const
+    {
+        return { x + other.x, y + other.y, z + other.z, w + other.w };
+    }
+    
+    inline Quaternion operator-() const
+    {
+        return { -x, -y, -z, -w };
+    }
+    
+    inline Quaternion Normalized() const
+    {
+        Float len = sqrtf(x*x + y*y + z*z + w*w);
+        if (len > 0.00001f)
+        {
+            Float invLen = 1.0f / len;
+            return { x * invLen, y * invLen, z * invLen, w * invLen };
+        }
+        return *this;
+    }
     
 };
 
@@ -996,7 +1065,7 @@ struct Transform {
     Quaternion _Rot;
     Vector3 _Trans;
     
-    inline Transform() :  _Rot{}, _Trans{} {}
+    Transform() = default;
     
     inline Transform(Quaternion rotation, Vector3 translation) : _Rot(rotation), _Trans(translation) {}
     
@@ -1011,9 +1080,9 @@ struct Transform {
     inline Transform operator/(const Transform& rhs) const
     {
         Transform res{};
-        Quaternion tmpQ{ -rhs._Rot.x,-rhs._Rot.y,-rhs._Rot.z, rhs._Rot.w };
-        res._Rot = tmpQ * _Rot;
-        res._Trans = (_Trans - rhs._Trans) * tmpQ;
+        Quaternion invRot = rhs._Rot.Conjugate().Normalized();
+        res._Rot = invRot * _Rot;
+        res._Trans = (_Trans - rhs._Trans) * invRot;
         return res;
     }
     
@@ -1024,24 +1093,30 @@ struct Transform {
         return *this;
     }
     
+    inline Transform& Normalise()
+    {
+        _Rot.Normalize();
+        return *this;
+    }
+    
     // Perform inverse
-    inline Transform operator~() const
+    Transform operator~() const
     {
         Transform ret{};
-        ret._Rot = Quaternion{ -_Rot.x, -_Rot.y,-_Rot.z, _Rot.w };
-        Vector3 tmpV = { -_Trans.x, -_Trans.y, -_Trans.z };
-        ret._Trans = tmpV * ret._Rot;
+        ret._Rot = _Rot.Conjugate().Normalized(); // should be a proper inverse
+        ret._Trans = (Vector3(-_Trans.x, -_Trans.y, -_Trans.z)) * ret._Rot;
         return ret;
     }
+
     
 };
 
 // Polar (spherical) coordinates: x = r cos(phi) sin(theta), y = r sin(phi) sin(theta), z = r cos(theta)
 struct Polar
 {
-    float mR;
-    float mTheta;
-    float mPhi;
+    Float R;
+    Float Theta;
+    Float Phi;
 };
 
 /*
@@ -1058,7 +1133,7 @@ public:
     Matrix4(Vector4 Row[4]);
     
     // input in row major order, 64 bytes, of matrix
-    inline Matrix4(float* entries)
+    inline Matrix4(Float* entries)
     {
         memcpy(_Entries, entries, 64);
     }
@@ -1081,7 +1156,7 @@ public:
     inline Vector3 TransformPoint(const Vector3& point) const
     {
         float w = point.x * _Entries[0][3] + point.y * _Entries[1][3] + point.z * _Entries[2][3] + _Entries[3][3];
-        if (w)
+        if (w != 0.0f)
         {
             const float invW = 1.0f / w;
             return Vector3((point.x * _Entries[0][0] + point.y * _Entries[1][0] + point.z * _Entries[2][0] + _Entries[3][0]) * invW,
@@ -1104,14 +1179,16 @@ public:
     //
     // Accessors
     //
-    inline float* operator [] (int Row)
+    inline Float* operator [] (U32 Row)
     {
         return _Entries[Row];
     }
-    inline const float* operator [] (int Row) const
+    
+    inline const Float* operator [] (U32 Row) const
     {
         return _Entries[Row];
     }
+    
     inline void SetColumn(U32 Column, const Vector4& Values)
     {
         _Entries[0][Column] = Values.x;
@@ -1119,6 +1196,7 @@ public:
         _Entries[2][Column] = Values.z;
         _Entries[3][Column] = Values.w;
     }
+    
     inline void SetRow(U32 Row, const Vector4& Values)
     {
         _Entries[Row][0] = Values.x;
@@ -1176,7 +1254,7 @@ public:
                                  const Vector3& Target0, const Vector3& Target1, const Vector3& Target2, const Vector3& TargetOrigin);
     static float CompareMatrices(const Matrix4& Left, const Matrix4& Right);
     
-    float _Entries[4][4];
+    Float _Entries[4][4];
 };
 
 // Matrix which rotates by quaternion
