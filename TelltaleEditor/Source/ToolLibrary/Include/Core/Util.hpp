@@ -15,6 +15,8 @@
 #include <mutex>
 #include <sstream>
 #include <cmath>
+#include <atomic>
+#include <utility>
 
 class ToolContext; // forward declaration. used a lot. see context.hpp
 class DataStream; // See DataStream.hpp
