@@ -13,7 +13,14 @@ This project uses CMake and to build everything you can use the build scripts. S
 
 This project was made possible by lots of work done by various people. 
 
-#### [Asil ('Proton')](https://github.com/asilz)
-#### [Ivan ('DarkShadow')](https://github.com/iMrShadow)
+All C++ and C implementation, and Lua Classes:
 #### [Lucas Saragosa](https://github.com/LucasSaragosa)
+
+Lua classes and CMake build system as well as UI development:
+#### [Ivan ('DarkShadow')](https://github.com/iMrShadow)
+
+Initial testing help and github workflows
+#### [Asil ('Proton')](https://github.com/asilz)
+
+Support and future help
 #### [David M.](https://github.com/frostbone25)
