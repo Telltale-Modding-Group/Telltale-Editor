@@ -19,7 +19,7 @@ LuaManager::~LuaManager()
     }
     if (_WeakRefSlot)
     {
-        _WeakRefSlot->_St.test_and_set();
+        _WeakRefSlot->_St.store(false);
         if (_WeakRefSlot->_Wk.fetch_sub(1, std::memory_order_acq_rel) == 1)
         {
             TTE_FREE(_WeakRefSlot);

@@ -2,6 +2,8 @@
 
 #include <Core/Config.hpp>
 
+#include <atomic>
+
 class DataStream;
 
 // This is the low level LUA API. This deals with calls to the lua library for compilation and running of scripts. Decompilation is also managed here
@@ -70,7 +72,7 @@ typedef int (*lua_Writer) (lua_State *L, const void* p, size_t sz, void* ud);
 
 struct LuaManagerPointerSlot
 {
-    std::atomic_flag _St{true};
+    std::atomic_bool _St{true};
     std::atomic<U32> _Wk{1};
 };
 
@@ -292,7 +294,7 @@ public:
     
     inline Bool Expired() const
     {
-        return _WeakRefSlot == nullptr || !_WeakRefSlot->_St.test();
+        return _WeakRefSlot == nullptr || !_WeakRefSlot->_St.load();
     }
     
     inline LuaManager& Get() const
@@ -329,7 +331,7 @@ public:
         {
             if (_WeakRefSlot->_Wk.fetch_sub(1, std::memory_order_acq_rel) == 1)
             {
-                if (!_WeakRefSlot->_St.test())
+                if (!_WeakRefSlot->_St.load())
                 {
                     TTE_FREE(_WeakRefSlot);
                 }
