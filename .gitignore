@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 ################################################################################
 # This .gitignore file was automatically created by Microsoft(R) Visual Studio.
 ################################################################################
@@ -16,3 +17,10 @@ TelltaleEditor/3rdparty/SDL3
 TelltaleEditor/3rdparty/SDL3
 TelltaleEditor/3rdparty/SDL3
 Dev/TestResources/Dbg/*
+.vs/*
+Bin/*
+.DS_Store
+*.exe
+*.lib
+*.a
+*.obj
