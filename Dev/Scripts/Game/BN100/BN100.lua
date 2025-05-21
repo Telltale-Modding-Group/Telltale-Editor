@@ -3,13 +3,35 @@ require("ToolLibrary/Game/VersionCRC.lua")
 
 require("ToolLibrary/Game/BN100/D3DTexture.lua")
 require("ToolLibrary/Game/BN100/D3DMesh.lua")
-require("ToolLibrary/Game/BN100/Scene.lua")
-require("ToolLibrary/Game/BN100/Dialog.lua")
+require("ToolLibrary/Game/Common/Scene.lua")
+require("ToolLibrary/Game/Common/Dialog.lua")
 require("ToolLibrary/Game/BN100/Rules.lua")
-require("ToolLibrary/Game/BN100/Audio.lua")
-require("ToolLibrary/Game/BN100/Animation.lua")
-require("ToolLibrary/Game/BN100/Chore.lua")
-require("ToolLibrary/Game/BN100/Misc.lua")
+require("ToolLibrary/Game/Common/Audio.lua")
+require("ToolLibrary/Game/Common/Animation.lua")
+require("ToolLibrary/Game/Common/Chore.lua")
+require("ToolLibrary/Game/Common/InputMapper.lua")
+
+function Bone1_GetGameDescriptor()
+	local bone1              = { Key = {} }
+	bone1.Name               = "Bone: Out from Boneville"
+	bone1.ID                 = "BN100" -- Bone Book 1 ('Out from Boneville') (100)
+	bone1.DefaultMetaVersion = "MBIN"
+	bone1.LuaVersion         = "5.0.2"
+	bone1.IsArchive2         = false
+	bone1.ArchiveVersion     = 0 -- ttarch version 0
+	-- Bone1 is released on mac and windows only
+	bone1.Key["MacOS"]       =
+	"34246C3343726C7564326553576945324F6163396C7574786C3732522D2A384931714F346F616A6C5F24652369616370342A75466C6530"
+	bone1.Key["PC"]          =
+	"81D89B9955E26573B4DBE3C963DB8587AB999BDC6EEB689FA790DDBA6AE29364A1B4A0B492D96B9CB7E3E6D168A8849F87D29498A1E871"
+	bone1.Platforms          = "PC;MacOS"
+	bone1.Vendors            = ""
+	MetaPushGameCapability(bone1, kGameCapSeparateAnimationTransform)
+	MetaPushGameCapability(bone1, kGameCapUsesLenc)
+	MetaPushGameCapability(bone1, kGameCapRawClassNames)
+	MetaRegisterGame(bone1)
+	return bone1
+end
 
 -- registers two types: one with baseclass_containerinterface and one without (vers exists for both). pass in k and v table (or k being SArray N)
 function DoRegisterBoneCollection(containerInterfaceTbl, name, k, v, fl)
@@ -17,7 +39,12 @@ function DoRegisterBoneCollection(containerInterfaceTbl, name, k, v, fl)
 	withBaseclass.Name = name
 	withBaseclass.Flags = fl
 	withBaseclass.Members = {}
-	withBaseclass.Members[1] = { Name = "Baseclass_ContainerInterface", Class = containerInterfaceTbl, Flags = kMetaMemberMemoryDisable + kMetaMemberBaseClass }
+	withBaseclass.Members[1] = {
+		Name = "Baseclass_ContainerInterface",
+		Class = containerInterfaceTbl,
+		Flags =
+			kMetaMemberMemoryDisable + kMetaMemberBaseClass
+	}
 	withBaseclass.Members[2] = { Name = "mSize", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
 	withBaseclass.Members[3] = { Name = "mCapacity", Class = kMetaInt, Flags = kMetaMemberMemoryDisable }
 	MetaRegisterCollection(withBaseclass, k, v)
@@ -70,10 +97,12 @@ function RegisterBoneKeyframedValue(ci, typedInterface, typeName, typeTable)
 	sample.Members[3] = NewMember("mValue", typeTable)
 	MetaRegisterClass(sample)
 
-	local arraySample, _ = RegisterBoneCollection(ci, "class DCArray<class KeyframedValue<" .. typeName .. ">::Sample>", nil, sample)
+	local arraySample, _ = RegisterBoneCollection(ci, "class DCArray<class KeyframedValue<" .. typeName .. ">::Sample>",
+		nil, sample)
 
 	local keyframed = NewClass("class KeyframedValue<" .. typeName .. ">", 0)
-	keyframed.Members[1] = NewMember("Baseclass_AnimatedValueInterface<T>", NewProxyClass(typedInterface.Name .. " *", "mVal", typedInterface))
+	keyframed.Members[1] = NewMember("Baseclass_AnimatedValueInterface<T>",
+		NewProxyClass(typedInterface.Name .. " *", "mVal", typedInterface))
 	keyframed.Members[2] = NewMember("mMinVal", typeTable)
 	keyframed.Members[3] = NewMember("mMaxVal", typeTable)
 	keyframed.Members[4] = NewMember("mSamples", arraySample)
@@ -83,9 +112,8 @@ function RegisterBoneKeyframedValue(ci, typedInterface, typeName, typeTable)
 end
 
 function RegisterBone100(vendor, platform)
-
-	MetaSetVersionFn("VersionCRC_V0_Bone") -- Set version CRC calculation function, before anything else.
-	MetaRegisterIntrinsics() -- First, we must register all of the intrinsic types.
+	MetaSetVersionFn("VersionCRC_V0_PointerFix") -- Set version CRC calculation function, before anything else.
+	MetaRegisterIntrinsics()                  -- First, we must register all of the intrinsic types.
 
 	MetaAssociateFolderExtension("BN100", "*.vers", "Meta/")
 	MetaAssociateFolderExtension("BN100", "*.lenc", "Scripts/")
@@ -101,81 +129,19 @@ function RegisterBone100(vendor, platform)
 	MetaVec2.Members[2] = { Name = "y", Class = kMetaFloat }
 	MetaRegisterClass(MetaVec2)
 
-	local MetaVec3 = { VersionIndex = 0 }
-	MetaVec3.Name = "class Vector3"
-	MetaVec3.Flags = kMetaClassNonBlocked
-	MetaVec3.Members = {}
-	MetaVec3.Members[1] = { Name = "x", Class = kMetaFloat }
-	MetaVec3.Members[2] = { Name = "y", Class = kMetaFloat }
-	MetaVec3.Members[3] = { Name = "z", Class = kMetaFloat }
-	MetaRegisterClass(MetaVec3)
-
-	local MetaPolar = { VersionIndex = 0 }
-	MetaPolar.Name = "class Polar"
-	MetaPolar.Members = {}
-	MetaPolar.Members[1] = { Name = "mR", Class = kMetaFloat }
-	MetaPolar.Members[2] = { Name = "mTheta", Class = kMetaFloat }
-	MetaPolar.Members[3] = { Name = "mPhi", Class = kMetaFloat }
-	MetaRegisterClass(MetaPolar)
+	local MetaVec3, MetaCol, MetaPolar, MetaRect, MetaTRectF, MetaQuat, MetaFlags, transform = RegisterIntrinsics2()
 
 	local MetaVec3Empty = { VersionIndex = 1 }
 	MetaVec3Empty.Name = "class Vector3"
-	MetaRegisterClass(MetaVec3Empty) -- empty but a vers for this type exists
-
-	local MetaCol = { VersionIndex = 0 }
-	MetaCol.Name = "class Color"
-	MetaCol.Flags = kMetaClassNonBlocked
-	MetaCol.Members = {}
-	MetaCol.Members[1] = { Name = "r", Class = kMetaFloat }
-	MetaCol.Members[2] = { Name = "g", Class = kMetaFloat }
-	MetaCol.Members[3] = { Name = "b", Class = kMetaFloat }
-	MetaCol.Members[4] = { Name = "a", Class = kMetaFloat }
-	MetaRegisterClass(MetaCol)
-
-	local MetaRect = { VersionIndex = 0 }
-	MetaRect.Name = "class Rect"
-	MetaRect.Members = {}
-	MetaRect.Flags = kMetaClassNonBlocked
-	MetaRect.Members[1] = { Name = "left", Class = kMetaInt }
-	MetaRect.Members[2] = { Name = "right", Class = kMetaInt }
-	MetaRect.Members[3] = { Name = "top", Class = kMetaInt }
-	MetaRect.Members[4] = { Name = "bottom", Class = kMetaInt }
-	MetaRegisterClass(MetaRect)
-
-	local MetaTRectF = { VersionIndex = 0 }
-	MetaTRectF.Name = "class TRect<float>"
-	MetaTRectF.Members = {}
-	MetaTRectF.Flags = kMetaClassNonBlocked
-	MetaTRectF.Members[1] = { Name = "left", Class = kMetaFloat }
-	MetaTRectF.Members[2] = { Name = "right", Class = kMetaFloat }
-	MetaTRectF.Members[3] = { Name = "top", Class = kMetaFloat }
-	MetaTRectF.Members[4] = { Name = "bottom", Class = kMetaFloat }
-	MetaRegisterClass(MetaTRectF)
-
-	local MetaQuat = { VersionIndex = 0 }
-	MetaQuat.Name = "class Quaternion"
-	MetaQuat.Flags = kMetaClassNonBlocked
-	MetaQuat.Members = {}
-	MetaQuat.Members[1] = { Name = "x", Class = kMetaFloat }
-	MetaQuat.Members[2] = { Name = "y", Class = kMetaFloat }
-	MetaQuat.Members[3] = { Name = "z", Class = kMetaFloat }
-	MetaQuat.Members[4] = { Name = "w", Class = kMetaFloat }
-	MetaRegisterClass(MetaQuat)
+	MetaRegisterClass(MetaVec3Empty)         -- empty but a vers for this type exists
 
 	local ColEmpty = NewClass("class Color", 1) -- .vers exists for empty color struct
 	MetaRegisterClass(ColEmpty)
 
-	local MetaFlags = { VersionIndex = 0 }
-	MetaFlags.Name = "class Flags"
-	MetaFlags.Flags = kMetaClassNonBlocked
-	MetaFlags.Members = {}
-	MetaFlags.Members[1] = { Name = "mFlags", Class = kMetaInt }
-	MetaRegisterClass(MetaFlags)
-
 	local MetaFlagsEmpty = NewClass("class Flags", 1)
-	MetaRegisterClass(MetaFlagsEmpty) -- empty version exists
+	MetaRegisterClass(MetaFlagsEmpty)       -- empty version exists
 
-	local MetaCI = { VersionIndex = 0 } -- baseclass for containers
+	local MetaCI = { VersionIndex = 0 }     -- baseclass for containers
 	MetaCI.Name = "class ContainerInterface *" -- see below
 	MetaCI.Flags = kMetaClassAbstract
 	MetaRegisterClass(MetaCI)
@@ -195,7 +161,7 @@ function RegisterBone100(vendor, platform)
 	local hWalkBoxes = RegisterBoneHandle("class Handle<class WalkBoxes>")
 	local hFont = RegisterBoneHandle("class Handle<class Font>")
 	local hAnimChore = RegisterBoneHandle("class Handle<class AnimOrChore>")
-	
+
 	-- array of prop file names (for parent list in prop). only list in this game, rest are arrays etc
 	local MetaHandleArrayProp = { VersionIndex = 0 }
 	MetaHandleArrayProp.Name = "class List<class Handle<class PropertySet> >"
@@ -203,14 +169,14 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterCollection(MetaHandleArrayProp, nil, hProp)
 
 	-- .PROP FILES
-	local prop = {VersionIndex = 0 }
+	local prop = { VersionIndex = 0 }
 	prop.Extension = "prop"
 	prop.Flags = kMetaClassAttachable
 	prop.Name = "class PropertySet"
 	prop.Members = {}
 	prop.Members[1] = { Name = "mPropertyFlags", Class = MetaFlags }
 	prop.Members[2] = { Name = "mParentList", Class = MetaHandleArrayProp }
-	prop.Serialiser = "SerialisePropertySet_V0"
+	prop.Serialiser = "SerialisePropertySet0"
 	MetaRegisterClass(prop)
 	MetaAssociateFolderExtension("BN100", "module_*.prop", "Properties/Modules/")
 	MetaAssociateFolderExtension("BN100", "prefs_*.prop", "Properties/Preferences/")
@@ -239,7 +205,8 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(bb)
 
 	local enumNavMode = NewClass("enum NavCam::Mode", 0)
-	enumNavMode.Flags = kMetaClassNonBlocked + kMetaClassEnumWrapper -- this is a wrapper. needed so versions match, just remaps int
+	enumNavMode.Flags = kMetaClassNonBlocked +
+		kMetaClassEnumWrapper -- this is a wrapper. needed so versions match, just remaps int
 	enumNavMode.Members[1] = NewMember("mVal", kMetaInt, kMetaMemberVersionDisable + kMetaMemberEnum)
 	AddEnum(enumNavMode, 1, "eNone", 1)
 	AddEnum(enumNavMode, 1, "eLookAt", 2)
@@ -252,24 +219,26 @@ function RegisterBone100(vendor, platform)
 
 	local navCamMode = NewClass("class Enum<enum NavCam::Mode,1,2>", 0)
 	navCamMode.Flags = kMetaClassEnumWrapper
-	navCamMode.Members[1] = NewMember("mVal", enumNavMode, kMetaMemberEnum) 
+	navCamMode.Members[1] = NewMember("mVal", enumNavMode, kMetaMemberEnum)
 	-- mVal type name for versioning must be enum NavCam::Mode, not int, so we need the wrapper above
 	MetaRegisterClass(navCamMode)
 
 	local structNavMode = MetaRegisterDuplicate(navCamMode, "struct NavCam::EnumMode", 0)
 
 	local imapMapping = NewClass("class InputMapper::EventMapping", 0)
-	imapMapping.Members[1] = NewMember("mInputCode", NewProxyClass("enum InputCode", "mVal", kMetaInt) , kMetaMemberEnum)
-	imapMapping.Members[2] = NewMember("mEvent", NewProxyClass("enum InputMapper::EventType", "mVal", kMetaInt), kMetaMemberEnum)
+	imapMapping.Members[1] = NewMember("mInputCode", NewProxyClass("enum InputCode", "mVal", kMetaInt), kMetaMemberEnum)
+	imapMapping.Members[2] = NewMember("mEvent", NewProxyClass("enum InputMapper::EventType", "mVal", kMetaInt),
+		kMetaMemberEnum)
 	imapMapping.Members[3] = NewMember("mScriptFunction", kMetaClassString, 0)
 	MetaRegisterClass(imapMapping)
 
-	local imapMappingArray, _ = RegisterBoneCollection(MetaCI, "class DCArray<class InputMapper::EventMapping>", nil, imapMapping)
+	local imapMappingArray, _ = RegisterBoneCollection(MetaCI, "class DCArray<class InputMapper::EventMapping>", nil,
+		imapMapping)
 
 	-- .IMAP FILES
 	local imap = NewClass("class InputMapper", 0)
 	imap.Extension = "imap"
-	imap.Normaliser = "NormaliseInputMapperBone1"
+	imap.Normaliser = "NormaliseInputMapper0"
 	imap.Members[1] = NewMember("mName", kMetaClassString)
 	imap.Members[2] = NewMember("mMappedEvents", imapMappingArray)
 	MetaRegisterClass(imap)
@@ -308,15 +277,11 @@ function RegisterBone100(vendor, platform)
 	rangef.Members[2] = NewMember("max", kMetaFloat)
 	MetaRegisterClass(rangef)
 
-	local transform = NewClass("class Transform", 0)
-	transform.Members[1] = NewMember("mRot", MetaQuat)
-	transform.Members[2] = NewMember("mTrans", MetaVec3)
-	MetaRegisterClass(transform)
-
 	local arrayHandleChore, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Chore> >", nil, hChore)
-	local arrayHandleAnim , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Animation> >", nil, hAnim)
-	local arrayHandleAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AnimOrChore> >", nil, hAnimChore)
-	local arrayAnimChore , _ = RegisterBoneCollection(MetaCI, "class DCArray<class AnimOrChore>", nil, animOrChore)
+	local arrayHandleAnim, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class Animation> >", nil, hAnim)
+	local arrayHandleAnimChore, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AnimOrChore> >", nil,
+		hAnimChore)
+	local arrayAnimChore, _ = RegisterBoneCollection(MetaCI, "class DCArray<class AnimOrChore>", nil, animOrChore)
 
 	local arrayClassString, _ = RegisterBoneCollection(MetaCI, "class DCArray<class String>", nil, kMetaClassString)
 
@@ -380,7 +345,7 @@ function RegisterBone100(vendor, platform)
 	-- .AUD FILES
 	local aud = NewClass("class AudioData", 0)
 	aud.Extension = "aud"
-	aud.Serialiser = "SerialiseAudBone1"
+	aud.Serialiser = "SerialiseAud0"
 	aud.Members[1] = NewMember("mFilename", kMetaClassString)
 	aud.Members[2] = NewMember("mLength", kMetaFloat)
 	aud.Members[3] = NewMember("mbStreamed", kMetaBool)
@@ -388,7 +353,8 @@ function RegisterBone100(vendor, platform)
 	aud.Members[5] = NewMember("mBytesPerSecond", kMetaInt)
 	aud.Members[6] = NewMember("mDSBufferBytes", kMetaInt) -- DataStream buffer size
 	aud.Members[7] = NewMember("mStreamInfo", audStreamed)
-	aud.Members[8] = NewMember("_mVorbisAudio", kMetaClassInternalBinaryBuffer, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	aud.Members[8] = NewMember("_mVorbisAudio", kMetaClassInternalBinaryBuffer,
+		kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	aud.Members[9] = NewMember("_mNumChannels", kMetaInt, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	aud.Members[10] = NewMember("_mSampleSizeBytes", kMetaInt, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	MetaRegisterClass(aud)
@@ -416,8 +382,8 @@ function RegisterBone100(vendor, platform)
 	local anm1 = NewClass("class Animation", 1)
 	anm1.Extension = "anm"
 	anm1.Flags = kMetaClassAttachable
-	anm1.Serialiser = "SerialiseAnimationBone1"
-	anm1.Normaliser = "NormaliseAnimationBone1"
+	anm1.Serialiser = "SerialiseAnimation0"
+	anm1.Normaliser = "NormaliseAnimation0"
 	anm1.Members[1] = NewMember("mName", kMetaClassString)
 	anm1.Members[2] = NewMember("mLength", kMetaFloat)
 	MetaRegisterClass(anm1)
@@ -427,53 +393,15 @@ function RegisterBone100(vendor, platform)
 	local anm0 = NewClass("class Animation", 0)
 	anm0.Extension = "anm"
 	anm0.Flags = kMetaClassAttachable
-	anm0.Serialiser = "SerialiseAnimationBone1"
-	anm0.Normaliser = "NormaliseAnimationBone1"
+	anm0.Serialiser = "SerialiseAnimation0"
+	anm0.Normaliser = "NormaliseAnimation0"
 	anm0.Members[1] = NewMember("mFlags", MetaFlags)
 	anm0.Members[2] = NewMember("mName", kMetaClassString)
 	anm0.Members[3] = NewMember("mLength", kMetaFloat)
 	MetaRegisterClass(anm0)
 
-	local procval = NewClass("class Procedural_LookAt_Value", 0)
-	procval.Flags = kMetaClassIntrinsic + kMetaClassNonBlocked
-	procval.Members[1] = NewMember("Baseclass_AnimatedValueInterface<Quaternion>", animatedQuat, kMetaMemberSerialiseDisable)
-	MetaRegisterClass(procval)
-
-	local proc = NewClass("class Procedural_LookAt", 0)
-	proc.Serialiser = "SerialiseProceduralLookAtBone1"
-	proc.Flags = kMetaClassIntrinsic -- none of this is in headers. also only animation is serialised?
-	proc.Members[1] = NewMember("Baseclass_Animation", NewProxyClass("class Animation *", "Animation", anm0, true))
-	proc.Members[2] = NewMember("mHostNode", kMetaClassString)
-	proc.Members[3] = NewMember("mTargetAgent", kMetaClassString)
-	proc.Members[4] = NewMember("mTargetNode", kMetaClassString)
-	proc.Members[5] = NewMember("mTargetOffset", MetaVec3)
-	MetaRegisterClass(proc)
-	
-	local quatKeys = NewClass("class CompressedQuaternionKeys", 0)
-	quatKeys.Flags = kMetaClassIntrinsic -- not in headers
-	quatKeys.Serialiser = "SerialiseCQKeysBone1"
-	quatKeys.Members[1] = NewMember("_mName", kMetaClassString, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	quatKeys.Members[2] = NewMember("_mBuffer", kMetaClassInternalBinaryBuffer, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable) -- nSamples = size / 6
-	quatKeys.Members[3] = NewMember("_mMinTime", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	quatKeys.Members[4] = NewMember("_mMaxTime", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	quatKeys.Members[5] = NewMember("_mFlags", kMetaInt, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	MetaRegisterClass(quatKeys)
-
-	local vecKeys = NewClass("class CompressedVector3Keys", 0)
-	vecKeys.Flags = kMetaClassIntrinsic -- not in headers
-	vecKeys.Serialiser = "SerialiseCVKeysBone1"
-	vecKeys.Members[1] = NewMember("_mName", kMetaClassString, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	vecKeys.Members[2] = NewMember("_mBuffer", kMetaClassInternalBinaryBuffer, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable) -- nSamples = size / 6
-	vecKeys.Members[3] = NewMember("_mMinTime", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	vecKeys.Members[4] = NewMember("_mV1X", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	vecKeys.Members[5] = NewMember("_mV1Y", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	vecKeys.Members[6] = NewMember("_mV1Z", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	vecKeys.Members[7] = NewMember("_mV2X", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	vecKeys.Members[8] = NewMember("_mV2Y", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	vecKeys.Members[9] = NewMember("_mV2Z", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	vecKeys.Members[10] = NewMember("_mFlags", kMetaInt, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	vecKeys.Members[11] = NewMember("_mMaxTime", kMetaFloat, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	MetaRegisterClass(vecKeys)
+	local proc, procval = RegisterProceduralLookAts0(MetaVec3, animatedQuat, anm0)
+	local vecKeys, quatKeys = RegisterCompressedVecAndQuats0()
 
 	-- .LANGRES FILES
 	local langr = NewClass("class LanguageResource", 0)
@@ -530,7 +458,8 @@ function RegisterBone100(vendor, platform)
 	langp1.Members[3] = NewMember("mLangID", kMetaInt)
 	MetaRegisterClass(langp1)
 
-	local mapIntLangRes, _ = RegisterBoneCollection(MetaCI, "class Map<int,class LanguageResource,struct std::less<int> >", kMetaInt, langr) -- dont change name! hashed.
+	local mapIntLangRes, _ = RegisterBoneCollection(MetaCI,
+		"class Map<int,class LanguageResource,struct std::less<int> >", kMetaInt, langr) -- dont change name! hashed.
 
 	-- .LANGDB FILES
 	local langdb = NewClass("class LanguageDatabase", 0)
@@ -590,7 +519,12 @@ function RegisterBone100(vendor, platform)
 	local setString = { VersionIndex = 0 }
 	setString.Name = "class Set<class String,struct std::less<class String> >"
 	setString.Members = {}
-	setString.Members[1] = { Name = "Baseclass_ContainerInterface", Class = MetaCI, Flags = kMetaMemberMemoryDisable + kMetaMemberBaseClass }
+	setString.Members[1] = {
+		Name = "Baseclass_ContainerInterface",
+		Class = MetaCI,
+		Flags = kMetaMemberMemoryDisable +
+			kMetaMemberBaseClass
+	}
 	MetaRegisterCollection(setString, nil, kMetaClassString)
 
 	local rules = NewClass("class Rules", 0) -- there are two other versions but they are empty (unusable files)
@@ -660,7 +594,7 @@ function RegisterBone100(vendor, platform)
 
 	local scene = NewClass("class Scene", 0)
 	scene.Extension = "scene"
-	scene.Serialiser = "SerialiseScene_Bone1"
+	scene.Serialiser = "SerialiseScene0"
 	scene.Normaliser = "NormaliseScene_Bone1"
 	scene.Members[1] = NewMember("mbHidden", kMetaBool)
 	scene.Members[2] = NewMember("mName", kMetaClassString)
@@ -668,31 +602,18 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(scene)
 	MetaAssociateFolderExtension("BN100", "*.scene", "Scenes/")
 
-	local mapStringFloat, _ = RegisterBoneCollection(MetaCI, "class Map<class String,float,struct std::less<class String> >", kMetaClassString, kMetaFloat)
+	local mapStringFloat, _ = RegisterBoneCollection(MetaCI,
+		"class Map<class String,float,struct std::less<class String> >", kMetaClassString, kMetaFloat)
 
-	local sklEntry = NewClass("class Skeleton::Entry", 0)
-	sklEntry.Members[1] = NewMember("mJointName", kMetaClassString)
-	sklEntry.Members[2] = NewMember("mParentName", kMetaClassString)
-	sklEntry.Members[3] = NewMember("mParentIndex", kMetaInt)
-	sklEntry.Members[4] = NewMember("mLocalPos", MetaVec3)
-	sklEntry.Members[5] = NewMember("mLocalQuat", MetaQuat)
-	sklEntry.Members[6] = NewMember("mRestXform", transform)
-	sklEntry.Members[7] = NewMember("mGlobalTranslationScale", MetaVec3)
-	sklEntry.Members[8] = NewMember("mLocalTranslationScale", MetaVec3)
-	sklEntry.Members[9] = NewMember("mAnimTranslationScale", MetaVec3)
-	sklEntry.Members[10] = NewMember("mResourceGroupMembership", mapStringFloat)
-	MetaRegisterClass(sklEntry)
+	local function RegisterAdapter(n, k, v)
+		RegisterBoneCollection(MetaCI, n, k, v)
+	end
 
-	local arraySklEntry, _ = RegisterBoneCollection(MetaCI, "class DCArray<class Skeleton::Entry>", nil, sklEntry)
-
-	local skl = NewClass("class Skeleton", 0)
-	skl.Extension = "skl"
-	skl.Normaliser = "NormaliseSkeletonBone1"
-	skl.Members[1] = NewMember("mEntries", arraySklEntry)
-	MetaRegisterClass(skl)
+	local skl = RegisterSkeleton0(RegisterAdapter, MetaVec3, MetaQuat, transform, mapStringFloat)
 	MetaAssociateFolderExtension("BN100", "*.skl", "Meshes/Skeletons/")
 
-	local arrayPaletteClass, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ActingPaletteClass>", nil, actingPaletteClass)
+	local arrayPaletteClass, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ActingPaletteClass>", nil,
+		actingPaletteClass)
 
 	local style0 = NewClass("class StyleGuide", 0)
 	style0.Extension = "style"
@@ -734,7 +655,7 @@ function RegisterBone100(vendor, platform)
 
 	local vox0 = NewClass("class VoiceData", 0)
 	vox0.Extension = "vox"
-	vox0.Serialiser = "SerialiseVoxBone1"
+	vox0.Serialiser = "SerialiseVox0"
 	vox0.Members[1] = NewMember("mbEncrypted", kMetaBool)
 	vox0.Members[2] = NewMember("mLength", kMetaFloat)
 	vox0.Members[3] = NewMember("mAllPacketsSize", kMetaInt)
@@ -742,20 +663,22 @@ function RegisterBone100(vendor, platform)
 	vox0.Members[5] = NewMember("mSampleRate", kMetaInt)
 	vox0.Members[6] = NewMember("mMode", kMetaInt)
 	vox0.Members[7] = NewMember("mPacketPositions", arrayDInt)
-	vox0.Members[8] = NewMember("_mPacketData", kMetaClassInternalBinaryBuffer, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vox0.Members[8] = NewMember("_mPacketData", kMetaClassInternalBinaryBuffer,
+		kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	MetaRegisterClass(vox0)
 	MetaAssociateFolderExtension("BN100", "*.vox", "Audio/Voice/")
 
 	local vox1 = NewClass("class VoiceData", 1)
 	vox1.Extension = "vox"
-	vox1.Serialiser = "SerialiseVoxBone1"
+	vox1.Serialiser = "SerialiseVox0"
 	vox1.Members[1] = NewMember("mLength", kMetaFloat)
 	vox1.Members[2] = NewMember("mAllPacketsSize", kMetaInt)
 	vox1.Members[3] = NewMember("mPacketSamples", kMetaInt)
 	vox1.Members[4] = NewMember("mSampleRate", kMetaInt)
 	vox1.Members[5] = NewMember("mMode", kMetaInt)
 	vox1.Members[6] = NewMember("mPacketPositions", arrayDInt)
-	vox1.Members[8] = NewMember("_mPacketData", kMetaClassInternalBinaryBuffer, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	vox1.Members[8] = NewMember("_mPacketData", kMetaClassInternalBinaryBuffer,
+		kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	MetaRegisterClass(vox1)
 
 	local wboxEdge = NewClass("class WalkBoxes::Edge", 0) -- there about a billion different vers file for each of these. only doing the one used
@@ -831,17 +754,13 @@ function RegisterBone100(vendor, platform)
 	choreAgent.Members[4] = NewMember("mAttachment", choreAgentAttach)
 	MetaRegisterClass(choreAgent)
 
-	local choreBlock = NewClass("class ChoreResource::Block", 0)
-	choreBlock.Members[1] = NewMember("mStartTime", kMetaFloat)
-	choreBlock.Members[2] = NewMember("mEndTime", kMetaFloat)
-	choreBlock.Members[3] = NewMember("mbLoopingBlock", kMetaBool)
-	choreBlock.Members[4] = NewMember("mScale", kMetaFloat)
-	MetaRegisterClass(choreBlock)
+	local choreBlock = RegisterChoreResourceBlock()
 
-	local arrayChoreBlock, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreResource::Block>", nil, choreBlock)
+	local arrayChoreBlock, _ = RegisterBoneCollection(MetaCI, "class DCArray<class ChoreResource::Block>", nil,
+		choreBlock)
 
 	local choreResource = NewClass("class ChoreResource", 0)
-	choreResource.Serialiser = "SerialiseChoreResourceBone1"
+	choreResource.Serialiser = "SerialiseChoreResource0"
 	choreResource.Flags = kMetaClassAttachable
 	choreResource.Members[1] = NewMember("mResName", kMetaClassString)
 	choreResource.Members[2] = NewMember("mResLength", kMetaFloat)
@@ -867,19 +786,20 @@ function RegisterBone100(vendor, platform)
 
 	local chore = NewClass("class Chore", 0)
 	chore.Extension = "chore"
-	chore.Serialiser = "SerialiseChoreBone1"
+	chore.Serialiser = "SerialiseChore0"
 	chore.Members[1] = NewMember("mName", kMetaClassString)
 	chore.Members[2] = NewMember("mbResetNavCamsOnExit", kMetaBool)
 	chore.Members[3] = NewMember("mLength", kMetaFloat)
 	chore.Members[4] = NewMember("mNumResources", kMetaInt)
 	chore.Members[5] = NewMember("mNumAgents", kMetaInt)
 	chore.Members[6] = NewMember("mResources", arrayChoreResource) -- WHY? this isnt even used.
-	chore.Members[7] = NewMember("mAgents", arrayChoreAgent) -- AGAIN THEY DONT USE THIS!
+	chore.Members[7] = NewMember("mAgents", arrayChoreAgent)    -- AGAIN THEY DONT USE THIS!
 	chore.Members[8] = NewMember("mEditorProps", prop)
 	chore.Members[9] = NewMember("mbChoreBackgroundFade", kMetaBool)
 	chore.Members[10] = NewMember("mbChoreBackgroundLoop", kMetaBool)
 	chore.Members[11] = NewMember("mChoreSceneFile", kMetaClassString)
-	chore.Members[12] = NewMember("_mResources", arrayChoreResource, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	chore.Members[12] = NewMember("_mResources", arrayChoreResource,
+		kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	chore.Members[13] = NewMember("_mAgents", arrayChoreAgent, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	MetaRegisterClass(chore)
 	MetaAssociateFolderExtension("BN100", "*.chore", "Chores/")
@@ -908,20 +828,20 @@ function RegisterBone100(vendor, platform)
 	MetaAssociateFolderExtension("BN100", "*.font", "Fonts/")
 
 	local dlgType = {}
-    dlgType.VersionIndex = 0
-    dlgType.Name = "enum DialogUtils::DialogElemT"
-    dlgType.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic + kMetaClassEnumWrapper
-    dlgType.Members = {}
-    dlgType.Members[1] = NewMember("mVal", kMetaInt, kMetaMemberVersionDisable + kMetaMemberEnum)  
+	dlgType.VersionIndex = 0
+	dlgType.Name = "enum DialogUtils::DialogElemT"
+	dlgType.Flags = kMetaClassNonBlocked + kMetaClassIntrinsic + kMetaClassEnumWrapper
+	dlgType.Members = {}
+	dlgType.Members[1] = NewMember("mVal", kMetaInt, kMetaMemberVersionDisable + kMetaMemberEnum)
 	AddEnum(dlgType, 1, "eExchange", 1)
 	AddEnum(dlgType, 1, "eItem", 2)
 	AddEnum(dlgType, 1, "eBranch", 3)
 	AddEnum(dlgType, 1, "eDialog", 4)
 	AddEnum(dlgType, 1, "eText", 5)
 	AddEnum(dlgType, 1, "eLine", 0xFEEDFACE) -- why the fu
-    MetaRegisterClass(dlgType)
+	MetaRegisterClass(dlgType)
 
-	local dlgBase = NewClass("class DialogBase", 0) -- all dialog ones have custom serialisers. 
+	local dlgBase = NewClass("class DialogBase", 0) -- all dialog ones have custom serialisers.
 	-- this really frustrates me. the version CRC for this is correct BUT the type name needs to have * for the child instances versions to match.
 	-- version crc for this is ok so solution i did is a check in the version crc. god this engine. basically theres a ' *' added to the dialog base.
 	dlgBase.Members[1] = NewMember("mDialogElemType", dlgType)
@@ -934,7 +854,7 @@ function RegisterBone100(vendor, platform)
 	dlgBase.Members[8] = NewMember("mDependentVisBranch", kMetaClassString)
 	dlgBase.Members[9] = NewMember("_mActualID", kMetaInt, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	dlgBase.Members[10] = NewMember("_mStyleRefs", arrayStyleRef, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	dlgBase.Serialiser = "SerialiseDialogBaseBone1"
+	dlgBase.Serialiser = "SerialiseDialogBase0"
 	MetaRegisterClass(dlgBase)
 
 	local dlgBranch = NewClass("class DialogBranch", 0)
@@ -994,16 +914,16 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(dlgText)
 
 	-- following arrays are not serialised or used, only used internally here to store
-	local arrDlg, _ = RegisterBoneCollection(MetaCI, "__DialogDialogArray", nil, dlgDlg) 
-	local arrBranch, _ = RegisterBoneCollection(MetaCI, "__DialogBranchArray", nil, dlgBranch) 
-	local arrItem, _ = RegisterBoneCollection(MetaCI, "__DialogItemArray", nil, dlgItem) 
-	local arrText, _ = RegisterBoneCollection(MetaCI, "__DialogTextArray", nil, dlgText) 
-	local arrExc, _ = RegisterBoneCollection(MetaCI, "__DialogExchangeArray", nil, dlgEx) 
-	local arrLine, _ = RegisterBoneCollection(MetaCI, "__DialogLineArray", nil, dlgLine) 
+	local arrDlg, _ = RegisterBoneCollection(MetaCI, "__DialogDialogArray", nil, dlgDlg)
+	local arrBranch, _ = RegisterBoneCollection(MetaCI, "__DialogBranchArray", nil, dlgBranch)
+	local arrItem, _ = RegisterBoneCollection(MetaCI, "__DialogItemArray", nil, dlgItem)
+	local arrText, _ = RegisterBoneCollection(MetaCI, "__DialogTextArray", nil, dlgText)
+	local arrExc, _ = RegisterBoneCollection(MetaCI, "__DialogExchangeArray", nil, dlgEx)
+	local arrLine, _ = RegisterBoneCollection(MetaCI, "__DialogLineArray", nil, dlgLine)
 
 	local dlg = NewClass("class DialogResource", 0)
 	dlg.Extension = "dlg"
-	dlg.Serialiser = "SerialiseDialogResourceBone1"
+	dlg.Serialiser = "SerialiseDialogResource0"
 	dlg.Members[1] = NewMember("miNextDialogID", kMetaInt)
 	dlg.Members[2] = NewMember("miNextBranchID", kMetaInt)
 	dlg.Members[3] = NewMember("miNextItemID", kMetaInt)
@@ -1024,14 +944,15 @@ function RegisterBone100(vendor, platform)
 	MetaAssociateFolderExtension("BN100", "*.dlg", "Dialogs/")
 
 	RegisterBoneCollection(MetaCI, "class DCArray<class Handle<class AudioData> >", nil, hAud)
-	RegisterBoneCollection(MetaCI, "class Map<class String,class String,struct std::less<class String> >", kMetaClassString, kMetaClassString)
+	RegisterBoneCollection(MetaCI, "class Map<class String,class String,struct std::less<class String> >",
+		kMetaClassString, kMetaClassString)
 
 	return true
 end
 
 --[=====[ Below is the contents of nametable.dat, shipped along with the macos versions. in old games, typenames didn't match on different compilers
 so they used this (before having a function which changes typenames by removing 'class ' 'std::' and stuff which worked on all platforms).
-some of this is wrong, for example 18ContainerInterface (clang format has length first for simple types) should be class ContainerInterface, but is 
+some of this is wrong, for example 18ContainerInterface (clang format has length first for simple types) should be class ContainerInterface, but is
 class ContainerInterface * (a pointer version!?)
 
 6d_bool

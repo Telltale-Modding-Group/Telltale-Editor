@@ -1,6 +1,6 @@
 -- Voice and audio
 
-function SerialiseVoxBone1(stream, instance, write)
+function SerialiseVox0(stream, instance, write)
     if not MetaSerialiseDefault(stream, instance, write) then return false end
 
     local bEncrypted = not write
@@ -24,7 +24,7 @@ function SerialiseVoxBone1(stream, instance, write)
     return true
 end
 
-function SerialiseAudBone1(stream, instance, write)
+function SerialiseAud0(stream, instance, write)
     if not MetaSerialiseDefault(stream, instance, write) then return false end
 
     if write then

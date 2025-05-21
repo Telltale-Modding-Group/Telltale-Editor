@@ -45,22 +45,14 @@ SymbolTable* SymbolTable::_ActiveTables = nullptr;
 
 Symbol SymbolFromHexString(const String& str, Bool bStrict)
 {
-    if(str.length() != 16)
+    if(str.length() != 18)
     {
-        if(str.length())
-        { // skip numbers
-            U64 result{};
-            std::istringstream iss(str);
-            iss >> std::hex >> result;
-            if(iss.fail() || !iss.eof())
-                GetRuntimeSymbols().Register(str);
-        }
         return bStrict ? Symbol() : Symbol(str);
     }
     
     // Parse the string as a hexadecimal number
     U64 result{};
-    std::istringstream iss(str);
+    std::istringstream iss(str.substr(1, 16));
     iss >> std::hex >> result;
     
     if(iss.fail() || !iss.eof())
@@ -73,11 +65,11 @@ Symbol SymbolFromHexString(const String& str, Bool bStrict)
     return result;
 }
 
-// Converts to a 16 byte hex string
+// Converts to a 16 byte hex string with <>
 String SymbolToHexString(Symbol sym)
 {
     std::ostringstream oss;
-    oss << std::setw(16) << std::setfill('0') << std::hex << std::uppercase << sym;
+    oss << "<" << std::setw(16) << std::setfill('0') << std::hex << std::uppercase << sym << ">";
     return oss.str();
 }
 

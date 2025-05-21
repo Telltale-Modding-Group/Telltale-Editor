@@ -1806,6 +1806,32 @@ namespace Meta {
         return true;
     }
     
+    String MakeSerialisedVersionInfoFileName(U32 cls, Bool bAltName)
+    {
+        U8 Buf[128]{};
+        auto it = cls ? GetInternalState().Classes.find(cls) : GetInternalState().Classes.end();
+        if(it != GetInternalState().Classes.end())
+        {
+            String name = bAltName ? MakeTypeName(it->second.Name) : it->second.Name;
+            StringReplace(name, "class ", "");
+            StringReplace(name, ":", "_");
+            StringReplace(name, "?", "_");
+            StringReplace(name, "<", "_");
+            StringReplace(name, " ", "_");
+            StringReplace(name, ">", "_");
+            StringReplace(name, "*", "_");
+            StringReplace(name, "\"", "_");
+            StringReplace(name, ",", ""); // forgotten about, no underscore.
+            String crc = StringFromInteger((I64)it->second.VersionCRC, 36, false);
+            sprintf((char*)Buf, "%s(%s).vers", name.c_str(), crc.c_str());
+            return String((CString)Buf);
+        }
+        else
+        {
+            return "";
+        }
+    }
+    
     static DataStreamRef MapDecryptingStream0(DataStreamRef& stream, U8* Buffer) // doesnt include the new 'MBIN' header
     {
         U32 z = 0, raw = 0, bf = 0;

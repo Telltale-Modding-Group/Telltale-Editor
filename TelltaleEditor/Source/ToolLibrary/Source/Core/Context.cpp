@@ -204,3 +204,52 @@ void ToolContext::Release()
         
     }
 }
+
+String StringFromInteger(I64 original_value,U32 radix, Bool is_negative)
+{
+    U8 Buf[64]{};
+    U8* out = Buf;
+    if (radix < 2 || radix > 36)
+    {
+        TTE_LOG("Invali radix");
+        return "";
+    }
+    
+    uint64_t value = static_cast<uint64_t>(original_value);
+    uint64_t written = 0;
+    
+    if (is_negative) {
+        *out++ = '-';
+        ++written;
+        value = static_cast<uint64_t>(-original_value);
+    }
+    
+    U8* digits_start = out;
+    
+    // Write digits in reverse order
+    do {
+        if (written >= 63)
+        {
+            TTE_LOG("Integer too large for buffer");
+            return "";
+        }
+        
+        uint64_t remainder = value % radix;
+        value /= radix;
+        *out++ = (remainder < 10) ? ('0' + remainder) : ('a' + remainder - 10);
+        ++written;
+        
+    } while (value != 0);
+    
+    *out = '\0';
+    
+    // Reverse the digits (excluding minus sign if present)
+    U8* left = digits_start;
+    U8* right = out - 1;
+    while (left < right)
+    {
+        std::swap(*left++, *right--);
+    }
+    
+    return String((CString)Buf);
+}

@@ -1128,6 +1128,9 @@ ResourceAddress ResourceRegistry::CreateResolvedAddress(const String& resourceNa
         path = resourceName;
     }
     
+    if(scheme != "logical" && StringStartsWith(path, "<") && path.find('>') != String::npos)
+        scheme = "logical";
+    
     // Trim leading slashes
     while (!path.empty() && path[0] == '/')
         path = path.substr(1);

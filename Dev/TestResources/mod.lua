@@ -1,34 +1,33 @@
-TTE_MountSystem("<Data>/", "/Users/lucassaragosa/Desktop/extract/Bone/", true) -- set input files
- 
-local navCam = Load("logical://<Data>/Properties/Preferences/prefs_tracker.prop") -- load a prop
+TTE_MountSystem("<Data>/", "/Users/lucassaragosa/Desktop/extract/texas/", true) -- set input files
+TTE_MountSystem("<Vers>/", "/Users/lucassaragosa/Desktop/extract/Vers/", true)
 
-function OnSomeValueUpdated(key, newValue)
-    print("Hey im updated! " .. tostring(key) .. tostring(ContainerGetNumElements(newValue)))
-end
-
-PropertyAddKeyCallback(navCam, "Prop - Some Value", OnSomeValueUpdated)
-PropertyRemoveKeyCallback(navCam, "Prop - Some Value", "OnSomeValueUpdated")
-
-PropertyCreate(navCam, "Prop - Some Value", "DCArray<String>") -- add prop
-ContainerInsertElement(PropertyGet(navCam, "Prop - Some Value"), "aabi is LAPTOP") -- set value
-
-local keys = PropertyKeys(navCam)
-
-for k,v in ipairs(keys) do
-    local value = PropertyGet(navCam, v)
-    local ptype = PropertyGetKeyType(navCam, v)
-    if type(value) == "table" then
-        print(v .. " [" .. ptype .. "] => ", TableToString(value))
-    elseif PropertyIsContainer(navCam, v) then
-        print(v .. " [" .. ptype .. "] => ")
-        local index = ContainerGetNumElements(value) - 1
-        while(index >= 0) do
-            print(v .. " " .. tostring(index) .. " " .. ContainerGetElement(value, index))
-            index = index - 1
+-- open and copy vers into vers folder
+local function SetupVersFiles()
+    local resources = ResourceGetNames("*.vers")
+    for _,res in pairs(resources) do
+        if FileExists("<Data>/" .. res) then
+            FileCopy("<Data>/" .. res, "<Vers>/" .. res)
         end
-    else
-        print(v .. " [" .. ptype .. "] => " .. tostring(value))
     end
 end
 
-Save("logical://<Data>/prefs_tracker.prop") -- modified
+-- open and copy vers into vers folder
+local function ProbeVers()
+    local classes = MetaGetClasses()
+    for _,clazz in pairs(classes) do
+        local versName = MetaGetSerialisedVersionInfoFileName(clazz, 0)
+        versName = string.gsub(versName, "%(", "")
+        versName = string.gsub(versName, "%)", "")
+        if FileExists("<Vers>/" .. versName) then
+            FileDelete("<Vers>/" .. versName)
+            print(versName .. " successfully matched")
+        end
+    end
+end
+
+local prop = Load("module_text.prop")
+local props = PropertyKeys(prop)
+for _,p in pairs(props) do
+    TTE_Log(p .. " " .. PropertyGetKeyType(prop, p))
+end
+Save("logical://<Vers>/module_text.prop")

@@ -26,7 +26,7 @@ function RegisterTXD3DMesh(vendor, hTexture)
     triangleSet.Members[8] = NewMember("mhDetailMap", hTexture)
     MetaRegisterClass(triangleSet)
 
-    local arrayTriangleSet, _ = RegisterTXCollection("class DCArray<class D3DMesh::TriangleSet>", nil,
+    local arrayTriangleSet = RegisterTXCollection("class DCArray<class D3DMesh::TriangleSet>", nil,
         triangleSet)
 
     local meshEntry = NewClass("struct D3DMesh::PaletteEntry", 0)
@@ -34,9 +34,9 @@ function RegisterTXD3DMesh(vendor, hTexture)
     meshEntry.Members[2] = NewMember("mSkeletonIndex", kMetaInt)
     MetaRegisterClass(meshEntry)
 
-    local arrayMeshPalette, _ = RegisterTXCollection("class DCArray<struct D3DMesh::PaletteEntry>", nil,
+    local arrayMeshPalette = RegisterTXCollection("class DCArray<struct D3DMesh::PaletteEntry>", nil,
         meshEntry)
-    local arrayArrayMeshPalette, _ = RegisterTXCollection(
+    local arrayArrayMeshPalette = RegisterTXCollection(
         "class DCArray<class DCArray<struct D3DMesh::PaletteEntry> >", nil, arrayMeshPalette)
 
     local vertexBuffer = NewClass("class D3DVertexBuffer", 0)
@@ -52,6 +52,7 @@ function RegisterTXD3DMesh(vendor, hTexture)
     local mesh = NewClass("class D3DMesh", 0)
     mesh.Extension = "d3dmesh"
     mesh.Serialiser = "SerialiseD3DMesh0"
+    mesh.Normaliser = "NormaliseD3DMesh0"
     mesh.Members[1] = NewMember("mName", kMetaClassString)
     mesh.Members[2] = NewMember("mbDeformable", kMetaBool)
     mesh.Members[3] = NewMember("mTriangleSets", arrayTriangleSet)

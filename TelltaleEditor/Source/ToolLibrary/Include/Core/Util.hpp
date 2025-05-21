@@ -429,6 +429,9 @@ inline void StringReplace(String& str, const String& from, const String& to, Boo
     }
 }
 
+// Radius must be 2 to 36
+String StringFromInteger(I64 original_value,U32 radix, Bool is_negative); // defined tool lib context
+
 // Removes 'class ' 'struct ' 'std::' and 'enum ' stuff. Used by telltale. Tests game caps if they strip. Defined in Context.cpp
 String MakeTypeName(String fullName);
 

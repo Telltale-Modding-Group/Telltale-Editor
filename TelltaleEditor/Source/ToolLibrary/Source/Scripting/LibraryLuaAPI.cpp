@@ -1287,6 +1287,22 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             return 1;
         }
         
+        static U32 luaMetaSVIF(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 2 || man.GetTop() == 3, "See usage of get serialised version info file name");
+            U32 clz = FindClass(man.ToString(1), man.ToInteger(2));
+            if(clz)
+            {
+                man.PushLString(MakeSerialisedVersionInfoFileName(clz, man.GetTop() >= 3 ? man.ToBool(3) : false));
+            }
+            else
+            {
+                TTE_LOG("Invalid class %s [%d]", man.ToString(1).c_str(), man.ToInteger(2));
+                man.PushNil();
+            }
+            return 1;
+        }
+        
         // instance = MetaGetMember(instance, name). attains a weak reference.
         static U32 luaMetaGetMember(LuaManager& man)
         {
@@ -1485,6 +1501,23 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             {
                 man.PushInteger(++i);
                 ScriptManager::PushSymbol(man, pair->first);
+                man.SetTable(-3);
+            }
+            return 1;
+        }
+        
+        static U32 luaMetaClasses(LuaManager& man)
+        {
+            TTE_ASSERT(man.GetTop() == 0, "Incorrect usage of MetaGetClasses");
+            std::set<String> names{};
+            for(const auto& cls: GetInternalState().Classes)
+                names.insert(cls.second.Name);
+            man.PushTable();
+            I32 i = 0;
+            for(const auto& cls: names)
+            {
+                man.PushInteger(++i);
+                man.PushLString(cls);
                 man.SetTable(-3);
             }
             return 1;
@@ -3227,6 +3260,8 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(Meta::L, "MetaGetMember", luaMetaGetMember,"instance MetaGetMember(instance, member)",
            "Obtains a weak reference (instance) to the given member variable in the given class instance in passed."
            " Pass in the name of the member variable as the second argument. ");
+    ADD_FN(Meta::L, "MetaGetClasses", luaMetaClasses, "table MetaGetClasses()",
+           "Returns a table of all the class names. Returns table indexed 1 to N. Does not take into account version numbers.");
     ADD_FN(Meta::L, "MetaSetClassValue", luaMetaSetClassValue, "nil MetaSetClassValue(instance, value)",
            "Similar to the get class function. Sets the value argument. Ensure that the type matches what you are setting it to, as it won't be casted.");
     ADD_FN(Meta::L, "MetaGetClassValue", luaMetaGetClassValue, "value MetaGetClassValue(instance)",
@@ -3263,6 +3298,9 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(Meta::L, "MetaLessThan", luaMetaLessThan, "bool MetaLessThan(instanceL, instanceR)",
            "Compares the two instances, using their less than meta operation. For intrinsic types such as floats and integers, "
            "this does the usual. Else this will return false for other types without a defined comparison operation.");
+    ADD_FN(Meta::L, "MetaGetSerialisedVersionInfoFileName", luaMetaSVIF, "string MetaGetSerialisedVersionInfoFileName(className, classVersionNumber, --[[optional]] bAltFileName)",
+           "Returns the .VERS file name for the given class. Optionally pass in to use the alternative file name (without struct etc), which is generally not used but is "
+           "done by Telltale at runtime but not saved on disk.");
     ADD_FN(Meta::L, "MetaGetChild", luaMetaGetChild, "instance MetaGetChild(instance, name)",
            "Returns a weak reference to the child instance associated with the given parent under the given name.");
     ADD_FN(Meta::L, "MetaGetNumChildren", luaMetaGetChildrenCount, "number MetaGetNumChildren(instance)",
@@ -3314,7 +3352,7 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
            "nil MetaStreamWriteString(stream, value)", "Writes the length of the stream as a 4 byte signed integer followed by the string ASCII data.");
     ADD_FN(MS, "MetaStreamWriteBool", luaMetaStreamWriteBool, "nil MetaStreamWriteBool(stream, value)", "Writes a boolean to the meta stream given.");
     ADD_FN(MS, "MetaStreamWriteSymbol", luaMetaStreamWriteSymbol, "nil MetaStreamWriteSymbol(stream, value)",
-           "Writes the symbol argument. If it is a 16 byte hex string hash, the value is represents is written, else the string"
+           "Writes the symbol argument. If it is a 16 byte hex string hash with <>, the value is represents is written, else the string"
            " is hashed on the lower case version. Note that SymbolXXX can be used to create and manage symbols.");
     ADD_FN(MS, "MetaStreamSetMainSection", luaMetaStreamSetMainSection, "nil MetaStreamSetMainSection(stream)",
            "Sets the current section to write to in stream as the main one, this is the default one and is by default where all "
@@ -3365,7 +3403,7 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
            "This size is set when you read a buffer from a meta stream - its held internally.");
     ADD_FN(MS, "MetaStreamFindClass", luaMetaStreamFindClass,"typename, versionNumber MetaStreamFindClass(stream, typeSymbol)",
            "Finds the class in the meta system associated with the given type symbol for the given meta stream. The symbol "
-           "is either a symbol (16 byte hex hash string) or a string which will be hashed. Examples of use are passing in a symbol "
+           "is either a symbol (16 byte hex hash string with <>) or a string which will be hashed. Examples of use are passing in a symbol "
            "read from the meta stream when the meta stream contains a class determined by its symbol also stored in the meta "
            "stream. Returns the class type name and version number associated. The class is found by searching the meta stream header for "
            "the type name symbol, if it is found then the returned class is one with the same version hash as in the header of the meta stream. "
@@ -3392,10 +3430,10 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
            "Clears the global symbol table. Do not use this function unless there is an explicit reason to do so: you will loose all string versions of hashes.");
     ADD_FN(LuaMisc, "SymbolCompare", luaSymbolCmp,"bool SymbolCompare(left, right)",
            "Compares if the symbol hash of left and right are equal to each other. Either or both of them can be an un-hashed string, "
-           "or any of them can be a hashed string (ie a 16 byte hex hash string).");
+           "or any of them can be a hashed string (ie a 16 byte hex hash string with <>).");
     ADD_FN(LuaMisc, "SymbolCreate", luaSymbol, "symbol SymbolCreate(string)",
            "Creates a symbol, by hashing the string argument in lower case. If the string argument "
-           "is itself a string 16 byte hex hash, it will still be hashed so be careful.");
+           "is itself a string 16 byte hex hash with <>, it will still be hashed so be careful.");
     
     // Global LUA flag constants for use in the library init scripts
     

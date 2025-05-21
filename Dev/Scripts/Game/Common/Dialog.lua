@@ -1,6 +1,6 @@
 -- Dialog Implementation
 
-function SerialiseDialogBaseBone1(stream, instance, write)
+function SerialiseDialogBase0(stream, instance, write)
     local arrayRefs = MetaGetMember(instance, "_mStyleRefs")
     local hasRefs = ContainerGetNumElements(arrayRefs) > 0
     if write and hasRefs then MetaSetClassValue(MetaGetMember(instance, "mbHasStyleGuides"), true) end
@@ -14,7 +14,7 @@ function SerialiseDialogBaseBone1(stream, instance, write)
     return true
 end
 
-function SerialiseDialogResourceBone1(stream, instance, write)
+function SerialiseDialogResource0(stream, instance, write)
     if not MetaSerialiseDefault(stream, instance, write) then
         return false
     end

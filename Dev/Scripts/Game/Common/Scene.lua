@@ -1,7 +1,7 @@
 
 -- Scene serialisation for Bone: OFB
 
-function SerialiseScene_Bone1(stream, inst, write)
+function SerialiseScene0(stream, inst, write)
     if not MetaSerialiseDefault(stream, inst, write) then
         return false
     end
@@ -20,6 +20,7 @@ function SerialiseScene_Bone1(stream, inst, write)
     return true
 end
 
+-- Bone100 has this imported thing.
 function NormaliseScene_Bone1(inst, boneScene)
     CommonSceneSetName(boneScene, MetaGetClassValue(MetaGetMember(inst, "mName")))
     CommonSceneSetHidden(boneScene, MetaGetClassValue(MetaGetMember(inst, "mbHidden")))

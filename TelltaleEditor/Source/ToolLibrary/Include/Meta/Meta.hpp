@@ -931,6 +931,9 @@ namespace Meta {
     // Performs the equality operator '==' with the left and right hand side arguments (must be same type).
     Bool PerformEquality(ClassInstance& lhs, ClassInstance& rhs);
     
+    // Returns the .VERS file name for the given class. Set the second argument to true to always use the tool type name (see MakeTypeName, no 'class ' etc)
+    String MakeSerialisedVersionInfoFileName(U32 cls, Bool bAltName = false);
+    
     // Performs the to string operator.
     String PerformToString(ClassInstance& inst);
     

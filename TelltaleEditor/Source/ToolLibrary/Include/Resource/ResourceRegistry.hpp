@@ -468,7 +468,11 @@ public:
     {
         if(!std::filesystem::is_directory(path))
         {
-            TTE_LOG("WARNING: Registry system directory '%s' does not exist!", path.c_str());
+            std::filesystem::create_directories(path);
+            if(!std::filesystem::is_directory(path))
+            {
+                TTE_LOG("WARNING: Registry system directory '%s' does not exist!", path.c_str());
+            }
         }
     }
     
@@ -1149,6 +1153,9 @@ private:
     friend U32 luaResourceArchiveIsActive(LuaManager& man);
     friend U32 luaResourceCopy(LuaManager& man);
     friend U32 luaLoad(LuaManager& man);
+    friend U32 luaFileCopy(LuaManager& man);
+    friend U32 luaFileDelete(LuaManager& man);
+    friend U32 luaFileExists(LuaManager& man);
     
     /**
      Constructor. The lua manager version passed in MUST match any game scripts lua versions being run! This is because this will run any resource sets, which may use an older version!

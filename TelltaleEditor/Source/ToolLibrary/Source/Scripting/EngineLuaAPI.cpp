@@ -657,24 +657,103 @@ static U32 luaFileExistsGlobal(LuaManager& man)
     return 1;
 }
 
-static U32 luaFileExists(LuaManager& man)
+U32 luaFileExists(LuaManager& man)
 {
     GET_REGISTRY();
-    man.PushBool(reg->ResourceExists(ScriptManager::ToSymbol(man, 1)));
+    ResourceAddress addr = reg->CreateResolvedAddress(man.ToString(1), false);
+    {
+        std::lock_guard<std::recursive_mutex> _L{reg->_Guard};
+        auto loc = reg->_Locate(addr.GetLocationName());
+        if(loc)
+        {
+            man.PushBool(loc->HasResource(addr.GetName()));
+        }
+        else
+        {
+            man.PushBool(false);
+        }
+    }
     return 1;
 }
 
-static U32 luaFileDelete(LuaManager& man)
+U32 luaFileDelete(LuaManager& man)
 {
     GET_REGISTRY();
-    reg->DeleteResource(ScriptManager::ToSymbol(man, 1));
+    ResourceAddress addr = reg->CreateResolvedAddress(man.ToString(1), false);
+    {
+        std::lock_guard<std::recursive_mutex> _L{reg->_Guard};
+        auto loc = reg->_Locate(addr.GetLocationName());
+        if(loc)
+        {
+            RegistryDirectory* dir = loc->GetConcreteDirectory();
+            if(dir)
+            {
+                dir->DeleteResource(addr.GetName());
+            }
+            else
+            {
+                TTE_LOG("At FileDelete(): the resource location is not concrete: %s", addr.GetLocationName().c_str());
+            }
+        }
+        else
+        {
+            TTE_LOG("At FileDelete(): the resource address does not exist: %s", man.ToString(1).c_str());
+        }
+    }
     return 0;
 }
 
-static U32 luaFileCopy(LuaManager& man)
+U32 luaFileCopy(LuaManager& man)
 {
     GET_REGISTRY();
-    reg->CopyResource(ScriptManager::ToSymbol(man, 1), man.ToString(2));
+    ResourceAddress addrSrc = reg->CreateResolvedAddress(man.ToString(1), false);
+    ResourceAddress addrDst = reg->CreateResolvedAddress(man.ToString(2), false);
+    {
+        std::lock_guard<std::recursive_mutex> _L{reg->_Guard};
+        auto locSrc = reg->_Locate(addrSrc.GetLocationName());
+        auto locDst = reg->_Locate(addrDst.GetLocationName());
+        if(locSrc)
+        {
+            if(locDst)
+            {
+                RegistryDirectory* dirDst = locDst->GetConcreteDirectory();
+                if(dirDst)
+                {
+                    DataStreamRef src = locSrc->LocateResource(addrSrc.GetName(), nullptr);
+                    if(src)
+                    {
+                        DataStreamRef dst = dirDst->CreateResource(addrDst.GetName());
+                        if(dst)
+                        {
+                            DataStreamManager::GetInstance()->Transfer(src, dst, src->GetSize());
+                        }
+                        else
+                        {
+                            TTE_LOG("At FileDelete(): the destination resource '%s' could not be opened (in location %s)",
+                                    addrDst.GetName().c_str(), addrDst.GetLocationName().c_str());
+                        }
+                    }
+                    else
+                    {
+                        TTE_LOG("At FileDelete(): the source resource '%s' does not exist inside resource location %s",
+                                addrSrc.GetName().c_str(), addrSrc.GetLocationName().c_str());
+                    }
+                }
+                else
+                {
+                    TTE_LOG("At FileDelete(): the destination resource location is not concrete: %s",  addrDst.GetLocationName().c_str());
+                }
+            }
+            else
+            {
+                TTE_LOG("At FileCopy(): the destination resource location does not exist: %s",  addrDst.GetLocationName().c_str());
+            }
+        }
+        else
+        {
+            TTE_LOG("At FileCopy(): the source resource location does not exist: %s", addrSrc.GetLocationName().c_str());
+        }
+    }
     return 0;
 }
 
@@ -1459,14 +1538,14 @@ LuaFunctionCollection luaGameEngine(Bool bWorker)
     PUSH_FUNC(col, "FileGetExtension", &luaFileGetExtension, "string FileGetExtension(filename)", "Removes the file extension without the dot of the given filename.");
     PUSH_FUNC(col, "FileFindFirst", &luaFileFindFirstFile, "string FileFindFirst(strMask,strPath)", "Find first file. Returns nil when done."
               " This is a legacy API function and is only here for compatibility!");
-    PUSH_FUNC(col, "FileFindNext", &luaFileFindFirstFile, "string FileFindNext(strMask)", "Find next file. Returns nil when done."
+    PUSH_FUNC(col, "FileFindNext", &luaFileFindNextFile, "string FileFindNext(strMask)", "Find next file. Returns nil when done."
               " This is a legacy API function and is only here for compatibility! The mask should be the same as the previous calls.");
     PUSH_FUNC(col, "FileExistsGlobal", &luaFileExistsGlobal, "bool FileExistsGlobal(filename)", "Checks if the global pathname (from C:/ or / in unix) exists.");
-    PUSH_FUNC(col, "FileExists", &luaFileExists, "bool FileExists(filename)", "Checks whether the file exists in the resource system. Tests all "
-              "resource locations.");
-    PUSH_FUNC(col, "FileDelete", &luaFileExistsGlobal, "nil FileDelete(filename)", "Deletes the file in the mounted resource system");
-    PUSH_FUNC(col, "FileCopy", &luaFileCopy, "nil FileCopy(srcName,dstName)", "Copies file source to file destination. Files should just be resource names without paths."
-              " The destination resource is created in the same resource location.");
+    PUSH_FUNC(col, "FileExists", &luaFileExists, "bool FileExists(fileaddr)", "Checks whether the file exists in the resource system. "
+              "Pass in the full specified address or just the file name.");
+    PUSH_FUNC(col, "FileDelete", &luaFileDelete, "nil FileDelete(addr)", "Deletes the file in the mounted resource system. Pass resource address or just file name.");
+    PUSH_FUNC(col, "FileCopy", &luaFileCopy, "nil FileCopy(srcAddr,dstAddr)", "Copies file source to file destination. Pass in the resource addresses"
+              " with schemes (default looks in master)> the destination address must be concrete so it should be logical pointing to a concrete directory.");
     
     // 'LuaContainer'
     col.Functions.push_back({"ContainerGetNumElements", &luaContainerGetNumElements,

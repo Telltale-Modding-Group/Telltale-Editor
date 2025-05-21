@@ -1,6 +1,6 @@
 -- Other implementations of bone classes
 
-function NormaliseInputMapperBone1(state, instance)
+function NormaliseInputMapper0(state, instance)
     
     CommonInputMapperSetName(state, MetaGetClassValue(MetaGetMember(instance, "mName")))
 

@@ -474,23 +474,24 @@ end
 function FileExistsGlobal(filename)
 end
 
---- Checks whether the file exists in the resource system. Tests all resource locations.
---- @param filename nil
+--- Checks whether the file exists in the resource system. Pass in the full specified address or just the file name.
+--- @param fileaddr nil
 --- @return bool
-function FileExists(filename)
+function FileExists(fileaddr)
 end
 
---- Deletes the file in the mounted resource system
---- @param filename nil
+--- Deletes the file in the mounted resource system. Pass resource address or just file name.
+--- @param addr nil
 --- @return nil
-function FileDelete(filename)
+function FileDelete(addr)
 end
 
---- Copies file source to file destination. Files should just be resource names without paths. The destination resource is created in the same resource location.
---- @param srcName nil
---- @param dstName nil
+--- Copies file source to file destination. Pass in the resource addresses with schemes (default looks in master)> the destination address must be concrete so it should be logical pointing to
+--- a concrete directory.
+--- @param srcAddr nil
+--- @param dstAddr nil
 --- @return nil
-function FileCopy(srcName, dstName)
+function FileCopy(srcAddr, dstAddr)
 end
 
 --- Get the number of elements in a container.
@@ -1068,6 +1069,11 @@ end
 function MetaGetMember(instance, member)
 end
 
+--- Returns a table of all the class names. Returns table indexed 1 to N. Does not take into account version numbers.
+--- @return table
+function MetaGetClasses()
+end
+
 --- Similar to the get class function. Sets the value argument. Ensure that the type matches what you are setting it to, as it won't be casted.
 --- @param instance nil
 --- @param value nil
@@ -1157,6 +1163,15 @@ end
 --- @param instanceR nil
 --- @return bool
 function MetaLessThan(instanceL, instanceR)
+end
+
+--- Returns the .VERS file name for the given class. Optionally pass in to use the alternative file name (without struct etc), which is generally not used but is done by
+--- Telltale at runtime but not saved on disk.
+--- @param className nil
+--- @param classVersionNumber nil
+--- @param --[[optional]] bAltFileName nil
+--- @return string
+function MetaGetSerialisedVersionInfoFileName(className, classVersionNumber, --[[optional]] bAltFileName)
 end
 
 --- Returns a weak reference to the child instance associated with the given parent under the given name.
