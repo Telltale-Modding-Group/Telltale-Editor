@@ -23,4 +23,15 @@ local function ProbeVers()
             print(versName .. " successfully matched")
         end
     end
+endend
+
+local function Test()
+    local prop = Load("module_text.prop")
+    local props = PropertyKeys(prop)
+    for _,p in pairs(props) do
+        TTE_Log(p .. " " .. PropertyGetKeyType(prop, p))
+    end
+    Save("logical://<Vers>/module_text.prop")
 end
+
+TTE_Log("Hello World")

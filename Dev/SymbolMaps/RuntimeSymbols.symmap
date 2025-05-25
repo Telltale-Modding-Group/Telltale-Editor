@@ -93,6 +93,101 @@ module_particleinversekinematics.prop
 module_sound_3d_params.prop
 module_sound_data.prop
 Runtime: Visible
+Skeleton Instance
+Skeleton File
+Skeleton Use Procedural Joint Corners
+Skeleton Leg Width
+Skeleton Arm Width
+absoluteNode
+relativeNode
+module_scene.prop
+module_animation.prop
+module_logicGroup_logicItem_dlgNode.prop
+module_sound_3d.prop
+module_agent_state.prop
+module_animation_constraints.prop
+module_camera.prop
+module_chorecorder.prop
+module_cin_rigLightRotation.prop
+module_cin_light.prop
+module_cin_lightrig.prop
+module_context_menu.prop
+module_cursor.prop
+module_decal.prop
+module_dialog.prop
+module_enlightenadaptiveprobevolume.prop
+module_enlightenautoprobevolume.prop
+module_enlightencubemap.prop
+module_cubemaptextureenv.prop
+module_enlightenprobevolume.prop
+module_enlighten.prop
+module_enlightensystem.prop
+module_env_lightgroup.prop
+module_env_light.prop
+module_environment.prop
+module_env_tile.prop
+module_footsteps.prop
+module_footsteps2.prop
+module_hls.prop
+module_lightprobe.prop
+module_light.prop
+module_lipsync.prop
+module_lookat_blocking.prop
+module_movieplayer.prop
+module_nav_cam.prop
+module_particleaffector.prop
+module_base_particleemitter.prop
+module_material_particleemitter.prop
+module_particleemitter.prop
+module_path_to.prop
+module_physicsobject.prop
+module_post_effect.prop
+module_renderable.prop
+module_rollover.prop
+module_scene_autofocus.prop
+module_scene_brush.prop
+module_scene_brushoutline.prop
+module_scene_dof.prop
+module_scene_hbao.prop
+module_scene_lightnv.prop
+module_scene_lightenv_advanced.prop
+module_scene_sslines.prop
+module_scene_tonemap.prop
+module_scene_tonemap_rgb.prop
+module_scene_viewport.prop
+module_scene_vignette.prop
+module_selectable.prop
+module_skeleton.prop
+module_sound_ambient_interface.prop
+module_soundevent_emitter.prop
+module_sound_event_preload_interface.prop
+module_sound_listener_interface.prop
+module_sound_music_interface.prop
+module_sound_reverb_interface.prop
+module_sound_sfx_interface.prop
+module_soundsnapshot.prop
+module_style.prop
+module_text.prop
+module_text2.prop
+module_trigger.prop
+module_dialog_choice.prop
+module_vfx_group.prop
+module_viewport.prop
+module_voicespeaker.prop
+module_walk_animator.prop
+module_procedural_look_at.prop
+module_style_idle_transitions.prop
+module_inversekinematicsattach.prop
+module_inversekinematics.prop
+module_legacy_material.prop
+module_decal_material.prop
+module_post_material.prop
+module_particle_material.prop
+module_material.prop
+module_particleinversekinematics.prop
+module_sound_3d_params.prop
+module_sound_data.prop
+Runtime: Visible
 uint32
 int
 uint
@@ -2764,3 +2859,226 @@ NavCam - Orbit Offset
 NavCam - Mode
 logical://<Data>/prefs_menu.prop
 Prop - Some Value
+uint32
+int
+uint
+int32
+uint64
+int64
+unsigned __int64
+long
+float
+double
+bool
+int8
+uint8
+int16
+uint16
+signed char
+char
+long double
+unsigned char
+unsigned int
+unsigned long
+unsigned short
+short
+wchar_t
+long long
+unsigned long long
+__int64
+Symbol
+class Symbol
+String
+9|Fk
+`°á=
+€Ôyk«
+°acÞ      
+__INTERNAL_BINARY_BUFFER__
+__INTERNAL_DATASTREAM_CACHE__
+class Vector2
+class Vector3
+class Polar
+class Color
+class Rect
+class TRect<float>
+class Quaternion
+class Flags
+class Transform
+class ContainerInterface *
+class Handle<class Animation>
+class Handle<class Chore>
+class Handle<class D3DMesh>
+class Handle<class D3DTexture>
+class Handle<class DialogResource>
+class Handle<class PropertySet>
+class Handle<class AudioData
+class Handle<class Scene>
+class Handle<class Skeleton>
+class Handle<class StyleGuide>
+class Handle<class VoiceData>
+class Handle<class WalkBoxes>
+class Handle<class Font>
+class Handle<class AnimOrChore>
+class List<class Handle<class PropertySet> >
+class PropertySet
+class ActorAgentMapper
+class AnimOrChore
+class BoundingBox
+enum NavCam::Mode
+class Enum<enum NavCam::Mode,1,2>
+struct NavCam::EnumMode
+enum InputCode
+enum InputMapper::EventType
+class InputMapper::EventMapping
+class DCArray<class InputMapper::EventMapping>
+class InputMapper
+class LightType
+class TextAlignmentType
+ScriptEnum:Chore
+ScriptEnum:Cursors
+ScriptEnum:Evidence Comparison
+ScriptEnum:Evidence State
+ScriptEnum:Evidence
+ScriptEnum:EvidenceUpdate
+ScriptEnum:FactLog
+ScriptEnum:Lab Equipment Type
+ScriptEnum:Location
+ScriptEnum:Reconstructions
+ScriptEnum:Suspect
+ScriptEnum:Topics
+ScriptEnum:Trinity Evidence
+ScriptEnum:Trinity Suspect
+ScriptEnum:Victim
+ScriptEnum:View
+ScriptEnum:Warrant
+ScriptEnum:Warrent
+class TRange<float>
+class DCArray<class Handle<class Chore> >
+class DCArray<class Handle<class Animation> >
+class DCArray<class Handle<class AnimOrChore> >
+class DCArray<class AnimOrChore>
+class DCArray<class String>
+enum ActingPalette::ActiveDuring
+struct ActingPalette::EnumActiveDuring
+class ActingPalette
+class DCArray<class ActingPalette>
+class ActingPaletteClass
+struct AudioData::Streamed
+class AudioData
+class AnimationValueInterfaceBase
+class AnimatedValueInterface<bool>
+class AnimatedValueInterface<class Color>
+class AnimatedValueInterface<float>
+class AnimatedValueInterface<class Quaternion>
+class AnimatedValueInterface<class String>
+class AnimatedValueInterface<class Vector3>
+class KeyframedValue<bool>::Sample
+class DCArray<class KeyframedValue<bool>::Sample>
+class AnimatedValueInterface<bool> *
+class KeyframedValue<bool>
+class KeyframedValue<class Color>::Sample
+class DCArray<class KeyframedValue<class Color>::Sample>
+class AnimatedValueInterface<class Color> *
+class KeyframedValue<class Color>
+class KeyframedValue<float>::Sample
+class DCArray<class KeyframedValue<float>::Sample>
+class AnimatedValueInterface<float> *
+class KeyframedValue<float>
+class KeyframedValue<class Quaternion>::Sample
+class DCArray<class KeyframedValue<class Quaternion>::Sample>
+class AnimatedValueInterface<class Quaternion> *
+class KeyframedValue<class Quaternion>
+class KeyframedValue<class String>::Sample
+class DCArray<class KeyframedValue<class String>::Sample>
+class AnimatedValueInterface<class String> *
+class KeyframedValue<class String>
+class KeyframedValue<class Vector3>::Sample
+class DCArray<class KeyframedValue<class Vector3>::Sample>
+class AnimatedValueInterface<class Vector3> *
+class KeyframedValue<class Vector3>
+class Animation
+class Procedural_LookAt_Value
+class Animation *
+class Procedural_LookAt
+class CompressedQuaternionKeys
+class CompressedVector3Keys
+class LanguageResource
+class LanguageResourceProxy
+class Map<int,class LanguageResource,struct std::less<int> >
+class LanguageDatabase
+struct Rule::AgentInfo
+__ArrayRuleAgents
+class Rule
+__ArrayRules
+class Set<class String,struct std::less<class String> >
+class Rules
+class SaveGame::AgentInfo
+class DCArray<class SaveGame::AgentInfo>
+class SaveGame
+class Scene::AgentInfo
+class DCArray<class Scene::AgentInfo>
+class Scene
+class Map<class String,float,struct std::less<class String> >
+class Skeleton::Entry
+class DCArray<class Skeleton::Entry>
+class Skeleton
+class DCArray<class ActingPaletteClass>
+class StyleGuide
+class DArray<bool>
+class DArray<int>
+class DCArray<int>
+class StyleGuideRef
+class DCArray<class StyleGuideRef>
+class VoiceData
+class WalkBoxes::Edge
+class SArray<int,3>
+class SArray<int,4>
+class SArray<float,3>
+class SArray<class WalkBoxes::Edge,3>
+class WalkBoxes::Tri
+class WalkBoxes::Vert
+class WalkBoxes::Quad
+class DCArray<class Vector3>
+class DCArray<class WalkBoxes::Quad>
+class DCArray<class WalkBoxes::Vert>
+class DCArray<class WalkBoxes::Tri>
+class WalkBoxes
+class ChoreAgent::Attachment
+class ChoreAgent
+class ChoreResource::Block
+class DCArray<class ChoreResource::Block>
+enum ChoreResource::AAStatus
+class ChoreResource
+class DCArray<class ChoreAgent>
+class DCArray<class ChoreResource>
+class Chore
+class D3DIndexBuffer
+class D3DMesh::TriangleSet
+class DCArray<class D3DMesh::TriangleSet>
+struct D3DMesh::PaletteEntry
+class DCArray<struct D3DMesh::PaletteEntry>
+class DCArray<class DCArray<struct D3DMesh::PaletteEntry> >
+class D3DVertexBuffer
+class D3DMesh
+class D3DTexture
+struct Font::GlyphInfo
+class DCArray<struct Font::GlyphInfo>
+class DCArray<class D3DTexture>
+class Font
+enum DialogUtils::DialogElemT
+class DialogBase
+class DialogBranch
+class DialogDialog
+class DialogExchange
+class DialogItem
+class DialogLine
+class DialogText
+__DialogDialogArray
+__DialogBranchArray
+__DialogItemArray
+__DialogTextArray
+__DialogExchangeArray
+__DialogLineArray
+class DialogResource
+class DCArray<class Handle<class AudioData> >
+class Map<class String,class String,struct std::less<class String> >

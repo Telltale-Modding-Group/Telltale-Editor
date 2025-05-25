@@ -468,9 +468,19 @@ public:
     {
         if(!std::filesystem::is_directory(path))
         {
-            std::filesystem::create_directories(path);
-            if(!std::filesystem::is_directory(path))
+            Bool bOk;
+            try
             {
+                std::filesystem::create_directories(path);
+                bOk = !std::filesystem::is_directory(path);
+            }
+            catch (...)
+            {
+                bOk = false;
+            }
+            if (!bOk)
+            {
+                RegistryDirectory::_Path = ".";
                 TTE_LOG("WARNING: Registry system directory '%s' does not exist!", path.c_str());
             }
         }

@@ -606,7 +606,7 @@ function RegisterBone100(vendor, platform)
 		"class Map<class String,float,struct std::less<class String> >", kMetaClassString, kMetaFloat)
 
 	local function RegisterAdapter(n, k, v)
-		RegisterBoneCollection(MetaCI, n, k, v)
+		return RegisterBoneCollection(MetaCI, n, k, v)
 	end
 
 	local skl = RegisterSkeleton0(RegisterAdapter, MetaVec3, MetaQuat, transform, mapStringFloat)

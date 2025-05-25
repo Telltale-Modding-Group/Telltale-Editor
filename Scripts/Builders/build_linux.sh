@@ -1,6 +1,6 @@
 #!/bin/bash
 
-cd ..
+cd ../..
 
 if test \( $# -gt 2 \);
 then

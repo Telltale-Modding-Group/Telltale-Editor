@@ -45,6 +45,10 @@ I32 CommandLine::Executor_Editor(const std::vector<TaskArgument>& args)
         {
             RenderContext context("Telltale Editor v" TTE_VERSION);
             context.PushLayer<UILayer>();
+        /*{
+            // This simple examples loads a scene and runs it
+            RenderContext context("Bone: Out from Boneville");
+>>>>>>> Stashed changes
             
             context.CapFrameRate(40); // 40 FPS cap
             Bool running = true;
@@ -54,6 +58,8 @@ I32 CommandLine::Executor_Editor(const std::vector<TaskArgument>& args)
             }
             
         }
+=======
+        }*/
         FreeEditorContext();
     }
     return 0;

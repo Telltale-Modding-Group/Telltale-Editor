@@ -13,23 +13,23 @@
 			},
 			{
 				"name": "Run TX100/PC mod.lua",
-				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game TX100 -platform PC",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game TX100 -platform PC",
 			},
 			{
 				"name": "Run BN100/MacOS mod.lua",
-				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game BN100 -platform MacOS",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game BN100 -platform MacOS",
 			},
 						{
 				"name": "Run BN100/PC mod.lua",
-				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game BN100 -platform PC",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game BN100 -platform PC",
 			},
 			{
 				"name": "Run CSI3/PS2 mod.lua",
-				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game CSI3 -platform PS2",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game CSI3 -platform PS2",
 			},
 						{
 				"name": "Run CSI3/PC mod.lua",
-				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game CSI3 -platform PC",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game CSI3 -platform PC",
 			},
 		],
 		"Lua": {

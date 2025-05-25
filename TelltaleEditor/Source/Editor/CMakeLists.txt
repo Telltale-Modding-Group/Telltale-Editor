@@ -20,6 +20,11 @@ set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "TelltaleEditor")
 set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Debug")
 set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Release")
 
+# Windows debugger directory
+if(WIN32)
+set_target_properties(${TARGET_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Debug")
+endif()
+
 function(add_copy_cmd fname thirddir target_name output_dir)
     add_custom_command(
         TARGET ${target_name} POST_BUILD
