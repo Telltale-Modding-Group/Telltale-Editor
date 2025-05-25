@@ -24,6 +24,7 @@ local function ProbeVers()
         end
     end
 endend
+end
 
 local function Test()
     local prop = Load("module_text.prop")
