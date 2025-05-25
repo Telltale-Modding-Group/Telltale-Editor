@@ -34,6 +34,45 @@ struct FunctionBase
     
 };
 
+// ===================================================================         CALLBACK LIST
+// ===================================================================
+
+// Array of callbacks.
+class Callbacks
+{
+    
+    Ptr<FunctionBase> _Cbs;
+    
+public:
+    
+    inline void CallErased(void* pArg1, U32 classArg1, void* pArg2, U32 classArg2, void* pArg3, U32 classArg3, void* Arg4, U32 classArg4)
+    {
+        Ptr<FunctionBase> fn = _Cbs;
+        while(fn)
+        {
+            fn->CallErased(pArg1, classArg1, pArg2, classArg2, pArg3, classArg3, Arg4, classArg4);
+            fn = fn->Next;
+        }
+    }
+    
+    inline void PushCallback(Ptr<FunctionBase> pCallback)
+    {
+        pCallback->Next = _Cbs;
+        _Cbs = std::move(pCallback);
+    }
+    
+    inline void Clear()
+    {
+        Ptr<FunctionBase> fn = _Cbs;
+        while(fn)
+        {
+            fn = std::move(fn->Next);
+        }
+        _Cbs.reset();
+    }
+    
+};
+
 // ===================================================================         DUMMY
 // ===================================================================
 
@@ -188,9 +227,9 @@ struct MethodImplBase : FunctionBase
     
     WeakPtr<Object> MethodObject;
     
-    inline MethodImplBase(Ptr<Object>&& pObject)
+    inline MethodImplBase(Ptr<Object> pObject)
     {
-        MethodObject = std::move(pObject);
+        MethodObject = pObject;
     }
     
 };
@@ -227,7 +266,7 @@ struct MethodImpl<Object, Placeholder, Placeholder, Placeholder, Placeholder> : 
         return pMethod && pMethod->MethodObject.lock() == this->MethodObject.lock() && this->Delegate == pMethod->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)()) : MethodImplBase<Object>(std::move(pObject))
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)()) : MethodImplBase<Object>(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
     }
@@ -266,9 +305,16 @@ struct MethodImpl<Object, Arg1, Placeholder, Placeholder, Placeholder> : MethodI
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance, Meta::ClassInstance, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Call(std::move(value1));
+        OptionalDefaultConstructible<Arg1> value1{};
+        if(value1.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Call(std::move(*value1.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -277,7 +323,7 @@ struct MethodImpl<Object, Arg1, Placeholder, Placeholder, Placeholder> : MethodI
         return pMethod && pMethod->MethodObject.lock() == this->MethodObject.lock() && this->Delegate == pMethod->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1)) : MethodImplBase<Object>(std::move(pObject))
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1)) : MethodImplBase<Object>(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
     }
@@ -315,11 +361,18 @@ struct MethodImpl<Object, Arg1, Arg2, Placeholder, Placeholder> : MethodImplBase
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{};
-        Meta::ExtractCoercableInstance(value2, arg2);
-        Call(std::move(value1), std::move(value2));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        if(value1.Get() && value2.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -328,7 +381,7 @@ struct MethodImpl<Object, Arg1, Arg2, Placeholder, Placeholder> : MethodImplBase
         return pMethod && pMethod->MethodObject.lock() == this->MethodObject.lock() && this->Delegate == pMethod->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2)) : MethodImplBase<Object>(std::move(pObject))
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2)) : MethodImplBase<Object>(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
     }
@@ -365,13 +418,20 @@ struct MethodImpl<Object, Arg1, Arg2, Arg3, Placeholder> : MethodImplBase<Object
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance arg3, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{};
-        Meta::ExtractCoercableInstance(value2, arg2);
-        Arg3 value3{};
-        Meta::ExtractCoercableInstance(value3, arg3);
-        Call(std::move(value1), std::move(value2), std::move(value3));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        OptionalDefaultConstructible<Arg3> value3{};
+        if(value1.Get() && value2.Get() && value3.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Meta::ExtractCoercableInstance(*value3.Get(), arg3);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()), std::move(*value3.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -380,7 +440,7 @@ struct MethodImpl<Object, Arg1, Arg2, Arg3, Placeholder> : MethodImplBase<Object
         return pMethod && pMethod->MethodObject.lock() == this->MethodObject.lock() && this->Delegate == pMethod->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3)) : MethodImplBase<Object>(std::move(pObject))
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3)) : MethodImplBase<Object>(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
     }
@@ -422,15 +482,22 @@ struct MethodImpl : MethodImplBase<Object>
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance arg3, Meta::ClassInstance arg4) override final
     {
         // Convert meta type pArg into the C++ Arg type
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{};
-        Meta::ExtractCoercableInstance(value2, arg2);
-        Arg3 value3{};
-        Meta::ExtractCoercableInstance(value3, arg3);
-        Arg4 value4{};
-        Meta::ExtractCoercableInstance(value4, arg4);
-        Call(std::move(value1), std::move(value2), std::move(value3), std::move(value4));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        OptionalDefaultConstructible<Arg3> value3{};
+        OptionalDefaultConstructible<Arg4> value4{};
+        if(value1.Get() && value2.Get() && value3.Get() && value4.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Meta::ExtractCoercableInstance(*value3.Get(), arg3);
+            Meta::ExtractCoercableInstance(*value4.Get(), arg4);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()), std::move(*value3.Get()), std::move(*value4.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -439,7 +506,7 @@ struct MethodImpl : MethodImplBase<Object>
         return pMethod && pMethod->MethodObject.lock() == this->MethodObject.lock() && this->Delegate == pMethod->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3, Arg4)) : MethodImplBase<Object>(std::move(pObject))
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3, Arg4)) : MethodImplBase<Object>(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
     }
@@ -490,9 +557,6 @@ struct FunctionImpl<Placeholder, Placeholder, Placeholder, Placeholder> : Functi
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance arg3, Meta::ClassInstance arg4) override final
     {
-        // Convert meta type pArg1 into the C++ Arg1 type
-        //Arg1 value{};
-        //Meta::ExtractCoercableInstance(value, arg1);
         Call();
     }
     
@@ -533,9 +597,16 @@ struct FunctionImpl<Arg1, Placeholder, Placeholder, Placeholder> : FunctionBase
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance, Meta::ClassInstance, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Call(std::move(value1));
+        OptionalDefaultConstructible<Arg1> value1{};
+        if(value1.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Call(std::move(*value1.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -575,11 +646,18 @@ struct FunctionImpl<Arg1, Arg2, Placeholder, Placeholder> : FunctionBase
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{};
-        Meta::ExtractCoercableInstance(value2, arg2);
-        Call(std::move(value1), std::move(value2));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        if(value1.Get() && value2.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -619,13 +697,20 @@ struct FunctionImpl<Arg1, Arg2, Arg3, Placeholder> : FunctionBase
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance arg3, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{};
-        Meta::ExtractCoercableInstance(value2, arg2);
-        Arg3 value3{};
-        Meta::ExtractCoercableInstance(value3, arg3);
-        Call(std::move(value1), std::move(value2), std::move(value3));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        OptionalDefaultConstructible<Arg3> value3{};
+        if(value1.Get() && value2.Get() && value3.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Meta::ExtractCoercableInstance(*value3.Get(), arg3);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()), std::move(*value3.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -664,11 +749,22 @@ struct FunctionImpl : FunctionBase
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance arg3, Meta::ClassInstance arg4) override final
     {
-        Arg1 value1{}; Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{}; Meta::ExtractCoercableInstance(value2, arg2);
-        Arg3 value3{}; Meta::ExtractCoercableInstance(value3, arg3);
-        Arg4 value4{}; Meta::ExtractCoercableInstance(value4, arg4);
-        Call(std::move(value1), std::move(value2), std::move(value3), std::move(value4));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        OptionalDefaultConstructible<Arg3> value3{};
+        OptionalDefaultConstructible<Arg4> value4{};
+        if(value1.Get() && value2.Get() && value3.Get() && value4.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Meta::ExtractCoercableInstance(*value3.Get(), arg3);
+            Meta::ExtractCoercableInstance(*value4.Get(), arg4);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()), std::move(*value3.Get()), std::move(*value4.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -708,26 +804,26 @@ template<typename T, typename U> struct _TemplArgFnWrapper<T(U)> { typedef U _FT
 
 // Allocate class function callback with no arguments
 #define ALLOCATE_METHOD_CALLBACK_0(PtrObj, MemFn, MethodClass) \
-TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, &MethodClass::MemFn)
 
 // Allocate class function callback with one argument
 #define ALLOCATE_METHOD_CALLBACK_1(PtrObj, MemFn, MethodClass, ArgType) \
- TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA ArgType>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+ TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA ArgType>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, &MethodClass::MemFn)
 
 // Allocate class function callback with 2 arguments
 #define ALLOCATE_METHOD_CALLBACK_2(PtrObj, MemFn, MethodClass, ArgType1, ArgType2) \
 TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA ArgType1 MACRO_COMMA ArgType2 \
-                                    >)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+                                    >)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, &MethodClass::MemFn)
 
 // Allocate class function callback with 3 arguments
 #define ALLOCATE_METHOD_CALLBACK_3(PtrObj, MemFn, MethodClass, ArgType1, ArgType2, ArgType3) \
 TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA ArgType1 MACRO_COMMA ArgType2 \
-                                    MACRO_COMMA ArgType3>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+                                    MACRO_COMMA ArgType3>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, &MethodClass::MemFn)
 
 // Allocate class function callback with 4 arguments
 #define ALLOCATE_METHOD_CALLBACK_4(PtrObj, MemFn, MethodClass, ArgType1, ArgType2, ArgType3, ArgType4) \
 TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA ArgType1 MACRO_COMMA ArgType2 \
-                                    MACRO_COMMA ArgType3 MACRO_COMMA ArgType4>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+                                    MACRO_COMMA ArgType3 MACRO_COMMA ArgType4>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, &MethodClass::MemFn)
 
 // Allocate static/free function callback with no arguments
 #define ALLOCATE_FUNCTION_CALLBACK_0(Fn) \

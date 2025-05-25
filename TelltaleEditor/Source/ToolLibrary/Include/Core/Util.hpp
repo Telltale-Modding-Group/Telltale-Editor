@@ -16,6 +16,7 @@
 #include <sstream>
 #include <cmath>
 #include <atomic>
+#include <type_traits>
 #include <utility>
 
 class ToolContext; // forward declaration. used a lot. see context.hpp
@@ -193,6 +194,34 @@ inline String GetFormatedTime(Float secs) {
     
     return stream.str();
 }
+
+// Helper. If T must be default constructible use this. Get wil return nullptr if not.
+template<typename T, Bool Value = std::is_default_constructible<T>::value>
+class OptionalDefaultConstructible
+{
+    
+    T _Value;
+    
+public:
+    
+    inline T* Get()
+    {
+        return &_Value;
+    }
+    
+};
+
+template<typename T>
+class OptionalDefaultConstructible<T, false>
+{
+public:
+    
+    inline T* Get()
+    {
+        return nullptr;
+    }
+    
+};
 
 // ================================================ COLLECTION UTIL ================================================
 

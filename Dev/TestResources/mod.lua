@@ -24,10 +24,3 @@ local function ProbeVers()
         end
     end
 end
-
-local prop = Load("module_text.prop")
-local props = PropertyKeys(prop)
-for _,p in pairs(props) do
-    TTE_Log(p .. " " .. PropertyGetKeyType(prop, p))
-end
-Save("logical://<Vers>/module_text.prop")

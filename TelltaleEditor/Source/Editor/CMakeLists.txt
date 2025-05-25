@@ -10,6 +10,7 @@ add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES} ${EDITOR_INLIN
 target_link_libraries(${TARGET_NAME} PRIVATE
     ToolLibrary
     SDL3::SDL3-static
+    imgui
 )
 
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)

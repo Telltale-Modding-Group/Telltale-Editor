@@ -20,6 +20,11 @@ if(NOT TARGET lua502)
     set_target_properties(lua502 PROPERTIES FOLDER ${THIRD_PARTY_FOLDER})
 endif()
 
+if(NOT TARGET imgui)
+    include(imgui/CMakeLists.txt)
+    set_target_properties(imgui PROPERTIES FOLDER ${THIRD_PARTY_FOLDER})
+endif()
+
 if(NOT TARGET fastdelegate)
     include(fastdelegate/CMakeLists.txt)
 endif()

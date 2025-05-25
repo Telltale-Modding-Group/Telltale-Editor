@@ -308,6 +308,7 @@ enum MemoryTag
     MEMORY_TAG_OBJECT_DATA, // ObjOwner::ObjData<T> see Scene header in Editor
     MEMORY_TAG_CALLBACK, // Method impl
     MEMORY_TAG_SCENE_DATA,
+    MEMORY_TAG_EDITOR_UI,
 };
 
 // each scriptable object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.

@@ -282,6 +282,9 @@ RenderContext::~RenderContext()
         _PopulateJob.Reset();
     }
     
+    _LayerStack.clear(); // clear all layer operations as they are tied with resources
+    _DeltaLayers.clear();
+    
     for(auto& locked: _LockedResources)
         locked->Unlock(*this);
     
@@ -300,8 +303,6 @@ RenderContext::~RenderContext()
     _Pipelines.clear();
     _LoadedShaders.clear();
     _AvailTransferBuffers.clear();
-    _LayerStack.clear();
-    _DeltaLayers.clear();
     
     _Frame[0].Reset(*this, UINT64_MAX);
     _Frame[1].Reset(*this, UINT64_MAX);
@@ -523,6 +524,8 @@ void RenderFrame::Reset(RenderContext& context, U64 newFrameNumber)
     Views = nullptr;
     Heap.Rollback(); // free all objects, but keep memory
     UpdateList = Heap.New<RenderFrameUpdateList>(context, *this);
+    PreRenderCallbacks.Clear();
+    PostRenderCallbacks.Clear();
 }
 
 // ============================ TEXTURES & RENDER TARGET
@@ -2163,7 +2166,12 @@ void RenderContext::_Render(Float dt, RenderCommandBuffer* pMainCommandBuffer)
     //RenderCommandBuffer* pCopyCommands = _NewCommandBuffer();
     frame.UpdateList->BeginRenderFrame(pMainCommandBuffer);
     
+    RenderFrame* pFrame = &frame;
+    frame.PreRenderCallbacks.CallErased(&pFrame, 0, nullptr, 0, nullptr, 0, nullptr, 0);
+    
     _ExecuteFrame(frame, context);
+    
+    frame.PostRenderCallbacks.CallErased(&pFrame, 0, nullptr, 0, nullptr, 0, nullptr, 0);
     
     frame.UpdateList->EndRenderFrame();
     

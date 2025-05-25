@@ -1054,7 +1054,6 @@ namespace Meta {
      */
     template<typename T> void ExtractCoercableInstance(T& out, Meta::ClassInstance& inst)
     {
-        static_assert(_Impl::_Coersion<T>::IsValid, "Extractor for T has not been implemented!");
         _Impl::_Coersion<T>::Extract(out, inst);
     }
     
@@ -1064,7 +1063,6 @@ namespace Meta {
      */
     template<typename T> void ImportCoercableInstance(const T& in, Meta::ClassInstance& inst)
     {
-        static_assert(_Impl::_Coersion<T>::IsValid, "Instance importer for T has not been implemented!");
         _Impl::_Coersion<T>::Import(in, inst);
     }
     
