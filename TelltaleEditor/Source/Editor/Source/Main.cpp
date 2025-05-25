@@ -1,7 +1,6 @@
 #include <TelltaleEditor.hpp>
 #include <Common/Scene.hpp> 
 #include <Renderer/RenderContext.hpp>
-#include <UI/UILayer.hpp>
 #include <Runtime/SceneRuntime.hpp>
 
 static void _TestScene(TelltaleEditor* editor)
@@ -44,22 +43,8 @@ I32 CommandLine::Executor_Editor(const std::vector<TaskArgument>& args)
         TelltaleEditor* editor = CreateEditorContext({"BN100","MacOS",""}, false); // editor. dont run UI yet (doesn't exist)
         {
             RenderContext context("Telltale Editor v" TTE_VERSION);
-            context.PushLayer<UILayer>();
-        /*{
-            // This simple examples loads a scene and runs it
-            RenderContext context("Bone: Out from Boneville");
->>>>>>> Stashed changes
-            
-            context.CapFrameRate(40); // 40 FPS cap
-            Bool running = true;
-            while((running = context.FrameUpdate(!running)))
-            {
-                ;
-            }
             
         }
-=======
-        }*/
         FreeEditorContext();
     }
     return 0;

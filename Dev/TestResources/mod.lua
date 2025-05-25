@@ -23,7 +23,6 @@ local function ProbeVers()
             print(versName .. " successfully matched")
         end
     end
-endend
 end
 
 local function Test()
