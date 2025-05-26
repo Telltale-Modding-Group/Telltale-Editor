@@ -231,6 +231,25 @@ Bool RenderContext::IsRowMajor()
     }
 }
 
+RenderContext::RenderContext(SDL_GPUDevice *pDevice, SDL_Window *pWindow)
+{ 
+    TTE_ASSERT(pDevice && pWindow, "Invalid arguments");
+
+    _HotResourceThresh = DEFAULT_HOT_RESOURCE_THRESHOLD;
+    _HotLockThresh = DEFAULT_LOCKED_HANDLE_THRESHOLD;
+
+    _MainFrameIndex = 0;
+    _PopulateJob = JobHandle();
+    _Frame[0].Reset(*this, 1);
+    _Frame[1].Reset(*this, 2);
+
+    _Window = pWindow;
+    _Device = pDevice;
+
+    _Flags |= RENDER_CONTEXT_AGGREGATED;
+
+}
+
 RenderContext::RenderContext(String wName, U32 cap)
 {
     TTE_ASSERT(JobScheduler::Instance, "Job scheduler has not been initialised. Ensure a ToolContext exists.");
@@ -282,6 +301,9 @@ RenderContext::~RenderContext()
         _PopulateJob.Reset();
     }
     
+    _LayerStack.clear(); // clear all layer operations as they are tied with resources
+    _DeltaLayers.clear();
+    
     for(auto& locked: _LockedResources)
         locked->Unlock(*this);
     
@@ -300,17 +322,18 @@ RenderContext::~RenderContext()
     _Pipelines.clear();
     _LoadedShaders.clear();
     _AvailTransferBuffers.clear();
-    _LayerStack.clear();
-    _DeltaLayers.clear();
     
     _Frame[0].Reset(*this, UINT64_MAX);
     _Frame[1].Reset(*this, UINT64_MAX);
     _Frame[0].Heap.ReleaseAll();
     _Frame[1].Heap.ReleaseAll();
     
-    SDL_ReleaseWindowFromGPUDevice(_Device, _Window);
-    SDL_DestroyWindow(_Window);
-    SDL_DestroyGPUDevice(_Device);
+    if ((_Flags & RENDER_CONTEXT_AGGREGATED) == 0)
+    {
+        SDL_ReleaseWindowFromGPUDevice(_Device, _Window);
+        SDL_DestroyWindow(_Window);
+        SDL_DestroyGPUDevice(_Device);
+    }
     
 }
 
@@ -523,6 +546,8 @@ void RenderFrame::Reset(RenderContext& context, U64 newFrameNumber)
     Views = nullptr;
     Heap.Rollback(); // free all objects, but keep memory
     UpdateList = Heap.New<RenderFrameUpdateList>(context, *this);
+    PreRenderCallbacks.Clear();
+    PostRenderCallbacks.Clear();
 }
 
 // ============================ TEXTURES & RENDER TARGET
@@ -2163,7 +2188,12 @@ void RenderContext::_Render(Float dt, RenderCommandBuffer* pMainCommandBuffer)
     //RenderCommandBuffer* pCopyCommands = _NewCommandBuffer();
     frame.UpdateList->BeginRenderFrame(pMainCommandBuffer);
     
+    RenderFrame* pFrame = &frame;
+    frame.PreRenderCallbacks.CallErased(&pFrame, 0, nullptr, 0, nullptr, 0, nullptr, 0);
+    
     _ExecuteFrame(frame, context);
+    
+    frame.PostRenderCallbacks.CallErased(&pFrame, 0, nullptr, 0, nullptr, 0, nullptr, 0);
     
     frame.UpdateList->EndRenderFrame();
     

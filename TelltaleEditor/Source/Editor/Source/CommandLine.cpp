@@ -517,7 +517,8 @@ namespace CommandLine
         }
         
         {
-            auto& task = tasks.emplace_back(TaskInfo{"run", "Runs the Telltale Editor application", &Executor_Editor});
+            auto& task = tasks.emplace_back(TaskInfo{"run", "Runs the Telltale Editor application. Optionally pass in the user directory for your workspace.", &Executor_Editor});
+            task.OptionalArguments.push_back({ "-userdir",ArgumentType::STRING, {"-cwd"} });
             task.DefaultTask = true;
         }
         

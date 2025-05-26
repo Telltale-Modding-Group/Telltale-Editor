@@ -10,6 +10,7 @@ add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES} ${EDITOR_INLIN
 target_link_libraries(${TARGET_NAME} PRIVATE
     ToolLibrary
     SDL3::SDL3-static
+    imgui
 )
 
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
@@ -18,6 +19,11 @@ set_target_properties(${TARGET_NAME} PROPERTIES CXX_STANDARD 17 OUTPUT_NAME "Tel
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "TelltaleEditor")
 set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Debug")
 set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Release")
+
+# Windows debugger directory
+if(WIN32)
+set_target_properties(${TARGET_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Debug")
+endif()
 
 function(add_copy_cmd fname thirddir target_name output_dir)
     add_custom_command(

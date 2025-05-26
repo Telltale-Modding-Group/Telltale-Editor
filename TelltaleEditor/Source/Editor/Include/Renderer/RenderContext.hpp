@@ -5,6 +5,7 @@
 #include <Core/Context.hpp>
 #include <Renderer/RenderAPI.hpp>
 #include <Common/Common.hpp>
+#include <Core/Callbacks.hpp>
 
 #include <vector>
 #include <set>
@@ -50,6 +51,7 @@ struct PendingDeletion
 enum RenderContextFlags
 {
     RENDER_CONTEXT_NEEDS_PURGE = 1,
+    RENDER_CONTEXT_AGGREGATED = 2, // non owning device and window
 };
 
 class RenderContext;
@@ -68,6 +70,8 @@ struct RenderFrame
     RenderTexture* BackBuffer = nullptr; // set at begin render frame internally
     
     std::vector<RenderCommandBuffer*> CommandBuffers; // command buffers which will be destroyed at frame end (render execution)
+    
+    Callbacks PreRenderCallbacks, PostRenderCallbacks; // callbacks to call on render thread. mostly used for UI layer render delegation.
     
     RenderSceneView* Views = nullptr;
     
@@ -332,7 +336,18 @@ struct RenderSceneContext
 /// Represents an execution environment for running scenes, which holds a window.
 class RenderContext : public HandleLockOwner
 {
+
+    RenderContext(SDL_GPUDevice* pDevice, SDL_Window* pWindow); // aggregate constructor
+
 public:
+
+    /**
+     * Creates a shared render context. This is the aggregated constructor and this context will not own the device and window.
+     */
+    inline static Ptr<RenderContext> CreateShared(SDL_GPUDevice *pDevice, SDL_Window *pWindow)
+    {
+        return TTE_NEW_PTR(RenderContext, MEMORY_TAG_RENDERER, pDevice, pWindow);
+    }
     
     // creates window. start rendering by calling frame update each main thread frame. frame rate cap from 1 to 120!
     RenderContext(String windowName, U32 frameRateCap = DEFAULT_FRAME_RATE_CAP);
@@ -353,6 +368,21 @@ public:
     // Pushes a layer. T must derive from RenderLayer. Include extra arguments in args, not the render context as all require that as the first arg.
     template<typename T, typename... Args>
     inline WeakPtr<T> PushLayer(Args&&... args);
+    
+    inline SDL_Window* GetWindowUnsafe()
+    {
+        return _Window;
+    }
+    
+    inline SDL_GPUDevice* GetDeviceUnsafe()
+    {
+        return _Device;
+    }
+    
+    inline SDL_GPUTextureFormat GetDeviceSwapChainFormat()
+    {
+        return _Window && _Device ? SDL_GetGPUSwapchainTextureFormat(_Device, _Window) : SDL_GPU_TEXTUREFORMAT_INVALID;
+    }
     
     // Current frame index.
     inline U64 GetCurrentFrameNumber()
@@ -475,9 +505,27 @@ public:
         _HotLockThresh = newValue;
     }
     
+    // Pushes a callback to the given frame (do this on async update) which will be asynchronously executed before other rendering commands. done in reverse order.
+    // One argument is passed in, the frame pointer.
+    inline void PushPreRenderCallback(RenderFrame& frame, Ptr<FunctionBase> cb)
+    {
+        frame.PreRenderCallbacks.PushCallback(std::move(cb));
+    }
+    
+    // Pushes a callback to the given frame (do this on async update) which will be asynchronously executed after all other rendering commands. done in reverse order.
+    // One argument is passed in, the frame pointer.
+    inline void PushPostRenderCallback(RenderFrame& frame, Ptr<FunctionBase> cb)
+    {
+        frame.PostRenderCallbacks.PushCallback(std::move(cb));
+    }
+    
     Bool DbgCheckOwned(const Ptr<Handleable> handle) const; // thread safe to check if we own this resource. if not it was not locked and should have been
     
     Bool TouchResource(const Ptr<Handleable> handle); // thread safe. locks resource. MUST! be called if using a handle in the thread frame.
+    
+    // Create and initialise new command buffer to render commands to. submit if wanted, if not it is automatically at frame end.
+    // swap chain slot is put into slot 0! This is ONLY USED BY MAIN THREAD. Only use if in a render callback.
+    RenderCommandBuffer* _NewCommandBuffer();
     
 private:
     
@@ -511,10 +559,6 @@ private:
     // Find a sampler or allocate new if doesn't exist.
     Ptr<RenderSampler> _FindSampler(RenderSampler desc);
     
-    // Create and initialise new command buffer to render commands to. submit if wanted, if not it is automatically at frame end.
-    // swap chain slot is put into slot 0!
-    RenderCommandBuffer* _NewCommandBuffer();
-    
     // find a shader, load if needed and not previously loaded.]
     Ptr<RenderShader> _FindShader(String name, RenderShaderType);
     
@@ -529,9 +573,6 @@ private:
     void _PurgeColdResources(RenderFrame*); // free resources kept for too long
     
     std::vector<Ptr<Handleable>> _PurgeColdLocks(); // main thread call. unlocks returned ones, and removes from locked array into return
-    
-    // Draws a render command
-    void _Draw(RenderFrame& frame, RenderInst inst, RenderCommandBuffer& cmds);
     
     // dont create desc but fill in its params. finds by hash. will create one if not found - lazy
     Ptr<RenderPipelineState> _FindPipelineState(RenderPipelineState desc);

@@ -2,6 +2,7 @@
 
 #include <set>
 #include <vector>
+#include <unordered_map>
 
 #include <Core/Config.hpp>
 #include <Core/Context.hpp>
@@ -153,6 +154,51 @@ private:
 };
 
 Bool AsyncTTETaskDelegate(const JobThread& thread, void* argA, void* argB);
+
+// User properties. Not related to any Telltale systems or files, only use for properties at runtime.
+class TTEProperties
+{
+public:
+
+    // Create a TTE properties from its physical file location on disc.
+    void Load(ResourceURL URI);
+
+    TTEProperties();
+
+    void Save(); // Save to disc.
+
+    I32 GetInteger(const String& key, I32 orDefault);
+
+    String GetString(const String& key, String orDefault);
+
+    void SetInteger(const String& key, I32 value);
+
+    void SetString(const String& key, const String& value);
+
+    std::vector<String> GetStringArray(const String& key);
+
+    void AddArray(const String& key, const String& value);
+
+    void RemoveArray(const String& key, const String& value);
+
+    void Remove(const String& key);
+
+    void Clear();
+
+    // Returns true if the props were read OK.
+    Bool GetLoadState() const;
+
+private:
+
+    ResourceURL _URI;
+
+    std::unordered_map<String, I32> _IntKeys;
+    std::unordered_map<String, String> _StringKeys;
+    std::unordered_map<String, std::vector<String>> _StringArrayKeys;
+
+    Bool _LoadState;
+
+};
 
 // Command line helpers
 namespace CommandLine
