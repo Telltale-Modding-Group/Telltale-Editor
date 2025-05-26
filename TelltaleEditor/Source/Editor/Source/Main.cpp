@@ -2,6 +2,7 @@
 #include <Common/Scene.hpp> 
 #include <Renderer/RenderContext.hpp>
 #include <Runtime/SceneRuntime.hpp>
+#include <UI/ApplicationUI.hpp>
 
 static void _TestScene(TelltaleEditor* editor)
 {
@@ -36,18 +37,11 @@ static void _TestScene(TelltaleEditor* editor)
         ;
 }
 
-// Run full application, with optional GUI
+// Run full application
 I32 CommandLine::Executor_Editor(const std::vector<TaskArgument>& args)
 {
-    {
-        TelltaleEditor* editor = CreateEditorContext({"BN100","MacOS",""}, false); // editor. dont run UI yet (doesn't exist)
-        {
-            RenderContext context("Telltale Editor v" TTE_VERSION);
-            
-        }
-        FreeEditorContext();
-    }
-    return 0;
+    ApplicationUI App{};
+    return App.Run(args);
 }
 
 int main(int argc, char** argv)

@@ -51,6 +51,7 @@ struct PendingDeletion
 enum RenderContextFlags
 {
     RENDER_CONTEXT_NEEDS_PURGE = 1,
+    RENDER_CONTEXT_AGGREGATED = 2, // non owning device and window
 };
 
 class RenderContext;
@@ -335,7 +336,18 @@ struct RenderSceneContext
 /// Represents an execution environment for running scenes, which holds a window.
 class RenderContext : public HandleLockOwner
 {
+
+    RenderContext(SDL_GPUDevice* pDevice, SDL_Window* pWindow); // aggregate constructor
+
 public:
+
+    /**
+     * Creates a shared render context. This is the aggregated constructor and this context will not own the device and window.
+     */
+    inline static Ptr<RenderContext> CreateShared(SDL_GPUDevice *pDevice, SDL_Window *pWindow)
+    {
+        return TTE_NEW_PTR(RenderContext, MEMORY_TAG_RENDERER, pDevice, pWindow);
+    }
     
     // creates window. start rendering by calling frame update each main thread frame. frame rate cap from 1 to 120!
     RenderContext(String windowName, U32 frameRateCap = DEFAULT_FRAME_RATE_CAP);
@@ -561,9 +573,6 @@ private:
     void _PurgeColdResources(RenderFrame*); // free resources kept for too long
     
     std::vector<Ptr<Handleable>> _PurgeColdLocks(); // main thread call. unlocks returned ones, and removes from locked array into return
-    
-    // Draws a render command
-    void _Draw(RenderFrame& frame, RenderInst inst, RenderCommandBuffer& cmds);
     
     // dont create desc but fill in its params. finds by hash. will create one if not found - lazy
     Ptr<RenderPipelineState> _FindPipelineState(RenderPipelineState desc);

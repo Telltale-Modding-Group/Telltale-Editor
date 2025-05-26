@@ -2,6 +2,11 @@
 #include <Resource/ResourceRegistry.hpp>
 #include <Meta/Meta.hpp>
 
+#include <sstream>
+#include <stdio.h>
+#include <fstream>
+#include <filesystem>
+
 // ===================================================================         UTIL
 // ===================================================================
 
@@ -36,6 +41,59 @@ String MakeTypeName(String fullName)
         StringReplace(fullName, " ", "");
     }
     return fullName;
+}
+
+static std::stringstream _ConsoleCache{};
+static Bool _ConsoleCaching = false;
+static char _ConsoleLogTemp[2048]{};
+static std::mutex _ConsoleGuard{};
+
+void ToggleLoggerCache(Bool bOnOff)
+{
+    _ConsoleGuard.lock();
+    _ConsoleCaching = bOnOff;
+    _ConsoleGuard.unlock();
+}
+
+void DumpLoggerCache(CString fileStr)
+{
+	_ConsoleGuard.lock();
+
+	std::filesystem::path p{ fileStr };
+	p = std::filesystem::absolute(p);
+
+	std::ofstream outFile(p);
+	if (outFile.is_open())
+	{
+		outFile << _ConsoleCache.str();
+		outFile.close();
+	}
+
+	_ConsoleGuard.unlock();
+}
+
+void LogConsole(CString Msg, ...)
+{
+	_ConsoleGuard.lock();
+    {
+	    va_list va{};
+	    va_start(va, Msg);
+	    int len = vsnprintf(_ConsoleLogTemp, 2048, Msg, va);
+	    va_end(va);
+
+	    // Check if we need a new line
+        printf("%s", _ConsoleLogTemp);
+	    if (len > 0 && _ConsoleLogTemp[len - 1] != '\n')
+		    printf("\n");
+
+        if(_ConsoleCaching)
+        {
+			_ConsoleCache << _ConsoleLogTemp;
+			if (_ConsoleLogTemp[len - 1] != '\n')
+				_ConsoleCache << '\n';
+        }
+    }
+	_ConsoleGuard.unlock();
 }
 
 // ===================================================================         TOOL CONTEXT

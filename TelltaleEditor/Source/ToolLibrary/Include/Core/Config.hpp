@@ -16,26 +16,15 @@
 // ===================================================================        LOGGING
 // ===================================================================
 
-#ifdef DEBUG
+#ifndef TTE_DISABLE_LOGGING
 
-// Helper logging functions, if VA_ARGS is empty overloading is used to not do anything. In the future make this more sophisticated, log to UI and files.
 inline void LogConsole() {}
 
-inline void LogConsole(CString Msg, ...)
-{
-    static std::mutex _Guard{}; // used for \n not coming up because of interleaved calls multithreaded
-    _Guard.lock();
-    va_list va{};
-    va_start(va, Msg);
-    vprintf(Msg, va);
-    va_end(va);
-    
-    // Check if we need a new line
-    size_t len = strlen(Msg);
-    if(len && Msg[len-1] != '\n')
-        printf("\n");
-    _Guard.unlock();
-}
+void LogConsole(CString Msg, ...); // Defined in Context.cpp
+
+void ToggleLoggerCache(Bool bOnOff); // Switch on logging caching. You can call dump log after this and everthing between these calls will be put into the text file.
+
+void DumpLoggerCache(CString file); // Dumps all cached log. Pass in the absolute path
 
 // In DEBUG, simply log any messages simply to the console. Adds a newline character. This is a workaround so empty VA_ARGS works ok. If changing
 // printf, change assert to.
@@ -43,7 +32,7 @@ inline void LogConsole(CString Msg, ...)
 
 #else
 
-// In RELEASE, no logging.
+// No logging.
 #define TTE_LOG(_, ...)
 
 #endif
@@ -113,6 +102,11 @@ TTE_LOG(__VA_ARGS__); \
  * @brief Sets a breakpoint
  */
 void DebugBreakpoint();
+
+/**
+ * @brief Shows a message box and waits.
+ */
+void PlatformMessageBoxAndWait(const String& title, const String& message);
 
 // ===================================================================         HANDLEABLE (DEFINED IN RESOURCE REGISTRY)
 // ===================================================================         Defined here as needed everywhere!

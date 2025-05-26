@@ -2,6 +2,8 @@
 #include <Renderer/RenderContext.hpp>
 #include <Core/Symbol.hpp>
 
+#include <sstream>
+
 void luaCompleteGameEngine(LuaFunctionCollection& Col); // Full game engine (Telltale). See LuaGameEngine.cpp
 
 extern Float kDefaultContribution[256];
@@ -255,6 +257,221 @@ Bool TelltaleEditor::QuickSpecialise(Ptr<Handleable> pCommonInstance, Meta::Clas
         return InstanceTransformation::PerformSpecialiseAsync(pCommonInstance, instance, GetThreadLVM());
     }
     return false;
+}
+
+Bool TTEProperties::GetLoadState() const
+{
+    return _LoadState;
+}
+
+TTEProperties::TTEProperties() : _URI{}, _LoadState(true) {}
+
+void TTEProperties::Load(ResourceURL physicalURI)
+{
+    _LoadState = true;
+    _URI = std::move(physicalURI);
+    U8* Temp{};
+    // Load user properties file
+    DataStreamRef inputStream = DataStreamManager::GetInstance()->CreateFileStream(_URI);
+    String stringParse{};
+    Temp = TTE_ALLOC(inputStream->GetSize()+1, MEMORY_TAG_TEMPORARY);
+    Temp[inputStream->GetSize()] = 0;
+    inputStream->Read(Temp, inputStream->GetSize());
+    stringParse = (CString)Temp;
+    TTE_FREE(Temp);
+    // PARSE
+
+	std::istringstream stream(stringParse);
+	String line;
+	String currentKey;
+	std::vector<std::string> currentArrayValues;
+    Bool bInArray = false;
+
+	while (std::getline(stream, line))
+	{
+		line = StringTrim(line);
+
+		if (line.empty() || line[0] == '#')
+            continue;
+
+        if(bInArray)
+        {
+            String value = StringTrim(line);
+            if(value.length())
+            {
+                Bool bLast = value[value.length() - 1] != ',';
+                if(!bLast)
+                    value = value.substr(0, value.length() - 1);
+                currentArrayValues.push_back(std::move(value));
+                if(bLast)
+                {
+					if (!std::getline(stream, line) || StringTrim(line) != "]")
+					{
+						_LoadState = false;
+						TTE_LOG("Could not read properties file: at terminator for string array key '%s': expected a ']' on a new line", currentKey.c_str());
+						return;
+					}
+                    bInArray = false;
+                    _StringArrayKeys[currentKey] = std::move(currentArrayValues);
+                    continue;
+                }
+            }
+        }
+        else if (line[0] == '[')
+		{
+            currentKey = StringTrim(line.substr(3, line.find(":") - 3));
+            String value = StringTrim(line.substr(line.find(":") + 1));
+			if (line[1] == 'S')
+			{
+				_StringKeys[currentKey] = value;
+			}
+			else if (line[1] == 'I')
+			{
+				_IntKeys[currentKey] = std::stoi(value);
+			}
+			else if (line[1] == 'A')
+			{
+                bInArray = true;
+                if(!std::getline(stream, line) || StringTrim(line) != "[")
+                {
+					_LoadState = false;
+					TTE_LOG("Could not read properties file: near string array key '%s': expected a '[' on a new line", currentKey.c_str());
+					return;
+                }
+			}
+            else
+            {
+                _LoadState = false;
+                TTE_LOG("Could not read properties file: near string '%s': unknown or invalid property type", line.c_str());
+                return;
+            }
+		}
+        else
+        {
+			_LoadState = false;
+			TTE_LOG("Could not read properties file: near string '%s': unexpected tokens, did you forget a '#'?", line.c_str());
+			return;
+        }
+	}
+}
+
+static void WriteStr(DataStreamRef& outStream, String str)
+{
+    outStream->Write((const U8*)str.c_str(), str.length());
+}
+
+void TTEProperties::Save()
+{
+    DataStreamRef outStream = DataStreamManager::GetInstance()->CreateFileStream(_URI);
+    WriteStr(outStream, "# Telltale Editor Properties file (with v" TTE_VERSION ")\n\n");
+    for(const auto& p: _StringKeys)
+    {
+        WriteStr(outStream, "[S] ");
+        WriteStr(outStream, p.first);
+        WriteStr(outStream, ": ");
+        WriteStr(outStream, p.second);
+        WriteStr(outStream, "\n");
+    }
+	for (const auto& p : _IntKeys)
+	{
+		WriteStr(outStream, "[I] ");
+		WriteStr(outStream, p.first);
+		WriteStr(outStream, ": ");
+        std::ostringstream s{};
+        s << p.second;
+		WriteStr(outStream, s.str());
+		WriteStr(outStream, "\n");
+	}
+	for (const auto& p : _StringArrayKeys)
+	{
+		WriteStr(outStream, "[A] ");
+		WriteStr(outStream, p.first);
+		WriteStr(outStream, ": \n[");
+        Bool bFirst = true;
+		for(const auto& a: p.second)
+        {
+            if(!bFirst)
+            {
+                WriteStr(outStream, ",\n\t");
+            }
+            else
+            {
+                WriteStr(outStream, "\n\t");
+                bFirst = false;
+            }
+            WriteStr(outStream, a);
+        }
+		WriteStr(outStream, "\n]\n");
+    }
+}
+
+I32 TTEProperties::GetInteger(const String& key, I32 def)
+{
+	for (auto it = _IntKeys.find(key); it != _IntKeys.end(); it = _IntKeys.end())
+		return it->second;
+    return def;
+}
+
+String TTEProperties::GetString(const String& key, String def)
+{
+	for (auto it = _StringKeys.find(key); it != _StringKeys.end(); it = _StringKeys.end())
+		return it->second;
+    return def;
+}
+
+void TTEProperties::SetInteger(const String& key, I32 value)
+{
+    _IntKeys[key] = value;
+}
+
+void TTEProperties::SetString(const String& key, const String& value)
+{
+	_StringKeys[key] = value;
+}
+
+std::vector<String> TTEProperties::GetStringArray(const String& key)
+{
+    for (auto it = _StringArrayKeys.find(key); it != _StringArrayKeys.end(); it = _StringArrayKeys.end())
+        return it->second;
+    return {};
+}
+
+void TTEProperties::AddArray(const String& key, const String& value)
+{
+    if(_StringArrayKeys.find(key) == _StringArrayKeys.end())
+        _StringArrayKeys[key].push_back(value);
+}
+
+void TTEProperties::RemoveArray(const String& key, const String& value)
+{
+	for (auto it = _StringArrayKeys.find(key); it != _StringArrayKeys.end(); it = _StringArrayKeys.end())
+    {
+        for(auto it2 = it->second.begin(); it2 != it->second.end(); it2++)
+        {
+            if(CompareCaseInsensitive(*it2, value))
+            {
+                it->second.erase(it2);
+                return;
+            }
+        }
+    }
+}
+
+void TTEProperties::Remove(const String& key)
+{
+    for(auto it = _IntKeys.find(key); it != _IntKeys.end(); it = _IntKeys.end())
+        _IntKeys.erase(it);
+	for (auto it = _StringKeys.find(key); it != _StringKeys.end(); it = _StringKeys.end())
+		_StringKeys.erase(it);
+	for (auto it = _StringArrayKeys.find(key); it != _StringArrayKeys.end(); it = _StringArrayKeys.end())
+		_StringArrayKeys.erase(it);
+}
+
+void TTEProperties::Clear()
+{
+    _IntKeys.clear();
+    _StringKeys.clear();
+    _StringArrayKeys.clear();
 }
 
 #undef _TTE_SYMBOLS_HPP

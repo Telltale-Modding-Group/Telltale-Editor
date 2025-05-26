@@ -39,6 +39,11 @@ void SetThreadName(const String &tName)
 #pragma warning(pop)
 }
 
+void PlatformMessageBoxAndWait(const String& title, const String& message)
+{
+    MessageBoxA(nullptr, message.c_str(), title.c_str(), MB_OK | MB_ICONINFORMATION);
+}
+
 void ThreadSleep(U64 milliseconds) { ::Sleep(milliseconds); }
 
 void DebugBreakpoint() { __debugbreak(); }

@@ -231,6 +231,25 @@ Bool RenderContext::IsRowMajor()
     }
 }
 
+RenderContext::RenderContext(SDL_GPUDevice *pDevice, SDL_Window *pWindow)
+{ 
+    TTE_ASSERT(pDevice && pWindow, "Invalid arguments");
+
+    _HotResourceThresh = DEFAULT_HOT_RESOURCE_THRESHOLD;
+    _HotLockThresh = DEFAULT_LOCKED_HANDLE_THRESHOLD;
+
+    _MainFrameIndex = 0;
+    _PopulateJob = JobHandle();
+    _Frame[0].Reset(*this, 1);
+    _Frame[1].Reset(*this, 2);
+
+    _Window = pWindow;
+    _Device = pDevice;
+
+    _Flags |= RENDER_CONTEXT_AGGREGATED;
+
+}
+
 RenderContext::RenderContext(String wName, U32 cap)
 {
     TTE_ASSERT(JobScheduler::Instance, "Job scheduler has not been initialised. Ensure a ToolContext exists.");
@@ -309,9 +328,12 @@ RenderContext::~RenderContext()
     _Frame[0].Heap.ReleaseAll();
     _Frame[1].Heap.ReleaseAll();
     
-    SDL_ReleaseWindowFromGPUDevice(_Device, _Window);
-    SDL_DestroyWindow(_Window);
-    SDL_DestroyGPUDevice(_Device);
+    if ((_Flags & RENDER_CONTEXT_AGGREGATED) == 0)
+    {
+        SDL_ReleaseWindowFromGPUDevice(_Device, _Window);
+        SDL_DestroyWindow(_Window);
+        SDL_DestroyGPUDevice(_Device);
+    }
     
 }
 

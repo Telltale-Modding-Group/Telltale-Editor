@@ -1,0 +1,2 @@
+# Telltale Editor Properties file (with v1.0.0)
+

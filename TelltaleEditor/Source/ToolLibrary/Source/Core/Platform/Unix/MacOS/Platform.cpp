@@ -18,6 +18,12 @@ void ThreadSleep(U64 milliseconds)
 
 void SetThreadName(const String &tName) { (void)pthread_setname_np(tName.c_str()); }
 
+void PlatformMessageBoxAndWait(const String& title, const String& message)
+{
+    String command = "osascript -e 'display dialog \"" + message + "\" with title \"" + title + "\" buttons {\"OK\"}'";
+    system(command.c_str());
+}
+
 void DebugBreakpoint() { (void)raise(SIGINT); }
 
 // FILE STREAMS
