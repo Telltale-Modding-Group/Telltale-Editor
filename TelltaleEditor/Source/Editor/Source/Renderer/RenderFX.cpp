@@ -329,7 +329,7 @@ U32 RenderEffectCache::_ResolveExistingRef(RenderEffectRef ref)
     RenderEffectProgram findme{};
     findme.EffectHash = ref.EffectHash;
     RenderEffectProgram* resolved = std::lower_bound(start, last, findme);
-    return resolved == last ? UINT32_MAX : (resolved - start);
+    return resolved == last ? UINT32_MAX : (U32)(resolved - start);
 }
 
 // CREATE SDL SHADER
@@ -484,7 +484,7 @@ String RenderEffectCache::_ParseFX(const String& fxStr, U8* pParameterSlotsOut, 
     {
         if(ShaderParametersInfo[*it].Class == ShaderParameterTypeClass::UNIFORM_BUFFER && pParameterSlotsOut[*it] == 0xFF)
         {
-            TTE_LOG("FX Parser error for variant %s: uniform buffer %s not declared as input at any point but is required", fxName, ShaderParametersInfo[*it].Name);
+            TTE_LOG("FX Parser error for variant %s: uniform buffer %s not declared as input at any point but is required", fxName.c_str(), ShaderParametersInfo[*it].Name);
             return "";
         }
     }
@@ -496,7 +496,7 @@ String RenderEffectCache::_ParseFX(const String& fxStr, U8* pParameterSlotsOut, 
     {
         if (ShaderParametersInfo[*it].Class == ShaderParameterTypeClass::GENERIC_BUFFER && pParameterSlotsOut[*it] == 0xFF)
         {
-            TTE_LOG("FX Parser error for variant %s: uniform buffer %s not declared as input at any point but is required", fxName, ShaderParametersInfo[*it].Name);
+            TTE_LOG("FX Parser error for variant %s: uniform buffer %s not declared as input at any point but is required", fxName.c_str(), ShaderParametersInfo[*it].Name);
             return "";
         }
     }
@@ -511,7 +511,7 @@ String RenderEffectCache::_ParseFX(const String& fxStr, U8* pParameterSlotsOut, 
     {
         if (ShaderParametersInfo[*it].Class == ShaderParameterTypeClass::SAMPLER && pParameterSlotsOut[*it] == 0xFF)
         {
-            TTE_LOG("FX Parser error for variant %s: texture/sampler %s not declared as input at any point but is required", fxName, ShaderParametersInfo[*it].Name);
+            TTE_LOG("FX Parser error for variant %s: texture/sampler %s not declared as input at any point but is required", fxName.c_str(), ShaderParametersInfo[*it].Name);
             return "";
         }
     }

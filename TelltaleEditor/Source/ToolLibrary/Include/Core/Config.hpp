@@ -345,6 +345,17 @@ struct GameSnapshot
 // ===================================================================         COMMON CLASS INFO (ALL ARE IN EDITOR SUB-PROJECT BUT HERE FOR API)
 // ===================================================================
 
+template<typename T> inline Ptr<Handleable> AllocateCommon(Ptr<ResourceRegistry> registry)
+{
+    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
+    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, registry);
+}
+
+template<> inline Ptr<Handleable> AllocateCommon<Placeholder>(Ptr<ResourceRegistry>)
+{
+    return {};
+}
+
 class ResourceRegistry;
 class LuaFunctionCollection;
 

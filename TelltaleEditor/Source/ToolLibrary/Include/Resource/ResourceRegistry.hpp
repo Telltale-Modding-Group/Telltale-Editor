@@ -32,17 +32,6 @@
 
 // ================================================== RESOURCE LIFETIME MANAGEMENT ==================================================
 
-template<typename T> inline Ptr<Handleable> AllocateCommon(Ptr<ResourceRegistry> registry)
-{
-    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
-    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, registry);
-}
-
-template<> inline Ptr<Handleable> AllocateCommon<Placeholder>(Ptr<ResourceRegistry>)
-{
-    return {};
-}
-
 template<typename T>
 inline HandleableRegistered<T>::HandleableRegistered(Ptr<ResourceRegistry> reg) : Handleable(std::move(reg))
 {
