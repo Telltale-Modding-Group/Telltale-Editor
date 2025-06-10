@@ -1,5 +1,10 @@
-TTE_MountSystem("<Data>/", "D:/Games/Bone - Out from Boneville/26_06_2007/Pack/data/", true) -- set input files
-TTE_MountSystem("<Vers>/", "c:/Users/lucas/Desktop/extract/Vers/", true)
+if TTE_GetPlatform() == "Windows" then
+    TTE_MountSystem("<Data>/", "D:/Games/Bone - Out from Boneville/26_06_2007/Pack/data/", true) -- set input files
+    TTE_MountSystem("<Vers>/", "c:/Users/lucas/Desktop/extract/Vers/", true)
+else
+    TTE_MountSystem("<Data>/", "/Users/lucassaragosa/Desktop/Game/Boneville/StreamedData_Mac/", true) -- set input files
+    TTE_MountSystem("<Vers>/", "/users/lucassaragosa/desktop/versprobe/", true)
+end
 
 -- open and copy vers into vers folder
 local function SetupVersFiles()
@@ -16,6 +21,7 @@ end
 
 -- open and copy vers into vers folder
 local function ProbeVers()
+    TTE_Log("Probing version file info")
     local classes = MetaGetClasses()
     for _,clazz in pairs(classes) do
         local versName = MetaGetSerialisedVersionInfoFileName(clazz, 0)

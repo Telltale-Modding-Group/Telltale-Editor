@@ -3083,6 +3083,17 @@ namespace TTE
         return 1;
     }
     
+    static U32 luaGetPlatform(LuaManager& man)
+    {
+        if(man.GetTop() != 0)
+        {
+            TTE_LOG("At GetPlatform: did not expect arguments");
+            return 0;
+        }
+        man.PushLString(PLATFORM_NAME);
+        return 1;
+    }
+    
     static U32 luaTableToCollection(LuaManager& man)
     {
         if(man.GetTop() != 2)
@@ -3217,6 +3228,9 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
         "will throw an assert and break in the debugger"
     });
     Col.Functions.push_back({"TTE_Log", &TTE::luaLog, "nil TTE_Log(valueStr)", "Logs to the editor logger, the string argument."});
+    Col.Functions.push_back({"TTE_GetPlatform", &TTE::luaGetPlatform, "string TTE_GetPlatform()", "Gets the platform name which the Telltale Editor"
+        " is running on. This will return strings 'Windows' or 'MacOS', 'Linux' and etc for others in the future."
+    });
     
     // REGISTER META API
     

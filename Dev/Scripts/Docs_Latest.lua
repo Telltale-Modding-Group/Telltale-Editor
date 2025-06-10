@@ -895,6 +895,11 @@ end
 function TTE_Log(valueStr)
 end
 
+--- Gets the platform name which the Telltale Editor is running on. This will return strings 'Windows' or 'MacOS', 'Linux' and etc for others in the future.
+--- @return string
+function TTE_GetPlatform()
+end
+
 --- This is used in the Games.lua script to register a game to the Meta system on initialisation. It takes in a table which must have keys string Name, string ID,
 --- bool ModifiedEncryption, string DefaultMetaVersion,string LuaVersion, int/table ArchiveVersion, string/table Key, bool IsArchive2, table Platforms, table Vendors and pushed capabilities. Archive
 --- version and key are either one static key/version or a table of snapshot ID to it. This is just 'Platform/Vendor' if there are more than just the default (empty string)
@@ -1513,165 +1518,49 @@ end
 function SymbolCreate(string)
 end
 
---- Intrinsic signed 8-bit integer
+--- Game capabilities
 --- @type number
-kMetaInt8 = 0
+kGameCapRawClassNames = 0
 
---- Class is attachable
+--- Game capabilities
 --- @type number
-kMetaClassAttachable = 0
+kGameCapUsesLenc = 0
 
---- Class is not blocked
+--- Game capabilities
 --- @type number
-kMetaClassNonBlocked = 0
-
---- Container flag
---- @type number
-kMetaClassContainer = 0
-
---- Alias for signed 64-bit integer
---- @type number
-kMeta__Int64 = 0
-
---- Class is intrinsic
---- @type number
-kMetaClassIntrinsic = 0
-
---- Can be serialised asynchronously
---- @type number
-kMetaClassAllowAsync = 0
-
---- Is an enum wrapper class. Should have one member (normally mVal), as integer value.
---- @type number
-kMetaClassEnumWrapper = 0
-
---- Alias for signed 8-bit integer
---- @type number
-kMetaChar = 0
-
---- Proxy class disables member blocking
---- @type number
-kMetaClassProxy = 0
-
---- Member is a flag
---- @type number
-kMetaMemberFlag = 0
-
---- Class is abstract
---- @type number
-kMetaClassAbstract = 0
-
---- Member is an enum
---- @type number
-kMetaMemberEnum = 0
-
---- Member is excluded from disk
---- @type number
-kMetaMemberSerialiseDisable = 0
-
---- Member is a base class
---- @type number
-kMetaMemberBaseClass = 0
-
---- Internal data stream cache class
---- @type number
-kMetaClassInternalDataStreamCache = 0
-
---- Member is excluded from memory
---- @type number
-kMetaMemberMemoryDisable = 0
-
---- Excluded from version hash
---- @type number
-kMetaMemberVersionDisable = 0
-
---- Intrinsic 64-bit floating point
---- @type number
-kMetaDouble = 0
-
---- Intrinsic unsigned 32-bit integer
---- @type number
-kMetaUInt32 = 0
-
---- Intrinsic signed 32-bit integer
---- @type number
-kMetaInt = 0
-
---- Intrinsic signed 16-bit integer
---- @type number
-kMetaInt16 = 0
-
---- Alias for unsigned 32-bit integer
---- @type number
-kMetaUInt = 0
-
---- Alias for signed 32-bit integer
---- @type number
-kMetaInt32 = 0
-
---- Intrinsic unsigned 64-bit integer
---- @type number
-kMetaUInt64 = 0
-
---- Intrinsic signed 64-bit integer
---- @type number
-kMetaInt64 = 0
-
---- Alias for unsigned 64-bit integer
---- @type number
-kMeta__UnsignedInt64 = 0
-
---- Alias for unsigned 32-bit integer
---- @type number
-kMetaUnsignedInt = 0
-
---- Alias for signed 32-bit integer (Windows)
---- @type number
-kMetaLong = 0
-
---- Intrinsic 32-bit floating point
---- @type number
-kMetaFloat = 0
-
---- Intrinsic boolean type
---- @type number
-kMetaBool = 0
-
---- Alias for signed 8-bit integer
---- @type number
-kMetaSignedChar = 0
-
---- Intrinsic unsigned 8-bit integer
---- @type number
-kMetaUnsignedInt8 = 0
+kGameCapAllowTransitionMaps = 0
 
 --- Intrinsic String type
 --- @type number
 kMetaString = 0
 
---- Intrinsic unsigned 16-bit integer
+--- Member is a flag
 --- @type number
-kMetaUnsignedInt16 = 0
+kMetaMemberFlag = 0
 
---- Alias for 64-bit float (double)
+--- Intrinsic Symbol type
 --- @type number
-kMetaLongDoubler = 0
-
---- Alias for unsigned 8-bit integer
---- @type number
-kMetaUnsignedChar = 0
+kMetaSymbol = 0
 
 --- Alias for unsigned 32-bit integer
 --- @type number
 kMetaUnsignedLong = 0
 
+--- Alias for unsigned 8-bit integer
+--- @type number
+kMetaUnsignedChar = 0
+
+--- Alias for unsigned 64-bit integer
+--- @type number
+kMetaUnsignedLongLong = 0
+
 --- Game capabilities
 --- @type number
-kGameCapRawClassNames = 0
+kGameCapSeparateAnimationTransform = 0
 
---- Alias for unsigned 16-bit integer
+--- Alias for signed 64-bit integer
 --- @type number
-kMetaUnsignedShort = 0
+kMeta__Int64 = 0
 
 --- Alias for signed 64-bit integer
 --- @type number
@@ -1681,25 +1570,105 @@ kMetaLongLong = 0
 --- @type number
 kMetaShort = 0
 
+--- Alias for 64-bit float (double)
+--- @type number
+kMetaLongDoubler = 0
+
+--- Alias for signed 8-bit integer
+--- @type number
+kMetaChar = 0
+
+--- Class is not blocked
+--- @type number
+kMetaClassNonBlocked = 0
+
+--- Intrinsic signed 16-bit integer
+--- @type number
+kMetaInt16 = 0
+
+--- Alias for signed 8-bit integer
+--- @type number
+kMetaSignedChar = 0
+
+--- Intrinsic unsigned 8-bit integer
+--- @type number
+kMetaUnsignedInt8 = 0
+
+--- Is an enum wrapper class. Should have one member (normally mVal), as integer value.
+--- @type number
+kMetaClassEnumWrapper = 0
+
+--- Intrinsic signed 8-bit integer
+--- @type number
+kMetaInt8 = 0
+
+--- Member is an enum
+--- @type number
+kMetaMemberEnum = 0
+
+--- Alias for signed 32-bit integer (Windows)
+--- @type number
+kMetaLong = 0
+
+--- Intrinsic 64-bit floating point
+--- @type number
+kMetaDouble = 0
+
+--- Alias for unsigned 64-bit integer
+--- @type number
+kMeta__UnsignedInt64 = 0
+
+--- Intrinsic signed 64-bit integer
+--- @type number
+kMetaInt64 = 0
+
+--- Intrinsic boolean type
+--- @type number
+kMetaBool = 0
+
+--- Excluded from version hash
+--- @type number
+kMetaMemberVersionDisable = 0
+
+--- Alias for unsigned 32-bit integer
+--- @type number
+kMetaUInt = 0
+
+--- Intrinsic signed 32-bit integer
+--- @type number
+kMetaInt = 0
+
+--- Member is excluded from disk
+--- @type number
+kMetaMemberSerialiseDisable = 0
+
+--- Internal data stream cache class
+--- @type number
+kMetaClassInternalDataStreamCache = 0
+
+--- Intrinsic 32-bit floating point
+--- @type number
+kMetaFloat = 0
+
+--- Member is excluded from memory
+--- @type number
+kMetaMemberMemoryDisable = 0
+
+--- Alias for signed 32-bit integer
+--- @type number
+kMetaInt32 = 0
+
 --- Wide character (typically UTF-16)
 --- @type number
 kMetaWideChar = 0
 
---- Alias for unsigned 64-bit integer
+--- Container flag
 --- @type number
-kMetaUnsignedLongLong = 0
+kMetaClassContainer = 0
 
---- Internal binary buffer class
+--- Game capabilities
 --- @type number
-kMetaClassInternalBinaryBuffer = 0
-
---- Intrinsic Symbol type
---- @type number
-kMetaSymbol = 0
-
---- Intrinsic Symbol type with class prefix
---- @type number
-kMetaClassSymbol = 0
+kGameCapNoScriptEncryption = 0
 
 --- Intrinsic String type with class prefix
 --- @type number
@@ -1707,23 +1676,59 @@ kMetaClassString = 0
 
 --- Game capabilities
 --- @type number
-kGameCapSeparateAnimationTransform = 0
-
---- Game capabilities
---- @type number
-kGameCapNoScriptEncryption = 0
-
---- Game capabilities
---- @type number
-kGameCapAllowTransitionMaps = 0
-
---- Game capabilities
---- @type number
 kGameCapUsesLocationInfo = 0
 
---- Game capabilities
+--- Proxy class disables member blocking
 --- @type number
-kGameCapUsesLenc = 0
+kMetaClassProxy = 0
+
+--- Can be serialised asynchronously
+--- @type number
+kMetaClassAllowAsync = 0
+
+--- Class is intrinsic
+--- @type number
+kMetaClassIntrinsic = 0
+
+--- Alias for unsigned 32-bit integer
+--- @type number
+kMetaUnsignedInt = 0
+
+--- Internal binary buffer class
+--- @type number
+kMetaClassInternalBinaryBuffer = 0
+
+--- Intrinsic unsigned 64-bit integer
+--- @type number
+kMetaUInt64 = 0
+
+--- Alias for unsigned 16-bit integer
+--- @type number
+kMetaUnsignedShort = 0
+
+--- Class is abstract
+--- @type number
+kMetaClassAbstract = 0
+
+--- Member is a base class
+--- @type number
+kMetaMemberBaseClass = 0
+
+--- Intrinsic Symbol type with class prefix
+--- @type number
+kMetaClassSymbol = 0
+
+--- Intrinsic unsigned 16-bit integer
+--- @type number
+kMetaUnsignedInt16 = 0
+
+--- Class is attachable
+--- @type number
+kMetaClassAttachable = 0
+
+--- Intrinsic unsigned 32-bit integer
+--- @type number
+kMetaUInt32 = 0
 
 --- Set the common mesh name
 --- @param state nil
@@ -2010,137 +2015,153 @@ end
 function CommonSkeletonPushEntry(state, entryInfoTable)
 end
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshUByte4Norm = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshInt2 = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshFloat1 = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshInt1 = 0
+kAnimationValueTypeExplicitCompoundValue = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeAudioSurroundDir = 0
+kAnimationValueTypeAudioFMODParameter = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshByte2 = 0
+kAnimationValueTypeAudioPitch = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshFloat2 = 0
+kAnimationValueTypeAudioPan = 0
 
---- Common class types
+--- Animation value types
 --- @type number
-kCommonClassAnimation = 0
+kAnimationValueTypeTextureRotateOriginV = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshFloat3 = 0
+kAnimationValueTypeTextureScaleOriginU = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshByte4 = 0
+kAnimationValueTypeTextureOverride = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshFloat4 = 0
+kAnimationValueTypeTextureScaleV = 0
 
---- Mesh compressed format involving unsigned approximated normed normal vector3 values
+--- Animation value types
 --- @type number
-kCommonMeshCompressedFormatUNormNormalAprox = 0
+kAnimationValueTypeTextureScaleU = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshInt3 = 0
+kAnimationValueTypeAudioLowPassFilter = 0
 
---- Surface formats
+--- Animation value types
 --- @type number
-kCommonTextureFormatRGBA8 = 0
+kAnimationValueTypeTextureMoveV = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshFormatUnknown = 0
+kAnimationValueTypeSkeletonPose = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshInt4 = 0
+kAnimationValueTypeProperty = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshUInt1 = 0
+kAnimationValueTypeMover = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshUInt2 = 0
+kAnimationValueTypeSkeletal = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshUInt3 = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUInt4 = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUByte2 = 0
+kAnimationValueTypeAudioLowFreqSend = 0
 
 --- Animation value types
 --- @type number
 kAnimationValueTypeContribution = 0
 
---- Vertex attribute formats
+--- Legacy normed quaternion compressed keys (0)
 --- @type number
-kCommonMeshUByte4 = 0
+kCompressedQuatKeysFormatLegacy0 = 0
 
---- BGR'X' resolvable texture format. 'X' is unused and set to opaque.
+--- Trigger on event begin or end
 --- @type number
-kCommonTextureResolvableFormatBGRX = 0
+kCommonInputMapperTypeBeginOrEnd = 0
 
---- Surface formats
+--- Trigger when an event begins
 --- @type number
-kCommonTextureFormatBGRA8 = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUByte2Norm = 0
-
---- Common class types
---- @type number
-kCommonClassTexture = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshByte2Norm = 0
+kCommonInputMapperTypeBegin = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTextureScaleOriginV = 0
+kAnimationValueTypeAudioReverbDry = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTime = 0
+
+--- Trigger when an event ends
+--- @type number
+kCommonInputMapperTypeEnd = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeUVDiffuse = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeColour = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTargetedMover = 0
 
 --- Vertex attribute formats
 --- @type number
-kCommonMeshByte4Norm = 0
+kCommonMeshFormatUnknown = 0
+
+--- Mesh compressed format involving unsigned normed UV values
+--- @type number
+kCommonMeshCompressedFormatUNormUV = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeBlendWeight = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshInt3 = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeTangent = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributePosition = 0
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatDXT5 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioSurroundExtent = 0
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatDepth32FStencil8 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioReverbWet = 0
 
 --- Primitive types
 --- @type number
 kCommonMeshTriangleList = 0
-
---- Primitive types
---- @type number
-kCommonMeshLineList = 0
-
---- Surface formats
---- @type number
-kCommonTextureFormatDXT1 = 0
 
 --- Surface formats
 --- @type number
@@ -2148,23 +2169,171 @@ kCommonTextureFormatDXT3 = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTargetedMover = 0
+kAnimationValueTypeTextureShearU = 0
 
---- Animation value types
+--- Vertex attribute formats
 --- @type number
-kAnimationValueTypeSkeletal = 0
-
---- Surface formats
---- @type number
-kCommonTextureFormatDXT5 = 0
-
---- Surface formats
---- @type number
-kCommonTextureFormatDepth32FStencil8 = 0
+kCommonMeshUByte2Norm = 0
 
 --- Vertex attributes
 --- @type number
-kCommonMeshAttributePosition = 0
+kCommonMeshAttributeUVLightMap = 0
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatDXT1 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioSurroundDir = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioHighPassFilter = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeUnknown = 0
+
+--- Mesh compressed format involving unsigned approximated normed normal vector3 values
+--- @type number
+kCommonMeshCompressedFormatUNormNormalAprox = 0
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatBGRA8 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshFloat4 = 0
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatRGBA8 = 0
+
+--- Primitive types
+--- @type number
+kCommonMeshLineList = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshByte2Norm = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUByte2 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUByte4Norm = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioLanguageResourceVolume = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshByte4 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeVertexNormal = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshByte2 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeSkeletonRootAnim = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAdditiveMask = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUInt4 = 0
+
+--- Legacy normed compressed vector3 keys (0).
+--- @type number
+kCompressedVector3KeysFormatLegacy0 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUByte4 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureShearOriginV = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshInt2 = 0
+
+--- Mesh compressed format involving signed normed normal vector3 values
+--- @type number
+kCommonMeshCompressedFormatSNormNormal = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshInt4 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureShearOriginU = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureShearV = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureVisibility = 0
+
+--- Trigger forced(?)
+--- @type number
+kCommonInputMapperTypeForce = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUInt3 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureScaleOriginV = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshFloat1 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAutoAct = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUInt1 = 0
+
+--- BGR'X' resolvable texture format. 'X' is unused and set to opaque.
+--- @type number
+kCommonTextureResolvableFormatBGRX = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureRotateOriginU = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeBlendIndex = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUInt2 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeVertexPosition = 0
 
 --- Vertex attributes
 --- @type number
@@ -2174,223 +2343,31 @@ kCommonMeshAttributeNormal = 0
 --- @type number
 kCommonMeshAttributeBinormal = 0
 
---- Vertex attributes
+--- Vertex attribute formats
 --- @type number
-kCommonMeshAttributeTangent = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeBlendWeight = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeBlendIndex = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeColour = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeUVDiffuse = 0
-
---- Common class types
---- @type number
-kCommonClassScene = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeUVLightMap = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeUnknown = 0
-
---- Common class types
---- @type number
-kCommonClassMesh = 0
-
---- Mesh compressed format involving signed normed normal vector3 values
---- @type number
-kCommonMeshCompressedFormatSNormNormal = 0
-
---- Common class types
---- @type number
-kCommonClassInputMapper = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioReverbDry = 0
-
---- Trigger on mouse move event
---- @type number
-kCommonInputMapperTypeMouseMove = 0
-
---- Common class types
---- @type number
-kCommonClassSkeleton = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTime = 0
-
---- Common class types
---- @type number
-kCommonClassPropertySet = 0
-
---- Mesh compressed format involving unsigned normed UV values
---- @type number
-kCommonMeshCompressedFormatUNormUV = 0
-
---- Trigger when an event begins
---- @type number
-kCommonInputMapperTypeBegin = 0
-
---- Trigger when an event ends
---- @type number
-kCommonInputMapperTypeEnd = 0
-
---- Trigger forced(?)
---- @type number
-kCommonInputMapperTypeForce = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAdditiveMask = 0
-
---- Trigger on event begin or end
---- @type number
-kCommonInputMapperTypeBeginOrEnd = 0
-
---- Legacy normed compressed vector3 keys (0).
---- @type number
-kCompressedVector3KeysFormatLegacy0 = 0
-
---- Legacy normed quaternion compressed keys (0)
---- @type number
-kCompressedQuatKeysFormatLegacy0 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeMover = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeProperty = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeSkeletonPose = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeSkeletonRootAnim = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureMoveU = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureMoveV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureScaleU = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureScaleV = 0
+kCommonMeshFloat3 = 0
 
 --- Animation value types
 --- @type number
 kAnimationValueTypeTextureRotate = 0
 
---- Animation value types
+--- Trigger on mouse move event
 --- @type number
-kAnimationValueTypeTextureOverride = 0
+kCommonInputMapperTypeMouseMove = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshInt1 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshByte4Norm = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTextureVisibility = 0
+kAnimationValueTypeTextureMoveU = 0
 
---- Animation value types
+--- Vertex attribute formats
 --- @type number
-kAnimationValueTypeTextureShearU = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureShearV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureShearOriginU = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureShearOriginV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureScaleOriginU = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureRotateOriginU = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureRotateOriginV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioPan = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioPitch = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioLowPassFilter = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioHighPassFilter = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioReverbWet = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioFMODParameter = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioSurroundExtent = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioLowFreqSend = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioLanguageResourceVolume = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeVertexNormal = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeVertexPosition = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAutoAct = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeExplicitCompoundValue = 0
+kCommonMeshFloat2 = 0
 

@@ -13,7 +13,7 @@
 #include <Windows.h>
 #include <d3dcompiler.h>
 #else
-#error "Imp" // impl for mac and linux next
+//#error "Imp" // impl for mac and linux next
 #endif
 
 const RenderEffectDesc& RenderEffectCache::GetEffectDesc(RenderEffect effect)
