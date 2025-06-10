@@ -328,6 +328,7 @@ public:
     
     static constexpr CString ClassHandle = "Handle<InputMapper>";
     static constexpr CString Class = "InputMapper";
+    static constexpr CString Extension = "imap";
     
     inline InputMapper(Ptr<ResourceRegistry> reg) : HandleableRegistered<InputMapper>(std::move(reg)) {}
     
@@ -355,6 +356,11 @@ public:
     static void ConvertRuntimeEvents(const SDL_Event& sdlEvent, std::vector<RuntimeInputEvent>& events, Bool bInPrimaryWindow, Vector2 windowSize);
     
     virtual void FinaliseNormalisationAsync() override;
+
+    inline virtual CommonClass GetCommonClassType() override
+    {
+        return CommonClass::INPUT_MAPPER;
+    }
     
     static constexpr Bool IsCommonInputCode(InputCode code) { return ((U32)code & 0x1000) == 0 && (((U32)code & 0xFFF) != 0); }
     

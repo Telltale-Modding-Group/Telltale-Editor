@@ -10,8 +10,9 @@
 #include <utility>
 #include <set>
 #include <sstream>
+#include <algorithm>
 
-extern thread_local bool _IsMain;
+extern thread_local Bool _IsMain;
 
 // ===================================================================         META LUA API
 // ===================================================================
@@ -32,7 +33,7 @@ namespace Meta
             
             U32 len = (U32)hexkey.length();
             ret.BfKeyLength = len >> 1;
-            TTE_ASSERT(ret.BfKeyLength, "Provided encryption key"
+            TTE_ASSERT(ret.BfKeyLength < 56, "Provided encryption key"
                        " is too large at %d bytes. Maximum 56.", ret.BfKeyLength);
             
             for(U32 i = 0; i < len; i += 2) // convert hex string to max 56 byte buffer
@@ -144,13 +145,33 @@ namespace Meta
             if(ScriptManager::PopBool(man))
                 reg.Fl.Add(RegGame::ARCHIVE2);
             ScriptManager::TableGet(man, "ArchiveVersion");
-            reg.ArchiveVersion = ScriptManager::PopUnsignedInteger(man);
+            if(man.Type(-1) == LuaType::TABLE)
+            {
+                man.PushNil(); // set for each table
+                while (man.TableNext(-2) != 0)
+                {
+                    TTE_ASSERT(man.Type(-2) == LuaType::STRING && man.Type(-1) == LuaType::NUMBER, "Archive version table invalid");
+
+                    man.PushCopy(-2); // push copy of key
+
+                    U32 archive = (U32)man.ToInteger(-2);
+                    String platformName = man.ToString(-1); // more like snapshot ID
+                    reg.SnapToArchiveVersion[platformName] = archive;
+
+                    man.Pop(2);
+                }
+                man.Pop(1); // pop last key
+            }
+            else
+            {
+                reg.MasterArchiveVersion = ScriptManager::PopUnsignedInteger(man);
+            }
             ScriptManager::TableGet(man, "ModifiedEncryption");
             if(man.Type(-1) == LuaType::BOOL)
             {
                 if(ScriptManager::PopBool(man))
                     reg.Fl.Add(RegGame::MODIFIED_BLOWFISH);
-            }
+            } // [Gitbook Documentation](https://telltale-editor.gitbook.io/documentation-for-the-telltale-editor
             else
             {
                 man.Pop(1);
@@ -204,8 +225,7 @@ namespace Meta
                     
                     String key = man.ToString(-2);
                     String platformName = man.ToString(-1);
-                    TTE_ASSERT(_Impl::_CheckPlatform(platformName), "The platform '%s' is invalid! Check valid ones", platformName.c_str());
-                    reg.PlatformToEncryptionKey[platformName] = luaToKey(key); // set platform key
+                    reg.SnapToEncryptionKey[platformName] = luaToKey(key);
                     
                     man.Pop(2);
                 }
@@ -235,22 +255,64 @@ namespace Meta
             ScriptManager::TableGet(man, "Vendors");
             if(man.Type(-1) == LuaType::STRING)
             {
-                String val = ScriptManager::PopString(man);
-                if(val.length() > 1) // at least 2
+                String val = StringTrim(ScriptManager::PopString(man));
+                if(val.length() == 0)
+                {
+                    reg.ValidVendors.push_back(""); // default vendor is empty
+                }
+                else
                 {
                     std::stringstream ss(val);
                     String token{};
                     while (std::getline(ss, token, ';'))
                     {
+                        if(token.length() == 0)
+                        {
+                            TTE_ASSERT(false, "At MetaRegisterGame: %s: vendor array invalid", reg.Name.c_str());
+                            return 0;
+                        }
                         reg.ValidVendors.push_back(token);
                     }
                 }
             }
             else
             {
-                TTE_ASSERT(false, "Game table must specify Vendors as a string");
+                TTE_ASSERT(false, "At MetaRegisterGame: %s: vendor array not specified",
+                           reg.Name.c_str());
                 man.Pop(1);
                 return 0;
+            }
+
+            if(reg.ValidVendors[0].length())
+            {
+                ScriptManager::TableGet(man, "DefaultVendor");
+                if (man.Type(-1) == LuaType::STRING)
+                {
+                    reg.DefaultVendor = ScriptManager::PopString(man);
+                    if(std::find(reg.ValidVendors.begin(), reg.ValidVendors.end(), reg.DefaultVendor) == reg.ValidVendors.end())
+                    {
+                        TTE_ASSERT(false, "At MetaRegisterGame: %s: the default vendor %s is not a valid vendor specified in the vendors array",
+                                   reg.Name.c_str());
+                        return 0;
+                    }
+                }
+                else
+                {
+                    TTE_ASSERT(false, "At MetaRegisterGame: %s: the default vendor must be specified here!", reg.Name.c_str());
+                    man.Pop(1);
+                    return 0;
+                }
+            }
+
+            ScriptManager::TableGet(man, "CommonSelector");
+            if(man.Type(-1) == LuaType::STRING)
+            {
+                reg.CommonSelector = ScriptManager::PopString(man);
+            }
+            else
+            {
+                reg.CommonSelector = "";
+                man.Pop(1); // OK, just use normal version number 0
             }
             
             ScriptManager::TableGet(man, "LuaVersion");
@@ -1297,7 +1359,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             }
             else
             {
-                TTE_LOG("Invalid class %s [%d]", man.ToString(1).c_str(), man.ToInteger(2));
+                String clas = man.ToString(1);
+                TTE_LOG("Invalid class %s [%d]", clas.c_str(), man.ToInteger(2));
                 man.PushNil();
             }
             return 1;
@@ -2718,7 +2781,7 @@ namespace TTE
     static U32 luaActiveGame(LuaManager& man)
     {
         ToolContext* Context = ::GetToolContext();
-        TTE_ASSERT(Context, "At TTE_GetActiveGame: no context is present. Ensure any modding scripts are run after context initialisation.");
+        TTE_ASSERT(Context, "At TTE_GetActiveSnapshot: no context is present. Ensure any modding scripts are run after context initialisation.");
         if(!Context || !Context->GetActiveGame())
         {
             man.PushNil();
@@ -2736,12 +2799,8 @@ namespace TTE
         man.PushLString(pGame->ID);
         man.SetTable(-3);
         
-        man.PushLString("ArchiveVersion");
-        man.PushUnsignedInteger(pGame->ArchiveVersion);
-        man.SetTable(-3);
-        
-        man.PushLString("IsArchive2");
-        man.PushBool(pGame->UsesArchive2());
+        man.PushLString("Vendor");
+        man.PushLString(Context->GetSnapshot().Vendor);
         man.SetTable(-3);
         
         return 1;
@@ -2771,7 +2830,7 @@ namespace TTE
         
         if(r->GetSize() > 0)
         {
-            TTArchive2* pArchive = TTE_NEW(TTArchive2, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->ArchiveVersion);
+            TTArchive2* pArchive = TTE_NEW(TTArchive2, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->GetArchiveVersion(Context->GetSnapshot()));
             if(!pArchive->SerialiseIn(r))
             {
                 TTE_LOG("Cannot open archive %s: read failed (archive format invalid)", path.c_str());
@@ -2812,7 +2871,7 @@ namespace TTE
         
         if(r->GetSize() > 0)
         {
-            TTArchive* pArchive = TTE_NEW(TTArchive, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->ArchiveVersion);
+            TTArchive* pArchive = TTE_NEW(TTArchive, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->GetArchiveVersion(Context->GetSnapshot()));
             if(!pArchive->SerialiseIn(r))
             {
                 TTE_LOG("Cannot open archive %s: read failed (archive format invalid)", path.c_str());
@@ -3150,9 +3209,9 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
         "Dumps to the logger all memory which has not been freed yet. This will contain a lot of script stuff which won't "
         "matter as the script engine requires memory which s tracked, however can be useful for tracking specific script object allocations."
     });
-    Col.Functions.push_back({"TTE_GetActiveGame", &TTE::luaActiveGame, "table TTE_GetActiveGame()",
+    Col.Functions.push_back({"TTE_GetActiveSnapshot", &TTE::luaActiveGame, "table TTE_GetActiveSnapshot()",
         "Returns the information about the currently active game. The returned table contains keys string "
-        "'Name', string 'ID',  integer 'ArchiveVersion' and bool 'IsArchive2'."
+        "'Name', string 'ID', and string 'Vendor'"
     });
     Col.Functions.push_back({"TTE_Assert", &TTE::luaAssert, "nil TTE_Assert(bool, errorMessage)", "If the first parameter is false, debug builds "
         "will throw an assert and break in the debugger"
@@ -3165,8 +3224,14 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     {
         Col.Functions.push_back({"MetaRegisterGame",&Meta::L::luaMetaRegisterGame, "nil MetaRegisterGame(gameInfoTable)",
             "This is used in the Games.lua script to register a game to the Meta system on initialisation. "
-            "It takes in a table which must have keys string Name, string ID, bool ModifiedEncryption, table Key[string platform]"
-            " to string hex key, etc. You could add your own game if you want to create one!"
+            "It takes in a table which must have keys string Name, string ID, bool ModifiedEncryption, string DefaultMetaVersion,"
+            "string LuaVersion, int/table ArchiveVersion, string/table Key, bool IsArchive2, table Platforms, table Vendors and pushed"
+            " capabilities. Archive version and key are either one static key/version or a table of snapshot ID to it. This is just 'Platform/Vendor'"
+            " if there are more than just the default (empty string) vendor. Else its just the platform name. See existing examples."
+            " If vendors are specified, then DefaultVendor must be as well as a string. The 'CommonSelector' key is also useful. It should specify a "
+            "function *name* which takes in the platform, vendor and common class type and returns the class name and version number of the common class "
+            "to create for that snapshot and class type. Optional, defaults to the normal class name and version 0."
+            " If specified, return just nil and 0 to use default class name as well. Else do special checks dependent on that snapshot."
         });
         Col.Functions.push_back({"MetaPushGameCapability",&Meta::L::luaMetaPushGameCap, "nil MetaPushGameCapability(gameTable, cap)","Push a game capability to the "
             "game table. Call before registering the game table."
@@ -3390,14 +3455,14 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(MS, "MetaStreamWriteCached", luaMetaStreamWriteCached, "nil MetaStreamWriteCached(stream, cacheInstance)",
            "See above for information about cacheInstance. Does not write the size. Writes the cached bytes in its entirety to the stream.");
     ADD_FN(MS, "MetaStreamWriteDDS", luaMetaStreamWriteDDS, "nil MetaStreamWriteDDS(stream, table)",
-           "Writes a DDS file header with the given information. It must include the same information as returned by the read version above.");
+           "Writes a DDS file header with the given information. It must include the same information as returned by the read version. See MetaStreamReadDDS for information about the table values.");
     ADD_FN(MS, "MetaStreamDumpBuffer", luaMetaStreamDumpBuffer, "nil MetaStreamDumpBuffer(binaryBuffer, offset, size, outFileName)",
            "Dumps the binary buffer out to a file name. Pass in the offset in the buffer and number of bytes to dump.");
     ADD_FN(MS, "MetaStreamGetDDSHeaderSize", luaMetaStreamDDSSize, "number MetaStreamGetDDSHeaderSize(table)",
            "Gets the number of bytes that would be written or have been read from the given DDS header table that "
            "either you contruct or was returned in the read function above. This is the number of bytes read or would be written.");
     ADD_FN(MS, "MetaStreamReadDDS", luaMetaStreamReadDDS, "table MetaStreamReadDDS(stream)",
-           "Reads a DDS file header returning a table with its information. See gitbook docs for table of return values.");
+           "Reads a DDS file header returning a table with its information. See Gitbook documentation in the Meta System page for the table values.");
     ADD_FN(MS, "MetaGetCachedSize", luaMetaStreamCachedSize, "number MetaGetCachedSize(cacheInstance)",
            "Returns the size of the cached data stream instance (kMetaClassInternalDataStreamCache class). "
            "This size is set when you read a buffer from a meta stream - its held internally.");

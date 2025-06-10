@@ -13,8 +13,8 @@
 
 class TelltaleEditor;
 
-/// Creatae the global editor context (use once). Creates tool context internally. Set UI to true to run the UI as well.
-TelltaleEditor* CreateEditorContext(GameSnapshot snapshot, Bool UI);
+/// Creatae the global editor context (use once). Creates tool context internally.
+TelltaleEditor* CreateEditorContext(GameSnapshot snapshot);
 
 /// Free the global editor context (use once). Do this right at the end when you are finished with the application.
 void FreeEditorContext();
@@ -32,7 +32,7 @@ class TelltaleEditor
     
     void _PostSwitch(GameSnapshot snap);
     
-    TelltaleEditor(GameSnapshot snapshot, Bool ui);
+    TelltaleEditor(GameSnapshot snapshot);
     
 public:
     
@@ -40,12 +40,11 @@ public:
     
     void Switch(GameSnapshot snapshot); // switch to new snapshot
     
-    // Main thread update. Executes render commands and may be slow. Returns TRUE if we can call update again (ie not quitting)
-    // Pass in if you want to force it to quit (ie make user click window X)
-    Bool Update(Bool bQuit);
+    // Main thread update. 
+    void Update();
     
     /**
-     Returns if the context is unaccessible because it is currently busy with a job which required it completely. The UI can still be drawn and will be interactive.
+     Returns if the context is unaccessible because it is currently busy with a job which required it completely.
      */
     Bool ContextIsBusy();
     
@@ -113,6 +112,29 @@ public:
      Normalises (on this thread, no enqueueing) to the given instance from  the meta class instance for the current game.
      */
     Bool QuickNormalise(Ptr<Handleable> pCommonInstanceOut, Meta::ClassInstance inInstance);
+
+    /**
+     * Creates a common meta instanced which can be specialised into using QuickSpecialise or one of the task version ones.
+     * Pass in the type. This will select the correct class name and version number for the current snapshot.
+     */
+    Meta::ClassInstance CreateSpecialisedClass(CommonClass clz);
+
+    /**
+     * Gets the information struct for the given common class.
+     */
+    CommonClassInfo GetCommonClassInfo(CommonClass clz);
+
+    /**
+     * Creates an empty, new common class. Tend to use this for writing new files.
+     * For PropertySet, please use the create property set version!
+     * Pass in the resource registry as well.
+     */
+    Ptr<Handleable> CreateCommonClass(CommonClass clz, Ptr<ResourceRegistry> registry);
+
+    /**
+     * CreateCommonClass but for property set, as thats just a meta instance
+     */
+    Meta::ClassInstance CreatePropertySet();
     
     /**
      Creates a resource registry which can be used to manage telltale games resources. These cannot be used between game switches. Must be destroyed before this object or a switch!
@@ -142,14 +164,12 @@ private:
     void _EnqueueTask(EditorTask* pTask);
     
     ToolContext* _ModdingContext = nullptr;
-    Bool _UI = false; // if running renderer
-    Bool _Running = false; // if render window is still running and no exit request
     
     U32 _TaskFence = 0; // counter
     
     std::vector<std::pair<EditorTask*, JobHandle>> _Active;
     
-    friend TelltaleEditor* CreateEditorContext(GameSnapshot snapshot, Bool UI);
+    friend TelltaleEditor* CreateEditorContext(GameSnapshot snapshot);
     
 };
 

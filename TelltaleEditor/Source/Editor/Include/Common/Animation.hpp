@@ -673,6 +673,7 @@ public:
     
     static constexpr CString ClassHandle = "Handle<Animation>";
     static constexpr CString Class = "Animation";
+    static constexpr CString Extension = "anm";
     
     inline Animation(Ptr<ResourceRegistry> reg) : HandleableRegistered<Animation>(std::move(reg)) {}
     
@@ -688,6 +689,11 @@ public:
     inline Float GetLength() const
     {
         return _Length;
+    }
+
+    inline virtual CommonClass GetCommonClassType() override
+    {
+        return CommonClass::ANIMATION;
     }
     
 private:

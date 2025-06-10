@@ -18,19 +18,44 @@ function Bone1_GetGameDescriptor()
 	bone1.DefaultMetaVersion = "MBIN"
 	bone1.LuaVersion         = "5.0.2"
 	bone1.IsArchive2         = false
-	bone1.ArchiveVersion     = 0 -- ttarch version 0
+	bone1.ArchiveVersion     = {}
+	bone1.ArchiveVersion["PC/Demo_2005"] 	= 0 -- no encryption of arch (old version)
+	bone1.ArchiveVersion["PC/v2.0_Main"] 	= 1
+	bone1.ArchiveVersion["PC/v2.0_Late"] 	= 1
+	bone1.ArchiveVersion["MacOS"] 			= 0 -- no encryption in this version
 	-- Bone1 is released on mac and windows only
-	bone1.Key["MacOS"]       =
-	"34246C3343726C7564326553576945324F6163396C7574786C3732522D2A384931714F346F616A6C5F24652369616370342A75466C6530"
-	bone1.Key["PC"]          =
-	"81D89B9955E26573B4DBE3C963DB8587AB999BDC6EEB689FA790DDBA6AE29364A1B4A0B492D96B9CB7E3E6D168A8849F87D29498A1E871"
+	bone1.Key["MacOS"]       		= "34246C3343726C7564326553576945324F6163396C7574786C3732522D2A384931714F346F616A6C5F24652369616370342A75466C6530" -- also CSI3's main key
+	bone1.Key["PC/v2.0_Main"]  		= "82A3898889D89FB7D3D8DAC082D7C2C1CE8DA1EA99B7A5DDCA52E58769C8A46EBB9997BBCDD79AD8DAD0C8DEA69CB7D2B9D68275DFE0A4" -- used by Telltale Explorer
+	bone1.Key["PC/v2.0_Late"] 		= "81D89B9955E26573B4DBE3C963DB8587AB999BDC6EEB689FA790DDBA6AE29364A1B4A0B492D96B9CB7E3E6D168A8849F87D29498A1E871" -- used by ttarchext
+	bone1.Key["PC/Demo_2005"] 		= "34246C3343726C7564326553576945324F6163396C7574786C3732522D2A384931714F346F616A6C5F24652369616370342A75466C6530" -- CSI3 again. same early copy
 	bone1.Platforms          = "PC;MacOS"
-	bone1.Vendors            = ""
+	bone1.Vendors            = "Demo_2005;v2.0_Main;v2.0_Late"
+	bone1.DefaultVendor = "v2.0_Main"
+	bone1.CommonSelector = "Bone1_CommonSelector"
 	MetaPushGameCapability(bone1, kGameCapSeparateAnimationTransform)
 	MetaPushGameCapability(bone1, kGameCapUsesLenc)
 	MetaPushGameCapability(bone1, kGameCapRawClassNames)
 	MetaRegisterGame(bone1)
 	return bone1
+end
+
+-- Common selectors map the snapshot for a given class to its version number (or degeneracy if you will)
+function Bone1_CommonSelector(platform, vendor, commonClass)
+	-- SCENE
+	if commonClass == kCommonClassScene then
+		if platform == "PC" then
+			if vendor == "v2.0_Main" then
+				return 1
+			elseif vendor == "Demo_2005" then
+				return 0
+			else
+				TTE_Assert(false, "Unknown vendor")
+				return nil
+			end
+		end
+	end
+
+	return 0 -- use default class
 end
 
 -- registers two types: one with baseclass_containerinterface and one without (vers exists for both). pass in k and v table (or k being SArray N)

@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <dxcapi.h>
+
 // Windows workaround for set thread name. See below link =========================================================
 // https://learn.microsoft.com/en-gb/previous-versions/visualstudio/visual-studio-2015/debugger/how-to-set-a-thread-name-in-native-code?view=vs-2015&redirectedfrom=MSDN
 

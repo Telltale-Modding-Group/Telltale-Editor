@@ -126,7 +126,7 @@ namespace CommandLine
         if(!game.ID.length())
             return 1;
         {
-            TelltaleEditor* editor = CreateEditorContext(game, false);
+            TelltaleEditor* editor = CreateEditorContext(game);
             
             Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry();
             registry->MountSystem("<Data>/", mount, true);
@@ -173,7 +173,7 @@ namespace CommandLine
         if(!game.ID.length())
             return 1;
         {
-            TelltaleEditor* editor = CreateEditorContext(game, false);
+            TelltaleEditor* editor = CreateEditorContext(game);
             Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry();
             if(std::filesystem::is_regular_file(mount))
                 registry->MountArchive("<Data>/", mount);
@@ -204,7 +204,7 @@ namespace CommandLine
         if(!game.ID.length())
             return 1;
         {
-            TelltaleEditor* editor = CreateEditorContext(game, false);
+            TelltaleEditor* editor = CreateEditorContext(game);
             DataStreamRef infile = DataStreamManager::GetInstance()->CreateFileStream(in);
             DataStreamRef outfile = DataStreamManager::GetInstance()->CreateFileStream(out);
             if(!infile->GetSize())
@@ -237,7 +237,7 @@ namespace CommandLine
             outfo += "/";
         {
             GameSnapshot game = GetSnapshot(args);
-            TelltaleEditor* editor = CreateEditorContext(game, false);
+            TelltaleEditor* editor = CreateEditorContext(game);
             for(String in: infiles)
             {
                 String out = infiles.size() == 1 && HasArgument(args, "-out") ? GetStringArgumentOrDefault(args, "-out", "") : (outfo + FileGetFilename(in));
@@ -296,7 +296,7 @@ namespace CommandLine
         GameSnapshot game = GetSnapshot(args);
         if(!game.ID.length())
             return 1;
-        TelltaleEditor* editor = CreateEditorContext(game, false);
+        TelltaleEditor* editor = CreateEditorContext(game);
         {
             Ptr<ResourceRegistry> userReg = editor->CreateResourceRegistry();
             DataStreamRef file = DataStreamManager::GetInstance()->CreateFileStream(exec);
@@ -332,7 +332,7 @@ namespace CommandLine
             outfo += "/";
         {
             GameSnapshot game = GetSnapshot(args);
-            TelltaleEditor* editor = CreateEditorContext(game, false);
+            TelltaleEditor* editor = CreateEditorContext(game);
             for(String in: infiles)
             {
                 String out = infiles.size() == 1 && HasArgument(args, "-out") ? GetStringArgumentOrDefault(args, "-out", "") : (outfo + FileGetFilename(in));
@@ -365,7 +365,7 @@ namespace CommandLine
         if(!infiles.size())
             return 1;
         GameSnapshot game = GetSnapshot(args);
-        TelltaleEditor* editor = CreateEditorContext(game, false);
+        TelltaleEditor* editor = CreateEditorContext(game);
         {
             U32 i = 0;
             Float scale = 100.0f / (Float)infiles.size();

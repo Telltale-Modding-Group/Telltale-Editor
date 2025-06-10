@@ -334,6 +334,7 @@ namespace Meta::_Impl
         {
             out.SetObject(ScriptManager::ToSymbol(man, stackIndex));
         }
+
     };
 
     
@@ -812,7 +813,7 @@ struct AsyncResourcePreloadBatchJob // async serialise and normalises
     U32 NumResources = 0; // 0 to 32 below
     Flags BatchFlags;
     HandleObjectInfo HOI[STATIC_PRELOAD_BATCH_SIZE];
-    CommonInstanceAllocator* Allocators[STATIC_PRELOAD_BATCH_SIZE];
+    CommonClassAllocator* Allocators[STATIC_PRELOAD_BATCH_SIZE];
     
 };
 
@@ -837,7 +838,7 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* job, void*);
  Ensure that these only exist BETWEEN game switches!
  Concrete locations have a trailing slash, while logical locators do not!
  */
-class ResourceRegistry : public GameDependentObject, public std::enable_shared_from_this<ResourceRegistry>
+class ResourceRegistry : public SnapshotDependentObject, public std::enable_shared_from_this<ResourceRegistry>
 {
 public:
     
@@ -1011,6 +1012,9 @@ public:
     
     // Most important in this class. Finds a resource in the currently enabled patch sets, highest loaded priority one will be returned.
     DataStreamRef FindResource(const Symbol& name);
+    
+    // Open resource data stream from logical location. Not used for loaded
+    DataStreamRef FindResourceFrom(const String& loc, const Symbol& filename);
     
     // Like FindResource but gets the name
     String FindResourceName(const Symbol& name);

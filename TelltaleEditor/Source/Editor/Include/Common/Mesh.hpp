@@ -115,10 +115,16 @@ struct Mesh : HandleLockOwner
         
         static constexpr CString ClassHandle = "Handle<D3DMesh>";
         static constexpr CString Class = "D3DMesh";
+        static constexpr CString Extension = "d3dmesh";
         
         inline MeshInstance(Ptr<ResourceRegistry> reg) : HandleableRegistered<MeshInstance>(std::move(reg)) {}
         
         virtual void FinaliseNormalisationAsync() override;
+
+        inline virtual CommonClass GetCommonClassType() override
+        {
+            return CommonClass::MESH;
+        }
         
     };
     

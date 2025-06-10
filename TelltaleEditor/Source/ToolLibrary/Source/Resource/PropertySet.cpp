@@ -580,7 +580,7 @@ void PropertySet::MoveParentToFront(Meta::ClassInstance prop, Symbol parent)
                 break;
             }
         }
-        Meta::ClassInstance global = Meta::CreateInstance(Meta::FindClass(PropertySet::ClassHandle, 0));
+        Meta::ClassInstance global = Meta::CreateInstance(Meta::FindClass(PropertySet::ClassHandle, 0)); // not a common class (its Handle<>) so OK
         Meta::ImportCoercableInstance(parent, global);
         array.Insert({}, std::move(global), 0, false, false);
     }

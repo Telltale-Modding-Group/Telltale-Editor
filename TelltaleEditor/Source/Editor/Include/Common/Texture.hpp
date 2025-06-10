@@ -100,6 +100,7 @@ public:
     
     static constexpr CString ClassHandle = "Handle<D3DTexture>;Handle<T3Texture>";
     static constexpr CString Class = "D3DTexture;T3Texture";
+    static constexpr CString Extension = "d3dtx";
     
     inline RenderTexture(Ptr<ResourceRegistry> reg) : HandleableRegistered<RenderTexture>(std::move(reg)) {}
     
@@ -127,6 +128,11 @@ public:
     static void RegisterScriptAPI(LuaFunctionCollection& Col); // registry normalisation api
     
     virtual void FinaliseNormalisationAsync() override;
+
+    inline virtual CommonClass GetCommonClassType() override
+    {
+        return CommonClass::TEXTURE;
+    }
     
     inline U32 GetImageIndex(U32 mip, U32 slice, U32 face)
     {

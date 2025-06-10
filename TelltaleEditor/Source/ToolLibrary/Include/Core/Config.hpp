@@ -50,6 +50,15 @@ TTE_LOG(__VA_ARGS__);               \
 DebugBreakpoint();                  \
 }
 
+// First argument is expression to test, second is format string (optional) then optional format string arguments
+#define TTE_ASSERT_AND_RETURN(EXPR, returnValue, ...)       \
+if (!(EXPR))                        \
+{                                   \
+TTE_LOG(__VA_ARGS__);               \
+DebugBreakpoint();                  \
+return returnValue;                 \
+}
+
 #else
 
 // In RELEASE, don't ignore but do LOG them.
@@ -74,6 +83,8 @@ TTE_LOG(__VA_ARGS__); \
 #define POP_COUNT(x) __popcnt(x)
 #define CLZ_BITS(x)  _tzcnt_u32(x)
 
+#define PLATFORM_WINDOWS
+
 #elif defined(MACOS)
 
 // MacOS Platform Specifics
@@ -83,6 +94,9 @@ TTE_LOG(__VA_ARGS__); \
 #define POP_COUNT(x) __builtin_popcount(x)
 #define CLZ_BITS(x) __builtin_ctz(x)
 
+
+#define PLATFORM_MAC
+
 #elif defined(LINUX)
 
 // Linux Platform Specifics
@@ -91,6 +105,9 @@ TTE_LOG(__VA_ARGS__); \
 
 #define POP_COUNT(x) __builtin_popcount(x)
 #define CLZ_BITS(x) __builtin_ctz(x)
+
+
+#define PLATFORM_LINUX
 
 #else
 
@@ -140,6 +157,8 @@ public:
     
 };
 
+enum class CommonClass;
+
 // All common classes which are normalised into from telltale types (eg meshes, textures, dialogs) inherit from this to be used in Handle.
 class Handleable : public std::enable_shared_from_this<Handleable>
 {
@@ -178,6 +197,8 @@ public:
     }
     
     virtual void FinaliseNormalisationAsync() = 0;
+
+    virtual CommonClass GetCommonClassType() = 0;
     
     virtual Ptr<Handleable> Clone() const = 0;
     
@@ -231,9 +252,6 @@ public:
     
 };
 
-// Function proto for common instance allocator
-using CommonInstanceAllocator = Ptr<Handleable> (Ptr<ResourceRegistry> registry);
-
 // ===================================================================         FILE API
 // ===================================================================
 
@@ -268,13 +286,16 @@ void FreeAnonymousMemory(U8*, U64); // free memory associated with allocate anon
 
 inline void NullDeleter(void*) {} // Useful in shared pointer, in which nothing happens on the final deletion.
 
+// ===================================================================         GLOBAL TELLTALE EDITOR API STRUCTS
+// ===================================================================
+
 // Lots of classes which can only exist between game switches use this. Such that if they exist outside, we catch the error.
-struct GameDependentObject
+struct SnapshotDependentObject
 {
     
     const CString ObjName;
     
-    inline GameDependentObject(CString obj) : ObjName(obj) {}
+    inline SnapshotDependentObject(CString obj) : ObjName(obj) {}
     
 };
 
@@ -311,4 +332,83 @@ enum ObjectTag : U32
     TTARCHIVE1 = 1, // TTArchive instance, see TTArchive.hpp
     TTARCHIVE2 = 2, // TTArchive2 instance, see TTArchive2.hpp
     HANDLEABLE = 3, // Handleable common instance. eg Animation, Chore or MeshInstance.
+};
+
+// Used to identify a specific game release snapshot of associated game data for grouping formats
+struct GameSnapshot
+{
+    String ID; // game ID, see wiki.
+    String Platform;// game platform, see wiki.
+    String Vendor; // vendor. some games have mulitple differing releases. leave blank unless instructed.
+};
+
+// ===================================================================         COMMON CLASS INFO (ALL ARE IN EDITOR SUB-PROJECT BUT HERE FOR API)
+// ===================================================================
+
+class ResourceRegistry;
+class LuaFunctionCollection;
+
+typedef Ptr<Handleable> CommonClassAllocator(Ptr<ResourceRegistry> registry);
+
+struct CommonClassInfo
+{
+
+    CommonClass Class;
+    CString ConstantName = "";
+    CString ClassName = ""; // list of ; separated type names
+    CString ClassHandleName = ""; // list of handle type names
+    CString Extension = ""; // list of extensions
+    CommonClassAllocator* ClassAllocator = nullptr; // C++ class handleable alloc
+
+    // Create instance
+    inline Ptr<Handleable> Make(Ptr<ResourceRegistry> registry) const
+    {
+        return ClassAllocator ? ClassAllocator(std::move(registry)) : nullptr;
+    }
+
+    // FUNCTIONALITY IS GENERALLY PRIVATE BUT ACCESSIBLE AS IN A SEPARATE PROJECT. INTERFACE WITH TOOL CONTEXT / TELLTALE EDITOR CLASSES!
+
+    static CommonClassInfo GetCommonClassInfo(CommonClass cls);
+
+    static CommonClassInfo GetCommonClassInfoByExtension(const String& extension);
+
+    static void RegisterCommonClass(CommonClassInfo info);
+
+    static void RegisterConstants(LuaFunctionCollection& Col);
+
+    static void Shutdown();
+
+    template<typename T>
+    inline static CommonClassInfo Make(CommonClass clz, CString kName)
+    {
+        CommonClassInfo info = CommonClassInfo{ clz, kName, T::Class, T::ClassHandle, T::Extension, &AllocateCommon<T> };
+        RegisterCommonClass(info);
+        return info;
+    }
+
+};
+
+// All common classes. Registered in editor project
+enum class CommonClass
+{
+    NONE,
+    MESH,
+    TEXTURE,
+    SCENE,
+    INPUT_MAPPER,
+    ANIMATION,
+    SKELETON,
+    PROPERTY_SET,
+    /* UPCOMING:
+    TRANSITION_REMAPPER,
+    CHORE,
+    DIALOG,
+    PARTICLE,
+    SPRITE,
+    FONT,
+    LANGUAGE_DATABASE,
+    STYLE_GUIDE,
+    RULES,
+    WALK_BOXES,
+    */
 };

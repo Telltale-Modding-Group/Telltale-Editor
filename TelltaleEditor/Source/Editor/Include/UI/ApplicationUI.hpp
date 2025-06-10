@@ -32,5 +32,5 @@ private:
     SDL_GPUDevice* _Device;
     SDL_Window* _Window;
     TTEProperties _WorkspaceProps; // workspace props
-    
+
 };

@@ -7,6 +7,7 @@
 #include <Core/LinearHeap.hpp>
 #include <Renderer/Camera.hpp>
 #include <Renderer/RenderParameters.hpp>
+#include <Renderer/RenderFX.hpp>
 #include <Scheduler/JobScheduler.hpp>
 #include <Meta/Meta.hpp>
 
@@ -84,42 +85,6 @@ enum class RenderBufferAttributeFormat : U32
     I8x4_NORM,
     
 };
-
-// ============================================= RENDER VERTEX ATTRIBS =============================================
-
-enum class RenderAttributeType : U32
-{
-    POSITION = 0,
-    NORMAL = 1,
-    BINORMAL = 2,
-    TANGENT = 3,
-    BLEND_WEIGHT = 4,
-    BLEND_INDEX = 5,
-    COLOUR = 6,
-    UV_DIFFUSE = 7,
-    UV_LIGHTMAP = 8,
-    UNKNOWN,
-    COUNT = UNKNOWN,
-};
-
-static struct AttribInfo {
-    RenderAttributeType Type;
-    CString ConstantName;
-} constexpr AttribInfoMap[]
-{
-    {RenderAttributeType::POSITION, "kCommonMeshAttributePosition"},        // 0
-    {RenderAttributeType::NORMAL, "kCommonMeshAttributeNormal"},            // 1
-    {RenderAttributeType::BINORMAL, "kCommonMeshAttributeBinormal"},        // 2
-    {RenderAttributeType::TANGENT, "kCommonMeshAttributeTangent"},          // 3
-    {RenderAttributeType::BLEND_WEIGHT, "kCommonMeshAttributeBlendWeight"}, // 4
-    {RenderAttributeType::BLEND_INDEX, "kCommonMeshAttributeBlendIndex"},   // 5
-    {RenderAttributeType::COLOUR, "kCommonMeshAttributeColour"},            // 6
-    {RenderAttributeType::UV_DIFFUSE, "kCommonMeshAttributeUVDiffuse"},     // 7
-    {RenderAttributeType::UV_LIGHTMAP, "kCommonMeshAttributeUVLightMap"},   // 8
-    {RenderAttributeType::UNKNOWN, "kCommonMeshAttributeUnknown"},          // ~
-};
-
-using VertexAttributesBitset = BitSet<RenderAttributeType, (U32)RenderAttributeType::COUNT, RenderAttributeType::POSITION>;
 
 class RenderContext;
 
@@ -207,7 +172,7 @@ enum class RenderStateType
     
     CULL_MODE = 1, // SDL_GPUCullMode
     FILL_MODE = 2, // SDL_GPUFillMode
-    WINDING = 3, // SDL_GPUFrontFace
+    VERTEX_WINDING = 3, // SDL_GPUFrontFace
     Z_OFFSET = 4, // Bool. True = add 16 (telltale uses this exact number), False = 0
     Z_INVERSE = 5, // Bool. True to invert Z values by scale of -1.0. Only if depth bias is enabled. Affects depth state too.
     Z_CLIPPING = 6, // Bool. Enable depth clipping
@@ -259,7 +224,7 @@ class RenderStateBlob
         {RenderStateType::NONE, "kRenderStateNone", 0, 0},
         {RenderStateType::CULL_MODE, "kRenderStateCullMode", 2, SDL_GPU_CULLMODE_BACK},
         {RenderStateType::FILL_MODE, "kRenderStateFillMode", 1, SDL_GPU_FILLMODE_FILL},
-        {RenderStateType::WINDING, "kRenderStateWinding", 1, SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE},  // TAKE INTO ACCOUNT GRAPHICS API!!! D3D11 USES CLOCKWISE NORMALLY
+        {RenderStateType::VERTEX_WINDING, "kRenderStateWinding", 1, SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE},  // TAKE INTO ACCOUNT GRAPHICS API!!! D3D11 USES CLOCKWISE NORMALLY
         {RenderStateType::Z_OFFSET, "kRenderStateZOffset", 1, 0},
         {RenderStateType::Z_INVERSE, "kRenderStateZInverse", 1, 0},
         {RenderStateType::Z_CLIPPING, "kRenderStateZClipping", 1, 1}, // true, enable clipping by default
@@ -514,7 +479,7 @@ struct RenderPipelineState
     
     // SET BY INTERNAL USER
     
-    String ShaderProgram = "";
+    U64 EffectHash; // program hash
     
     RenderPrimitiveType PrimitiveType = RenderPrimitiveType::TRIANGLE_LIST; // primitive type
     
@@ -553,13 +518,12 @@ struct RenderPass
 
 };
 
-// ============================================= RENDER SHADERS =============================================
+// ============================================= LOW LEVEL RENDER SHADERS =============================================
 
 /// Internal shader, lightweight object.
 struct RenderShader
 {
     
-    String Name; // no extension
     RenderContext* Context = nullptr;
     SDL_GPUShader* Handle = nullptr;
     
@@ -686,7 +650,7 @@ class RenderInst
     
     DefaultRenderMeshType _DrawDefault = DefaultRenderMeshType::NONE;
     
-    String Program;
+    RenderEffectRef EffectRef; // ie shader program resolved
     
 public:
 
@@ -746,11 +710,12 @@ public:
     }
     
     /**
-     Sets the vertex and fragment shaders. In the future this will be made obsolete by having a system where shaders are referenced by enums and variants.
+     Sets the effect ref to use (ie the shader program). Get this from the render context.
      */
-    inline void SetShaderProgram(String name)
+    inline void SetEffectRef(RenderEffectRef ref)
     {
-        Program = std::move(name);
+        TTE_ASSERT(ref, "Effect reference is invalid.");
+        EffectRef = ref;
     }
     
     /**
@@ -819,7 +784,8 @@ namespace RenderUtility
     /**
      Creates a scaling and transforming matrix for the given bounding box so its the same
      */
-    inline Matrix4 CreateBoundingBoxModelMatrix(BoundingBox box) {
+    inline Matrix4 CreateBoundingBoxModelMatrix(BoundingBox box)
+    {
         // Calculate the center of the bounding box from _Min and _Max
         Float centerX = (box._Min.x + box._Max.x) / 2.0f;
         Float centerY = (box._Min.y + box._Max.y) / 2.0f;

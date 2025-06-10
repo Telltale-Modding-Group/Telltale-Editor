@@ -1273,7 +1273,7 @@ Bool ResourceRegistry::SaveResource(const Symbol &resourceName, const String& lo
                     name.c_str());
             return false;
         }
-        U32 clz = Meta::FindClassByExtension(FileGetExtension(name), 0);
+        U32 clz = Meta::_Impl::_ResolveCommonClassID(FileGetExtension(name));
         if(!clz)
         {
             TTE_LOG("Cannot save resource %s: the file extension is not supported or is not a meta class for saving / common instance.", name.c_str());
@@ -1309,7 +1309,7 @@ Bool ResourceRegistry::CreateResource(const ResourceAddress& address)
     SCOPE_LOCK();
     if(!address)
         return false;
-    U32 clz = Meta::FindClassByExtension(FileGetExtension(address.Name), 0);
+    U32 clz = Meta::_Impl::_ResolveCommonClassID(FileGetExtension(address.Name));
     if(!clz)
     {
         TTE_LOG("Cannot create resource %s: the file extension is invalid or does not map to a valid meta class. Only meta described classes "
@@ -1344,7 +1344,7 @@ Bool ResourceRegistry::CreateResource(const ResourceAddress& address)
         }
         else
         {
-            CommonInstanceAllocator* allocator = Meta::GetCommonAllocator(clz);
+            CommonClassAllocator* allocator = Meta::GetCommonAllocator(clz);
             if(!allocator)
             {
                 TTE_LOG("Cannot create resource %s: the common class was not registered for coersion. This means that it is "
@@ -1403,7 +1403,7 @@ void ResourceRegistry::BindLuaManager(LuaManager& man)
     ScriptManager::SetGlobal(man, "__ResourceRegistry", false);
 }
 
-ResourceRegistry::ResourceRegistry(LuaManager& man) : GameDependentObject("ResourceRegistry"), _LVM(man)
+ResourceRegistry::ResourceRegistry(LuaManager& man) : SnapshotDependentObject("ResourceRegistry"), _LVM(man)
 {
     TTE_ASSERT(Meta::GetInternalState().GameIndex != -1, "Resource registries can only be when a game is set!");
     TTE_ASSERT(man.GetVersion() == Meta::GetInternalState().Games[Meta::GetInternalState().GameIndex].LVersion,
@@ -1850,7 +1850,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
     StringMask maskTTArch2 = "*.ttarch2";
     if(resourceName == maskTTArch1)
     {
-        TTArchive arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
+        TTArchive arc{ GetToolContext()->GetActiveGame()->GetArchiveVersion(GetToolContext()->GetSnapshot()) };
         lck.unlock(); // may take time, dont keep everyone waiting!
         TTE_ASSERT(arc.SerialiseIn(archiveStream), "TTArchive serialise/read fail!");
         lck.lock();
@@ -1859,7 +1859,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
     }
     else if(resourceName == maskTTArch2)
     {
-        TTArchive2 arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
+        TTArchive2 arc{ GetToolContext()->GetActiveGame()->GetArchiveVersion(GetToolContext()->GetSnapshot()) };
         lck.unlock(); // may take time, dont keep everyone waiting!
         TTE_ASSERT(arc.SerialiseIn(archiveStream), "TTArchive2 serialise/read fail!");
         lck.lock();
@@ -2095,7 +2095,7 @@ static Bool _PerformHandleNormalise(HandleObjectInfo& handle, Ptr<ResourceRegist
     {
         if(!handle._Handle)
         {
-            CommonInstanceAllocator* pAllocator = Meta::GetCommonAllocator(handle._Instance.GetClassID());
+            CommonClassAllocator* pAllocator = Meta::GetCommonAllocator(handle._Instance.GetClassID());
             if(pAllocator)
             {
                 handle._Handle = pAllocator(pRegistry);
@@ -2799,6 +2799,22 @@ void ResourceRegistry::_LocateResourceInternal(Symbol name, String* outName, Dat
     resStream = masterLocation->LocateResource(name, outName);
     if(outStream)
         *outStream = std::move(resStream);
+}
+
+DataStreamRef ResourceRegistry::FindResourceFrom(const String& resourceLocation, const Symbol& name)
+{
+    SCOPE_LOCK();
+    Ptr<ResourceLocation> loc = _Locate(resourceLocation);
+    if (loc)
+    {
+        DataStreamRef fileStream = loc->LocateResource(name, nullptr);
+        if(fileStream)
+        {
+            // The resource needs to be thread safe. Before unlocking, lets create a copy of this resource (the complete bytes) so that its not going to interfere.
+            return DataStreamManager::GetInstance()->CreateCachedStream(fileStream);
+        }
+    }
+    return {};
 }
 
 DataStreamRef ResourceRegistry::FindResource(const Symbol& name)

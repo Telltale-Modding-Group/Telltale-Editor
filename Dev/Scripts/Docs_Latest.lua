@@ -877,9 +877,9 @@ end
 function TTE_DumpMemoryLeaks()
 end
 
---- Returns the information about the currently active game. The returned table contains keys string 'Name', string 'ID', integer 'ArchiveVersion' and bool 'IsArchive2'.
+--- Returns the information about the currently active game. The returned table contains keys string 'Name', string 'ID', and string 'Vendor'
 --- @return table
-function TTE_GetActiveGame()
+function TTE_GetActiveSnapshot()
 end
 
 --- If the first parameter is false, debug builds will throw an assert and break in the debugger
@@ -896,7 +896,12 @@ function TTE_Log(valueStr)
 end
 
 --- This is used in the Games.lua script to register a game to the Meta system on initialisation. It takes in a table which must have keys string Name, string ID,
---- bool ModifiedEncryption, table Key[string platform] to string hex key, etc. You could add your own game if you want to create one!
+--- bool ModifiedEncryption, string DefaultMetaVersion,string LuaVersion, int/table ArchiveVersion, string/table Key, bool IsArchive2, table Platforms, table Vendors and pushed capabilities. Archive
+--- version and key are either one static key/version or a table of snapshot ID to it. This is just 'Platform/Vendor' if there are more than just the default (empty string)
+--- vendor. Else its just the platform name. See existing examples. If vendors are specified, then DefaultVendor must be as well as a string. The 'CommonSelector' key is also useful. It
+--- should specify a function *name* which takes in the platform, vendor and common class type and returns the class name and version number of the common class to create for
+--- that snapshot and class type. Optional, defaults to the normal class name and version 0. If specified, return just nil and 0 to use default class name as well. Else
+--- do special checks dependent on that snapshot.
 --- @param gameInfoTable nil
 --- @return nil
 function MetaRegisterGame(gameInfoTable)
@@ -1410,7 +1415,7 @@ end
 function MetaStreamWriteCached(stream, cacheInstance)
 end
 
---- Writes a DDS file header with the given information. It must include the same information as returned by the read version above.
+--- Writes a DDS file header with the given information. It must include the same information as returned by the read version. See MetaStreamReadDDS for information about the table values.
 --- @param stream nil
 --- @param table nil
 --- @return nil
@@ -1433,7 +1438,7 @@ end
 function MetaStreamGetDDSHeaderSize(table)
 end
 
---- Reads a DDS file header returning a table with its information. See gitbook docs for table of return values.
+--- Reads a DDS file header returning a table with its information. See Gitbook documentation in the Meta System page for the table values.
 --- @param stream nil
 --- @return table
 function MetaStreamReadDDS(stream)
@@ -2005,10 +2010,6 @@ end
 function CommonSkeletonPushEntry(state, entryInfoTable)
 end
 
---- Animation value types
---- @type number
-kAnimationValueTypeTextureRotate = 0
-
 --- Vertex attribute formats
 --- @type number
 kCommonMeshUByte4Norm = 0
@@ -2016,10 +2017,6 @@ kCommonMeshUByte4Norm = 0
 --- Vertex attribute formats
 --- @type number
 kCommonMeshInt2 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeSkeletonRootAnim = 0
 
 --- Vertex attribute formats
 --- @type number
@@ -2040,6 +2037,10 @@ kCommonMeshByte2 = 0
 --- Vertex attribute formats
 --- @type number
 kCommonMeshFloat2 = 0
+
+--- Common class types
+--- @type number
+kCommonClassAnimation = 0
 
 --- Vertex attribute formats
 --- @type number
@@ -2113,6 +2114,10 @@ kCommonTextureFormatBGRA8 = 0
 --- @type number
 kCommonMeshUByte2Norm = 0
 
+--- Common class types
+--- @type number
+kCommonClassTexture = 0
+
 --- Vertex attribute formats
 --- @type number
 kCommonMeshByte2Norm = 0
@@ -2177,10 +2182,6 @@ kCommonMeshAttributeTangent = 0
 --- @type number
 kCommonMeshAttributeBlendWeight = 0
 
---- Animation value types
---- @type number
-kAnimationValueTypeSkeletonPose = 0
-
 --- Vertex attributes
 --- @type number
 kCommonMeshAttributeBlendIndex = 0
@@ -2193,6 +2194,10 @@ kCommonMeshAttributeColour = 0
 --- @type number
 kCommonMeshAttributeUVDiffuse = 0
 
+--- Common class types
+--- @type number
+kCommonClassScene = 0
+
 --- Vertex attributes
 --- @type number
 kCommonMeshAttributeUVLightMap = 0
@@ -2201,25 +2206,17 @@ kCommonMeshAttributeUVLightMap = 0
 --- @type number
 kCommonMeshAttributeUnknown = 0
 
---- Mesh compressed format involving unsigned normed UV values
+--- Common class types
 --- @type number
-kCommonMeshCompressedFormatUNormUV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureScaleV = 0
+kCommonClassMesh = 0
 
 --- Mesh compressed format involving signed normed normal vector3 values
 --- @type number
 kCommonMeshCompressedFormatSNormNormal = 0
 
---- Trigger when an event begins
+--- Common class types
 --- @type number
-kCommonInputMapperTypeBegin = 0
-
---- Trigger when an event ends
---- @type number
-kCommonInputMapperTypeEnd = 0
+kCommonClassInputMapper = 0
 
 --- Animation value types
 --- @type number
@@ -2228,6 +2225,30 @@ kAnimationValueTypeAudioReverbDry = 0
 --- Trigger on mouse move event
 --- @type number
 kCommonInputMapperTypeMouseMove = 0
+
+--- Common class types
+--- @type number
+kCommonClassSkeleton = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTime = 0
+
+--- Common class types
+--- @type number
+kCommonClassPropertySet = 0
+
+--- Mesh compressed format involving unsigned normed UV values
+--- @type number
+kCommonMeshCompressedFormatUNormUV = 0
+
+--- Trigger when an event begins
+--- @type number
+kCommonInputMapperTypeBegin = 0
+
+--- Trigger when an event ends
+--- @type number
+kCommonInputMapperTypeEnd = 0
 
 --- Trigger forced(?)
 --- @type number
@@ -2251,14 +2272,6 @@ kCompressedQuatKeysFormatLegacy0 = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTextureMoveU = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTime = 0
-
---- Animation value types
---- @type number
 kAnimationValueTypeMover = 0
 
 --- Animation value types
@@ -2267,11 +2280,31 @@ kAnimationValueTypeProperty = 0
 
 --- Animation value types
 --- @type number
+kAnimationValueTypeSkeletonPose = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeSkeletonRootAnim = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureMoveU = 0
+
+--- Animation value types
+--- @type number
 kAnimationValueTypeTextureMoveV = 0
 
 --- Animation value types
 --- @type number
 kAnimationValueTypeTextureScaleU = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureScaleV = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureRotate = 0
 
 --- Animation value types
 --- @type number
