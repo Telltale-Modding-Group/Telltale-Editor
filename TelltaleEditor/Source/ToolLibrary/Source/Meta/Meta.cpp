@@ -17,6 +17,37 @@
 // ===================================================================
 
 namespace Meta {
+
+
+    U32 RegGame::GetArchiveVersion(GameSnapshot snapshot) const
+    {
+        String snap = snapshot.Platform;
+        if(snapshot.Vendor.length())
+            snap = snap + "/" + snapshot.Vendor;
+        auto it = SnapToArchiveVersion.find(snap);
+        if(it == SnapToArchiveVersion.end())
+        {
+            snap = snapshot.Platform;
+            it = SnapToArchiveVersion.find(snap);
+            return it == SnapToArchiveVersion.end() ? MasterArchiveVersion : it->second;
+        }
+        return it->second;
+    }
+
+    BlowfishKey RegGame::GetEncryptionKey(GameSnapshot snapshot) const
+    {
+        String snap = snapshot.Platform;
+        if (snapshot.Vendor.length())
+            snap = snap + "/" + snapshot.Vendor;
+        auto it = SnapToEncryptionKey.find(snap);
+        if (it == SnapToEncryptionKey.end())
+        {
+            snap = snapshot.Platform;
+            it = SnapToEncryptionKey.find(snap);
+            return it == SnapToEncryptionKey.end() ? MasterKey : it->second;
+        }
+        return it->second;
+    }
     
     InternalState State{};
     
@@ -64,6 +95,96 @@ namespace Meta {
             return CRC32((U8*)&typeHash, 8, versionNumber ^ 0xF0F0F0F0);
             // needs to be unique. hash the type hash with initial crc being the version number inverted every 4 bits
         }
+
+        Bool _CollectCompiledScriptFunctionMT(CompiledScript& compiledScript, const String& fn)
+        {
+            ScriptManager::GetGlobal(GetToolContext()->GetLibraryLVM(), fn, true);
+
+            if (GetToolContext()->GetLibraryLVM().Type(-1) != LuaType::FUNCTION)
+            {
+                GetToolContext()->GetLibraryLVM().Pop(1);
+                TTE_LOG("The script function '%s' does not exist as a function.", fn.c_str());
+                return false;
+            }
+
+            // function is on the top of the stack, compile it.
+            DataStreamRef localWriter = DataStreamManager::GetInstance()->CreatePrivateCache(fn);
+            if (!GetToolContext()->GetLibraryLVM().Compile(localWriter.get()) || localWriter->GetSize() <= 0)
+            {
+                GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
+                TTE_LOG("Cannot register class script function %s"
+                           ": compile failed or empty", fn.c_str());
+                return false;
+            }
+            GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
+
+            localWriter->SetPosition(0); // seek to beginning, then read all bytes.
+            U8* compiledBytes = TTE_ALLOC(localWriter->GetSize(), MEMORY_TAG_SCRIPTING);
+
+            if (!localWriter->Read(compiledBytes, localWriter->GetSize()))
+            {
+                TTE_LOG("Could not read bytes from compiled serialiser script stream");
+                TTE_FREE(compiledBytes);
+                return false;
+            }
+
+            compiledScript.Binary = compiledBytes;
+            compiledScript.Size = (U32)localWriter->GetSize();
+            return true;
+        }
+
+        U32 _ResolveCommonClassIDSafe(CommonClass clz)
+        {
+            String className = CommonClassInfo::GetCommonClassInfo(clz).ClassName;
+            if(State.Games[State.GameIndex].CommonSelector.empty())
+            {
+                return FindClass(className, 0, false); // default
+            }
+            const CompiledScript& collector = State.Collector;
+            if(collector.Binary == nullptr)
+            {
+                return FindClass(className, 0, false); // default
+            }
+            const String& collectorName = State.GetActiveGame().CommonSelector;
+            LuaManager& LVM = GetThreadLVM();
+            ScriptManager::GetGlobal(LVM, collectorName, true);
+            if (LVM.Type(-1) != LuaType::FUNCTION)
+            {
+                LVM.Pop(1);
+                if (!LVM.LoadChunk(collectorName, collector.Binary, collector.Size, LoadChunkMode::BINARY))
+                {
+                    TTE_ASSERT(false, "Cannot select class version for %s: common selector failed to load", collectorName.c_str());
+                    return 0; // FAIL
+                }
+            }
+            GameSnapshot snapshot = GetToolContext()->GetSnapshot();
+            LVM.PushLString(snapshot.Platform);
+            LVM.PushLString(snapshot.Vendor);
+            LVM.PushInteger((I32)clz);
+            LVM.CallFunction(3, 1, true);
+            if(LVM.Type(1) != LuaType::NUMBER)
+            {
+                TTE_ASSERT(false, "Cannot select class version at %s: the function failed or did not return version number!", collectorName.c_str());
+                return 0; // FAIL
+            }
+            U32 num = (U32)ScriptManager::PopUnsignedInteger(LVM);
+            if(num > MAX_VERSION_NUMBER)
+            {
+                TTE_ASSERT(false, "Cannot select class version at %s: version number %u is too large!", collectorName.c_str(), num);
+                return 0; // FAIL
+            }
+            return FindClass(className, num, false);
+        }
+
+        void _FreeCompiledScriptMT(CompiledScript& script)
+        {
+            if(script.Binary)
+            {
+                TTE_FREE(script.Binary);
+                script.Binary = nullptr;
+                script.Size = 0;
+            }
+        }
         
         void _PushCompiledScript(std::map<Symbol, CompiledScript>& scriptMap, const String& fn)
         {
@@ -72,43 +193,12 @@ namespace Meta {
                 // register serialise and compile it
                 if(scriptMap.find(fn) == scriptMap.end())
                 {
-                    // compile and add it
-                    
-                    ScriptManager::GetGlobal(GetToolContext()->GetLibraryLVM(), fn, true);
-                    
-                    if(GetToolContext()->GetLibraryLVM().Type(-1) != LuaType::FUNCTION)
-                    {
-                        GetToolContext()->GetLibraryLVM().Pop(1);
-                        TTE_ASSERT(false, "The script function '%s' does not exist as a function.", fn.c_str());
-                        return;
-                    }
-                    
-                    // function is on the top of the stack, compile it.
-                    DataStreamRef localWriter = DataStreamManager::GetInstance()->CreatePrivateCache(fn);
-                    if(!GetToolContext()->GetLibraryLVM().Compile(localWriter.get()) || localWriter->GetSize() <= 0)
-                    {
-                        GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
-                        TTE_ASSERT(false, "Cannot register class script function %s"
-                                   ": compile failed or empty", fn.c_str());
-                        return;
-                    }
-                    GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
-                    
-                    localWriter->SetPosition(0); // seek to beginning, then read all bytes.
-                    U8* compiledBytes = TTE_ALLOC(localWriter->GetSize(), MEMORY_TAG_SCRIPTING);
-                    
-                    if(!localWriter->Read(compiledBytes, localWriter->GetSize()))
-                    {
-                        TTE_ASSERT(false, "Could not read bytes from compiled serialiser script stream");
-                        TTE_FREE(compiledBytes);
-                        return;
-                    }
-                    
+                    // compile and add it                
                     CompiledScript compiledScript{};
-                    compiledScript.Binary = compiledBytes;
-                    compiledScript.Size = (U32)localWriter->GetSize();
-                    scriptMap[fn] = compiledScript; // save it
-                    
+                    if(_CollectCompiledScriptFunctionMT(compiledScript, fn))
+                    {
+                        scriptMap[fn] = compiledScript; // save it
+                    }        
                 }
             }
         }
@@ -577,6 +667,14 @@ namespace Meta {
             stream.CurrentSection = initialSection; // reset section
             
             return true;
+        }
+
+        U32 _ResolveCommonClassID(const String& extension)
+        {
+            CommonClassInfo info = CommonClassInfo::GetCommonClassInfoByExtension(extension);
+            if (info.Class == CommonClass::NONE)
+                return 0; // use def
+            return Meta::_Impl::_ResolveCommonClassIDSafe(info.Class);
         }
         
         String _PerformToString(U8* pMemory, Class* pClass)
@@ -1495,7 +1593,7 @@ namespace Meta {
     {
         TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
         TTE_ASSERT(GetToolContext(), "Tool context not created");
-        GameSnapshot snap = GetToolContext()->GetSnapshot();
+        GameSnapshot& snap = GetToolContext()->_Snapshot;
         
         // Ensure game exists
         Bool Found = false;
@@ -1505,6 +1603,8 @@ namespace Meta {
         {
             if(game.ID == snap.ID)
             {
+                if(snap.Vendor.empty())
+                    snap.Vendor = game.DefaultVendor;
                 Found = true;
                 gameIdx = i;
                 if(!_Impl::_CheckPlatformForGame(game, snap.Platform))
@@ -1514,7 +1614,7 @@ namespace Meta {
                 }
                 if(!_Impl::_CheckVendorForGame(game, snap.Vendor))
                 {
-                    TTE_ASSERT(false, "The vendor '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
+                    TTE_ASSERT(false, "The vendor '%s' is not (or currently) supported for the game %s!", snap.Vendor.c_str(), game.Name.c_str());
                     return;
                 }
                 break;
@@ -1584,12 +1684,7 @@ namespace Meta {
                 }
                 State._Temp.DeferredWarnings.clear();
                 
-                BlowfishKey key = State.Games[gameIdx].MasterKey; // set to master key
-                
-                // if there is a specific platform encryption key, do that here
-                auto it = State.Games[gameIdx].PlatformToEncryptionKey.find(snap.Platform);
-                if(it != State.Games[gameIdx].PlatformToEncryptionKey.end())
-                    key = it->second;
+                BlowfishKey key = State.Games[gameIdx].GetEncryptionKey(snap);
                 
                 if(key.BfKeyLength == 1 && key.BfKey[0] == 0)
                 {
@@ -1598,6 +1693,19 @@ namespace Meta {
                     // encryption key '00' means we dont know it yet.
                     RelGame();
                     return;
+                }
+
+                const String& collector = State.Games[gameIdx].CommonSelector;
+                if(!collector.empty() && !_Impl::_CollectCompiledScriptFunctionMT(State.Collector, collector))
+                {
+                    TTE_ASSERT(false, "The common class collector function for %s could not be found or compiled: %s! Switch failed.",
+                               State.Games[gameIdx].Name.c_str(), collector.c_str());
+                    RelGame();
+                    return;
+                }
+                else
+                {
+                    State.Collector = {};
                 }
                 
                 Blowfish::Initialise(State.Games[gameIdx].Fl.Test(RegGame::MODIFIED_BLOWFISH), key.BfKey, key.BfKeyLength);
@@ -1614,14 +1722,15 @@ namespace Meta {
         
         // clear compiled memory
         for(auto& script: State.Serialisers)
-            TTE_FREE(script.second.Binary);
-        State. Serialisers.clear();
+            _Impl::_FreeCompiledScriptMT(script.second);
+        State.Serialisers.clear();
         for(auto& script: State.Normalisers)
-            TTE_FREE(script.second.Binary);
+            _Impl::_FreeCompiledScriptMT(script.second);
         State.Normalisers.clear();
         for(auto& script: State.Specialisers)
-            TTE_FREE(script.second.Binary);
+            _Impl::_FreeCompiledScriptMT(script.second);
         State.Specialisers.clear();
+        _Impl::_FreeCompiledScriptMT(State.Collector);
         
         State.Classes.clear();
         State.VersionCalcFun = "";
@@ -2946,7 +3055,7 @@ namespace Meta {
     
     // COERSION IMP
     
-    CommonInstanceAllocator* GetCommonAllocator(U32 clz)
+    CommonClassAllocator* GetCommonAllocator(U32 clz)
     {
         String clsName = MakeTypeName(GetClass(clz).Name);
         auto& reg = _Impl::_CoersionRegistry();

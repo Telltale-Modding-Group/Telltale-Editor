@@ -877,9 +877,9 @@ end
 function TTE_DumpMemoryLeaks()
 end
 
---- Returns the information about the currently active game. The returned table contains keys string 'Name', string 'ID', integer 'ArchiveVersion' and bool 'IsArchive2'.
+--- Returns the information about the currently active game. The returned table contains keys string 'Name', string 'ID', and string 'Vendor'
 --- @return table
-function TTE_GetActiveGame()
+function TTE_GetActiveSnapshot()
 end
 
 --- If the first parameter is false, debug builds will throw an assert and break in the debugger
@@ -895,8 +895,18 @@ end
 function TTE_Log(valueStr)
 end
 
+--- Gets the platform name which the Telltale Editor is running on. This will return strings 'Windows' or 'MacOS', 'Linux' and etc for others in the future.
+--- @return string
+function TTE_GetPlatform()
+end
+
 --- This is used in the Games.lua script to register a game to the Meta system on initialisation. It takes in a table which must have keys string Name, string ID,
---- bool ModifiedEncryption, table Key[string platform] to string hex key, etc. You could add your own game if you want to create one!
+--- bool ModifiedEncryption, string DefaultMetaVersion,string LuaVersion, int/table ArchiveVersion, string/table Key, bool IsArchive2, table Platforms, table Vendors and pushed capabilities. Archive
+--- version and key are either one static key/version or a table of snapshot ID to it. This is just 'Platform/Vendor' if there are more than just the default (empty string)
+--- vendor. Else its just the platform name. See existing examples. If vendors are specified, then DefaultVendor must be as well as a string. The 'CommonSelector' key is also useful. It
+--- should specify a function *name* which takes in the platform, vendor and common class type and returns the class name and version number of the common class to create for
+--- that snapshot and class type. Optional, defaults to the normal class name and version 0. If specified, return just nil and 0 to use default class name as well. Else
+--- do special checks dependent on that snapshot.
 --- @param gameInfoTable nil
 --- @return nil
 function MetaRegisterGame(gameInfoTable)
@@ -1321,8 +1331,8 @@ end
 function MetaStreamWriteBool(stream, value)
 end
 
---- Writes the symbol argument. If it is a 16 byte hex string hash, the value is represents is written, else the string is hashed on the lower case version. Note
---- that SymbolXXX can be used to create and manage symbols.
+--- Writes the symbol argument. If it is a 16 byte hex string hash with <>, the value is represents is written, else the string is hashed on the lower case
+--- version. Note that SymbolXXX can be used to create and manage symbols.
 --- @param stream nil
 --- @param value nil
 --- @return nil
@@ -1410,7 +1420,7 @@ end
 function MetaStreamWriteCached(stream, cacheInstance)
 end
 
---- Writes a DDS file header with the given information. It must include the same information as returned by the read version above.
+--- Writes a DDS file header with the given information. It must include the same information as returned by the read version. See MetaStreamReadDDS for information about the table values.
 --- @param stream nil
 --- @param table nil
 --- @return nil
@@ -1433,7 +1443,7 @@ end
 function MetaStreamGetDDSHeaderSize(table)
 end
 
---- Reads a DDS file header returning a table with its information. See gitbook docs for table of return values.
+--- Reads a DDS file header returning a table with its information. See Gitbook documentation in the Meta System page for the table values.
 --- @param stream nil
 --- @return table
 function MetaStreamReadDDS(stream)
@@ -1445,12 +1455,12 @@ end
 function MetaGetCachedSize(cacheInstance)
 end
 
---- Finds the class in the meta system associated with the given type symbol for the given meta stream. The symbol is either a symbol (16 byte hex hash string) or
---- a string which will be hashed. Examples of use are passing in a symbol read from the meta stream when the meta stream contains a class determined by its symbol
---- also stored in the meta stream. Returns the class type name and version number associated. The class is found by searching the meta stream header for the type name symbol,
---- if it is found then the returned class is one with the same version hash as in the header of the meta stream. If it is not found in the
---- header, then it may still be valid as intrinsic types are container types are not in headers. In those cases, the type with version number zero is returned - as
---- those types don't have different versions and if they do they are never used.
+--- Finds the class in the meta system associated with the given type symbol for the given meta stream. The symbol is either a symbol (16 byte hex hash string with
+--- <>) or a string which will be hashed. Examples of use are passing in a symbol read from the meta stream when the meta stream contains a class determined by
+--- its symbol also stored in the meta stream. Returns the class type name and version number associated. The class is found by searching the meta stream header for the type
+--- name symbol, if it is found then the returned class is one with the same version hash as in the header of the meta stream. If it is not found
+--- in the header, then it may still be valid as intrinsic types are container types are not in headers. In those cases, the type with version number zero is returned
+--- - as those types don't have different versions and if they do they are never used.
 --- @param stream nil
 --- @param typeSymbol nil
 --- @return typename, versionNumber
@@ -1494,15 +1504,15 @@ function SymbolTableClear()
 end
 
 --- Compares if the symbol hash of left and right are equal to each other. Either or both of them can be an un-hashed string, or any of them can be
---- a hashed string (ie a 16 byte hex hash string).
+--- a hashed string (ie a 16 byte hex hash string with <>).
 --- @param left nil
 --- @param right nil
 --- @return bool
 function SymbolCompare(left, right)
 end
 
---- Creates a symbol, by hashing the string argument in lower case. If the string argument is itself a string 16 byte hex hash, it will still be hashed so be
---- careful.
+--- Creates a symbol, by hashing the string argument in lower case. If the string argument is itself a string 16 byte hex hash with <>, it will still be hashed
+--- so be careful.
 --- @param string nil
 --- @return symbol
 function SymbolCreate(string)

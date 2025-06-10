@@ -3,11 +3,13 @@
 #include <Core/Config.hpp>
 
 #include <memory>
+#include <array>
 
-// HELPER FROM TELLTALE TOOL LIB
+// HELPER FROM TELLTALE TOOL LIB (IMPROVED)
 template<U32 N>
-struct _BitSet_BaseN {
-    static constexpr U32 _N = (N / 32) + (N % 32 == 0 ? 0 : 1);
+struct _BitSet_BaseN
+{
+    static constexpr U32 _N = (N + 31) >> 5;
 };
 
 /**
@@ -29,14 +31,13 @@ public:
     
 protected:
     
-    U32 _Words[NumWords];
+    std::array<U32, NumWords> _Words;
     
 public:
     
-    BitSet()
-    {
-        memset(_Words, 0, NumWords << 2);
-    }
+    constexpr inline BitSet() : _Words() {}
+
+    constexpr inline BitSet(const BitSet& rhs) : _Words(rhs._Words) {}
     
     // Accesses
     inline Bool operator[](EnumClass index) const
@@ -63,6 +64,25 @@ public:
         for(U32 i = 0; i < NumWords; i++)
             _Words[i] |= rhs._Words[i];
     }
+
+    // keep bits in this bitset that are set in the rhs
+    inline void Mask(const BitSet& rhs)
+    {
+        for (U32 i = 0; i < NumWords; i++)
+            _Words[i] &= rhs._Words[i];
+    }
+
+    // Counts number of set bits in range
+    inline U32 CountBits(EnumClass first, U32 num) const
+    {
+        U32 N = 0;
+        for(U32 i = 0; i < num; i++)
+        {
+            if(operator[]((EnumClass)((U32)first + i)))
+                N++;
+        }
+        return N;
+    }
     
     // Counts number of set bits
     inline U32 CountBits() const
@@ -76,7 +96,7 @@ public:
     // Get words
     inline U32* Words()
     {
-        return _Words;
+        return _Words.data();
     }
     
     inline EnumClass FindFirstBit(EnumClass startIndex_ = FirstValue) const
@@ -159,6 +179,37 @@ public:
     inline Iterator end() const
     {
         return Iterator(*this, MaxValue);
+    }
+
+    // Add all compile time bits
+    template<EnumClass... Values>
+    constexpr inline void AddEnums()
+    {
+        (_SetCE(Values), ...);
+    }
+
+    // Make with compile bits
+    template<EnumClass... Values>
+    static constexpr inline BitSet MakeWith()
+    {
+        BitSet _Bits{};
+        _Bits.AddEnums<Values...>();
+        return _Bits;
+    }
+
+private:
+
+    static constexpr U32 _ToBitHelper(EnumClass e)
+    {
+        return static_cast<U32>(e);
+    }
+
+    constexpr inline void _SetCE(EnumClass e)
+    {
+        U32 index = _ToBitHelper(e);
+        TTE_ASSERT(index >= MinValue && index < MaxValue, "Invalid enum value: outside of bit set range");
+        U32 ind = index - MinValue;
+        _Words[ind >> 5] |= (1u << (ind & 0x1F));
     }
     
 };

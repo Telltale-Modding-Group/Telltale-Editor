@@ -68,7 +68,7 @@ function RegisterSkeleton0(collectionRegistrar, MetaVec3, MetaQuat, transform, m
 	sklEntry.Members[10] = NewMember("mResourceGroupMembership", mapStringFloat)
 	MetaRegisterClass(sklEntry)
 
-	local arraySklEntry, _ = collectionRegistrar("class DCArray<class Skeleton::Entry>", nil, sklEntry)
+	local arraySklEntry = collectionRegistrar("class DCArray<class Skeleton::Entry>", nil, sklEntry)
 
 	local skl = NewClass("class Skeleton", 0)
 	skl.Extension = "skl"

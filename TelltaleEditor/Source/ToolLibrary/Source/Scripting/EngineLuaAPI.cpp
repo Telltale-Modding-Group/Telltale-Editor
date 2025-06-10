@@ -729,19 +729,19 @@ U32 luaFileCopy(LuaManager& man)
                         }
                         else
                         {
-                            TTE_LOG("At FileDelete(): the destination resource '%s' could not be opened (in location %s)",
+                            TTE_LOG("At FileCopy(): the destination resource '%s' could not be opened (in location %s)",
                                     addrDst.GetName().c_str(), addrDst.GetLocationName().c_str());
                         }
                     }
                     else
                     {
-                        TTE_LOG("At FileDelete(): the source resource '%s' does not exist inside resource location %s",
+                        TTE_LOG("At FileCopy(): the source resource '%s' does not exist inside resource location %s",
                                 addrSrc.GetName().c_str(), addrSrc.GetLocationName().c_str());
                     }
                 }
                 else
                 {
-                    TTE_LOG("At FileDelete(): the destination resource location is not concrete: %s",  addrDst.GetLocationName().c_str());
+                    TTE_LOG("At FileCopy(): the destination resource location is not concrete: %s",  addrDst.GetLocationName().c_str());
                 }
             }
             else
@@ -1256,7 +1256,7 @@ U32 luaResourceCopy(LuaManager& man)
     Bool bResult = false;
     ResourceAddress src = reg->CreateResolvedAddress(man.ToString(1), true);
     ResourceAddress dst = reg->CreateResolvedAddress(man.ToString(2), true);
-    U32 cls = Meta::FindClassByExtension(FileGetExtension(src.GetName()), 0);
+    U32 cls = Meta::_Impl::_ResolveCommonClassID(FileGetExtension(src.GetName()));
     if(cls != 0)
     {
         // copy resource to new

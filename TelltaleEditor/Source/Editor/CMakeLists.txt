@@ -10,7 +10,34 @@ add_executable(${TARGET_NAME} ${EDITOR_HEADERS} ${EDITOR_SOURCES} ${EDITOR_INLIN
 target_link_libraries(${TARGET_NAME} PRIVATE
     ToolLibrary
     SDL3::SDL3-static
+    imgui
 )
+
+# Include D3D libraries
+if(WIN32)
+target_link_libraries(${TARGET_NAME} PRIVATE d3d12.lib d3dcompiler.lib) 
+elseif(UNIX AND NOT APPLE)
+# TODO GLSLANG
+elseif(APPLE)
+# TODO METAL COMP
+    find_library(METAL_FRAMEWORK Metal)
+    find_library(METALKIT_FRAMEWORK MetalKit)
+    find_library(FOUNDATION_FRAMEWORK Foundation)
+
+    if(NOT METAL_FRAMEWORK)
+        message(FATAL_ERROR "Cannot build Telltale Editor: Metal framework not found. Please ensure the Metal SDK is installed, and make sure MetalKit is as well!")
+    endif()
+
+    if(NOT METALKIT_FRAMEWORK)
+        message(FATAL_ERROR "Cannot build Telltale Editor: MetalKit framework not found! Please ensure this SDK is installed!")
+    endif()
+
+    target_link_libraries(${TARGET_NAME} PRIVATE
+        ${METAL_FRAMEWORK}
+        ${METALKIT_FRAMEWORK}
+        ${FOUNDATION_FRAMEWORK}
+    )
+endif()
 
 target_include_directories(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Include)
 
@@ -18,6 +45,11 @@ set_target_properties(${TARGET_NAME} PROPERTIES CXX_STANDARD 17 OUTPUT_NAME "Tel
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "TelltaleEditor")
 set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Debug")
 set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Release")
+
+# Windows debugger directory
+if(WIN32)
+set_target_properties(${TARGET_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Debug")
+endif()
 
 function(add_copy_cmd fname thirddir target_name output_dir)
     add_custom_command(

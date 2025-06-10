@@ -336,6 +336,7 @@ public:
     
     static constexpr CString ClassHandle = "Handle<Scene>";
     static constexpr CString Class = "Scene";
+    static constexpr CString Extension = "scene";
     
     inline Scene(Ptr<ResourceRegistry> reg) : HandleableRegistered<Scene>(std::move(reg)) {}
     
@@ -383,6 +384,11 @@ public:
     static Transform NodeLocalToNode(const Ptr<Node>& node, Transform nodeLocalSpaceTransform, const String& nodeName);
     
     static Transform GetNodeWorldTransform(Ptr<Node> node); // get correct updated world transform
+
+    inline virtual CommonClass GetCommonClassType() override
+    {
+        return CommonClass::SCENE;
+    }
     
 private:
     

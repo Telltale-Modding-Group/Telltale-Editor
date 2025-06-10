@@ -167,7 +167,8 @@ namespace Memory
         "AnimationData",
         "ObjOwner::ObjData<T>",
         "MethodImpl",
-        "SceneData"
+        "SceneData",
+        "EditorUI"
     };
     
     void DumpTrackedMemory()

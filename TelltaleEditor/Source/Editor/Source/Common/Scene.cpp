@@ -82,7 +82,7 @@ void Scene::_SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>:
     
     // ADD CALLBACKS
     
-    PropertySet::AddCallback(pAgent->Props, kRuntimeVisibilityKey, ALLOCATE_METHOD_CALLBACK_1(pAgent, &SceneAgent::SetVisible, SceneAgent, Bool));
+    PropertySet::AddCallback(pAgent->Props, kRuntimeVisibilityKey, ALLOCATE_METHOD_CALLBACK_1(pAgent, SetVisible, SceneAgent, Bool));
     
     // 1 (Sync1) prepare non dependent mesh agents
     

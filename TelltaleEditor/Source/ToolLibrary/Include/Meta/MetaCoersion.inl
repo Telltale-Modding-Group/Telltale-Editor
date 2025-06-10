@@ -30,7 +30,7 @@ namespace Meta // Implementation detail for coersion of c++ => meta, meta => c++
             LuaToMetaFn* LuaToMeta = nullptr;
             
             // FOR COMMON CLASSES
-            CommonInstanceAllocator* Allocator = nullptr;
+            CommonClassAllocator* Allocator = nullptr;
             
             CString ClassName = nullptr;
         };
@@ -143,7 +143,7 @@ namespace Meta // Implementation detail for coersion of c++ => meta, meta => c++
             
             static constexpr Bool IsCommon = false;
             
-            static inline CommonInstanceAllocator* _SelectAl()
+            static inline CommonClassAllocator* _SelectAl()
             {
                 return nullptr;
             }
@@ -156,7 +156,7 @@ namespace Meta // Implementation detail for coersion of c++ => meta, meta => c++
             
             static constexpr Bool IsCommon = true;
             
-            static inline CommonInstanceAllocator* _SelectAl()
+            static inline CommonClassAllocator* _SelectAl()
             {
                 return &AllocateCommon<T>;
             }

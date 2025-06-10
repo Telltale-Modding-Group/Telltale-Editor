@@ -244,12 +244,12 @@ void RenderContext::_ExecutePass(RenderFrame &frame, RenderSceneContext &context
         RenderPipelineState pipelineDesc{};
         if(inst._DrawDefault == DefaultRenderMeshType::NONE)
         {
-            TTE_ASSERT(inst.Program.c_str(), "Render instance shader program not set");
+            TTE_ASSERT(inst.EffectRef, "Render instance effect variant not set");
             
             // Find pipeline state for draw
             pipelineDesc.PrimitiveType = inst._PrimitiveType;
             pipelineDesc.VertexState = inst._VertexStateInfo;
-            pipelineDesc.ShaderProgram = inst.Program;
+            pipelineDesc.EffectHash = inst.EffectRef.EffectHash;
         }
         else
         {

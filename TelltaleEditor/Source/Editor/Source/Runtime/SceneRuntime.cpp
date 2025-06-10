@@ -31,7 +31,7 @@ static U32 luaResourceEnableLowQualityPreload(LuaManager& man)
 }
 
 SceneRuntime::SceneRuntime(RenderContext& context, const Ptr<ResourceRegistry>& pResourceSystem)
-        : RenderLayer("Scene Runtime", context), GameDependentObject("Scene Runtime Object")
+        : RenderLayer("Scene Runtime", context), SnapshotDependentObject("Scene Runtime Object")
 {
     _AttachedRegistry = pResourceSystem;
     _ScriptManager.Initialise(Meta::GetInternalState().GetActiveGame().LVersion);
@@ -560,11 +560,16 @@ void Scene::PerformAsyncRender(SceneRuntime& rtContext, RenderFrame& frame, Floa
                         
                         context.SetParameterIndexBuffer(frame, objGroup, ShaderParameterType::PARAMETER_INDEX0IN,
                                                         meshInstance.VertexStates[lod.VertexStateIndex].RuntimeData.GPUIndexBuffer, 0);
-                        
+
+                        // Effect setup
+                        RenderEffectFeaturesBitSet variants{};
+                        if(bHasBoneMatrices)
+                            variants.Set(RenderEffectFeature::DEFORMABLE, true);
+
                         // DRAW
                         RenderInst inst{};
                         inst.SetVertexState(meshInstance.VertexStates[lod.VertexStateIndex].Default);
-                        inst.SetShaderProgram(bHasBoneMatrices ? "MeshDeformable" : "Mesh");
+                        inst.SetEffectRef(context.GetEffectRef(RenderEffect::MESH, variants));
                         inst.DrawPrimitives(RenderPrimitiveType::TRIANGLE_LIST, batch.StartIndex, batch.NumPrimitives, 1, batch.BaseIndex);
                         inst.GetRenderState() = globalRenderState;
                         pDiffusePass->PushRenderInst(context, std::move(inst), objGroup);

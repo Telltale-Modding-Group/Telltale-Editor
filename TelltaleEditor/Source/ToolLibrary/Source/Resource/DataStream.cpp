@@ -326,7 +326,7 @@ DataStreamFile::DataStreamFile(const ResourceURL &url) : DataStream(url), _Handl
     // Attempt to open the file
     String fpath = url.GetRawPath(); // Get the raw path without the scheme, and pass it to the file system to try and find the file.
     std::filesystem::path p{fpath.c_str()};
-    p = std::filesystem::absolute(p.parent_path());
+    p = std::filesystem::absolute(p).parent_path();
     if(!std::filesystem::exists(p))
         std::filesystem::create_directories(p);
     _Handle = FileOpen(fpath.c_str());
@@ -411,7 +411,7 @@ ResourceURL::ResourceURL(String path, Bool bAllowAngles)
 {
     // Split from scheme.
     size_t pos = path.find_first_of(':');
-    if (pos == std::string::npos)
+    if (pos == std::string::npos || pos == 1) // or == 1, windows drive ID
     { // no ':', default file.
         _Path = std::move(path);
         _Scheme = ResourceScheme::FILE;
@@ -430,7 +430,7 @@ void ResourceURL::_Normalise(Bool angleBrackets)
     std::replace(_Path.begin(), _Path.end(), '\\', '/');
     
     // paths cannot contain bad characters
-    std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_<> ";
+    std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_<>: ";
     _Path.erase(std::remove_if(_Path.begin(), _Path.end(), [&validChars](char c) { return validChars.find(c) == std::string::npos; }), _Path.end());
     if(!angleBrackets)
     {
