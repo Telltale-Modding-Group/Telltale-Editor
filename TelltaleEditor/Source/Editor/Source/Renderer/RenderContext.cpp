@@ -1562,16 +1562,12 @@ RenderPass RenderCommandBuffer::EndPass()
     return pass;
 }
 
-#ifdef PLATFORM_WINDOWS
-extern "C" ID3D12GraphicsCommandList* SDL3_GPU_D3D12_GetGraphicsCommandList(SDL_GPUCommandBuffer* pCommandBuffer);
-#endif
-
 void RenderContext::_PushDebugGroup(RenderCommandBuffer& buf, const String& name)
 {
 #ifdef PLATFORM_WINDOWS
 #ifdef DEBUG
     // PIX API
-    PIXBeginEvent(SDL3_GPU_D3D12_GetGraphicsCommandList(buf._Handle), PIX_COLOR(167, 22, 224), name.c_str());
+    PIXBeginEvent(*((ID3D12GraphicsCommandList**)buf._Handle), PIX_COLOR(167, 22, 224), name.c_str());
 #endif
 #else
     SDL_PushGPUDebugGroup(buf._Handle, name.c_str());
@@ -1582,7 +1578,7 @@ void RenderContext::_PopDebugGroup(RenderCommandBuffer& buf)
 {
 #ifdef PLATFORM_WINDOWS
 #ifdef DEBUG
-    PIXEndEvent(SDL3_GPU_D3D12_GetGraphicsCommandList(buf._Handle));
+    PIXEndEvent(*((ID3D12GraphicsCommandList**)buf._Handle));
 #endif
 #else
     SDL_PopGPUDebugGroup(buf._Handle);
