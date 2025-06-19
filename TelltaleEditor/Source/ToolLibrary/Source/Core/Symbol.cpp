@@ -47,6 +47,8 @@ Symbol SymbolFromHexString(const String& str, Bool bStrict)
 {
     if(str.length() != 18)
     {
+        if (str.length())
+            GetRuntimeSymbols().Register(str);
         return bStrict ? Symbol() : Symbol(str);
     }
     

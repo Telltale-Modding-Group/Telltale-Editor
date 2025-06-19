@@ -21,6 +21,5 @@ Dev/TestResources/Dbg/*
 Bin/*
 .DS_Store
 *.exe
-*.lib
 *.a
 *.obj

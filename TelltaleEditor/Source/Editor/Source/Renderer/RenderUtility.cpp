@@ -13,7 +13,7 @@ namespace RenderUtility
     void SetCameraParameters(RenderContext& context, ShaderParameter_Camera* cam, Camera* ac)
     {
         Matrix4 vp = (ac->GetProjectionMatrix() * ac->GetViewMatrix());
-        if(context.IsLeftHanded())
+        if(!context.IsLeftHanded())
         {
             vp.SetRow(2, -vp.GetRow(2));
         }
@@ -48,16 +48,16 @@ namespace RenderUtility
         // SET PARAMETERS REQUIRED. (we are drawing a default mesh)
         ShaderParameterTypes types{};
         if(ac)
-            types.Set(PARAMETER_CAMERA, true);
-        types.Set(PARAMETER_OBJECT, true);
+            types.Set(ShaderParameterType::PARAMETER_CAMERA, true);
+        types.Set(ShaderParameterType::PARAMETER_OBJECT, true);
         
         // Parameter stack abstracts lots of groups, binding top down until all required from the shaders have been bound.
         ShaderParametersGroup* group = context.AllocateParameters(frame, types);
         
         // Link the uniforms to be uploaded. Note the uniform data when taking the address is on the frame heap, NOT this stack frame.
         if(ac)
-            context.SetParameterUniform(frame, group, PARAMETER_CAMERA, cam, sizeof(ShaderParameter_Camera));
-        context.SetParameterUniform(frame, group, PARAMETER_OBJECT, &obj, sizeof(ShaderParameter_Object));
+            context.SetParameterUniform(frame, group, ShaderParameterType::PARAMETER_CAMERA, cam, sizeof(ShaderParameter_Camera));
+        context.SetParameterUniform(frame, group, ShaderParameterType::PARAMETER_OBJECT, &obj, sizeof(ShaderParameter_Object));
         
         // Queue the draw command
         RenderInst draw {};

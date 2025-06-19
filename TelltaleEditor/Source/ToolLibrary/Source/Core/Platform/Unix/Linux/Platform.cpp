@@ -14,6 +14,17 @@ void ThreadSleep(U64 milliseconds)
 
 void SetThreadName(const String &tName) { (void)pthread_setname_np(pthread_self(), tName.c_str()); }
 
+void PlatformMessageBoxAndWait(const String& title, const String& message)
+{
+    String command = "zenity --info --title=\"" + title + "\" --text=\"" + message + "\"";
+    int result = system(command.c_str());
+
+    if (result != 0) {
+        printf("=== %s ===\n%s\nPlease press enter to continue...\n", title.c_str(), message.c_str());
+        getchar();
+    }
+}
+
 void DebugBreakpoint() { (void)raise(SIGINT); }
 
 U64 FileOpen(CString path)

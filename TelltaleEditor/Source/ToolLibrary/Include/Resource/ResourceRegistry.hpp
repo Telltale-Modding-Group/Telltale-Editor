@@ -32,17 +32,6 @@
 
 // ================================================== RESOURCE LIFETIME MANAGEMENT ==================================================
 
-template<typename T> inline Ptr<Handleable> AllocateCommon(Ptr<ResourceRegistry> registry)
-{
-    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
-    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, registry);
-}
-
-template<> inline Ptr<Handleable> AllocateCommon<Placeholder>(Ptr<ResourceRegistry>)
-{
-    return {};
-}
-
 template<typename T>
 inline HandleableRegistered<T>::HandleableRegistered(Ptr<ResourceRegistry> reg) : Handleable(std::move(reg))
 {
@@ -89,6 +78,8 @@ struct HandleObjectInfo
     {
         return _ResourceName == rhs._ResourceName;
     }
+
+    ~HandleObjectInfo();
     
 };
 
@@ -334,6 +325,7 @@ namespace Meta::_Impl
         {
             out.SetObject(ScriptManager::ToSymbol(man, stackIndex));
         }
+
     };
 
     
@@ -468,9 +460,19 @@ public:
     {
         if(!std::filesystem::is_directory(path))
         {
-            std::filesystem::create_directories(path);
-            if(!std::filesystem::is_directory(path))
+            Bool bOk;
+            try
             {
+                std::filesystem::create_directories(path);
+                bOk = !std::filesystem::is_directory(path);
+            }
+            catch (...)
+            {
+                bOk = false;
+            }
+            if (!bOk)
+            {
+                RegistryDirectory::_Path = ".";
                 TTE_LOG("WARNING: Registry system directory '%s' does not exist!", path.c_str());
             }
         }
@@ -802,7 +804,7 @@ struct AsyncResourcePreloadBatchJob // async serialise and normalises
     U32 NumResources = 0; // 0 to 32 below
     Flags BatchFlags;
     HandleObjectInfo HOI[STATIC_PRELOAD_BATCH_SIZE];
-    CommonInstanceAllocator* Allocators[STATIC_PRELOAD_BATCH_SIZE];
+    CommonClassAllocator* Allocators[STATIC_PRELOAD_BATCH_SIZE];
     
 };
 
@@ -827,7 +829,7 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* job, void*);
  Ensure that these only exist BETWEEN game switches!
  Concrete locations have a trailing slash, while logical locators do not!
  */
-class ResourceRegistry : public GameDependentObject, public std::enable_shared_from_this<ResourceRegistry>
+class ResourceRegistry : public SnapshotDependentObject, public std::enable_shared_from_this<ResourceRegistry>
 {
 public:
     
@@ -1002,6 +1004,12 @@ public:
     // Most important in this class. Finds a resource in the currently enabled patch sets, highest loaded priority one will be returned.
     DataStreamRef FindResource(const Symbol& name);
     
+    // Open resource data stream from logical location. Not used for loaded
+    DataStreamRef FindResourceFrom(const String& loc, const Symbol& filename);
+
+    // Similar to find resource functions but will create the stream if needed on disk. Returns the FILE stream (not a memory cache stream)
+    DataStreamRef OpenDataStream(const String& loc, const String& filename);
+    
     // Like FindResource but gets the name
     String FindResourceName(const Symbol& name);
     
@@ -1034,7 +1042,7 @@ public:
     String LocateConcreteResourceLocation(const Symbol& resourceName);
     
     // See version with string. Finds it, must exist.
-    ResourceAddress CreateResolvedAddress(const Symbol& resourceName);
+    ResourceAddress CreateResolvedAddressFromSymbol(const Symbol& resourceName);
     
     // Create a resolved resouce address. Include folder path, file name, prefix scheme (optional default file)
     // Valid path may be '<User>/file.txt' or 'ttcache:module_prop.prop'. set default to cache to default to the cache if no scheme (normal) (else locator)
@@ -1156,6 +1164,7 @@ private:
     friend U32 luaFileCopy(LuaManager& man);
     friend U32 luaFileDelete(LuaManager& man);
     friend U32 luaFileExists(LuaManager& man);
+    friend U32 luaResourceGetSymbolsNames(LuaManager& man);
     
     /**
      Constructor. The lua manager version passed in MUST match any game scripts lua versions being run! This is because this will run any resource sets, which may use an older version!

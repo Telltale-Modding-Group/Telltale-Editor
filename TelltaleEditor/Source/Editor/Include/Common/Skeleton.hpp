@@ -37,6 +37,7 @@ public:
     
     static constexpr CString ClassHandle = "Handle<Skeleton>";
     static constexpr CString Class = "Skeleton";
+    static constexpr CString Extension = "skl";
     
     Skeleton(Ptr<ResourceRegistry> reg);
     
@@ -47,7 +48,12 @@ public:
     
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
     
-    void FinaliseNormalisationAsync() override;
+    virtual void FinaliseNormalisationAsync() override;
+
+    inline virtual CommonClass GetCommonClassType() override
+    {
+        return CommonClass::SKELETON;
+    }
 
     Skeleton(Skeleton&&);
     Skeleton(const Skeleton&);

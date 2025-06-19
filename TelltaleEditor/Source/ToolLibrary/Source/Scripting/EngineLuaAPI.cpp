@@ -197,7 +197,8 @@ static U32 luaContainerGetElement(LuaManager& man)
             I32 index = man.ToInteger(2);
             if(index >= collection.GetSize() || index < 0)
             {
-                TTE_LOG("At ContainerGetElement: cannot access element index %d in container, out of bounds. Is the loop using 0 based indices?", index);
+                TTE_LOG("At ContainerGetElement: cannot access element index %d in %s, out of bounds. Is the loop using 0 based indices?", index,
+                        GetClass(collection.GetArrayClass()).Name.c_str());
                 man.PushNil();
                 return 1;
             }
@@ -725,23 +726,27 @@ U32 luaFileCopy(LuaManager& man)
                         DataStreamRef dst = dirDst->CreateResource(addrDst.GetName());
                         if(dst)
                         {
+                            if(Meta::FindClassByExtension(FileGetExtension(addrSrc.GetName()), 0) != 0)
+                            {
+                                src = Meta::MapDecryptingStream(src);
+                            }
                             DataStreamManager::GetInstance()->Transfer(src, dst, src->GetSize());
                         }
                         else
                         {
-                            TTE_LOG("At FileDelete(): the destination resource '%s' could not be opened (in location %s)",
+                            TTE_LOG("At FileCopy(): the destination resource '%s' could not be opened (in location %s)",
                                     addrDst.GetName().c_str(), addrDst.GetLocationName().c_str());
                         }
                     }
                     else
                     {
-                        TTE_LOG("At FileDelete(): the source resource '%s' does not exist inside resource location %s",
+                        TTE_LOG("At FileCopy(): the source resource '%s' does not exist inside resource location %s",
                                 addrSrc.GetName().c_str(), addrSrc.GetLocationName().c_str());
                     }
                 }
                 else
                 {
-                    TTE_LOG("At FileDelete(): the destination resource location is not concrete: %s",  addrDst.GetLocationName().c_str());
+                    TTE_LOG("At FileCopy(): the destination resource location is not concrete: %s",  addrDst.GetLocationName().c_str());
                 }
             }
             else
@@ -1067,12 +1072,20 @@ static U32 luaResourceGetURL(LuaManager& man)
     return 1;
 }
 
-static U32 luaResourceGetSymbolsNames(LuaManager& man)
+U32 luaResourceGetSymbolsNames(LuaManager& man)
 {
     GET_REGISTRY();
     StringMask mask = man.ToString(1);
     std::set<String> n{};
     reg->GetResourceNames(n, &mask);
+    const StringMask archiveMask = reg->_ArchivesMask(reg->UsingLegacyCompat());
+    for (auto it = n.begin(); it != n.end(); )
+    {
+        if (archiveMask == *it)
+            it = n.erase(it);
+        else
+            ++it;
+    }
     man.PushTable();
     I32 index = 0;
     for(auto& s: n)
@@ -1256,7 +1269,7 @@ U32 luaResourceCopy(LuaManager& man)
     Bool bResult = false;
     ResourceAddress src = reg->CreateResolvedAddress(man.ToString(1), true);
     ResourceAddress dst = reg->CreateResolvedAddress(man.ToString(2), true);
-    U32 cls = Meta::FindClassByExtension(FileGetExtension(src.GetName()), 0);
+    U32 cls = Meta::_Impl::_ResolveCommonClassID(FileGetExtension(src.GetName()));
     if(cls != 0)
     {
         // copy resource to new

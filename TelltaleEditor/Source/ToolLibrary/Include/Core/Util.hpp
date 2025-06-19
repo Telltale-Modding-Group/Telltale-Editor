@@ -16,6 +16,7 @@
 #include <sstream>
 #include <cmath>
 #include <atomic>
+#include <type_traits>
 #include <utility>
 
 class ToolContext; // forward declaration. used a lot. see context.hpp
@@ -169,8 +170,7 @@ inline void _TTEFree(U8* _Instance)
 // Gets a current timestamp.
 inline U64 GetTimeStamp()
 {
-    return std::chrono::duration_cast<std::chrono::microseconds>(
-                                                                 std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
 // Gets the time difference in *seconds* between start and end.
@@ -179,7 +179,8 @@ inline Float GetTimeStampDifference(U64 start, U64 end)
     return static_cast<Float>(end - start) / 1'000'000.0f;
 }
 
-inline String GetFormatedTime(Float secs) {
+inline String GetFormatedTime(Float secs) 
+{
     std::ostringstream stream;
     
     if (secs >= 1.0f)
@@ -193,6 +194,34 @@ inline String GetFormatedTime(Float secs) {
     
     return stream.str();
 }
+
+// Helper. If T must be default constructible use this. Get wil return nullptr if not.
+template<typename T, Bool Value = std::is_default_constructible<T>::value>
+class OptionalDefaultConstructible
+{
+    
+    T _Value;
+    
+public:
+    
+    inline T* Get()
+    {
+        return &_Value;
+    }
+    
+};
+
+template<typename T>
+class OptionalDefaultConstructible<T, false>
+{
+public:
+    
+    inline T* Get()
+    {
+        return nullptr;
+    }
+    
+};
 
 // ================================================ COLLECTION UTIL ================================================
 
@@ -430,9 +459,9 @@ inline void StringReplace(String& str, const String& from, const String& to, Boo
 }
 
 // Radius must be 2 to 36
-String StringFromInteger(I64 original_value,U32 radix, Bool is_negative); // defined tool lib context
+String StringFromInteger(I64 original_value,U32 radix, Bool is_negative); // defined in Config.cpp
 
-// Removes 'class ' 'struct ' 'std::' and 'enum ' stuff. Used by telltale. Tests game caps if they strip. Defined in Context.cpp
+// Removes 'class ' 'struct ' 'std::' and 'enum ' stuff. Used by telltale. Tests game caps if they strip. Defined in Config.cpp
 String MakeTypeName(String fullName);
 
 // ================================================== STRING MASK HELPER ==================================================

@@ -86,6 +86,21 @@ void RenderSceneView::PushViewParameters(RenderContext &context, ShaderParameter
     context.PushParameterGroup(*Frame, &Parameters, pGroup);
 }
 
+void RenderInst::SetDebugName(RenderViewPass* ScenePass, CString format, ...)
+{
+#ifdef DEBUG
+    U8 Buf[0x200];
+    va_list va{};
+    va_start(va, format);
+    U32 len = vsnprintf((char*)Buf, 0x200, format, va);
+    va_end(va);
+    U8* str = ScenePass->SceneView->Frame->Heap.Alloc(len + 1);
+    str[len] = 0;
+    memcpy(str, Buf, len);
+    _DebugName = (CString)str;
+#endif
+}
+
 void RenderViewPass::SetName(CString format, ...)
 {
     U8 Buf[0x200];
@@ -244,12 +259,12 @@ void RenderContext::_ExecutePass(RenderFrame &frame, RenderSceneContext &context
         RenderPipelineState pipelineDesc{};
         if(inst._DrawDefault == DefaultRenderMeshType::NONE)
         {
-            TTE_ASSERT(inst.Program.c_str(), "Render instance shader program not set");
+            TTE_ASSERT(inst.EffectRef, "Render instance effect variant not set");
             
             // Find pipeline state for draw
             pipelineDesc.PrimitiveType = inst._PrimitiveType;
             pipelineDesc.VertexState = inst._VertexStateInfo;
-            pipelineDesc.ShaderProgram = inst.Program;
+            pipelineDesc.EffectHash = inst.EffectRef.EffectHash;
         }
         else
         {

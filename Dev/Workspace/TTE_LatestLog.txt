@@ -1,0 +1,1 @@
+Detected development directory structure: using 'C:/Vunder/Telltale/Telltale-Editor/Dev/Workspace/' as development workspace directory
