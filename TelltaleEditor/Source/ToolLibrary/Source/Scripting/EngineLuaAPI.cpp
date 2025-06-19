@@ -197,7 +197,8 @@ static U32 luaContainerGetElement(LuaManager& man)
             I32 index = man.ToInteger(2);
             if(index >= collection.GetSize() || index < 0)
             {
-                TTE_LOG("At ContainerGetElement: cannot access element index %d in container, out of bounds. Is the loop using 0 based indices?", index);
+                TTE_LOG("At ContainerGetElement: cannot access element index %d in %s, out of bounds. Is the loop using 0 based indices?", index,
+                        GetClass(collection.GetArrayClass()).Name.c_str());
                 man.PushNil();
                 return 1;
             }
@@ -725,6 +726,10 @@ U32 luaFileCopy(LuaManager& man)
                         DataStreamRef dst = dirDst->CreateResource(addrDst.GetName());
                         if(dst)
                         {
+                            if(Meta::FindClassByExtension(FileGetExtension(addrSrc.GetName()), 0) != 0)
+                            {
+                                src = Meta::MapDecryptingStream(src);
+                            }
                             DataStreamManager::GetInstance()->Transfer(src, dst, src->GetSize());
                         }
                         else
@@ -1067,12 +1072,20 @@ static U32 luaResourceGetURL(LuaManager& man)
     return 1;
 }
 
-static U32 luaResourceGetSymbolsNames(LuaManager& man)
+U32 luaResourceGetSymbolsNames(LuaManager& man)
 {
     GET_REGISTRY();
     StringMask mask = man.ToString(1);
     std::set<String> n{};
     reg->GetResourceNames(n, &mask);
+    const StringMask archiveMask = reg->_ArchivesMask(reg->UsingLegacyCompat());
+    for (auto it = n.begin(); it != n.end(); )
+    {
+        if (archiveMask == *it)
+            it = n.erase(it);
+        else
+            ++it;
+    }
     man.PushTable();
     I32 index = 0;
     for(auto& s: n)

@@ -183,10 +183,15 @@ void ToolContext::Release()
         _SwitchDependents.clear();
         
         JobScheduler::Shutdown();
-        Meta::RelGame();
         Blowfish::Shutdown();
         GetGameSymbols().Clear();
         
+        _L[0].GC();
+        _L[1].GC();
+        _L[2].GC();
+
+        Meta::RelGame();
+
         _Setup = false;
         
     }

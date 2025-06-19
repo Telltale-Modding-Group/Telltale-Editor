@@ -15,11 +15,16 @@ target_link_libraries(${TARGET_NAME} PRIVATE
 
 # Include D3D libraries
 if(WIN32)
-target_link_libraries(${TARGET_NAME} PRIVATE d3d12.lib d3dcompiler.lib) 
+    target_link_libraries(${TARGET_NAME} PRIVATE d3d12.lib d3dcompiler.lib)
+    string(TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE_UPPER)
+    if(BUILD_TYPE_UPPER STREQUAL "DEBUG")
+        target_link_libraries(${TARGET_NAME} PRIVATE "${THIRD_PARTY_DIR}/WinPIXEventRuntime/Bin/WinPixEventRuntime.lib")
+    endif()
+    target_include_directories(${TARGET_NAME} PUBLIC "${THIRD_PARTY_DIR}/WinPIXEventRuntime/Include")
 elseif(UNIX AND NOT APPLE)
-# TODO GLSLANG
+    # TODO GLSLANG
 elseif(APPLE)
-# TODO METAL COMP
+    # TODO METAL COMP
     find_library(METAL_FRAMEWORK Metal)
     find_library(METALKIT_FRAMEWORK MetalKit)
     find_library(FOUNDATION_FRAMEWORK Foundation)
@@ -60,6 +65,20 @@ function(add_copy_cmd fname thirddir target_name output_dir)
     )
 endfunction()
 
+function(add_copy_cmd_debug fname thirddir target_name output_dir)
+    if(CMAKE_BUILD_TYPE)
+        string(TOUPPER "${CMAKE_BUILD_TYPE}" BUILD_TYPE_UPPER)
+        if(BUILD_TYPE_UPPER STREQUAL "DEBUG")
+            add_custom_command(
+                TARGET ${target_name} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${thirddir}/${fname}"
+                    "${output_dir}/Debug/${fname}"
+            )
+        endif()
+    endif()
+endfunction()
+
 # copy dynamic libraries to output build directory
 if(UNIX)
     if(APPLE)
@@ -70,6 +89,10 @@ if(UNIX)
     endif()
 elseif(WIN32)
     add_copy_cmd("oodle_win_x86.dll" "${THIRD_PARTY_DIR}/oodle" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
+endif()
+
+if(WIN32)
+    add_copy_cmd_debug("WinPixEventRuntime.dll" "${THIRD_PARTY_DIR}/WinPIXEventRuntime/Bin" ${TARGET_NAME} "${TELLTALE_EDITOR_ROOT_DIR}/Bin")
 endif()
 
 # Enable platform specific defines

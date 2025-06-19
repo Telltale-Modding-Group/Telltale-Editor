@@ -348,7 +348,8 @@ struct GameSnapshot
 template<typename T> inline Ptr<Handleable> AllocateCommon(Ptr<ResourceRegistry> registry)
 {
     static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
-    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, registry);
+    Ptr<Handleable> handle =  TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, registry);
+    return handle;
 }
 
 template<> inline Ptr<Handleable> AllocateCommon<Placeholder>(Ptr<ResourceRegistry>)

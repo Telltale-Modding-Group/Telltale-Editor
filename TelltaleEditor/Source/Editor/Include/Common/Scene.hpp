@@ -4,11 +4,15 @@
 #include <Core/Context.hpp>
 #include <Core/BitSet.hpp>
 #include <Meta/Meta.hpp>
+
 #include <Resource/ResourceRegistry.hpp>
+#include <Resource/PropertySet.hpp>
 
 #include <Common/InputMapper.hpp>
 #include <Common/Mesh.hpp>
 #include <Common/Skeleton.hpp>
+
+#include <Symbols.hpp>
 
 #include <vector>
 #include <type_traits>
@@ -42,6 +46,8 @@ public:
         String Name;
         
         inline ObjDataBase(String&& nm, const std::type_info& ti) : Type(ti), Next(), Name(std::move(nm)) {}
+
+        virtual ~ObjDataBase() = default;
         
     };
     
@@ -52,6 +58,8 @@ public:
         
         inline ObjData(String nm, T&& value) :
             ObjDataBase(std::move(nm), typeid(T)), Obj(std::move(value)) {}
+
+        virtual ~ObjData() = default;
         
     };
     
@@ -60,8 +68,9 @@ public:
         
         T& Ref;
         
-        inline ObjDataRef(String nm, T& value) :
-        ObjDataBase(std::move(nm), typeid(T)), Ref(value) {}
+        inline ObjDataRef(String nm, T& value) : ObjDataBase(std::move(nm), typeid(T)), Ref(value) {}
+
+        virtual ~ObjDataRef() = default;
         
     };
     
@@ -185,13 +194,16 @@ struct Node : ObjOwner
     U32 StaticListeners = 0; // number of static listeners. Static means the object is set unmoveable.
     String AgentName;
     
-    Ptr<Node> Parent, NextSibling, PrevSibling, FirstChild; // no linked list explicitly
+    WeakPtr<Node> Parent, NextSibling, PrevSibling, FirstChild; // no linked list explicitly
     
     Transform LocalTransform, GlobalTransform; // local is from parent, global is world transform.
     
     Ptr<NodeListener> Listeners; // listeners
     
     Scene* AttachedScene; // scene belongs to
+
+    Node() = default;
+    ~Node();
 
 };
 
@@ -238,6 +250,11 @@ template<> struct SceneModule<SceneModuleType::RENDERABLE> : SceneModuleBase
     
     // Gets this module for the scene
     static inline std::vector<SceneModule<SceneModuleType::RENDERABLE>>& GetModuleArray(Scene& scene);
+
+    static inline Symbol GetModulePropertySet()
+    {
+        return kRenderablePropName;
+    }
     
     // on setups create and gather stuff which is otherwise in the agent props or object cache to speed up.
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
@@ -253,6 +270,11 @@ template<> struct SceneModule<SceneModuleType::SKELETON> : SceneModuleBase
     Handle<Skeleton> Skl; // skeleton handle
     
     static inline std::vector<SceneModule<SceneModuleType::SKELETON>>& GetModuleArray(Scene& scene);
+
+    static inline Symbol GetModulePropertySet()
+    {
+        return kSkeletonPropName;
+    }
     
     // impl in animationmgr.cpp
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
@@ -339,6 +361,11 @@ public:
     static constexpr CString Extension = "scene";
     
     inline Scene(Ptr<ResourceRegistry> reg) : HandleableRegistered<Scene>(std::move(reg)) {}
+
+    Scene(const Scene& rhs) = default;
+    Scene(Scene&& rhs) = default;
+
+    ~Scene();
     
     inline void SetName(String name)
     {
@@ -561,6 +588,25 @@ namespace SceneModuleUtil
             TTE_ASSERT(false, "Invalid module range");
         }
     }
+
+    struct _CollectAgentModules
+    {
+
+        SceneModuleTypes& Modules;
+        SceneAgent& Agent;
+        Ptr<ResourceRegistry>& Registry;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            if (PropertySet::IsMyParent(Agent.Props, SceneModule<Module>::GetModulePropertySet(), true, Registry))
+            {
+                Modules.Set(Module, true);
+            }
+            return true;
+        }
+
+    };
     
     // setup agents. used as recursive above
     struct _SetupAgentSubset

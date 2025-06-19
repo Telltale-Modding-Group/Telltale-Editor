@@ -21,7 +21,7 @@ static void _TestScene(TelltaleEditor* editor)
     
     // 3. create a dummy scene, add an agent, attach a renderable module to it.
     Handle<Scene> hScene{};
-    hScene.SetObject(registry, "ui_adventure.scene", false, false);
+    hScene.SetObject(registry, "adv_thorndreamscape.scene", false, false);
     Ptr<Scene> pScene = hScene.GetObject(registry, true);
     
     
@@ -33,6 +33,7 @@ static void _TestScene(TelltaleEditor* editor)
     Bool running = true;
     while((running = pRenderContext->FrameUpdate(!running)))
         ;
+    registry = {};
     TTE_DEL(pRenderContext);
 }
 

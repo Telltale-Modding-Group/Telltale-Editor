@@ -23,6 +23,16 @@
 // At 512 / 30fps => every 15 ish seconds to check them
 #define DEFAULT_LOCKED_HANDLE_THRESHOLD 512
 
+#ifdef PLATFORM_WINDOWS
+#define RENDER_CONTEXT_SHADER_FORMAT SDL_GPU_SHADERFORMAT_DXBC
+#elif defined(PLATFORM_MAC)
+#define RENDER_CONTEXT_SHADER_FORMAT (SDL_GPU_SHADERFORMAT_METALLIB | SDL_GPU_SHADERFORMAT_MSL)
+#elif defined(PLATFORM_LINUX)
+#define RENDER_CONTEXT_SHADER_FORMAT SDL_GPU_SHADERFORMAT_SPIRV
+#else
+#error "Unknown platform: cannot select render device shader format"
+#endif
+
 struct DefaultRenderTexture
 {
     
@@ -61,6 +71,7 @@ class RenderContext;
 class RenderFrameUpdateList;
 class RenderSceneView;
 struct RenderSceneViewParams;
+struct TextureFormatInfo;
 
 /// A render frame. Two are active at one time, one is filled up my the main thread and then executed and run on the GPU in the render job which is done async.
 struct RenderFrame
@@ -260,6 +271,7 @@ class RenderViewPass
     friend class RenderContext;
     friend class RenderFrame;
     friend class RenderSceneView;
+    friend class RenderInst;
     
     RenderSceneView* SceneView;
     RenderViewPass* Next = nullptr, *Prev = nullptr;
@@ -302,6 +314,7 @@ class RenderSceneView
     friend class RenderContext;
     friend class RenderFrame;
     friend class RenderViewPass;
+    friend class RenderInst;
     
     RenderFrame* Frame;
     RenderSceneView* Next, *Prev;
@@ -360,6 +373,28 @@ public:
 
     // Gets an effect reference which can be used to get a render instance
     RenderEffectRef GetEffectRef(RenderEffect effect, RenderEffectFeaturesBitSet variantFeatures);
+
+    template<typename... Features>
+    inline RenderEffectRef GetEffectRefWith(RenderEffect effect)
+    {
+        return GetEffectRef(effect, RenderEffectFeaturesBitSet::MakeWith<Features...>());
+    }
+
+    static const AttribInfo& GetVertexAttributeDesc(RenderAttributeType attrib);
+
+    static const ShaderParameterTypeInfo& GetParameterDesc(ShaderParameterType param);
+
+    static const RenderEffectDesc& GetRenderEffectDesc(RenderEffect effect);
+
+    static const RenderEffectFeatureDesc& GetRenderEffectFeatureDesc(RenderEffectFeature feature);
+
+    static const RenderTargetDesc& GetRenderTargetDesc(RenderTargetConstantID target);
+
+    static const TextureFormatInfo& GetTextureFormatDesc(RenderSurfaceFormat surfaceFormat);
+
+    static const AttributeFormatInfo& GetVertexAttributeFormatDesc(RenderBufferAttributeFormat format);
+
+    static const PrimitiveTypeInfo& GetPrimitiveTypeInfoDesc(RenderPrimitiveType prim);
 
     RenderDeviceType GetDeviceType();
     
@@ -574,6 +609,9 @@ private:
     void _ReclaimTransferBuffers(RenderCommandBuffer& cmds); // called after a submit command list finishes
     
     void _PurgeColdResources(RenderFrame*); // free resources kept for too long
+
+    void _PurgeDeadResources(); // release owned resources which have expired
+    void _AttachContextDependentResource(WeakPtr<RenderResource> pResource, Bool bLock); // depends on this context (most resources) attach here.
     
     std::vector<Ptr<Handleable>> _PurgeColdLocks(); // main thread call. unlocks returned ones, and removes from locked array into return
     
@@ -592,6 +630,9 @@ private:
     void _ResolveTargets(RenderFrame& frame, const RenderTargetIDSet& ids, RenderTargetSet& set);
     void _ResolveTarget(RenderFrame& frame, const RenderTargetIDSurface& surface, RenderTargetResolvedSurface& resolved, U32 screenW, U32 screenH);
     void _ResolveBackBuffers(RenderCommandBuffer& buf);
+
+    void _PushDebugGroup(RenderCommandBuffer& buf, const String& name);
+    void _PopDebugGroup(RenderCommandBuffer& buf);
     
     // =========== GENERIC FUNCTIONALITY
     
@@ -617,7 +658,7 @@ private:
     std::vector<DefaultRenderTexture> _DefaultTextures;
     
     // ACCESS ONLY BY RENDER
-    Ptr<RenderTexture> _ConstantTargets[(U32)RenderTargetConstantID::NUM];
+    Ptr<RenderTexture> _ConstantTargets[(U32)RenderTargetConstantID::COUNT];
     // Dynamic targets?
 
     std::mutex _Lock; // for below
@@ -627,6 +668,7 @@ private:
     std::vector<PendingDeletion> _PendingSDLResourceDeletions;
     std::vector<Ptr<Handleable>> _LockedResources; // locked resources which we use (eg textures, meshes etc). common to all layers.
     std::vector<Ptr<RenderLayer>> _DeltaLayers; // if nullptr means a pop. locked
+    std::vector<WeakPtr<RenderResource>> _OwnedResources; // all forced released at exit
     U32 _Flags = 0;
     RenderEffectCache _FXCache; // shader management. KEEP AT FOOT OF CLASS. very large class!
     

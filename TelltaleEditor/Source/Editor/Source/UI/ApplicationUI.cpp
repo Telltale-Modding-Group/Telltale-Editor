@@ -83,7 +83,7 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
 #ifdef DEBUG
     bDebug = true;
 #endif
-    _Device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_MSL | SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXBC, bDebug, nullptr);
+    _Device = SDL_CreateGPUDevice(RENDER_CONTEXT_SHADER_FORMAT, bDebug, nullptr);
     SDL_ClaimWindowForGPUDevice(_Device, _Window);
     IMGUI_CHECKVERSION();
     _ImContext = ImGui::CreateContext();

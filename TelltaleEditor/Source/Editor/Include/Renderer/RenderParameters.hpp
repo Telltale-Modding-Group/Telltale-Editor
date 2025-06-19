@@ -127,7 +127,7 @@ struct ShaderParameterTypeInfo
     
 };
 
-enum ShaderParameterType : U32
+enum class ShaderParameterType : U32
 {
     
     // UNIFORMS
@@ -184,6 +184,7 @@ enum ShaderParameterType : U32
     PARAMETER_LAST_GENERIC = 13,
     
     PARAMETER_COUNT = 14, // increase by one each time another added. AND UPDATE NAMES BELOW!
+    COUNT = PARAMETER_COUNT,
 };
 
 // Info mappings by type enum index
@@ -205,7 +206,7 @@ constexpr ShaderParameterTypeInfo ShaderParametersInfo[] =
     ShaderParameterTypeInfo("Generic0", 0, ShaderParameterTypeClass::GENERIC_BUFFER),
 };
 
-using ShaderParameterTypes = BitSet<ShaderParameterType, PARAMETER_COUNT, PARAMETER_FIRST_UNIFORM>;
+using ShaderParameterTypes = BitSet<ShaderParameterType, (U32)ShaderParameterType::PARAMETER_COUNT, ShaderParameterType::PARAMETER_FIRST_UNIFORM>;
 
 // BIND STRUCTS. SEE BELOW.
 

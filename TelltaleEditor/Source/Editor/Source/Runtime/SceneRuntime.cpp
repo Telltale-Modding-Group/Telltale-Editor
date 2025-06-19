@@ -373,7 +373,7 @@ void a(SceneRuntime& rtContext, RenderFrame& frame, Ptr<Node> node, RenderViewPa
     Quaternion q{};
     q.SetEuler(cameraRot.x, cameraRot.y, cameraRot.z);
     Colour cl = Colour::Green;
-    for(auto c = node->FirstChild; c; c = c->NextSibling)
+    for(auto c = node->FirstChild.lock(); c; c = c->NextSibling.lock())
     {
         Transform glob = Scene::GetNodeWorldTransform(c);
         RenderUtility::DrawWireBox(rtContext.GetRenderContext(), cam,
@@ -434,13 +434,34 @@ void Scene::PerformAsyncRender(SceneRuntime& rtContext, RenderFrame& frame, Floa
     globalRenderState.SetValue(RenderStateType::Z_ENABLE, true);
     globalRenderState.SetValue(RenderStateType::Z_WRITE_ENABLE, true);
     globalRenderState.SetValue(RenderStateType::Z_COMPARE_FUNC, SDL_GPU_COMPAREOP_LESS_OR_EQUAL);
+
+    /*
+    // Create buffer object CPU side parameter
+    ShaderParameter_Object* obj = frame.Heap.NewNoDestruct<ShaderParameter_Object>();
+    Quaternion rot{};
+    rot.SetEuler(cameraRot.x, cameraRot.y, cameraRot.z);
+    RenderUtility::SetObjectParameters(context, obj, MatrixRotation(rot), Colour::Cyan);
+
+    // Create draw command parameter group. Allocate it then bind the CPU side parameter to it.
+    ShaderParametersGroup* objGroup = context.AllocateParameter(frame, ShaderParameterType::PARAMETER_OBJECT);
+    context.SetParameterUniform(frame, objGroup, ShaderParameterType::PARAMETER_OBJECT, obj, sizeof(ShaderParameter_Object));
+
+    // Setup draw command and draw.
+    RenderInst inst{};
+    inst.DrawDefaultMesh(DefaultRenderMeshType::WIREFRAME_CAPSULE);
+    inst.SetEffectRef(context.GetEffectRefWith<>(RenderEffect::FLAT));
+    inst.GetRenderState() = globalRenderState;
+    pDiffusePass->PushRenderInst(context, std::move(inst), objGroup);
+    */
     
     for(auto& renderable: _Renderables) // push draw for each material simple
     {
-        Transform agentTransform = GetNodeWorldTransform(renderable.AgentNode);
+        Transform agentTransform = {}; // GetNodeWorldTransform(renderable.AgentNode);
         Matrix4 agentWorld = MatrixTransformation(agentTransform._Rot, agentTransform._Trans);
         for(auto& meshInstancePtr: renderable.Renderable.MeshList)
         {
+            if(meshInstancePtr->MeshFlags.Test(Mesh::FLAG_DEFORMABLE))
+                continue;
             if(!context.TouchResource(meshInstancePtr))
                 continue;
             auto& meshInstance = *meshInstancePtr.get();
@@ -524,7 +545,7 @@ void Scene::PerformAsyncRender(SceneRuntime& rtContext, RenderFrame& frame, Floa
                             required.Set(ShaderParameterType::PARAMETER_GENERIC0, true);
                         for(U32 buf = 0; buf < meshInstance.VertexStates[lod.VertexStateIndex].Default.NumVertexBuffers; buf++)
                         {
-                            required.Set((ShaderParameterType)(ShaderParameterType::PARAMETER_VERTEX0IN + buf), true);
+                            required.Set((ShaderParameterType)((U32)ShaderParameterType::PARAMETER_VERTEX0IN + buf), true);
                         }
                         
                         ShaderParametersGroup* objGroup = context.AllocateParameters(frame, required);
@@ -554,7 +575,7 @@ void Scene::PerformAsyncRender(SceneRuntime& rtContext, RenderFrame& frame, Floa
                         for(U32 buf = 0; buf < meshInstance.VertexStates[lod.VertexStateIndex].Default.NumVertexBuffers; buf++)
                         {
                             context.SetParameterVertexBuffer(frame, objGroup,
-                                                             (ShaderParameterType)(ShaderParameterType::PARAMETER_VERTEX0IN + buf),
+                                                             (ShaderParameterType)((U32)ShaderParameterType::PARAMETER_VERTEX0IN + buf),
                                                              meshInstance.VertexStates[lod.VertexStateIndex].RuntimeData.GPUVertexBuffers[buf], 0);
                         }
                         
@@ -572,12 +593,13 @@ void Scene::PerformAsyncRender(SceneRuntime& rtContext, RenderFrame& frame, Floa
                         inst.SetEffectRef(context.GetEffectRef(RenderEffect::MESH, variants));
                         inst.DrawPrimitives(RenderPrimitiveType::TRIANGLE_LIST, batch.StartIndex, batch.NumPrimitives, 1, batch.BaseIndex);
                         inst.GetRenderState() = globalRenderState;
+                        inst.SetDebugName(pDiffusePass, "Mesh %s Diffuse %s Draw", meshInstance.Name.c_str(), diffuseTex ? diffuseTex->GetName().c_str() : "<NoTexture>");
                         pDiffusePass->PushRenderInst(context, std::move(inst), objGroup);
                     }
                 }
             }
         }
-        a(rtContext, frame, renderable.AgentNode->FirstChild, pDiffusePass, &_ViewStack.front());
+        //a(rtContext, frame, renderable.AgentNode->FirstChild, pDiffusePass, &_ViewStack.front());
     }
     
 }

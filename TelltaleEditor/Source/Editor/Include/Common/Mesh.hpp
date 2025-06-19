@@ -88,17 +88,18 @@ struct Mesh : HandleLockOwner
     // The common mesh format which we normalise and specialise telltale classes to.
     class MeshInstance : public HandleableRegistered<MeshInstance>
     {
+    public:
         
         friend class RenderContext;
         friend class Scene;
         friend class MeshAPI;
         friend struct MeshNormalisationTask;
         
-        String Name;
-        Flags MeshFlags;
+        String Name = "";
+        Flags MeshFlags = {};
         
-        Sphere BSphere; // bounding sphere for total mesh
-        BoundingBox BBox; // bounding box for total mesh
+        Sphere BSphere = {}; // bounding sphere for total mesh
+        BoundingBox BBox = {}; // bounding box for total mesh
         
         std::vector<LODInstance> LODs; // mesh LODs
         std::vector<VertexState> VertexStates; // vertex states (draw call bind sets), containing verts/inds/etc.
@@ -110,8 +111,6 @@ struct Mesh : HandleLockOwner
             Ptr<RenderBuffer> BoneMatrixBuffer; // TODO move into bone matrix cache and volume packing
             
         } RuntimeData;
-        
-    public:
         
         static constexpr CString ClassHandle = "Handle<D3DMesh>";
         static constexpr CString Class = "D3DMesh";

@@ -78,6 +78,8 @@ struct HandleObjectInfo
     {
         return _ResourceName == rhs._ResourceName;
     }
+
+    ~HandleObjectInfo();
     
 };
 
@@ -1004,6 +1006,9 @@ public:
     
     // Open resource data stream from logical location. Not used for loaded
     DataStreamRef FindResourceFrom(const String& loc, const Symbol& filename);
+
+    // Similar to find resource functions but will create the stream if needed on disk. Returns the FILE stream (not a memory cache stream)
+    DataStreamRef OpenDataStream(const String& loc, const String& filename);
     
     // Like FindResource but gets the name
     String FindResourceName(const Symbol& name);
@@ -1037,7 +1042,7 @@ public:
     String LocateConcreteResourceLocation(const Symbol& resourceName);
     
     // See version with string. Finds it, must exist.
-    ResourceAddress CreateResolvedAddress(const Symbol& resourceName);
+    ResourceAddress CreateResolvedAddressFromSymbol(const Symbol& resourceName);
     
     // Create a resolved resouce address. Include folder path, file name, prefix scheme (optional default file)
     // Valid path may be '<User>/file.txt' or 'ttcache:module_prop.prop'. set default to cache to default to the cache if no scheme (normal) (else locator)
@@ -1159,6 +1164,7 @@ private:
     friend U32 luaFileCopy(LuaManager& man);
     friend U32 luaFileDelete(LuaManager& man);
     friend U32 luaFileExists(LuaManager& man);
+    friend U32 luaResourceGetSymbolsNames(LuaManager& man);
     
     /**
      Constructor. The lua manager version passed in MUST match any game scripts lua versions being run! This is because this will run any resource sets, which may use an older version!

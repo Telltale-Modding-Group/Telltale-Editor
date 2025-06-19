@@ -6,7 +6,6 @@ Bool TTArchive::SerialiseIn(DataStreamRef& in)
 {
     if(_Version == 0 || _Version == 1) // earliest versions (abstract numbers, not serialised)
     {
-
         DataStreamRef cachedIn = in;
         if(_Version == 1)
         {

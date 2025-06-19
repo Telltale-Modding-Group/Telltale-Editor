@@ -190,7 +190,7 @@ namespace Memory
             std::time_t time = std::chrono::system_clock::to_time_t(tp);
             std::stringstream ss{};
             ss << std::put_time(std::localtime(&time), "%b %d - %H:%M:%S ");
-            ss << it.second.SrcFile << ":" << it.second.SrcLine << "[" << TAG_NAMES[it.second.MemoryTag] << "] ";
+            ss << it.second.SrcFile << ":" << it.second.SrcLine << "[" << TAG_NAMES[it.second.MemoryTag] << "] {0x" << std::hex << std::uppercase << (std::uintptr_t)it.first << std::dec << "} ";
             if(it.second.ObjName)
             {
                 ss << "CXX Object: " << it.second.ObjName;

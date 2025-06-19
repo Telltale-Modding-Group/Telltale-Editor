@@ -5,7 +5,30 @@
 
 void SceneModule<SceneModuleType::RENDERABLE>::OnSetupAgent(SceneAgent* pAgentGettingCreated)
 {
-    // no need to check parent prop. different from actual engine, module is already initiantiated
+    Meta::ClassInstance mesh = PropertySet::Get(pAgentGettingCreated->Props, kRenderablePropKeyD3DMeshSymbol, true, pAgentGettingCreated->OwningScene->GetRegistry());
+    // check mesh list here before possible return
+    if(mesh)
+    {
+        Handle<Mesh::MeshInstance> hMesh{};
+        Meta::ExtractCoercableInstance(hMesh, mesh);
+        if(hMesh.GetObject().GetCRC64())
+        {
+            for(const auto& mesh: Renderable.MeshList)
+            {
+                if(Symbol(mesh->Name) == hMesh.GetObject())
+                    return; // OK already loaded
+            }
+            Ptr<Mesh::MeshInstance> pMesh = hMesh.GetObject(pAgentGettingCreated->OwningScene->GetRegistry(), true);
+            if (pMesh)
+            {
+                Renderable.MeshList.push_back(pMesh);
+            }
+        }
+    }
+    else
+    {
+        TTE_LOG("WARNING: Agent %s is marked renderable but does not specify any meshes (TODO Check MeshList for future games)", pAgentGettingCreated->Name.c_str()); // + add capability for this
+    }
     pAgentGettingCreated->AgentNode->AddObjDataRef("", Renderable);
 }
 

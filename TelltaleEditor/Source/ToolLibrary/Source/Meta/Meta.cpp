@@ -281,19 +281,6 @@ namespace Meta {
                 return 0;
             }
             
-            // check any duplicate version CRCs
-            for(U32 i = 0; i < MAX_VERSION_NUMBER; i++)
-            {
-                if(i != cls.VersionNumber) {
-                    auto c = State.Classes.find(_GenerateClassID(cls.TypeHash, i));
-                    if(c != State.Classes.end() && c->second.VersionCRC == crc)
-                    {
-                        TTE_LOG("Duplicate type detected for '%s': version CRCs are the same for the given class!", cls.Name.c_str());
-                        return 0;
-                    }
-                }
-            }
-            
             _PushCompiledScript(State.Serialisers, cls.SerialiseScriptFn);
             _PushCompiledScript(State.Normalisers, cls.NormaliserStringFn);
             _PushCompiledScript(State.Specialisers, cls.SpecialiserStringFn);
@@ -344,10 +331,6 @@ namespace Meta {
             
             if(cls.Flags & CLASS_ENUM_WRAPPER)
             {
-                if(cls.Members.size() != 1)
-                {
-                    TTE_LOG("WARNING: Enum wrapper class %s should have 1 member but has %d! Output may be wrong!", cls.Name.c_str(), (U32)cls.Members.size());
-                }
                 cls.ToString = &_EnumFlagToString;
             }
             
@@ -413,7 +396,14 @@ namespace Meta {
         
         String _EnumFlagToString(Class* pClass, const void* pVal)
         {
-            return pClass->Members.size() > 0 ? _EnumFlagMemberToString(pClass->Members[0], pVal) : "<ENUM_WRAPPER_CLASS_NO_MEMBER_FOUND>";
+            for(auto& mem: pClass->Members)
+            {
+                if((mem.Flags & MEMBER_BASE) == 0) // EnumBase class
+                {
+                    return _EnumFlagMemberToString(mem, pVal);
+                }
+            }
+            return "<ENUM_WRAPPER_CLASS_NO_MEMBER_FOUND>";
         }
         
         Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member, Member* hostMember)
@@ -1703,10 +1693,6 @@ namespace Meta {
                     RelGame();
                     return;
                 }
-                else
-                {
-                    State.Collector = {};
-                }
                 
                 Blowfish::Initialise(State.Games[gameIdx].Fl.Test(RegGame::MODIFIED_BLOWFISH), key.BfKey, key.BfKeyLength);
             }
@@ -1985,7 +1971,7 @@ namespace Meta {
             stream->SetPosition(0); // reset stream, MSV6 etc
             return stream;
         }
-        auto seq = DataStreamManager::GetInstance()->CreateSequentialStream("");
+        auto seq = DataStreamManager::GetInstance()->CreateSequentialStream("Legacy Encrypted MS Sequential");
         DataStreamRef header = DataStreamManager::GetInstance()->CreateBufferStream({}, 4, 0, 0);
         header->Write((const U8*)"NIBM", 4); // NIBM header replacement
         header->SetPosition(0);
@@ -1995,8 +1981,13 @@ namespace Meta {
     }
     
     // Reads meta stream file format
-    ClassInstance ReadMetaStream(const String& fn, DataStreamRef& stream, DataStreamRef dbg, U32 _max)
+    ClassInstance ReadMetaStream(const String& fn, DataStreamRef& _stream, DataStreamRef dbg, U32 _max)
     {
+        DataStreamRef stream = _stream;
+        if (stream->GetSize() > 0x200 && stream->GetSize() < 0x800000)
+        {
+            stream = DataStreamManager::GetInstance()->CreateCachedStream(_stream);
+        }
         Stream metaStream{};
         metaStream.Name = fn;
         metaStream.DebugOutputFile = std::move(dbg);
@@ -3113,9 +3104,19 @@ namespace Meta {
             while(true)
             {
                 off += pEnumClazz->Members[0].RTOffset;
-                if(Meta::GetClass(pEnumClazz->Members[0].ClassID).Members.size() == 0)
+                const Class& clz = Meta::GetClass(pEnumClazz->Members[0].ClassID);
+                if(clz.Members.size() == 0)
                     break;
-                pEnumClazz = &Meta::GetClass(pEnumClazz->Members[0].ClassID); // a lot of the times theres like 2 wrapper classes. so stupid i know.
+                U32 memberIndex = 0;
+                for(const auto& member: pEnumClazz->Members)
+                {
+                    if(member.Flags & MEMBER_BASE)
+                        memberIndex++;
+                    else
+                        break;
+                }
+                pEnumClazz = &Meta::GetClass(pEnumClazz->Members[memberIndex].ClassID);
+                // a lot of the times theres like 2 wrapper classes. so stupid i know.
             }
             I32 value = COERCE(inst._GetInternal() + off, I32);
             for(const auto& desc: pEnumClazz->Members[0].Descriptors)
@@ -3184,12 +3185,22 @@ namespace Meta {
                 String v = man.ToString(stackIndex);
                 U32 off = 0;
                 const auto* pEnumClazz = &clazz;
-                while(true)
+                while (true)
                 {
                     off += pEnumClazz->Members[0].RTOffset;
-                    if(Meta::GetClass(pEnumClazz->Members[0].ClassID).Members.size() == 0)
+                    const Class& clz = Meta::GetClass(pEnumClazz->Members[0].ClassID);
+                    if (clz.Members.size() == 0)
                         break;
-                    pEnumClazz = &Meta::GetClass(pEnumClazz->Members[0].ClassID); // a lot of the times theres like 2 wrapper classes. so stupid i know.
+                    U32 memberIndex = 0;
+                    for (const auto& member : pEnumClazz->Members)
+                    {
+                        if (member.Flags & MEMBER_BASE)
+                            memberIndex++;
+                        else
+                            break;
+                    }
+                    pEnumClazz = &Meta::GetClass(pEnumClazz->Members[memberIndex].ClassID);
+                    // a lot of the times theres like 2 wrapper classes. so stupid i know.
                 }
                 I32 value = COERCE(inst._GetInternal() + off, I32);
                 for(const auto& desc: pEnumClazz->Members[0].Descriptors)

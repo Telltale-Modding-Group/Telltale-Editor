@@ -6,6 +6,7 @@
 
 #include <set>
 #include <map>
+#include <unordered_set>
 
 #include <SDL3/SDL_gpu.h>
 
@@ -111,7 +112,7 @@ constexpr RenderEffectFeatureDesc RenderEffectFeatureDescriptors[] =
 {
     RenderEffectFeatureDesc(RenderEffectFeature::DEFORMABLE,
     /*GENERAL INFO:*/           "Deformable", "FEATURE_DEFORMABLE", "deform",
-    /*VERT REQUIRED PARAMS:*/   ShaderParameterTypes::MakeWith(),
+    /*VERT REQUIRED PARAMS:*/   ShaderParameterTypes::MakeWith<ShaderParameterType::PARAMETER_GENERIC0 /*bone buffer*/>(),
     /*PIX REQUIRED PARAMS:*/    ShaderParameterTypes::MakeWith(),
     /*REQUIRED ATTRIBS:*/       VertexAttributesBitset::MakeWith<RenderAttributeType::BLEND_INDEX, RenderAttributeType::BLEND_WEIGHT>()
     ),
@@ -160,7 +161,7 @@ struct RenderEffectParams
 
 enum class RenderEffectProgramFlag
 {
-    LOADED,
+    LOADED = 1,
 };
 
 // Loaded program
@@ -187,6 +188,7 @@ struct RenderEffectProgram
 enum class RenderEffectCacheFlag
 {
     HOT_RELOADING = 1,
+    INIT = 2,
 };
 
 // Manager for shaders. Aggregated into the render context.
@@ -221,36 +223,72 @@ public:
     // Returns it's name if it is found
     String LocateEffectName(RenderEffectRef ref);
 
-private:
+    void Initialise();
 
+private:
+        
     struct FXResolveState
     {
         U8* ParameterSlotsOut;
         const ShaderParameterTypes& EffectParameters;
         const String& FXName;
-        mutable U32 TextureSamplersIndex = 0;
-        mutable U32 GenericBuffersIndex = 0;
+        const RenderEffectParams& Effect;
+        const String& BuiltName;
+#ifdef PLATFORM_WINDOWS
+        union
+        {
+            mutable U32 TextureSamplersIndex; mutable U32 GenericBuffersIndex;
+        };
+#else
+        mutable U32 TextureSamplersIndex;
+        mutable U32 GenericBuffersIndex;
+#endif
         mutable U32 UniformBuffersIndex = 0;
     };
+
+    struct SectionResolverState
+    {
+
+        String Expression;
+        size_t Position;
+        const std::unordered_set<std::string>& Macros;
+        CString Error;
+
+        inline SectionResolverState(const String& expr, const std::unordered_set<std::string>& macros)
+            : Expression(expr), Position(0), Macros(macros), Error(nullptr) {}
+
+    };
+
+    using FXHashIterator = typename std::map<U64, String>::iterator;
 
     static U32 FXResolver_Uniform(const String& arg, U32 line, const FXResolveState& state);
     static U32 FXResolver_Generic(const String& arg, U32 line, const FXResolveState& state);
     // combined sampler and texture for now. can split by adding seperate counters in above and changing context set param.
     static U32 FXResolver_TextureSampler(const String& arg, U32 line, const FXResolveState& state); 
-
-    using FXHashIterator = typename std::map<U64, String>::iterator;
+    static U32 FXResolver_VertexAttribute(const String& arg, U32 line, const FXResolveState& state);
 
     U64 _ComputeEffectHash(RenderEffectParams params);
 
     Bool _CreateProgram(const String& fxSrc, RenderEffectParams params, Ptr<RenderShader>& vert, Ptr<RenderShader>& pixel);
 
-    Ptr<RenderShader> _CreateShader(const ShaderParameterTypes& parameters, RenderShaderType shtype, const String& shaderName, 
+    Ptr<RenderShader> _CreateShader(const ShaderParameterTypes& parameters, RenderShaderType shtype, const String& shaderName, U8* pParameterSlots,
                                     const VertexAttributesBitset& vertexStateAttribs, const void* pShaderBinary, U32 binarySize, SDL_GPUShaderFormat expectedFormat);
 
     // parse buffer, texture etc macro to actual buffer indices
-    String _ParseFX(const String& fxStr, U8* pParameterSlotsOut, const ShaderParameterTypes& effectParameters, const String& fxName);
+    String _ParseFX(const String& fxStr, U8* pParameterSlotsOut, const ShaderParameterTypes& effectParameters,
+                    const String& fxName, RenderEffectParams effectParams, const std::vector<String>& macros, const String& builtName);
 
-    String _ResolveFXBindings(const String& source, const String& macroName, U32(*resolver)(const String&, U32 line, const FXResolveState&), const FXResolveState& resolverState);
+    void _FXSectionSkipWhitespace(SectionResolverState& state);
+    Bool _FXSectionParseIdentifier(SectionResolverState& state);
+    Bool _FXSectionParsePrim(SectionResolverState& state);
+    Bool _FXSectionParseAND(SectionResolverState& state);
+    Bool _FXSectionParseOR(SectionResolverState& state);
+    Bool _FXSectionEval(SectionResolverState& state);
+
+    String _ResolveFXSections(const String& src, const std::vector<std::string>& macros, const String& fxName);
+
+    String _ResolveFXBindings(const String& source, const String& macroName, ShaderParameterTypeClass clz,
+                              U32(*resolver)(const String&, U32 line, const FXResolveState&), const FXResolveState& resolverState);
 
     // inserts source and source hash from resolve fx source
     FXHashIterator _ResolveFX(RenderEffect effect);
@@ -280,6 +318,9 @@ private:
 
     std::set<Ptr<RenderShader>> _StrongShaderRefs; // store raw pointers internally. keep alive here
     std::map<U64, String> _FXHash; // fx shader source hash => shader source
+
+    void (*_PsuedoMacroTranslate)(String& out, U32 resolvedIndex, ShaderParameterTypeClass paramClass/*vertex buffer => attribute index, index buffer => texture*/) = nullptr;
+    String _FXFileNamePrefix = "";
 
     U32 _ProgramCount;
     RenderEffectProgram _Program[RENDER_FX_MAX_RUNTIME_PROGRAMS]; // Keep here because we want it close by.
