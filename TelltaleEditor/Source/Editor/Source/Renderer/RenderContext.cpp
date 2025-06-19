@@ -1562,7 +1562,9 @@ RenderPass RenderCommandBuffer::EndPass()
     return pass;
 }
 
+#ifdef PLATFORM_WINDOWS
 extern "C" ID3D12GraphicsCommandList* SDL3_GPU_D3D12_GetGraphicsCommandList(SDL_GPUCommandBuffer* pCommandBuffer);
+#endif
 
 void RenderContext::_PushDebugGroup(RenderCommandBuffer& buf, const String& name)
 {
