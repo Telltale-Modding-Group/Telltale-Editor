@@ -1,2 +1,8 @@
 # Telltale Editor Properties file (with v1.0.0)
 
+[S] Project Manager - Active Project: C:\Vunder\Telltale\Telltale-Editor\Dev\Workspace\BonerDemo_.tteproj
+[S] Workspace - Language: English
+[A] Project Manager - Previous Projects: 
+[
+	C:\Vunder\Telltale\Telltale-Editor\Dev\Workspace\Texas.tteproj
+]

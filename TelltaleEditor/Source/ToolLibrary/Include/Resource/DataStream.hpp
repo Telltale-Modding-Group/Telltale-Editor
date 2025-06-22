@@ -536,6 +536,9 @@ public:
     
     // Reads a string from the data stream argument. Reads the size, then ASCII string. Checks if size is valid.
     String ReadString(DataStreamRef& stream);
+
+    // Reads all remaining bytes form the stream and returns them as an ASCII string
+    String ReadAllAsString(DataStreamRef& str);
     
     // Writes a string to the data stream argument. Writes the size, then the ASCII string.
     void WriteString(DataStreamRef& stream, const String& str);

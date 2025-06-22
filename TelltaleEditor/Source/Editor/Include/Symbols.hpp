@@ -1,12 +1,19 @@
+#ifdef _TTE_SYMBOLS_IMPL
+
+#undef GSYMBOL
+#undef _TTE_SYMBOLS_HPP
+#define GSYMBOL(_GlobalName, _SymbolStr) String _GlobalName{_SymbolStr}; Symbol _GlobalName##Symbol{_SymbolStr, true}
+
+#elif !defined(GSYMBOL)
+
+#define GSYMBOL(_GlobalName, _SymbolStr) extern String _GlobalName; extern Symbol _GlobalName##Symbol
+
+#endif
+
 #ifndef _TTE_SYMBOLS_HPP
+#define _TTE_SYMBOLS_HPP
 
 class Symbol;
-
-#ifdef _TTE_SYMBOLS_IMPL
-#define GSYMBOL(_GlobalName, _SymbolStr) String _GlobalName{_SymbolStr}; Symbol _GlobalName##Symbol{_SymbolStr, true}
-#else
-#define GSYMBOL(_GlobalName, _SymbolStr) extern String _GlobalName; extern Symbol _GlobalName##Symbol;
-#endif
 
 GSYMBOL(kEmptySymbol, "");
 
@@ -17,6 +24,92 @@ GSYMBOL(kSkeletonFile, "Skeleton File");
 GSYMBOL(kSkeletonUseProceduralJointCorners, "Skeleton Use Procedural Joint Corners");
 GSYMBOL(kSkeletonLegWidth, "Skeleton Leg Width");
 GSYMBOL(kSkeletonArmWidth, "Skeleton Arm Width");
+
+// ======================== SYMBOL SECTION <> RENDERABLE ================================
+
+GSYMBOL(kRenderablePropKey3DAlpha, "Render 3D Alpha");
+GSYMBOL(kRenderablePropKeyAllowNPRLines, "Render Allow NPR Lines");
+GSYMBOL(kRenderablePropKeyAlphaAntialiasing, ""); // Empty ones haven't found the string for yet (check other executables, will be there)
+GSYMBOL(kRenderablePropKeyAlphaMultiply, "");
+GSYMBOL(kRenderablePropKeyAmbientOcclusionLightmap, "Render Ambient Occlusion Lightmap");
+GSYMBOL(kRenderablePropKeyAutoFocusEnable, "Render Auto Focus Enable");
+GSYMBOL(kRenderablePropKeyAxisScale, "Render Axis Scale");
+GSYMBOL(kRenderablePropKeyBakeAsStatic, "");
+GSYMBOL(kRenderablePropKeyBrushFarDetailBias, "Render Brush Far Detail Bias");
+GSYMBOL(kRenderablePropKeyBrushForceEnable, "Render Brush Force Enable");
+GSYMBOL(kRenderablePropKeyBrushNearDetailBias, "Render Brush Near Detail Bias");
+GSYMBOL(kRenderablePropKeyBrushScale, "Render Brush Scale");
+GSYMBOL(kRenderablePropKeyBrushScaleByVertex, "Render Brush Scale By Vertex");
+GSYMBOL(kRenderablePropKeyCameraFacing, "Camera Facing");
+GSYMBOL(kRenderablePropKeyCameraFacingType, "Camera Facing Type");
+GSYMBOL(kRenderablePropKeyCastShadow, "Cast Shadow");
+GSYMBOL(kRenderablePropKeyCastShadowsAsStatic, "Cast Shadow As Static");
+GSYMBOL(kRenderablePropKeyColorCorrection, "Render Color Correction");
+GSYMBOL(kRenderablePropKeyColorWrite, "Render Color Write");
+GSYMBOL(kRenderablePropKeyConstantAlpha, "Render Constant Alpha");
+GSYMBOL(kRenderablePropKeyCubeBakeEnable, "");
+GSYMBOL(kRenderablePropKeyD3DMesh, "D3D Mesh");
+GSYMBOL(kRenderablePropKeyD3DMeshList, "D3D Mesh List");
+GSYMBOL(kRenderablePropKeyDepthTest, "Render Depth Test");
+GSYMBOL(kRenderablePropKeyDepthTestFunc, "Render Depth Test Function");
+GSYMBOL(kRenderablePropKeyDepthWrite, "Render Depth Write");
+GSYMBOL(kRenderablePropKeyDepthWriteAlpha, "Render Depth Write Alpha");
+GSYMBOL(kRenderablePropKeyDiffuseColor, "Render Diffuse Color");
+GSYMBOL(kRenderablePropKeyDisableLightBake, "Render Disable Light Bake");
+GSYMBOL(kRenderablePropKeyDoMotionBlur, "");
+GSYMBOL(kRenderablePropKeyEmissionColor, "Render Emission Color");
+GSYMBOL(kRenderablePropKeyFogColor, "");
+GSYMBOL(kRenderablePropKeyFogEnabled, "");
+GSYMBOL(kRenderablePropKeyFogFarPlane, "");
+GSYMBOL(kRenderablePropKeyFogNearPlane, "");
+GSYMBOL(kRenderablePropKeyFogOverride, "");
+GSYMBOL(kRenderablePropKeyForceAsAlpha, "Render Force As Alpha");
+GSYMBOL(kRenderablePropKeyForceLinearDepthWrite, "");
+GSYMBOL(kRenderablePropKeyFXColorEnabled, "");
+GSYMBOL(kRenderablePropKeyGlobalScale, "Render Global Scale");
+GSYMBOL(kRenderablePropKeyLightCinematicRig, "");
+GSYMBOL(kRenderablePropKeyLightEnvEnable, "");
+GSYMBOL(kRenderablePropKeyLightEnvGroup, "");
+GSYMBOL(kRenderablePropKeyLightEnvIntensity, "");
+GSYMBOL(kRenderablePropKeyLightEnvNode, "");
+GSYMBOL(kRenderablePropKeyLightEnvReflectionEnable, "");
+GSYMBOL(kRenderablePropKeyLightEnvReflectionIntensity, "");
+GSYMBOL(kRenderablePropKeyLightEnvShadowCastEnable, "");
+GSYMBOL(kRenderablePropKeyLightEnvShadowCastGroups, "");
+GSYMBOL(kRenderablePropKeyLightingGroups, "Render Lighting Groups");
+GSYMBOL(kRenderablePropKeyLightmapScale, "Render Lightmap Scale");
+GSYMBOL(kRenderablePropKeyLightmapUVGenerationType, "");
+GSYMBOL(kRenderablePropKeyLODBias, "Render LOD Bias");
+GSYMBOL(kRenderablePropKeyLODScale, "Render LOD Scale");
+GSYMBOL(kRenderablePropKeyMaskTest, "Render Mask Test");
+GSYMBOL(kRenderablePropKeyMaskWrite, "Render Mask Write");
+GSYMBOL(kRenderablePropKeyMaterialTime, "Render Material Time");
+GSYMBOL(kRenderablePropKeyNPRLineBias, "Render NPR Line Bias");
+GSYMBOL(kRenderablePropKeyNPRLineFalloff, "Render NPR Line Falloff");
+GSYMBOL(kRenderablePropKeyNPRLineFalloffBiasOverride, "");
+GSYMBOL(kRenderablePropKeyOverrideToonOutlineColor, "");
+GSYMBOL(kRenderablePropKeyRecieveShadows, "Receive Shadows");
+GSYMBOL(kRenderablePropKeyRecieveShadowsDecal, "Receive Shadows Decal");
+GSYMBOL(kRenderablePropKeyRecieveShadowsDoublesided, "Receive Shadows Doublesided");
+GSYMBOL(kRenderablePropKeyRecieveShadowsIntensity, "");
+GSYMBOL(kRenderablePropKeyRenderAfterAntiAliasing, "");
+GSYMBOL(kRenderablePropKeyRenderAfterPostEffects, "");
+GSYMBOL(kRenderablePropKeyRenderCull, "Render Cull");
+GSYMBOL(kRenderablePropKeyRenderLayer, "Render Layer");
+GSYMBOL(kRenderablePropKeyRenderToonOutline, "Render Toon Outline");
+GSYMBOL(kRenderablePropKeyRimBumpScale, "Render Rim Bump Scale");
+GSYMBOL(kRenderablePropKeySceneEnlightenData, "Render Scene Enlighten Data");
+GSYMBOL(kRenderablePropKeySceneLightmapData, "Render Scene Lightmap Data");
+GSYMBOL(kRenderablePropKeyShadowCastGroup, "Render Shadow Cast Group");
+GSYMBOL(kRenderablePropKeyShadowReceiveGroup, "Render Shadow Receive Group");
+GSYMBOL(kRenderablePropKeyShadowUseLowLOD, "");
+GSYMBOL(kRenderablePropKeyShadowVisibleThresholdScale, "");
+GSYMBOL(kRenderablePropKeySSLineEnable, "Render SS Line Enable");
+GSYMBOL(kRenderablePropKeyStatic, "Render Static");
+GSYMBOL(kRenderablePropKeyTextureOverrides, "Render Texture Overrides");
+GSYMBOL(kRenderablePropKeyToonOutlineColor, "Toon Outline Color");
+GSYMBOL(kRenderablePropKeyVisibleThresholdScale, "Render Visible Threshold Scale");
+
 
 // ======================== SYMBOL SECTION <> ANIMATION NODES ================================
 

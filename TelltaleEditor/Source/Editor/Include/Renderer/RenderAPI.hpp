@@ -20,6 +20,7 @@
 #include <mutex>
 
 class RenderContext;
+class RenderViewPass;
 
 // ============================================= ENUMS =============================================
 
@@ -86,14 +87,6 @@ enum class RenderBufferAttributeFormat : U32
     
 };
 
-class RenderContext;
-
-struct RenderScene;
-class RenderTexture;
-class RenderFrame;
-
-// ============================================= UTIL ENUMS AND TYPES =============================================
-
 enum class RenderBufferUsage : U32
 {
     VERTEX = SDL_GPU_BUFFERUSAGE_VERTEX,
@@ -107,6 +100,61 @@ enum class RenderPrimitiveType : U32
     TRIANGLE_LIST,
     LINE_LIST,
 };
+
+class RenderContext;
+struct RenderScene;
+class RenderTexture;
+class RenderFrame;
+
+static struct AttributeFormatInfo
+{
+    RenderBufferAttributeFormat Format;
+    SDL_GPUVertexElementFormat SDLFormat;
+    U32 NumIntrinsics = 0; // for float4, this is 4
+    U32 IntrinsicSize = 0; // for four ints, three ints, 1 int, etc, this is 4.
+    RenderBufferAttributeFormat IntrinsicType = RenderBufferAttributeFormat::UNKNOWN;
+    CString ConstantName;
+}
+SDL_VertexAttributeMappings[21]
+{
+    {RenderBufferAttributeFormat::F32x1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, 1, 4, RenderBufferAttributeFormat::F32x1, "kCommonMeshFloat1"},
+    {RenderBufferAttributeFormat::F32x2, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, 2, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat2"},
+    {RenderBufferAttributeFormat::F32x3, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 3, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat3"},
+    {RenderBufferAttributeFormat::F32x4, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, 4, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat4"},
+    {RenderBufferAttributeFormat::I32x1, SDL_GPU_VERTEXELEMENTFORMAT_INT, 1, 4, RenderBufferAttributeFormat::I32x1, "kCommonMeshInt1"},
+    {RenderBufferAttributeFormat::I32x2, SDL_GPU_VERTEXELEMENTFORMAT_INT2, 2, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt2"},
+    {RenderBufferAttributeFormat::I32x3, SDL_GPU_VERTEXELEMENTFORMAT_INT3, 3, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt3"},
+    {RenderBufferAttributeFormat::I32x4, SDL_GPU_VERTEXELEMENTFORMAT_INT4, 4, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt4"},
+    {RenderBufferAttributeFormat::U32x1, SDL_GPU_VERTEXELEMENTFORMAT_UINT, 1, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt1"},
+    {RenderBufferAttributeFormat::U32x2, SDL_GPU_VERTEXELEMENTFORMAT_UINT2, 2, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt2"},
+    {RenderBufferAttributeFormat::U32x3, SDL_GPU_VERTEXELEMENTFORMAT_UINT3, 3, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt3"},
+    {RenderBufferAttributeFormat::U32x4, SDL_GPU_VERTEXELEMENTFORMAT_UINT4, 4, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt4"},
+    {RenderBufferAttributeFormat::U8x2, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte2"},
+    {RenderBufferAttributeFormat::U8x4, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte4"},
+    {RenderBufferAttributeFormat::I8x2, SDL_GPU_VERTEXELEMENTFORMAT_BYTE2, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte2"},
+    {RenderBufferAttributeFormat::I8x4, SDL_GPU_VERTEXELEMENTFORMAT_BYTE4, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte4"},
+    {RenderBufferAttributeFormat::U8x2_NORM, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2_NORM, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte2Norm"},
+    {RenderBufferAttributeFormat::U8x4_NORM, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte4Norm"},
+    {RenderBufferAttributeFormat::I8x2_NORM, SDL_GPU_VERTEXELEMENTFORMAT_BYTE2_NORM, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte2Norm"},
+    {RenderBufferAttributeFormat::I8x4_NORM, SDL_GPU_VERTEXELEMENTFORMAT_BYTE4_NORM, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte4Norm"},
+    {RenderBufferAttributeFormat::UNKNOWN, SDL_GPU_VERTEXELEMENTFORMAT_INVALID, 0, 0, RenderBufferAttributeFormat::F32x1, "kCommonMeshFormatUnknown"},
+    // add above this!
+};
+
+static struct PrimitiveTypeInfo
+{
+    RenderPrimitiveType Type;
+    SDL_GPUPrimitiveType SDLType;
+    CString ConstantName;
+}
+SDL_PrimitiveMappings[3]
+{
+    {RenderPrimitiveType::TRIANGLE_LIST, SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, "kCommonMeshTriangleList"},
+    {RenderPrimitiveType::LINE_LIST, SDL_GPU_PRIMITIVETYPE_LINELIST, "kCommonMeshLineList"},
+    {RenderPrimitiveType::UNKNOWN, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, "kCommonMeshTriangleStrip"}, // do not add below this, add above
+};
+
+// ============================================= UTIL ENUMS AND TYPES =============================================
 
 // NDC (Normalised device coords) scissor rect. From -1 to 1 in both. By default is whole screen
 struct RenderNDCScissorRect
@@ -268,8 +316,16 @@ public:
     
 };
 
+struct RenderResource
+{
+
+    virtual void Release() = 0;
+
+
+};
+
 /// A buffer in the renderer holding data. You own these and can create them below.
-struct RenderBuffer
+struct RenderBuffer : RenderResource
 {
     
     // Last frame number which buffer was used to a binding slot in.
@@ -284,6 +340,8 @@ struct RenderBuffer
     U64 SizeBytes = 0; // size of the bytes of the buffer
     
     ~RenderBuffer();
+
+    virtual void Release() override;
     
 };
 
@@ -304,7 +362,7 @@ struct _RenderTransferBuffer
 };
 
 /// Render sampler which is bindable
-struct RenderSampler
+struct RenderSampler : RenderResource
 {
     
     U64 LastUsedFrame = 0;
@@ -322,7 +380,9 @@ struct RenderSampler
     {
         return MipBias == rhs.MipBias && MipMode == rhs.MipMode && WrapU == rhs.WrapU && WrapV == rhs.WrapV;
     }
-    
+
+    virtual void Release() override;
+
     ~RenderSampler();
     
 };
@@ -362,7 +422,7 @@ enum class RenderTargetConstantID
     NONE = -1,
     BACKBUFFER = 0,
     DEPTH,
-    NUM,
+    COUNT,
 };
 
 // Info about constant target
@@ -402,12 +462,12 @@ public:
     
     inline static RenderTargetID CreateDynamicID(U32 zeroBasedDynamicIndex) // create dynamic id
     {
-        return RenderTargetID((RenderTargetConstantID)(zeroBasedDynamicIndex + (U32)RenderTargetConstantID::NUM));
+        return RenderTargetID((RenderTargetConstantID)(zeroBasedDynamicIndex + (U32)RenderTargetConstantID::COUNT));
     }
     
-    inline Bool IsConstantTarget() const { return _Value < (U32)RenderTargetConstantID::NUM; }
+    inline Bool IsConstantTarget() const { return _Value < (U32)RenderTargetConstantID::COUNT; }
     
-    inline Bool IsDynamicTarget() const { return IsValid() && _Value >= (U32)RenderTargetConstantID::NUM; }
+    inline Bool IsDynamicTarget() const { return IsValid() && _Value >= (U32)RenderTargetConstantID::COUNT; }
     
     inline Bool IsValid() const { return _Value != (U32)-1; }
     
@@ -464,7 +524,7 @@ public:
 // ============================================= PIPELINE STATES AND PASSES =============================================
 
 /// Bindable pipeline state. Create lots at initialisation and then bind each and render, this is the modern typical best approach to rendering. Internal use. Represents a state of the rasterizer.
-struct RenderPipelineState
+struct RenderPipelineState : RenderResource
 {
     
     struct
@@ -496,6 +556,8 @@ struct RenderPipelineState
     void Create(); // creates and sets hash.
     
     ~RenderPipelineState(); // destroy if needed
+
+    virtual void Release() override;
     
 };
 
@@ -521,19 +583,21 @@ struct RenderPass
 // ============================================= LOW LEVEL RENDER SHADERS =============================================
 
 /// Internal shader, lightweight object.
-struct RenderShader
+struct RenderShader : RenderResource
 {
     
     RenderContext* Context = nullptr;
     SDL_GPUShader* Handle = nullptr;
     
-    U8 ParameterSlots[PARAMETER_COUNT]; // parameter type => slot index
+    U8 ParameterSlots[(U32)ShaderParameterType::PARAMETER_COUNT]; // parameter type => slot index
     VertexAttributesBitset Attribs; // for vertex shaders
     
     inline RenderShader()
     {
-        memset(ParameterSlots, 0xFF, PARAMETER_COUNT);
+        memset(ParameterSlots, 0xFF, (U32)ShaderParameterType::PARAMETER_COUNT);
     }
+
+    virtual void Release() override;
     
     ~RenderShader();
     
@@ -651,6 +715,8 @@ class RenderInst
     DefaultRenderMeshType _DrawDefault = DefaultRenderMeshType::NONE;
     
     RenderEffectRef EffectRef; // ie shader program resolved
+
+    CString _DebugName = nullptr;
     
 public:
 
@@ -747,6 +813,11 @@ public:
     {
         return _SortKey < rhs._SortKey;
     }
+
+    /**
+     * Set the debug name for this draw call for error checking.
+     */
+    void SetDebugName(RenderViewPass* pRenderPass, CString fmt, ...);
     
     friend struct RenderInstSorter;
     friend struct RenderViewPass;

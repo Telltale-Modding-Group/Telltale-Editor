@@ -777,37 +777,24 @@ end
 function IsIsolated()
 end
 
---- Converts the container into a lua table and returns it. For keyed container, they are the table keys. For non keyed, they are 0 based indices.
---- @param container nil
---- @return table
-function TTE_TableToContainer(container)
-end
-
---- Inserts all key-value mappings from the input table into the container. For non keyed containers (eg arrays) keys are ignored and its added at the back.
---- @param container nil
---- @param table nil
---- @return table
-function TTE_ContainerToTable(container, table)
-end
-
---- Prints to the console all of the resource sets in the resource system, Must have a resource system attached!
+--- This function is only available to mod scripts! Prints to the console all of the resource sets in the resource system, Must have a resource system attached!
 --- @return nil
 function TTE_PrintResourceSets()
 end
 
---- Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that archive can be found. This supports .ttarch2/ttarch/iso/pk2. Physical
---- path is the path on your local machine. Location ID should be in the format <XXX>/. Please note that the archive must be from the current game snapshot! Otherwise it
---- will fail to read due to incorrect encryptino and expected format.
+--- This function is only available to mod scripts! Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that
+--- archive can be found. This supports .ttarch2/ttarch/iso/pk2. Physical path is the path on your local machine. Location ID should be in the format <XXX>/. Please note that the archive must
+--- be from the current game snapshot! Otherwise it will fail to read due to incorrect encryptino and expected format.
 --- @param locationID nil
 --- @param physPath nil
 --- @return nil
 function TTE_MountArchive(locationID, physPath)
 end
 
---- Mounts the resource system (like creating a concrete directory location) to the given physical path under the name locationID. Location ID should be in the format <XXX>/. Physical path can
---- be absolute or relative to your working directory. The last argument can be set to true to use the old telltale engine resource system which had no resource set descriptions.
---- This means that it will recurse all directories and add them all. Set this to true to just easily get all resources quickly for debugging, so that they are all
---- in resource system ready to be used.
+--- This function is only available to mod scripts! Mounts the resource system (like creating a concrete directory location) to the given physical path under the name locationID. Location ID should
+--- be in the format <XXX>/. Physical path can be absolute or relative to your working directory. The last argument can be set to true to use the old telltale engine
+--- resource system which had no resource set descriptions. This means that it will recurse all directories and add them all. Set this to true to just easily get all resources
+--- quickly for debugging, so that they are all in resource system ready to be used.
 --- @param locationID nil
 --- @param physPath nil
 --- @param forceLegacy nil
@@ -815,8 +802,8 @@ end
 function TTE_MountSystem(locationID, physPath, forceLegacy)
 end
 
---- Switches the editor context to a new game snapshot. Note that this can only be called from a mod script at startup or when no files are being read or
---- processed. If it is called at one of those times, an error is thrown to the log and it does nothing.
+--- This function is only available to mod scripts! Switches the editor context to a new game snapshot. Note that this can only be called from a mod script at startup
+--- or when no files are being read or processed. If it is called at one of those times, an error is thrown to the log and it does nothing.
 --- @param gameID nil
 --- @param platformName nil
 --- @param vendorName nil
@@ -824,38 +811,39 @@ end
 function TTE_Switch(gameID, platformName, vendorName)
 end
 
---- Opens and reads a meta stream, returning the base class instance that the file contains. This returns a strong reference to the instance. If one argument is passed in, filename
---- is the path on your computer where the file is (or relative to the executable). If two are passed in, the first must be the file name string and the
---- second is the archive (any version) which the file is located in.
---- @param filename nil
+--- This function is only available to mod scripts! Opens and reads a meta stream, returning the base class instance that the file contains. This returns a strong reference to the
+--- instance. If one argument is passed in, filename is resource address in the resource system where it is located. If two are passed in, the first must be the file
+--- name string and the second is the archive (any version) which the file is located in.
+--- @param address_or_file nil
 --- @param --[[optional]] archive nil
 --- @return instance
-function TTE_OpenMetaStream(filename, --[[optional]] archive)
+function TTE_OpenMetaStream(address_or_file, --[[optional]] archive)
 end
 
---- Writes the given instance to the file located at the filename argument. Returns if it was successfully written.
---- @param filename nil
+--- This function is only available to mod scripts! Writes the given instance to the file located at the given resource address. Returns if it was successfully written.
+--- @param address nil
 --- @param instance nil
 --- @return bool
-function TTE_SaveMetaStream(filename, instance)
+function TTE_SaveMetaStream(address, instance)
 end
 
---- Opens a TTARCH file which is located at the given file path on your computer (or relative, like all file paths, to the executable). Returns the archive instance, a strong
---- reference although this is not a class instance. You can then use this to list files and open files from it. Note that this archive MUST match the version of
---- the currently selected game,ie the archive must be from the game that the editor context is currently working with.
+--- This function is only available to mod scripts! Opens a TTARCH file which is located at the given file path on your computer (or relative, like all file paths, to
+--- the executable). Returns the archive instance, a strong reference although this is not a class instance. You can then use this to list files and open files from it. Note
+--- that this archive MUST match the version of the currently selected game,ie the archive must be from the game that the editor context is currently working with.
 --- @param filepath nil
 --- @return arc
 function TTE_OpenTTArchive(filepath)
 end
 
---- Opens a TTARCH2 file which is located at the given file path on your computer (or relative). Returns the archive instance, a strong reference. This archive, like others, must be
---- from the currently active game such that the encryption key matches.
+--- This function is only available to mod scripts! Opens a TTARCH2 file which is located at the given file path on your computer (or relative). Returns the archive instance, a
+--- strong reference. This archive, like others, must be from the currently active game such that the encryption key matches.
 --- @param filepath nil
 --- @return arc
 function TTE_OpenTTArchive2(filepath)
 end
 
---- Returns a table (indices 1 to N) of all the file names in the given archive, which was previously opened with open TTArchive or TTArchive2.
+--- This function is only available to mod scripts! Returns a table (indices 1 to N) of all the file names in the given archive, which was previously opened with open
+--- TTArchive or TTArchive2.
 --- @param archive nil
 --- @return table
 function TTE_ArchiveListFiles(archive)
@@ -869,6 +857,19 @@ end
 --- @param isEncrypt nil
 --- @return nil
 function TTE_Blowfish(bufferMetaInstance, size, isEncrypt)
+end
+
+--- Converts the container into a lua table and returns it. For keyed container, they are the table keys. For non keyed, they are 0 based indices.
+--- @param container nil
+--- @return table
+function TTE_TableToContainer(container)
+end
+
+--- Inserts all key-value mappings from the input table into the container. For non keyed containers (eg arrays) keys are ignored and its added at the back.
+--- @param container nil
+--- @param table nil
+--- @return table
+function TTE_ContainerToTable(container, table)
 end
 
 --- Dumps to the logger all memory which has not been freed yet. This will contain a lot of script stuff which won't matter as the script engine requires memory which
@@ -919,6 +920,16 @@ end
 function MetaPushGameCapability(gameTable, cap)
 end
 
+--- Push an executable hash which maps to the given platform/vendor pair. This is used for the Editor when user selects the mount points of their installation such that we can
+--- detect their installation game snapshot.
+--- @param gameTable nil
+--- @param hashStr nil
+--- @param platform nil
+--- @param vendor nil
+--- @return nil
+function MetaPushExecutableHash(gameTable, hashStr, platform, vendor)
+end
+
 --- This associates file name masks to folders. When extracting files in the Telltale Editor sometimes the user can select to extract to sub-folders. This function associates masks to sub-folders which
 --- the game engines. For example, a typical mapping is any files matching 'module_*.prop' should go into 'Properties/Primitives/'. You should use forward slashes and end with one, although if not it
 --- will be changed for you. This should only be called during initialisation.
@@ -947,7 +958,7 @@ end
 --- be nil for non keyed collections, such as most arrays, but must be a previoulsy registered table otherwise (eg for Map classes). If this is a static array (SArray) class,
 --- then this should be an integer being the number of elements. The third argument must always be non nil and a table, which is the previously registered value type in
 --- the collection. There is a special case where key or value type table can be strings. If you pass them as a string, this means they will be resolved once
---- all classes have been registered. This allows forward declaration of a class inside a collection before its fully defined. Instead of padding in the type table you pass in the
+--- all classes have been registered. This allows forward declaration of a class inside a collection before its fully defined. Instead of passing in the type table you pass in the
 --- string name of the class it should be. Optionally you can end the string with a semicolon followed by the version index, eg 'class Hello;1', such that version index 1
 --- is used in this example. By default version index 0 is used.
 --- @param table nil
@@ -1518,73 +1529,129 @@ end
 function SymbolCreate(string)
 end
 
---- Game capabilities
+--- Intrinsic signed 8-bit integer
 --- @type number
-kGameCapRawClassNames = 0
+kMetaInt8 = 0
 
---- Game capabilities
+--- Class is attachable
 --- @type number
-kGameCapUsesLenc = 0
-
---- Game capabilities
---- @type number
-kGameCapAllowTransitionMaps = 0
-
---- Intrinsic String type
---- @type number
-kMetaString = 0
-
---- Member is a flag
---- @type number
-kMetaMemberFlag = 0
-
---- Intrinsic Symbol type
---- @type number
-kMetaSymbol = 0
-
---- Alias for unsigned 32-bit integer
---- @type number
-kMetaUnsignedLong = 0
-
---- Alias for unsigned 8-bit integer
---- @type number
-kMetaUnsignedChar = 0
-
---- Alias for unsigned 64-bit integer
---- @type number
-kMetaUnsignedLongLong = 0
-
---- Game capabilities
---- @type number
-kGameCapSeparateAnimationTransform = 0
-
---- Alias for signed 64-bit integer
---- @type number
-kMeta__Int64 = 0
-
---- Alias for signed 64-bit integer
---- @type number
-kMetaLongLong = 0
-
---- Alias for signed 16-bit integer
---- @type number
-kMetaShort = 0
-
---- Alias for 64-bit float (double)
---- @type number
-kMetaLongDoubler = 0
-
---- Alias for signed 8-bit integer
---- @type number
-kMetaChar = 0
+kMetaClassAttachable = 0
 
 --- Class is not blocked
 --- @type number
 kMetaClassNonBlocked = 0
 
+--- Container flag
+--- @type number
+kMetaClassContainer = 0
+
+--- Alias for signed 64-bit integer
+--- @type number
+kMeta__Int64 = 0
+
+--- Class is intrinsic
+--- @type number
+kMetaClassIntrinsic = 0
+
+--- Can be serialised asynchronously
+--- @type number
+kMetaClassAllowAsync = 0
+
+--- Is an enum wrapper class. Should have one member (normally mVal), as integer value.
+--- @type number
+kMetaClassEnumWrapper = 0
+
+--- Alias for signed 8-bit integer
+--- @type number
+kMetaChar = 0
+
+--- Proxy class disables member blocking
+--- @type number
+kMetaClassProxy = 0
+
+--- Member is a flag
+--- @type number
+kMetaMemberFlag = 0
+
+--- Class is abstract
+--- @type number
+kMetaClassAbstract = 0
+
+--- Member is an enum
+--- @type number
+kMetaMemberEnum = 0
+
+--- Member is excluded from disk
+--- @type number
+kMetaMemberSerialiseDisable = 0
+
+--- Member is a base class
+--- @type number
+kMetaMemberBaseClass = 0
+
+--- Internal data stream cache class
+--- @type number
+kMetaClassInternalDataStreamCache = 0
+
+--- Member is excluded from memory
+--- @type number
+kMetaMemberMemoryDisable = 0
+
+--- Excluded from version hash
+--- @type number
+kMetaMemberVersionDisable = 0
+
+--- Intrinsic 64-bit floating point
+--- @type number
+kMetaDouble = 0
+
+--- Intrinsic unsigned 32-bit integer
+--- @type number
+kMetaUInt32 = 0
+
+--- Intrinsic signed 32-bit integer
+--- @type number
+kMetaInt = 0
+
 --- Intrinsic signed 16-bit integer
 --- @type number
 kMetaInt16 = 0
+
+--- Alias for unsigned 32-bit integer
+--- @type number
+kMetaUInt = 0
+
+--- Alias for signed 32-bit integer
+--- @type number
+kMetaInt32 = 0
+
+--- Intrinsic unsigned 64-bit integer
+--- @type number
+kMetaUInt64 = 0
+
+--- Intrinsic signed 64-bit integer
+--- @type number
+kMetaInt64 = 0
+
+--- Alias for unsigned 64-bit integer
+--- @type number
+kMeta__UnsignedInt64 = 0
+
+--- Alias for unsigned 32-bit integer
+--- @type number
+kMetaUnsignedInt = 0
+
+--- Alias for signed 32-bit integer (Windows)
+--- @type number
+kMetaLong = 0
+
+--- Intrinsic 32-bit floating point
+--- @type number
+kMetaFloat = 0
+
+--- Intrinsic boolean type
+--- @type number
+kMetaBool = 0
 
 --- Alias for signed 8-bit integer
 --- @type number
@@ -1594,81 +1661,61 @@ kMetaSignedChar = 0
 --- @type number
 kMetaUnsignedInt8 = 0
 
---- Is an enum wrapper class. Should have one member (normally mVal), as integer value.
+--- Intrinsic String type
 --- @type number
-kMetaClassEnumWrapper = 0
+kMetaString = 0
 
---- Intrinsic signed 8-bit integer
+--- Intrinsic unsigned 16-bit integer
 --- @type number
-kMetaInt8 = 0
+kMetaUnsignedInt16 = 0
 
---- Member is an enum
+--- Alias for 64-bit float (double)
 --- @type number
-kMetaMemberEnum = 0
+kMetaLongDoubler = 0
 
---- Alias for signed 32-bit integer (Windows)
+--- Alias for unsigned 8-bit integer
 --- @type number
-kMetaLong = 0
-
---- Intrinsic 64-bit floating point
---- @type number
-kMetaDouble = 0
-
---- Alias for unsigned 64-bit integer
---- @type number
-kMeta__UnsignedInt64 = 0
-
---- Intrinsic signed 64-bit integer
---- @type number
-kMetaInt64 = 0
-
---- Intrinsic boolean type
---- @type number
-kMetaBool = 0
-
---- Excluded from version hash
---- @type number
-kMetaMemberVersionDisable = 0
+kMetaUnsignedChar = 0
 
 --- Alias for unsigned 32-bit integer
 --- @type number
-kMetaUInt = 0
+kMetaUnsignedLong = 0
 
---- Intrinsic signed 32-bit integer
+--- Game capabilities
 --- @type number
-kMetaInt = 0
+kGameCapRawClassNames = 0
 
---- Member is excluded from disk
+--- Alias for unsigned 16-bit integer
 --- @type number
-kMetaMemberSerialiseDisable = 0
+kMetaUnsignedShort = 0
 
---- Internal data stream cache class
+--- Alias for signed 64-bit integer
 --- @type number
-kMetaClassInternalDataStreamCache = 0
+kMetaLongLong = 0
 
---- Intrinsic 32-bit floating point
+--- Alias for signed 16-bit integer
 --- @type number
-kMetaFloat = 0
-
---- Member is excluded from memory
---- @type number
-kMetaMemberMemoryDisable = 0
-
---- Alias for signed 32-bit integer
---- @type number
-kMetaInt32 = 0
+kMetaShort = 0
 
 --- Wide character (typically UTF-16)
 --- @type number
 kMetaWideChar = 0
 
---- Container flag
+--- Alias for unsigned 64-bit integer
 --- @type number
-kMetaClassContainer = 0
+kMetaUnsignedLongLong = 0
 
---- Game capabilities
+--- Internal binary buffer class
 --- @type number
-kGameCapNoScriptEncryption = 0
+kMetaClassInternalBinaryBuffer = 0
+
+--- Intrinsic Symbol type
+--- @type number
+kMetaSymbol = 0
+
+--- Intrinsic Symbol type with class prefix
+--- @type number
+kMetaClassSymbol = 0
 
 --- Intrinsic String type with class prefix
 --- @type number
@@ -1676,59 +1723,23 @@ kMetaClassString = 0
 
 --- Game capabilities
 --- @type number
+kGameCapSeparateAnimationTransform = 0
+
+--- Game capabilities
+--- @type number
+kGameCapNoScriptEncryption = 0
+
+--- Game capabilities
+--- @type number
+kGameCapAllowTransitionMaps = 0
+
+--- Game capabilities
+--- @type number
 kGameCapUsesLocationInfo = 0
 
---- Proxy class disables member blocking
+--- Game capabilities
 --- @type number
-kMetaClassProxy = 0
-
---- Can be serialised asynchronously
---- @type number
-kMetaClassAllowAsync = 0
-
---- Class is intrinsic
---- @type number
-kMetaClassIntrinsic = 0
-
---- Alias for unsigned 32-bit integer
---- @type number
-kMetaUnsignedInt = 0
-
---- Internal binary buffer class
---- @type number
-kMetaClassInternalBinaryBuffer = 0
-
---- Intrinsic unsigned 64-bit integer
---- @type number
-kMetaUInt64 = 0
-
---- Alias for unsigned 16-bit integer
---- @type number
-kMetaUnsignedShort = 0
-
---- Class is abstract
---- @type number
-kMetaClassAbstract = 0
-
---- Member is a base class
---- @type number
-kMetaMemberBaseClass = 0
-
---- Intrinsic Symbol type with class prefix
---- @type number
-kMetaClassSymbol = 0
-
---- Intrinsic unsigned 16-bit integer
---- @type number
-kMetaUnsignedInt16 = 0
-
---- Class is attachable
---- @type number
-kMetaClassAttachable = 0
-
---- Intrinsic unsigned 32-bit integer
---- @type number
-kMetaUInt32 = 0
+kGameCapUsesLenc = 0
 
 --- Set the common mesh name
 --- @param state nil
@@ -2017,187 +2028,103 @@ end
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeExplicitCompoundValue = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioFMODParameter = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioPitch = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioPan = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureRotateOriginV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureScaleOriginU = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureOverride = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureScaleV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureScaleU = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioLowPassFilter = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureMoveV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeSkeletonPose = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeProperty = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeMover = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeSkeletal = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioLowFreqSend = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeContribution = 0
-
---- Legacy normed quaternion compressed keys (0)
---- @type number
-kCompressedQuatKeysFormatLegacy0 = 0
-
---- Trigger on event begin or end
---- @type number
-kCommonInputMapperTypeBeginOrEnd = 0
-
---- Trigger when an event begins
---- @type number
-kCommonInputMapperTypeBegin = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioReverbDry = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTime = 0
-
---- Trigger when an event ends
---- @type number
-kCommonInputMapperTypeEnd = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeUVDiffuse = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeColour = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTargetedMover = 0
+kAnimationValueTypeTextureRotate = 0
 
 --- Vertex attribute formats
 --- @type number
-kCommonMeshFormatUnknown = 0
-
---- Mesh compressed format involving unsigned normed UV values
---- @type number
-kCommonMeshCompressedFormatUNormUV = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeBlendWeight = 0
+kCommonMeshUByte4Norm = 0
 
 --- Vertex attribute formats
 --- @type number
-kCommonMeshInt3 = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeTangent = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributePosition = 0
-
---- Surface formats
---- @type number
-kCommonTextureFormatDXT5 = 0
+kCommonMeshInt2 = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeAudioSurroundExtent = 0
-
---- Surface formats
---- @type number
-kCommonTextureFormatDepth32FStencil8 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioReverbWet = 0
-
---- Primitive types
---- @type number
-kCommonMeshTriangleList = 0
-
---- Surface formats
---- @type number
-kCommonTextureFormatDXT3 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureShearU = 0
+kAnimationValueTypeSkeletonRootAnim = 0
 
 --- Vertex attribute formats
 --- @type number
-kCommonMeshUByte2Norm = 0
+kCommonMeshFloat1 = 0
 
---- Vertex attributes
+--- Vertex attribute formats
 --- @type number
-kCommonMeshAttributeUVLightMap = 0
-
---- Surface formats
---- @type number
-kCommonTextureFormatDXT1 = 0
+kCommonMeshInt1 = 0
 
 --- Animation value types
 --- @type number
 kAnimationValueTypeAudioSurroundDir = 0
 
---- Animation value types
+--- Vertex attribute formats
 --- @type number
-kAnimationValueTypeAudioHighPassFilter = 0
+kCommonMeshByte2 = 0
 
---- Vertex attributes
+--- Vertex attribute formats
 --- @type number
-kCommonMeshAttributeUnknown = 0
+kCommonMeshFloat2 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshFloat3 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshByte4 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshFloat4 = 0
 
 --- Mesh compressed format involving unsigned approximated normed normal vector3 values
 --- @type number
 kCommonMeshCompressedFormatUNormNormalAprox = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshInt3 = 0
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatRGBA8 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshFormatUnknown = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshInt4 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUInt1 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUInt2 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUInt3 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUInt4 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUByte2 = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeContribution = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUByte4 = 0
+
+--- BGR'X' resolvable texture format. 'X' is unused and set to opaque.
+--- @type number
+kCommonTextureResolvableFormatBGRX = 0
 
 --- Surface formats
 --- @type number
@@ -2205,99 +2132,11 @@ kCommonTextureFormatBGRA8 = 0
 
 --- Vertex attribute formats
 --- @type number
-kCommonMeshFloat4 = 0
-
---- Surface formats
---- @type number
-kCommonTextureFormatRGBA8 = 0
-
---- Primitive types
---- @type number
-kCommonMeshLineList = 0
+kCommonMeshUByte2Norm = 0
 
 --- Vertex attribute formats
 --- @type number
 kCommonMeshByte2Norm = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUByte2 = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUByte4Norm = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioLanguageResourceVolume = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshByte4 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeVertexNormal = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshByte2 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeSkeletonRootAnim = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAdditiveMask = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUInt4 = 0
-
---- Legacy normed compressed vector3 keys (0).
---- @type number
-kCompressedVector3KeysFormatLegacy0 = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUByte4 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureShearOriginV = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshInt2 = 0
-
---- Mesh compressed format involving signed normed normal vector3 values
---- @type number
-kCommonMeshCompressedFormatSNormNormal = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshInt4 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureShearOriginU = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureShearV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureVisibility = 0
-
---- Trigger forced(?)
---- @type number
-kCommonInputMapperTypeForce = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUInt3 = 0
 
 --- Animation value types
 --- @type number
@@ -2305,35 +2144,43 @@ kAnimationValueTypeTextureScaleOriginV = 0
 
 --- Vertex attribute formats
 --- @type number
-kCommonMeshFloat1 = 0
+kCommonMeshByte4Norm = 0
+
+--- Primitive types
+--- @type number
+kCommonMeshTriangleList = 0
+
+--- Primitive types
+--- @type number
+kCommonMeshLineList = 0
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatDXT1 = 0
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatDXT3 = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeAutoAct = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUInt1 = 0
-
---- BGR'X' resolvable texture format. 'X' is unused and set to opaque.
---- @type number
-kCommonTextureResolvableFormatBGRX = 0
+kAnimationValueTypeTargetedMover = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTextureRotateOriginU = 0
+kAnimationValueTypeSkeletal = 0
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatDXT5 = 0
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatDepth32FStencil8 = 0
 
 --- Vertex attributes
 --- @type number
-kCommonMeshAttributeBlendIndex = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUInt2 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeVertexPosition = 0
+kCommonMeshAttributePosition = 0
 
 --- Vertex attributes
 --- @type number
@@ -2343,31 +2190,195 @@ kCommonMeshAttributeNormal = 0
 --- @type number
 kCommonMeshAttributeBinormal = 0
 
---- Vertex attribute formats
+--- Vertex attributes
 --- @type number
-kCommonMeshFloat3 = 0
+kCommonMeshAttributeTangent = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeBlendWeight = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTextureRotate = 0
+kAnimationValueTypeSkeletonPose = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeBlendIndex = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeColour = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeUVDiffuse = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeUVLightMap = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeUnknown = 0
+
+--- Mesh compressed format involving unsigned normed UV values
+--- @type number
+kCommonMeshCompressedFormatUNormUV = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureScaleV = 0
+
+--- Mesh compressed format involving signed normed normal vector3 values
+--- @type number
+kCommonMeshCompressedFormatSNormNormal = 0
+
+--- Trigger when an event begins
+--- @type number
+kCommonInputMapperTypeBegin = 0
+
+--- Trigger when an event ends
+--- @type number
+kCommonInputMapperTypeEnd = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioReverbDry = 0
 
 --- Trigger on mouse move event
 --- @type number
 kCommonInputMapperTypeMouseMove = 0
 
---- Vertex attribute formats
+--- Trigger forced(?)
 --- @type number
-kCommonMeshInt1 = 0
+kCommonInputMapperTypeForce = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshByte4Norm = 0
+kAnimationValueTypeAdditiveMask = 0
+
+--- Trigger on event begin or end
+--- @type number
+kCommonInputMapperTypeBeginOrEnd = 0
+
+--- Legacy normed compressed vector3 keys (0).
+--- @type number
+kCompressedVector3KeysFormatLegacy0 = 0
+
+--- Legacy normed quaternion compressed keys (0)
+--- @type number
+kCompressedQuatKeysFormatLegacy0 = 0
 
 --- Animation value types
 --- @type number
 kAnimationValueTypeTextureMoveU = 0
 
---- Vertex attribute formats
+--- Animation value types
 --- @type number
-kCommonMeshFloat2 = 0
+kAnimationValueTypeTime = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeMover = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeProperty = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureMoveV = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureScaleU = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureOverride = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureVisibility = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureShearU = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureShearV = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureShearOriginU = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureShearOriginV = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureScaleOriginU = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureRotateOriginU = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureRotateOriginV = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioPan = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioPitch = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioLowPassFilter = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioHighPassFilter = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioReverbWet = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioFMODParameter = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioSurroundExtent = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioLowFreqSend = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioLanguageResourceVolume = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeVertexNormal = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeVertexPosition = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAutoAct = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeExplicitCompoundValue = 0
 

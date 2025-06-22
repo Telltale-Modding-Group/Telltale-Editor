@@ -43,7 +43,7 @@ public:
             return 0;
         }
         Meta::ClassInstance props = Meta::CopyInstance(Meta::AcquireScriptInstance(man, 3));
-        pScene->AddAgent(agent, {}, std::move(props));
+        pScene->AddAgent(agent, {}, std::move(props)); // modules setup at runtime
         return 0;
     }
     
@@ -79,6 +79,14 @@ void Scene::_SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>:
     {
         PropertySet::Set<Bool>(pAgent->Props, kRuntimeVisibilityKey, true, "bool", GetRegistry());
     }
+
+    // DOUBLE CHECK ALL MODULES ARE CHECKED
+    SceneModuleTypes modules{};
+    Ptr<ResourceRegistry> reg = GetRegistry();
+    if (reg)
+        SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_CollectAgentModules{ modules, *pAgent.get(), reg });
+    for(auto it = modules.begin(); it != modules.end(); it++)
+        AddAgentModule(Name, *it);
     
     // ADD CALLBACKS
     
@@ -229,6 +237,9 @@ void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassIn
     {
         TTE_ASSERT(Meta::GetClass(props.GetClassID()).Flags & Meta::_CLASS_PROP, "At Scene::AddAgent -> properties class mismatch!");
     }
+    Ptr<ResourceRegistry> reg = GetRegistry();
+    if(reg)
+        SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_CollectAgentModules{modules, *pAgent.get(), reg});
     for(auto it = modules.begin(); it != modules.end(); it++)
     {
         AddAgentModule(Name, *it);
@@ -238,7 +249,6 @@ void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassIn
         _SetupAgent(agentIt.first);
     }
 }
-
 // NODES
 
 Bool Scene::_ValidateNodeAttachment(Ptr<Node> node, Ptr<Node> potentialChild)
@@ -246,54 +256,60 @@ Bool Scene::_ValidateNodeAttachment(Ptr<Node> node, Ptr<Node> potentialChild)
     return !TestChildNode(node, potentialChild);
 }
 
-void Scene::_UpdateListenerAttachments(Ptr<Node>node)
+void Scene::_UpdateListenerAttachments(Ptr<Node> node)
 {
     Ptr<NodeListener> listener = node->Listeners;
-    while(listener)
+    while (listener)
     {
         listener->OnAttachmentChanged();
         listener = listener->Next;
     }
-    Ptr<Node> child = node->FirstChild;
-    while(child)
+
+    auto child = node->FirstChild.lock();
+    while (child)
     {
         _UpdateListenerAttachments(child);
-        child = child->NextSibling;
+        child = child->NextSibling.lock();
     }
 }
 
 void Scene::_InvalidateNode(Ptr<Node> node, Node* pParent, Bool bAllowStaticUpdate)
 {
     node->Fl.Remove(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID);
+
     Ptr<NodeListener> listener = node->Listeners;
-    while(listener)
+    while (listener)
     {
         listener->OnTransformChanged(nullptr);
         listener = listener->Next;
     }
+
     Node* pParentTile = node->Fl.Test(NodeFlags::NODE_ENVIRONMENT_TILE) ? node.get() : nullptr;
-    // invalidate *all* children in tree as need recalc.
-    for(Ptr<Node> pChild = node->FirstChild; pChild; pChild = pChild->NextSibling)
+
+    auto pChild = node->FirstChild.lock();
+    while (pChild)
     {
-        if(bAllowStaticUpdate || _ValidateTransformUpdate(pChild, pParentTile))
+        if (bAllowStaticUpdate || _ValidateTransformUpdate(pChild, pParentTile))
             _InvalidateNode(pChild, pParentTile, bAllowStaticUpdate);
+        pChild = pChild->NextSibling.lock();
     }
 }
 
-Transform Scene::GetNodeWorldTransform(Ptr<Node>node)
+Transform Scene::GetNodeWorldTransform(Ptr<Node> node)
 {
-    if(!node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+    if (!node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
         _CalculateGlobalNodeTransform(node);
     return node->GlobalTransform;
 }
 
 void Scene::_CalculateGlobalNodeTransform(Ptr<Node> node)
 {
-    if(node->Parent)
+    auto parent = node->Parent.lock();
+    if (parent)
     {
-        if(!node->Parent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
-            _CalculateGlobalNodeTransform(node->Parent); // parent needs update first as not a root
-        node->GlobalTransform = node->Parent->GlobalTransform * node->LocalTransform;
+        if (!parent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+            _CalculateGlobalNodeTransform(parent);
+        node->GlobalTransform = parent->GlobalTransform * node->LocalTransform;
         node->GlobalTransform.Normalise();
     }
     else
@@ -306,57 +322,55 @@ void Scene::_CalculateGlobalNodeTransform(Ptr<Node> node)
 Transform Scene::NodeLocalToNode(const Ptr<Node>& node, Transform nodeLocalSpaceTransform, const String& max)
 {
     Transform result = nodeLocalSpaceTransform;
-    
-    Ptr<Node> current = node->Parent;
-    
+    auto current = node->Parent.lock();
+
     while (current)
     {
         result = current->LocalTransform * result;
         result.Normalise();
         if (max.length() != 0 && CompareCaseInsensitive(current->Name, max))
             break;
-        current = current->Parent;
+        current = current->Parent.lock();
     }
-    
+
     return result;
 }
 
 void Scene::UpdateNodeLocalTransform(Ptr<Node> node, Transform trans, Bool bAllowSt)
 {
-    Bool bAllow = bAllowSt || _ValidateTransformUpdate(node, nullptr);
-    if (!bAllow)
+    if (!bAllowSt && !_ValidateTransformUpdate(node, nullptr))
         return;
-    
-    node->LocalTransform = trans; // use as-is, assumes local space
+
+    node->LocalTransform = trans;
     node->LocalTransform.Normalise();
-    
+
     _InvalidateNode(node, nullptr, bAllowSt);
 }
 
 void Scene::UpdateNodeWorldTransform(Ptr<Node> node, Transform trans, Bool bAllowSt)
 {
-    Bool bAllow = bAllowSt || _ValidateTransformUpdate(node, nullptr);
-    if(!bAllow)
+    if (!bAllowSt && !_ValidateTransformUpdate(node, nullptr))
         return;
-    if(node->Parent)
+
+    auto parent = node->Parent.lock();
+    if (parent)
     {
-        // CALCULATE GLOBAL
-        if(!node->Parent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
-            _CalculateGlobalNodeTransform(node->Parent);
-        // CALCULATE LOCAL
-        node->LocalTransform = trans / node->Parent->GlobalTransform;
+        if (!parent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+            _CalculateGlobalNodeTransform(parent);
+        node->LocalTransform = trans / parent->GlobalTransform;
     }
     else
     {
-        node->LocalTransform = trans; // update local, no parent
+        node->LocalTransform = trans;
     }
+
     node->LocalTransform.Normalise();
     _InvalidateNode(node, nullptr, bAllowSt);
 }
 
-Bool Scene::_ValidateTransformUpdate(Ptr<Node> node, Node *pTileNode)
+Bool Scene::_ValidateTransformUpdate(Ptr<Node> node, Node* pTileNode)
 {
-    return pTileNode || !node->StaticListeners; // if theres a parent tile always allow. if no static listeners, allow.
+    return pTileNode || !node->StaticListeners;
 }
 
 void NodeListener::SetStatic(Bool bStatic)
@@ -429,17 +443,17 @@ void Scene::RemoveNodeListener(Ptr<Node> node, NodeListener *pListener)
         pCurrent = pCurrent->Next.get();
     }
 }
-
 Ptr<Node> Scene::FindChildNode(Ptr<Node> node, Symbol name)
 {
-    if(Symbol(node->Name) == name)
+    if (Symbol(node->Name) == name)
         return node;
-    Ptr<Node> pChild = node->FirstChild;
+
+    auto pChild = node->FirstChild.lock();
     Ptr<Node> result{};
-    if(!pChild || !(result = FindChildNode(pChild, name)))
+    if (!pChild || !(result = FindChildNode(pChild, name)))
     {
-        pChild = pChild->NextSibling;
-        if(pChild)
+        pChild = pChild ? pChild->NextSibling.lock() : nullptr;
+        if (pChild)
             return FindChildNode(pChild, name);
     }
     return result;
@@ -447,53 +461,57 @@ Ptr<Node> Scene::FindChildNode(Ptr<Node> node, Symbol name)
 
 Bool Scene::TestChildNode(Ptr<Node> node, Ptr<Node> potentialChild)
 {
-    if(node == potentialChild)
+    if (node == potentialChild)
         return true;
-    Ptr<Node> pChild = node->FirstChild;
-    while(pChild)
+
+    auto pChild = node->FirstChild.lock();
+    while (pChild)
     {
-        if(pChild == potentialChild)
+        if (pChild == potentialChild)
             return true;
-        if(TestChildNode(pChild, potentialChild))
+        if (TestChildNode(pChild, potentialChild))
             return true;
-        pChild = pChild->NextSibling;
+        pChild = pChild->NextSibling.lock();
     }
     return false;
 }
 
 Bool Scene::TestParentNode(Ptr<Node> pNode, Ptr<Node> potentialParent)
 {
-    while(pNode)
+    while (pNode)
     {
-        if(pNode == potentialParent)
+        if (pNode == potentialParent)
             return true;
-        pNode = pNode->Parent;
+        pNode = pNode->Parent.lock();
     }
     return false;
 }
 
 void Scene::AttachNode(Ptr<Node> node, Ptr<Node> parent, Bool bPreserveWorldPosition, Bool bInitialAttach)
 {
-    if(node != parent && (bInitialAttach || _ValidateTransformUpdate(node, nullptr)))
+    if (node != parent && (bInitialAttach || _ValidateTransformUpdate(node, nullptr)))
     {
-        if(node->Parent)
+        if (node->Parent.lock())
             UnAttachNode(node, bPreserveWorldPosition, true);
-        if(!parent->Parent || _ValidateNodeAttachment(parent->Parent, node))
+
+        auto grandParent = parent->Parent.lock();
+        if (!grandParent || _ValidateNodeAttachment(grandParent, node))
         {
             node->Parent = parent;
             node->NextSibling = parent->FirstChild;
-            if(parent->FirstChild)
-            {
-                parent->FirstChild->PrevSibling = node;
-            }
+            if (auto first = parent->FirstChild.lock())
+                first->PrevSibling = node;
             parent->FirstChild = node;
+
             _InvalidateNode(node, nullptr, bInitialAttach || bPreserveWorldPosition);
-            if(bPreserveWorldPosition)
+
+            if (bPreserveWorldPosition)
             {
-                if(!node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
-                    _CalculateGlobalNodeTransform(node); // ensure we know its transform
+                if (!node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+                    _CalculateGlobalNodeTransform(node);
                 UpdateNodeLocalTransform(node, node->LocalTransform, true);
             }
+
             _UpdateListenerAttachments(node);
         }
     }
@@ -501,63 +519,77 @@ void Scene::AttachNode(Ptr<Node> node, Ptr<Node> parent, Bool bPreserveWorldPosi
 
 void Scene::UnAttachNode(Ptr<Node> node, Bool bPreserveWorldPosition, Bool bForceUnattach)
 {
-    if(node && node->Parent && (bForceUnattach || _ValidateTransformUpdate(node, nullptr)))
+    auto parent = node->Parent.lock();
+    if (node && parent && (bForceUnattach || _ValidateTransformUpdate(node, nullptr)))
     {
-        if(bPreserveWorldPosition && !node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
-            _CalculateGlobalNodeTransform(node); // ensure we know its transform
-        
-        Ptr<Node> prev = node->PrevSibling;
-        Ptr<Node> next = node->NextSibling;
-        if(prev)
+        if (bPreserveWorldPosition && !node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+            _CalculateGlobalNodeTransform(node);
+
+        auto prev = node->PrevSibling.lock();
+        auto next = node->NextSibling.lock();
+
+        if (prev)
         {
-            prev->NextSibling = std::move(next);
-            if(node->NextSibling)
-            {
-                node->NextSibling->PrevSibling = std::move(prev);
-            }
+            prev->NextSibling = next;
+            if (next)
+                next->PrevSibling = prev;
         }
         else
-        { // first in d-ll
-            node->Parent->FirstChild = std::move(next);
-            if(node->NextSibling)
-            {
-                node->NextSibling->PrevSibling = nullptr;
-            }
-        }
-        node->NextSibling = node->PrevSibling = nullptr;
-        
-        // preserve world pos if needed
-        if(bPreserveWorldPosition)
         {
-            if(node->Parent)
+            parent->FirstChild = next;
+            if (next)
+                next->PrevSibling.reset();
+        }
+
+        node->NextSibling.reset();
+        node->PrevSibling.reset();
+
+        if (bPreserveWorldPosition)
+        {
+            if (auto pParent = node->Parent.lock())
             {
-                if(!node->Parent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
-                    _CalculateGlobalNodeTransform(node->Parent);
-                node->LocalTransform = node->GlobalTransform / node->Parent->GlobalTransform;
+                if (!pParent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+                    _CalculateGlobalNodeTransform(pParent);
+                node->LocalTransform = node->GlobalTransform / pParent->GlobalTransform;
             }
             _InvalidateNode(node, nullptr, true);
         }
         else
+        {
             _InvalidateNode(node, nullptr, bForceUnattach);
-        
-        node->Parent = nullptr;
-        
-        // finally signal attachment change
+        }
+
+        node->Parent.reset();
         _UpdateListenerAttachments(node);
     }
 }
 
 void Scene::UnAttachAllChildren(Ptr<Node> node, Bool bAttachChildrenToParent)
 {
-    if(!node->Parent)
+    if (!node->Parent.lock())
         bAttachChildrenToParent = false;
-    Ptr<Node> child = node->FirstChild;
-    while(child)
+
+    auto child = node->FirstChild.lock();
+    while (child)
     {
+        auto next = child->NextSibling.lock();
         UnAttachNode(child, true, true);
-        if(bAttachChildrenToParent)
-            AttachNode(child, node->Parent, true, true);
-        child = child->NextSibling;
+        if (bAttachChildrenToParent)
+            AttachNode(child, node->Parent.lock(), true, true);
+        child = next;
+    }
+}
+
+Scene::~Scene()
+{
+    _Agents.clear();
+}
+
+Node::~Node()
+{
+    if(Name == "BabyThorn")
+    {
+        int x;
     }
 }
 
@@ -604,14 +636,12 @@ void ObjOwner::_GetObjData(Ptr<ObjDataBase>& pOut, const String& obj, const std:
 
 void ObjOwner::FreeOwnedObjects()
 {
-    Ptr<ObjDataBase> cur = Objects;
-    while(cur)
+    while (Objects)
     {
-        Ptr<ObjDataBase> cache = cur->Next;
-        cur->Next.reset();
-        cur = cache;
+        Ptr<ObjDataBase> next = Objects->Next;
+        Objects->Next.reset(); // Break the link to the next node
+        Objects = next;        // Move to next
     }
-    Objects.reset();
 }
 
 ObjOwner::~ObjOwner()

@@ -1,0 +1,6 @@
+# PROJECT SELECT (CONT EVENTUALMENTE)
+project_select.title = "Benvenuto nell'Editor Telltale"
+project_select.subtitle = "Crea un nuovo progetto o aprine uno esistente per iniziare..."
+project_select.recents = "Progetti Recenti"
+project_select.new = "Nuovo Progetto"
+project_select.exist = "Apri Esistente"

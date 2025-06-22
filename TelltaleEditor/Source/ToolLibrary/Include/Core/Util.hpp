@@ -458,6 +458,22 @@ inline void StringReplace(String& str, const String& from, const String& to, Boo
     }
 }
 
+inline Bool StringContains(const String& str, const String& substr, Bool ignoreCase = false)
+{
+    if (substr.empty()) return false;
+
+    String haystack = str;
+    String needle = substr;
+    if (ignoreCase)
+    {
+        haystack = ToLower(haystack);
+        needle = ToLower(needle);
+    }
+
+    return haystack.find(needle) != String::npos;
+}
+
+
 // Radius must be 2 to 36
 String StringFromInteger(I64 original_value,U32 radix, Bool is_negative); // defined in Config.cpp
 

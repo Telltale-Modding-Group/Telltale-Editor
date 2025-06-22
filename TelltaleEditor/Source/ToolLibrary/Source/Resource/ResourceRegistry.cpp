@@ -1205,8 +1205,7 @@ ResourceAddress ResourceRegistry::CreateResolvedAddress(const String& resourceNa
     return addr;
 }
 
-
-ResourceAddress ResourceRegistry::CreateResolvedAddress(const Symbol &resourceName)
+ResourceAddress ResourceRegistry::CreateResolvedAddressFromSymbol(const Symbol &resourceName)
 {
     // Locator
     ResourceAddress addr{};
@@ -1241,6 +1240,31 @@ Bool ResourceRegistry::RevertResource(const Symbol &resourceName)
         return true;
     }
     return false;
+}
+
+DataStreamRef ResourceRegistry::OpenDataStream(const String& locator, const String& filename)
+{
+    SCOPE_LOCK();
+    Ptr<ResourceLocation> pDestLocation{};
+    if (locator.length() == 0)
+    {
+        pDestLocation = _Locate("<>");
+    }
+    else
+    {
+        pDestLocation = _Locate(locator);
+    }
+    if(pDestLocation->HasResource(filename))
+    {
+        return pDestLocation->LocateResource(filename, nullptr);
+    }
+    else if(!pDestLocation->GetConcreteDirectory())
+    {
+        TTE_ASSERT(false, "At ResourceRegistry::OpenDataStream() => the location %s does not contain the file %s, but is not concrete, so please"
+        " specify the concrete location first.", locator.length() == 0 ? "<>" : locator.c_str(), filename.c_str());
+        return {};
+    }
+    return pDestLocation->GetConcreteDirectory()->CreateResource(filename);
 }
 
 Bool ResourceRegistry::SaveResource(const Symbol &resourceName, const String& locator)
@@ -2865,6 +2889,11 @@ void Handleable::Unlock(const HandleLockOwner& owner)
     U32 expected = owner._LockOwnerID;
     _LockTimeStamp.store(0, std::memory_order_relaxed); // should defintely be locked anyway (Will assert). if not, terminate as should NOT happen
     TTE_ASSERT(_LockKey.compare_exchange_strong(expected, 0), "Cannot unlock handle as the key was wrong!");
+}
+
+HandleObjectInfo::~HandleObjectInfo()
+{
+
 }
 
 HandleLockOwner::HandleLockOwner() : _LockOwnerID((U32)rand() | 0x100) {}

@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 
 set(imgui_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)
 
-
 set(CMAKE_CXX_STANDARD 17)
 
 # Add ImGui static library

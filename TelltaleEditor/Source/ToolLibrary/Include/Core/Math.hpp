@@ -767,8 +767,8 @@ struct BoundingBox {
 struct Sphere
 {
     
-    Vector3 _Center;
-    float _Radius;
+    Vector3 _Center = {};
+    float _Radius = 0.0f;
     
     Bool FullyContains(const Sphere& rhs);
     

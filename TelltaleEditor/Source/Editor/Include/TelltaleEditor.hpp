@@ -185,6 +185,8 @@ public:
 
     TTEProperties();
 
+    TTEProperties(ResourceURL URI);
+
     void Save(); // Save to disc.
 
     I32 GetInteger(const String& key, I32 orDefault);

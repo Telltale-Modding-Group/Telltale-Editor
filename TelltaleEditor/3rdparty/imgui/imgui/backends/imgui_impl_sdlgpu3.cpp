@@ -36,37 +36,6 @@
 
 #include <string>
 
-// SDL_GPU Data
-
-// Reusable buffers used for rendering 1 current in-flight frame, for ImGui_ImplSDLGPU3_RenderDrawData()
-struct ImGui_ImplSDLGPU3_FrameData
-{
-	SDL_GPUBuffer* VertexBuffer = nullptr;
-	SDL_GPUTransferBuffer* VertexTransferBuffer = nullptr;
-	uint32_t                VertexBufferSize = 0;
-	SDL_GPUBuffer* IndexBuffer = nullptr;
-	SDL_GPUTransferBuffer* IndexTransferBuffer = nullptr;
-	uint32_t                IndexBufferSize = 0;
-};
-
-struct ImGui_ImplSDLGPU3_Data
-{
-	ImGui_ImplSDLGPU3_InitInfo   InitInfo;
-
-	// Graphics pipeline & shaders
-	SDL_GPUShader* VertexShader = nullptr;
-	SDL_GPUShader* FragmentShader = nullptr;
-	SDL_GPUGraphicsPipeline* Pipeline = nullptr;
-
-	// Font data
-	SDL_GPUSampler* FontSampler = nullptr;
-	SDL_GPUTexture* FontTexture = nullptr;
-	SDL_GPUTextureSamplerBinding FontBinding = { nullptr, nullptr };
-
-	// Frame data for main window
-	ImGui_ImplSDLGPU3_FrameData  MainWindowFrameData;
-};
-
 // Forward Declarations
 static void ImGui_ImplSDLGPU3_DestroyFrameData();
 
@@ -77,7 +46,7 @@ static void ImGui_ImplSDLGPU3_DestroyFrameData();
 // Backend data stored in io.BackendRendererUserData to allow support for multiple Dear ImGui contexts
 // It is STRONGLY preferred that you use docking branch with multi-viewports (== single Dear ImGui context + multiple windows) instead of multiple Dear ImGui contexts.
 // FIXME: multi-context support has never been tested.
-static ImGui_ImplSDLGPU3_Data* ImGui_ImplSDLGPU3_GetBackendData()
+ImGui_ImplSDLGPU3_Data* ImGui_ImplSDLGPU3_GetBackendData()
 {
 	return ImGui::GetCurrentContext() ? (ImGui_ImplSDLGPU3_Data*)ImGui::GetIO().BackendRendererUserData : nullptr;
 }
@@ -641,6 +610,7 @@ static void ImGui_ImplSDLGPU3_CreateGraphicsPipeline()
 	pipeline_info.multisample_state = multisample_state;
 	pipeline_info.depth_stencil_state = depth_stencil_state;
 	pipeline_info.target_info = target_info;
+	pipeline_info.IsSDL3Shader = true;
 
 	bd->Pipeline = SDL_CreateGPUGraphicsPipeline(v->Device, &pipeline_info);
 	IM_ASSERT(bd->Pipeline != nullptr && "Failed to create graphics pipeline, call SDL_GetError() for more information");

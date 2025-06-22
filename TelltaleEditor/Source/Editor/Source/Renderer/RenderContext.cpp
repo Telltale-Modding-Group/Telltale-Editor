@@ -8,9 +8,19 @@
 #include <iostream>
 #include <algorithm>
 
+#if defined(PLATFORM_WINDOWS) && defined(DEBUG)
+#define USE_PIX
+#include <Windows.h>
+#include <d3d12.h>
+#include <WinPixEventRuntime/pix3.h>
+#include <ShlObj.h>
+#include <strsafe.h>
+#undef USE_PIX
+#endif
+
 // ============================ ENUM MAPPINGS
 
-TextureFormatInfo GetSDLFormatInfo(RenderSurfaceFormat format)
+const TextureFormatInfo& GetSDLFormatInfo(RenderSurfaceFormat format)
 {
     U32 i = 0;
     while (SDL_FormatMappings[i].Format != RenderSurfaceFormat::UNKNOWN)
@@ -19,7 +29,7 @@ TextureFormatInfo GetSDLFormatInfo(RenderSurfaceFormat format)
             return SDL_FormatMappings[i];
         i++;
     }
-    return {};
+    return SDL_FormatMappings[i];
 }
 
 RenderSurfaceFormat FromSDLFormat(SDL_GPUTextureFormat format)
@@ -36,42 +46,7 @@ RenderSurfaceFormat FromSDLFormat(SDL_GPUTextureFormat format)
 
 // ============================ BUFFER ATTRIBUTE FORMAT ENUM MAPPINGS
 
-static struct AttributeFormatInfo
-{
-    RenderBufferAttributeFormat Format;
-    SDL_GPUVertexElementFormat SDLFormat;
-    U32 NumIntrinsics = 0; // for float4, this is 4
-    U32 IntrinsicSize = 0; // for four ints, three ints, 1 int, etc, this is 4.
-    RenderBufferAttributeFormat IntrinsicType = RenderBufferAttributeFormat::UNKNOWN;
-    CString ConstantName;
-}
-SDL_VertexAttributeMappings[21]
-{
-    {RenderBufferAttributeFormat::F32x1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, 1, 4, RenderBufferAttributeFormat::F32x1, "kCommonMeshFloat1"},
-    {RenderBufferAttributeFormat::F32x2, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, 2, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat2"},
-    {RenderBufferAttributeFormat::F32x3, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 3, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat3"},
-    {RenderBufferAttributeFormat::F32x4, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, 4, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat4"},
-    {RenderBufferAttributeFormat::I32x1, SDL_GPU_VERTEXELEMENTFORMAT_INT, 1, 4, RenderBufferAttributeFormat::I32x1, "kCommonMeshInt1"},
-    {RenderBufferAttributeFormat::I32x2, SDL_GPU_VERTEXELEMENTFORMAT_INT2, 2, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt2"},
-    {RenderBufferAttributeFormat::I32x3, SDL_GPU_VERTEXELEMENTFORMAT_INT3, 3, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt3"},
-    {RenderBufferAttributeFormat::I32x4, SDL_GPU_VERTEXELEMENTFORMAT_INT4, 4, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt4"},
-    {RenderBufferAttributeFormat::U32x1, SDL_GPU_VERTEXELEMENTFORMAT_UINT, 1, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt1"},
-    {RenderBufferAttributeFormat::U32x2, SDL_GPU_VERTEXELEMENTFORMAT_UINT2, 2, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt2"},
-    {RenderBufferAttributeFormat::U32x3, SDL_GPU_VERTEXELEMENTFORMAT_UINT3, 3, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt3"},
-    {RenderBufferAttributeFormat::U32x4, SDL_GPU_VERTEXELEMENTFORMAT_UINT4, 4, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt4"},
-    {RenderBufferAttributeFormat::U8x2, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte2"},
-    {RenderBufferAttributeFormat::U8x4, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte4"},
-    {RenderBufferAttributeFormat::I8x2, SDL_GPU_VERTEXELEMENTFORMAT_BYTE2, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte2"},
-    {RenderBufferAttributeFormat::I8x4, SDL_GPU_VERTEXELEMENTFORMAT_BYTE4, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte4"},
-    {RenderBufferAttributeFormat::U8x2_NORM, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2_NORM, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte2Norm"},
-    {RenderBufferAttributeFormat::U8x4_NORM, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte4Norm"},
-    {RenderBufferAttributeFormat::I8x2_NORM, SDL_GPU_VERTEXELEMENTFORMAT_BYTE2_NORM, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte2Norm"},
-    {RenderBufferAttributeFormat::I8x4_NORM, SDL_GPU_VERTEXELEMENTFORMAT_BYTE4_NORM, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte4Norm"},
-    {RenderBufferAttributeFormat::UNKNOWN, SDL_GPU_VERTEXELEMENTFORMAT_INVALID, 0, 0, RenderBufferAttributeFormat::F32x1, "kCommonMeshFormatUnknown"},
-    // add above this!
-};
-
-inline AttributeFormatInfo GetSDLAttribFormatInfo(RenderBufferAttributeFormat format)
+inline const AttributeFormatInfo& GetSDLAttribFormatInfo(RenderBufferAttributeFormat format)
 {
     U32 i = 0;
     while (SDL_VertexAttributeMappings[i].Format != RenderBufferAttributeFormat::UNKNOWN)
@@ -80,7 +55,7 @@ inline AttributeFormatInfo GetSDLAttribFormatInfo(RenderBufferAttributeFormat fo
             return SDL_VertexAttributeMappings[i];
         i++;
     }
-    return {};
+    return SDL_VertexAttributeMappings[i];
 }
 
 inline RenderBufferAttributeFormat FromSDLAttribFormat(SDL_GPUVertexElementFormat format)
@@ -96,19 +71,6 @@ inline RenderBufferAttributeFormat FromSDLAttribFormat(SDL_GPUVertexElementForma
 }
 
 // ================================== PRIMITIVE TYPE MAPPINGS
-
-static struct PrimitiveTypeInfo
-{
-    RenderPrimitiveType Type;
-    SDL_GPUPrimitiveType SDLType;
-    CString ConstantName;
-}
-SDL_PrimitiveMappings[3]
-{
-    {RenderPrimitiveType::TRIANGLE_LIST, SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, "kCommonMeshTriangleList"},
-    {RenderPrimitiveType::LINE_LIST, SDL_GPU_PRIMITIVETYPE_LINELIST, "kCommonMeshLineList"},
-    {RenderPrimitiveType::UNKNOWN, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, "kCommonMeshTriangleStrip"}, // do not add below this, add above
-};
 
 void RegisterRenderConstants(LuaFunctionCollection& Col)
 {
@@ -167,15 +129,134 @@ inline RenderPrimitiveType FromSDLPrimitiveType(SDL_GPUPrimitiveType format)
     return RenderPrimitiveType::UNKNOWN;
 }
 
+// ============================ DESCRIPTOR GETTERS
+
+template<typename _E, typename _D>
+const _D& _AbstractGetDescriptor(_E en, const _D* Descriptors)
+{
+    if ((U32)en >= (U32)_E::COUNT)
+        return Descriptors[(U32)_E::COUNT];
+    return Descriptors[(U32)en];
+}
+
+const AttribInfo& RenderContext::GetVertexAttributeDesc(RenderAttributeType attrib)
+{
+    return _AbstractGetDescriptor(attrib, AttribInfoMap);
+}
+
+const ShaderParameterTypeInfo& RenderContext::GetParameterDesc(ShaderParameterType param)
+{
+    return _AbstractGetDescriptor(param, ShaderParametersInfo);
+}
+
+const RenderEffectDesc& RenderContext::GetRenderEffectDesc(RenderEffect effect)
+{
+    return _AbstractGetDescriptor(effect, RenderEffectDescriptors);
+}
+
+const RenderEffectFeatureDesc& RenderContext::GetRenderEffectFeatureDesc(RenderEffectFeature feature)
+{
+    return _AbstractGetDescriptor(feature, RenderEffectFeatureDescriptors);
+}
+
+const RenderTargetDesc& RenderContext::GetRenderTargetDesc(RenderTargetConstantID target)
+{
+    return _AbstractGetDescriptor(target, TargetDescs);
+}
+
+const TextureFormatInfo& RenderContext::GetTextureFormatDesc(RenderSurfaceFormat surfaceFormat)
+{
+    return GetSDLFormatInfo(surfaceFormat);
+}
+
+const AttributeFormatInfo& RenderContext::GetVertexAttributeFormatDesc(RenderBufferAttributeFormat format)
+{
+    return GetSDLAttribFormatInfo(format);
+}
+
+const PrimitiveTypeInfo& RenderContext::GetPrimitiveTypeInfoDesc(RenderPrimitiveType prim)
+{
+    U32 i = 0;
+    while (SDL_PrimitiveMappings[i].Type != RenderPrimitiveType::UNKNOWN)
+    {
+        if (SDL_PrimitiveMappings[i].Type == prim)
+            return SDL_PrimitiveMappings[i];
+        i++;
+    }
+    return SDL_PrimitiveMappings[i];
+}
+
 // ============================ LIFETIME RENDER MANAGEMENT
 
 static Bool SDL3_Initialised = false;
+
+#if defined(PLATFORM_WINDOWS) && defined(DEBUG)
+
+static Bool _Win32PIXModuleLoaded = false;
+static HMODULE _Win32PIXModule = {};
+
+static std::wstring Win32_GetCapturePath() // https://devblogs.microsoft.com/pix/taking-a-capture/
+{
+    LPWSTR programFilesPath = nullptr;
+    SHGetKnownFolderPath(FOLDERID_ProgramFiles, KF_FLAG_DEFAULT, NULL, &programFilesPath);
+
+    std::wstring pixSearchPath = programFilesPath + std::wstring(L"\\Microsoft PIX\\*");
+
+    WIN32_FIND_DATAW findData;
+    bool foundPixInstallation = false;
+    wchar_t newestVersionFound[MAX_PATH];
+
+    HANDLE hFind = FindFirstFileW(pixSearchPath.c_str(), &findData);
+    if (hFind != INVALID_HANDLE_VALUE)
+    {
+        do
+        {
+            if (((findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) == FILE_ATTRIBUTE_DIRECTORY) &&
+                 (findData.cFileName[0] != '.'))
+            {
+                if (!foundPixInstallation || wcscmp(newestVersionFound, findData.cFileName) <= 0)
+                {
+                    foundPixInstallation = true;
+                    StringCchCopyW(newestVersionFound, _countof(newestVersionFound), findData.cFileName);
+                }
+            }
+        }
+        while (FindNextFileW(hFind, &findData) != 0);
+    }
+
+    FindClose(hFind);
+
+    if (!foundPixInstallation)
+    {
+        TTE_LOG("WARNING: Could not locate Microsoft PIX installation: D3D12 debugging won't be enabled. Please download it to enable Telltale Editor GPU captures.");
+        return std::wstring();
+    }
+
+    wchar_t output[MAX_PATH];
+    StringCchCopyW(output, pixSearchPath.length(), pixSearchPath.data());
+    StringCchCatW(output, MAX_PATH, &newestVersionFound[0]);
+    StringCchCatW(output, MAX_PATH, L"\\WinPixGpuCapturer.dll");
+
+    return std::wstring(&output[0]);
+}
+#endif
 
 Bool RenderContext::Initialise()
 {
     if (!SDL3_Initialised)
     {
         SDL3_Initialised = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
+#if defined(PLATFORM_WINDOWS) && defined(DEBUG)
+        if (GetModuleHandleW(L"WinPixGpuCapturer.dll") == 0)
+        {
+            std::wstring pth = Win32_GetCapturePath();
+            if(pth.length())
+            {
+                _Win32PIXModule = LoadLibraryW(pth.c_str());
+                _Win32PIXModuleLoaded = true;
+            }
+        }
+#endif
     }
     return SDL3_Initialised;
 }
@@ -186,6 +267,14 @@ void RenderContext::Shutdown()
     {
         SDL_Quit();
         SDL3_Initialised = false;
+#if defined(PLATFORM_WINDOWS) && defined(DEBUG)
+        if(_Win32PIXModuleLoaded)
+        {
+            _Win32PIXModuleLoaded = false;
+            FreeLibrary(_Win32PIXModule);
+            _Win32PIXModule = {};
+        }
+#endif
     }
 }
 
@@ -194,7 +283,7 @@ Bool RenderContext::IsLeftHanded()
     CString device = SDL_GetGPUDeviceDriver(_Device);
     if (CompareCaseInsensitive(device, "metal"))
     {
-        return false; // RIGHT
+        return true; // LEFT
     }
     else if (CompareCaseInsensitive(device, "vulkan"))
     {
@@ -251,7 +340,7 @@ Bool RenderContext::IsRowMajor()
     }
     else if (CompareCaseInsensitive(device, "direct3d12"))
     {
-        return true; // ROW MAJOR
+        return false; // COLUMN MAJOR
     }
     else
     {
@@ -300,10 +389,11 @@ RenderContext::RenderContext(String wName, Ptr<ResourceRegistry> pEditorResource
 #ifdef DEBUG
     bDebug = true;
 #endif
-    _Device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_MSL | SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXBC, bDebug, nullptr);
+    _Device = SDL_CreateGPUDevice(RENDER_CONTEXT_SHADER_FORMAT, bDebug, nullptr);
     SDL_ClaimWindowForGPUDevice(_Device, _Window);
     _BackBuffer = SDL_GetWindowSurface(_Window);
 
+    _FXCache.Initialise();
 }
 
 RenderLayer::RenderLayer(String name, RenderContext& context) : _Context(context), _Name(std::move(name))
@@ -336,9 +426,16 @@ RenderContext::~RenderContext()
     for (auto& locked : _LockedResources)
         locked->Unlock(*this);
 
+    for(auto& owned: _OwnedResources)
+    {
+        if(!owned.expired())
+            owned.lock()->Release();
+    }
+    _OwnedResources.clear();
+
     // CLEANUP
 
-    for (U32 i = 0; i < (U32)RenderTargetConstantID::NUM; i++)
+    for (U32 i = 0; i < (U32)RenderTargetConstantID::COUNT; i++)
         _ConstantTargets[i].reset();
 
     for (auto& transfer : _AvailTransferBuffers)
@@ -554,6 +651,16 @@ std::vector<Ptr<Handleable>> RenderContext::_PurgeColdLocks()
     return std::move(toUnlock);
 }
 
+void RenderContext::DisableDebugHUD(SDL_Window* sdlWindow)
+{
+#if defined(PLATFORM_WINDOWS) && defined(DEBUG)
+    if(_Win32PIXModuleLoaded)
+    {
+        PIXSetHUDOptions(PIX_HUD_SHOW_ON_NO_WINDOWS);
+    }
+#endif
+}
+
 void RenderContext::_PurgeColdResources(RenderFrame* pFrame)
 {
     for (auto it = _AvailTransferBuffers.begin(); it != _AvailTransferBuffers.end();)
@@ -565,6 +672,42 @@ void RenderContext::_PurgeColdResources(RenderFrame* pFrame)
         }
         else ++it;
     }
+    _PurgeDeadResources();
+}
+
+void RenderContext::_PurgeDeadResources()
+{
+    for(auto it = _OwnedResources.begin(); it != _OwnedResources.end();)
+    {
+        if(it->expired())
+        {
+            it->reset();
+            _OwnedResources.erase(it);
+        }
+        else
+        {
+            it++;
+        }
+    }
+}
+
+void RenderContext::_AttachContextDependentResource(WeakPtr<RenderResource> pResource, Bool bLock)
+{
+    if(bLock)
+        _Lock.lock();
+
+    for(auto& r: _OwnedResources)
+    {
+        if(r.lock() == pResource.lock())
+        {
+            if (bLock)
+                _Lock.unlock();
+            return;
+        }
+    }
+    _OwnedResources.push_back(std::move(pResource));
+    if (bLock)
+        _Lock.unlock();
 }
 
 // ============================ FRAME MANAGEMENT
@@ -626,12 +769,13 @@ SDL_GPUTexture* RenderTexture::GetHandle(RenderContext* context)
         info.props = SDL_CreateProperties();
         SDL_SetStringProperty(info.props, SDL_PROP_GPU_TEXTURE_CREATE_NAME_STRING, _Name.length() ? _Name.c_str() : "Unnamed TTE Texture");
         _Handle = SDL_CreateGPUTexture(context->_Device, &info);
+        context->_AttachContextDependentResource(std::static_pointer_cast<RenderTexture>(shared_from_this()), true);
         SDL_DestroyProperties(info.props);
     }
     return _Handle;
 }
 
-void RenderTexture::_Release()
+void RenderTexture::Release()
 {
     if (_Handle)
     {
@@ -642,13 +786,16 @@ void RenderTexture::_Release()
         _Handle = nullptr;
         _TextureFlags.Remove(TEXTURE_FLAG_DELEGATED);
     }
+    _Handle = nullptr;
+    _Context = nullptr;
 }
 
 void RenderTexture::CreateTarget(RenderContext& context, Flags flags, RenderSurfaceFormat format, U32 width,
                                  U32 height, U32 nMips, U32 nSlices, U32 arraySize, Bool bIsDepth, SDL_GPUTexture* handle)
 {
+    // CAUTION: IF Release() called, set pContext and handle again.
+    Release();
     _Context = &context;
-    _Release();
     _Width = width;
     _Height = height;
     _Format = format;
@@ -671,12 +818,14 @@ void RenderTexture::CreateTarget(RenderContext& context, Flags flags, RenderSurf
         info.props = SDL_CreateProperties();
         SDL_SetStringProperty(info.props, SDL_PROP_GPU_TEXTURE_CREATE_NAME_STRING, _Name.length() ? _Name.c_str() : "Unnamed TTE Target");
         _Handle = SDL_CreateGPUTexture(_Context->_Device, &info);
+        context._AttachContextDependentResource(std::static_pointer_cast<RenderTexture>(shared_from_this()), true);
         SDL_DestroyProperties(info.props);
     }
 }
 
 void RenderTexture::Create2D(RenderContext* pContext, U32 width, U32 height, RenderSurfaceFormat format, U32 nMips)
 {
+    // CAUTION: IF Release() called, set pContext and handle again.
     _Context = pContext;
     if (_Context && !_Handle)
     {
@@ -707,6 +856,7 @@ void RenderTexture::Create2D(RenderContext* pContext, U32 width, U32 height, Ren
         info.props = SDL_CreateProperties();
         SDL_SetStringProperty(info.props, SDL_PROP_GPU_TEXTURE_CREATE_NAME_STRING, _Name.length() ? _Name.c_str() : "Unnamed TTE Texture");
         _Handle = SDL_CreateGPUTexture(pContext->_Device, &info);
+        pContext->_AttachContextDependentResource(std::static_pointer_cast<RenderTexture>(shared_from_this()), true);
         SDL_DestroyProperties(info.props);
     }
 }
@@ -742,12 +892,13 @@ Ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
     desc._Context = nullptr;
     desc._Handle = nullptr; // sometimes compiler doesnt do move:(
     _Samplers.push_back(pSampler);
+    _AttachContextDependentResource(pSampler, false);
     return pSampler;
 }
 
 RenderTexture::~RenderTexture()
 {
-    _Release();
+    Release();
 }
 
 void RenderContext::_FreePendingDeletions(U64 frame)
@@ -1310,25 +1461,37 @@ void RenderPipelineState::Create()
         info.vertex_input_state.vertex_attributes = attrib;
         info.vertex_input_state.vertex_buffer_descriptions = desc;
         info.props = SDL_CreateProperties();
+#ifdef DEBUG
+        String dbgName = "TTE_PIPELINE " + _Internal._Context->_FXCache.LocateEffectName(RenderEffectRef{EffectHash});
+        SDL_SetStringProperty(info.props, SDL_PROP_GPU_GRAPHICSPIPELINE_CREATE_NAME_STRING, dbgName.c_str());
+#else
         SDL_SetStringProperty(info.props, SDL_PROP_GPU_GRAPHICSPIPELINE_CREATE_NAME_STRING, "TTE Pipeline");
+#endif
         _Internal._Handle = SDL_CreateGPUGraphicsPipeline(_Internal._Context->_Device, &info);
+        // dont need to attach to context, owned by it intrinsically
         SDL_DestroyProperties(info.props);
         TTE_ASSERT(_Internal._Handle != nullptr, "Could not create pipeline state: %s", SDL_GetError());
 
     }
 }
 
-RenderPipelineState::~RenderPipelineState()
+void RenderPipelineState::Release()
 {
-    if (_Internal._Handle)
+    if (_Internal._Handle && _Internal._Context)
     {
         _Internal._Context->AssertMainThread();
         SDL_ReleaseGPUGraphicsPipeline(_Internal._Context->_Device, _Internal._Handle);
         _Internal._Handle = nullptr;
     }
+    _Internal._Context = nullptr;
 }
 
-RenderShader::~RenderShader()
+RenderPipelineState::~RenderPipelineState()
+{
+    Release();
+}
+
+void RenderShader::Release()
 {
     if (Handle && Context)
     {
@@ -1336,10 +1499,16 @@ RenderShader::~RenderShader()
         SDL_ReleaseGPUShader(Context->_Device, Handle);
         Handle = nullptr;
     }
+    Handle = nullptr;
+    Context = nullptr;
 }
 
+RenderShader::~RenderShader()
+{
+    Release();
+}
 
-RenderSampler::~RenderSampler()
+void RenderSampler::Release()
 {
     if (_Handle && _Context)
     {
@@ -1347,6 +1516,12 @@ RenderSampler::~RenderSampler()
         SDL_ReleaseGPUSampler(_Context->_Device, _Handle);
         _Handle = nullptr;
     }
+    _Context = nullptr;
+}
+
+RenderSampler::~RenderSampler()
+{
+    Release();
 }
 
 // ===================== COMMAND BUFFERS
@@ -1389,7 +1564,7 @@ RenderPass RenderCommandBuffer::EndPass()
     else
         SDL_EndGPUCopyPass(_CurrentPass->_CopyHandle);
     RenderPass pass = std::move(*_CurrentPass);
-    SDL_PopGPUDebugGroup(_Handle);
+    _Context->_PopDebugGroup(*this);
     pass._Handle = nullptr;
     pass._CopyHandle = nullptr;
     _CurrentPass = nullptr;
@@ -1397,6 +1572,28 @@ RenderPass RenderCommandBuffer::EndPass()
     return pass;
 }
 
+void RenderContext::_PushDebugGroup(RenderCommandBuffer& buf, const String& name)
+{
+#ifdef PLATFORM_WINDOWS
+#ifdef DEBUG
+    // PIX API
+    PIXBeginEvent(*((ID3D12GraphicsCommandList**)buf._Handle), PIX_COLOR(167, 22, 224), name.c_str());
+#endif
+#else
+    SDL_PushGPUDebugGroup(buf._Handle, name.c_str());
+#endif
+}
+
+void RenderContext::_PopDebugGroup(RenderCommandBuffer& buf)
+{
+#ifdef PLATFORM_WINDOWS
+#ifdef DEBUG
+    PIXEndEvent(*((ID3D12GraphicsCommandList**)buf._Handle));
+#endif
+#else
+    SDL_PopGPUDebugGroup(buf._Handle);
+#endif
+}
 
 void RenderCommandBuffer::StartPass(RenderPass&& pass)
 {
@@ -1459,11 +1656,11 @@ void RenderCommandBuffer::StartPass(RenderPass&& pass)
 
     if (pass.Name)
     {
-        SDL_PushGPUDebugGroup(_Handle, pass.Name);
+        _Context->_PushDebugGroup(*this, pass.Name);
     }
     else
     {
-        SDL_PushGPUDebugGroup(_Handle, "Unnamed TTE Pass");
+        _Context->_PushDebugGroup(*this, "Unnamed TTE Pass");
     }
 
     RenderPass* pPass = _Context->GetFrame(false).Heap.New<RenderPass>();
@@ -1510,7 +1707,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 
     // bind the latest index and vertex buffers pushed always
     Bool BoundIndex = false;
-    Bool BoundVertex[PARAMETER_LAST_VERTEX_BUFFER - PARAMETER_FIRST_VERTEX_BUFFER + 1]{};
+    Bool BoundVertex[(U32)ShaderParameterType::PARAMETER_LAST_VERTEX_BUFFER - (U32)ShaderParameterType::PARAMETER_FIRST_VERTEX_BUFFER + 1]{};
 
     do
     {
@@ -1521,24 +1718,24 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
         {
             ShaderParametersGroup::ParameterHeader& paramInfo = group->GetHeader(i);
 
-            if (paramInfo.Type == (U8)PARAMETER_INDEX0IN && !BoundIndex) // bind index buffer
+            if (paramInfo.Type == (U8)ShaderParameterType::PARAMETER_INDEX0IN && !BoundIndex) // bind index buffer
             {
                 BoundIndex = true;
                 Ptr<RenderBuffer> proxy{ group->GetParameter(i).GenericValue.Buffer, &NullDeleter };
-                TTE_ASSERT(proxy.get(), "Required index buffer was not bound or was null");
+                TTE_ASSERT(proxy.get(), "Required index buffer %s was not bound or was null", RenderContext::GetParameterDesc((ShaderParameterType)paramInfo.Type).Name);
                 BindIndexBuffer(proxy, group->GetParameter(i).GenericValue.Offset, _BoundPipeline->VertexState.IsHalf);
                 continue;
             }
 
-            if (paramInfo.Type >= (U8)PARAMETER_FIRST_VERTEX_BUFFER && // bind vertex buffer
-               paramInfo.Type <= (U8)PARAMETER_LAST_VERTEX_BUFFER && !BoundVertex[paramInfo.Type - PARAMETER_FIRST_VERTEX_BUFFER])
+            if (paramInfo.Type >= (U8)ShaderParameterType::PARAMETER_FIRST_VERTEX_BUFFER && // bind vertex buffer
+               paramInfo.Type <= (U8)ShaderParameterType::PARAMETER_LAST_VERTEX_BUFFER && !BoundVertex[paramInfo.Type - (U8)ShaderParameterType::PARAMETER_FIRST_VERTEX_BUFFER])
             {
                 // bind this vertex buffer
-                BoundVertex[paramInfo.Type - PARAMETER_FIRST_VERTEX_BUFFER] = true;
+                BoundVertex[paramInfo.Type - (U8)ShaderParameterType::PARAMETER_FIRST_VERTEX_BUFFER] = true;
                 Ptr<RenderBuffer> proxy{ group->GetParameter(i).GenericValue.Buffer, &NullDeleter };
-                TTE_ASSERT(proxy.get(), "Required vertex buffer was not bound or was null");
+                TTE_ASSERT(proxy.get(), "Required vertex buffer %s was not bound or was null", RenderContext::GetParameterDesc((ShaderParameterType)paramInfo.Type).Name);
                 U32 offset = group->GetParameter(i).GenericValue.Offset;
-                BindVertexBuffers(&proxy, &offset, (U32)(paramInfo.Type - PARAMETER_FIRST_VERTEX_BUFFER), 1);
+                BindVertexBuffers(&proxy, &offset, (U32)(paramInfo.Type - (U32)ShaderParameterType::PARAMETER_FIRST_VERTEX_BUFFER), 1);
                 continue;
             }
 
@@ -1546,7 +1743,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
             {
                 if (paramInfo.Class == (U8)ShaderParameterTypeClass::UNIFORM_BUFFER)
                 {
-                    TTE_ASSERT(group->GetParameter(i).UniformValue.Data, "Required uniform buffer was not bound or was null");
+                    TTE_ASSERT(group->GetParameter(i).UniformValue.Data, "Required uniform buffer %s was not bound or was null", RenderContext::GetParameterDesc((ShaderParameterType)paramInfo.Type).Name);
                     if (vsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
                         BindUniformData(vsh->ParameterSlots[paramInfo.Type], RenderShaderType::VERTEX,
                                         group->GetParameter(i).UniformValue.Data, group->GetParameter(i).UniformValue.Size);
@@ -1559,7 +1756,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
                     if (vsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
                     {
                         Ptr<RenderTexture> tex{ group->GetParameter(i).SamplerValue.Texture, &NullDeleter };
-                        TTE_ASSERT(tex.get(), "Required texture was not bound or was null");
+                        TTE_ASSERT(tex.get(), "Required texture sampler %s was not bound or was null", RenderContext::GetParameterDesc((ShaderParameterType)paramInfo.Type).Name);
 
                         RenderSampler* samDesc = group->GetParameter(i).SamplerValue.SamplerDesc;
                         Ptr<RenderSampler> resolvedSampler = _Context->_FindSampler(samDesc ? *samDesc : RenderSampler{});
@@ -1569,7 +1766,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
                     if (fsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
                     {
                         Ptr<RenderTexture> tex{ group->GetParameter(i).SamplerValue.Texture, &NullDeleter };
-                        TTE_ASSERT(tex.get(), "Required texture was not bound or was null");
+                        TTE_ASSERT(tex.get(), "Required texture sampler %s was not bound or was null", RenderContext::GetParameterDesc((ShaderParameterType)paramInfo.Type).Name);
 
                         RenderSampler* samDesc = group->GetParameter(i).SamplerValue.SamplerDesc;
                         Ptr<RenderSampler> resolvedSampler = _Context->_FindSampler(samDesc ? *samDesc : RenderSampler{});
@@ -1582,13 +1779,13 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
                     if (vsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
                     {
                         Ptr<RenderBuffer> buf{ group->GetParameter(i).GenericValue.Buffer, &NullDeleter };
-                        TTE_ASSERT(buf.get(), "Required generic buffer was not bound or was null");
+                        TTE_ASSERT(buf.get(), "Required generic buffer %s was not bound or was null", RenderContext::GetParameterDesc((ShaderParameterType)paramInfo.Type).Name);
                         BindGenericBuffers(vsh->ParameterSlots[paramInfo.Type], 1, &buf, RenderShaderType::VERTEX);
                     }
                     if (fsh->ParameterSlots[paramInfo.Type] != (U8)0xFF)
                     {
                         Ptr<RenderBuffer> buf{ group->GetParameter(i).GenericValue.Buffer, &NullDeleter };
-                        TTE_ASSERT(buf.get(), "Required generic buffer was not bound or was null");
+                        TTE_ASSERT(buf.get(), "Required generic buffer %s was not bound or was null", RenderContext::GetParameterDesc((ShaderParameterType)paramInfo.Type).Name);
                         BindGenericBuffers(fsh->ParameterSlots[paramInfo.Type], 1, &buf, RenderShaderType::FRAGMENT);
                     }
                 }
@@ -1603,7 +1800,7 @@ void RenderCommandBuffer::BindParameters(RenderFrame& frame, ShaderParametersSta
 
     Ptr<RenderSampler> defSampler = _Context->_FindSampler({});
 
-    for (U32 i = 0; i < ShaderParameterType::PARAMETER_COUNT; i++)
+    for (U32 i = 0; i < (U32)ShaderParameterType::PARAMETER_COUNT; i++)
     {
         if (parametersToSet[(ShaderParameterType)i])
         {
@@ -1780,6 +1977,7 @@ Ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes, String N)
     inf.props = SDL_CreateProperties();
     SDL_SetStringProperty(inf.props, SDL_PROP_GPU_BUFFER_CREATE_NAME_STRING, N.c_str());
     buffer->_Handle = SDL_CreateGPUBuffer(_Device, &inf);
+    _AttachContextDependentResource(buffer, true);
     SDL_DestroyProperties(inf.props);
 
     return buffer;
@@ -1802,6 +2000,7 @@ Ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes, String N)
     buffer->_Handle = SDL_CreateGPUBuffer(_Device, &inf);
     SDL_DestroyProperties(inf.props);
 
+    _AttachContextDependentResource(buffer, true);
     return buffer;
 }
 
@@ -1822,6 +2021,7 @@ Ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes, String N)
     buffer->_Handle = SDL_CreateGPUBuffer(_Device, &inf);
     SDL_DestroyProperties(inf.props);
 
+    _AttachContextDependentResource(buffer, true);
     return buffer;
 }
 
@@ -1940,11 +2140,17 @@ _RenderTransferBuffer RenderContext::_AcquireTransferBuffer(U32 size, RenderComm
     return buffer;
 }
 
-RenderBuffer::~RenderBuffer()
+void RenderBuffer::Release()
 {
     if (_Handle && _Context)
         SDL_ReleaseGPUBuffer(_Context->_Device, _Handle);
     _Handle = nullptr;
+    _Context = nullptr;
+}
+
+RenderBuffer::~RenderBuffer()
+{
+    Release();
 }
 
 // ================================== PARAMETERS
@@ -1990,9 +2196,9 @@ ShaderParametersGroup* RenderContext::_CreateParameterGroup(RenderFrame& frame, 
     for (U32 i = 0; i < N; i++)
     {
         param = types.FindFirstBit(param);
-        pGroup->GetHeader(i).Class = (U8)ShaderParametersInfo[param].Class;
+        pGroup->GetHeader(i).Class = (U8)ShaderParametersInfo[(U8)param].Class;
         pGroup->GetHeader(i).Type = (U8)param;
-        param = (ShaderParameterType)(param + 1);
+        param = (ShaderParameterType)((U8)param + 1);
     }
     return pGroup;
 }
@@ -2006,12 +2212,12 @@ void RenderContext::SetParameterDefaultTexture(RenderFrame& frame, ShaderParamet
         if (group->GetHeader(i).Type == (U8)type)
         {
             TTE_ASSERT(group->GetHeader(i).Class == (U8)ShaderParameterTypeClass::SAMPLER,
-                       "Parameter %s is not a sampler!", ShaderParametersInfo[type].Name);
+                       "Parameter %s is not a sampler!", ShaderParametersInfo[(U32)type].Name);
             ind = i;
             break;
         }
     }
-    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[type].Name);
+    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[(U8)type].Name);
     ShaderParametersGroup::Parameter& param = group->GetParameter(ind);
     param.SamplerValue.Texture = _GetDefaultTexture(tex).get(); // no autorelease needed, its constant
     param.SamplerValue.SamplerDesc = sampler;
@@ -2028,12 +2234,12 @@ void RenderContext::SetParameterTexture(RenderFrame& frame, ShaderParametersGrou
         if (group->GetHeader(i).Type == (U8)type)
         {
             TTE_ASSERT(group->GetHeader(i).Class == (U8)ShaderParameterTypeClass::SAMPLER,
-                       "Parameter %s is not a sampler!", ShaderParametersInfo[type].Name);
+                       "Parameter %s is not a sampler!", ShaderParametersInfo[(U8)type].Name);
             ind = i;
             break;
         }
     }
-    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[type].Name);
+    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[(U8)type].Name);
     frame.PushAutorelease(tex);
     group->GetParameter(ind).SamplerValue.Texture = tex.get();
     group->GetParameter(ind).SamplerValue.SamplerDesc = sampler;
@@ -2048,12 +2254,12 @@ void RenderContext::SetParameterUniform(RenderFrame& frame, ShaderParametersGrou
         if (group->GetHeader(i).Type == (U8)type)
         {
             TTE_ASSERT(group->GetHeader(i).Class == (U8)ShaderParameterTypeClass::UNIFORM_BUFFER,
-                       "Parameter %s is not a uniform!", ShaderParametersInfo[type].Name);
+                       "Parameter %s is not a uniform!", ShaderParametersInfo[(U8)type].Name);
             ind = i;
             break;
         }
     }
-    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[type].Name);
+    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[(U8)type].Name);
     UniformParameterBinding& param = group->GetParameter(ind).UniformValue;
     param.Data = uniformData;
     param.Size = size;
@@ -2068,12 +2274,12 @@ void RenderContext::SetParameterGenericBuffer(RenderFrame& frame, ShaderParamete
         if (group->GetHeader(i).Type == (U8)type)
         {
             TTE_ASSERT(group->GetHeader(i).Class == (U8)ShaderParameterTypeClass::GENERIC_BUFFER,
-                       "Parameter %s is not a generic buffer!", ShaderParametersInfo[type].Name);
+                       "Parameter %s is not a generic buffer!", ShaderParametersInfo[(U8)type].Name);
             ind = i;
             break;
         }
     }
-    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[type].Name);
+    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[(U8)type].Name);
     frame.PushAutorelease(buffer);
     group->GetParameter(ind).GenericValue.Buffer = buffer.get();
     group->GetParameter(ind).GenericValue.Offset = bufferOffset;
@@ -2088,12 +2294,12 @@ void RenderContext::SetParameterVertexBuffer(RenderFrame& frame, ShaderParameter
         if (group->GetHeader(i).Type == (U8)type)
         {
             TTE_ASSERT(group->GetHeader(i).Class == (U8)ShaderParameterTypeClass::VERTEX_BUFFER,
-                       "Parameter %s is not a vertex buffer!", ShaderParametersInfo[type].Name);
+                       "Parameter %s is not a vertex buffer!", ShaderParametersInfo[(U8)type].Name);
             ind = i;
             break;
         }
     }
-    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[type].Name);
+    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[(U8)type].Name);
     frame.PushAutorelease(buffer);
     group->GetParameter(ind).GenericValue.Buffer = buffer.get();
     group->GetParameter(ind).GenericValue.Offset = off;
@@ -2109,12 +2315,12 @@ void RenderContext::SetParameterIndexBuffer(RenderFrame& frame, ShaderParameters
         if (group->GetHeader(i).Type == (U8)type)
         {
             TTE_ASSERT(group->GetHeader(i).Class == (U8)ShaderParameterTypeClass::INDEX_BUFFER,
-                       "Parameter %s is not an index buffer!", ShaderParametersInfo[type].Name);
+                       "Parameter %s is not an index buffer!", ShaderParametersInfo[(U8)type].Name);
             ind = i;
             break;
         }
     }
-    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[type].Name);
+    TTE_ASSERT(ind != (U32)-1, "Shader parameter %s does not exist in parameter group", ShaderParametersInfo[(U8)type].Name);
     frame.PushAutorelease(buffer);
     group->GetParameter(ind).GenericValue.Buffer = buffer.get();
     group->GetParameter(ind).GenericValue.Offset = (U32)startIndex;

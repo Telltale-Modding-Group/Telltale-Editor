@@ -223,7 +223,7 @@ using BitSetRanged = BitSet<EnumClass, (U32)EndValue - (U32)FirstValue, FirstVal
 class Flags
 {
     
-    U32 _Value;
+    U32 _Value = 0;
     
 public:
     

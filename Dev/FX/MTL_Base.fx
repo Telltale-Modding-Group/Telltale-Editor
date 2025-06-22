@@ -8,19 +8,19 @@ using namespace metal;
 struct VertexIn
 {
 
-    float3 position [[attribute(TTE_VERTEX_ATTRIB(AttribPosition))]];
+    float3 position TTE_VERTEX_ATTRIB(AttribPosition);
 
 #ifdef FEATURE_KEY_LIGHT
-    float3 normal [[attribute(TTE_VERTEX_ATTRIB(AttribNormal))]];
+    float3 normal TTE_VERTEX_ATTRIB(AttribNormal);
 #endif
 
 #ifndef EFFECT_FLAT
-    float2 uv [[attribute(TTE_VERTEX_ATTRIB(AttribUVDiffuse))]];
+    float2 uv TTE_VERTEX_ATTRIB(AttribUVDiffuse);
 #endif
 
 #ifdef FEATURE_DEFORMABLE
-    uchar4 bone_index [[attribute(TTE_VERTEX_ATTRIB(AttribBlendIndex))]];
-    float3 bone_weight [[attribute(TTE_VERTEX_ATTRIB(AttribBlendWeight))]];
+    uchar4 bone_index TTE_VERTEX_ATTRIB(AttribBlendIndex);
+    float3 bone_weight TTE_VERTEX_ATTRIB(AttribBlendWeight);
 #endif
 
 };
@@ -65,10 +65,10 @@ constant float3 lightPos = float3(10.0f, 10.0f, 10.0f); // Light position in wor
 #endif
 
 vertex VertexOut VertexMain(VertexIn in [[stage_in]], 
-    constant UniformCamera& cam [[buffer(TTE_UNIFORM_BUFFER(BufferCamera))]], 
-    constant UniformObject& obj [[buffer(TTE_UNIFORM_BUFFER(BufferObject))]],
+    constant UniformCamera& cam TTE_UNIFORM_BUFFER(BufferCamera), 
+    constant UniformObject& obj TTE_UNIFORM_BUFFER(BufferObject),
 #ifdef FEATURE_DEFORMABLE
-    constant float4x4* boneMatrix [[buffer(TTE_GENERIC_BUFFER(Generic0))]]
+    constant float4x4* boneMatrix TTE_GENERIC_BUFFER(Generic0)
 #endif
     )
 {
@@ -145,8 +145,8 @@ fragment float4 PixelMain(VertexOut in [[stage_in]])
 #else
 
 fragment float4 PixelMain(VertexOut in [[stage_in]], 
-                              texture2d<float> texture [[TTE_TEXTURE(SamplerDiffuse)]], 
-                              sampler samplr [[TTE_SAMPLER(SamplerDiffuse)]])
+                              texture2d<float> texture TTE_TEXTURE(SamplerDiffuse), 
+                              sampler samplr TTE_SAMPLER(SamplerDiffuse))
 {
     float4 texColor = texture.sample(samplr, in.uv);
     return texColor * float4(in.colour, 1.0f);

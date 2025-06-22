@@ -1,13 +1,21 @@
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include <UI/ApplicationUI.hpp>
+#include <UI/EditorUI.hpp>
 #include <Renderer/RenderContext.hpp>
 
 #include <backends/imgui_impl_sdl3.h>
 #include <backends/imgui_impl_sdlgpu3.h>
-#include <imgui_internal.h>
+
+#include "imgui_internal.h"
 
 #include <filesystem>
+#include <sstream>
 
-ApplicationUI::ApplicationUI() : _Device(nullptr), _Window(nullptr), _Editor(nullptr), _ImContext(nullptr)
+// =========================================== APPLICATION UI CLASS
+
+ApplicationUI::ApplicationUI() : _Device(nullptr), _Window(nullptr), _Editor(nullptr), _ImContext(nullptr),  _ProjectMgr(_WorkspaceProps)
 {
 
 }
@@ -17,22 +25,286 @@ ApplicationUI::~ApplicationUI()
 
 }
 
+// =========================================== UI COMPONENT IMPL
+
+void UIComponent::SetNextWindowViewport(Float xPosFrac, Float yPosFrac, U32 xMinPix, U32 yMinPix, Float xExtentFrac, Float yExtentFrac, U32 xExtentMinPix, U32 yExtentMinPix)
+{
+    ImVec2 windowSize = ImGui::GetWindowViewport()->Size;
+    ImGui::SetNextWindowPos({MAX(xPosFrac * windowSize.x, (Float)xMinPix), MAX(yPosFrac * windowSize.y, (Float)yMinPix)});
+    ImGui::SetNextWindowSize({ MAX(xExtentFrac * windowSize.x, (Float)xExtentMinPix), MAX(yExtentFrac * windowSize.y, (Float)yExtentMinPix) });
+}
+
+UIComponent::UIComponent(ApplicationUI& ui) : _MyUI(ui)
+{
+}
+
+static U8* _LoadSTBI(String path, ApplicationUI& _MyUI, I32& width, I32& height)
+{
+    DataStreamRef stream = _MyUI.GetEditorContext()->LoadLibraryResource(path);
+    if (stream)
+    {
+        U8* data = TTE_ALLOC(stream->GetSize(), MEMORY_TAG_TEMPORARY);
+        stream->Read(data, stream->GetSize());
+        int w = 0, h = 0;
+        stbi_uc* rgba = stbi_load_from_memory((stbi_uc*)data, (int)stream->GetSize(), &w, &h, 0, 0);
+        width = w;
+        height = h;
+        TTE_FREE(data);
+        return (U8*)rgba;
+    }
+    return nullptr;
+}
+
+void UIComponent::DrawResourceTexture(const String& name, Float xPosFrac, Float yPosFrac, Float xSizeFrac, Float ySizeFrac, U32 sc)
+{
+    auto it = _MyUI._ResourceTextures.find(name);
+    if(it == _MyUI._ResourceTextures.end())
+    {
+        I32 w = 0, h = 0;
+        U8* rgba = _LoadSTBI("Resources/Textures/" + name, _MyUI, w, h);
+        SDL_GPUTextureSamplerBinding* pBinding = TTE_NEW(SDL_GPUTextureSamplerBinding, MEMORY_TAG_EDITOR_UI);
+        ImGui_ImplSDLGPU3_Data* bd = ImGui_ImplSDLGPU3_GetBackendData();
+        pBinding->sampler = bd->FontSampler;
+
+        // CREATE TEXTURE
+        SDL_GPUTextureCreateInfo texture_info = {};
+        texture_info.type = SDL_GPU_TEXTURETYPE_2D;
+        texture_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+        texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+        texture_info.width = w;
+        texture_info.height = h;
+        texture_info.layer_count_or_depth = 1;
+        texture_info.num_levels = 1;
+        texture_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+        SDL_GPUTexture* tex = SDL_CreateGPUTexture(_MyUI._Device, &texture_info);
+
+        // CREATE TRANSFER BUFFER
+        SDL_GPUTransferBufferCreateInfo transferbuffer_info = {};
+        transferbuffer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+        transferbuffer_info.size = w * h * 4;
+        SDL_GPUTransferBuffer* transferbuffer = SDL_CreateGPUTransferBuffer(_MyUI._Device, &transferbuffer_info);
+
+        // TRANSFER TEXTURE MEMORY
+        void* texture_ptr = SDL_MapGPUTransferBuffer(_MyUI._Device, transferbuffer, false);
+        memcpy(texture_ptr, rgba, w*h*4);
+        stbi_image_free(rgba);
+        SDL_UnmapGPUTransferBuffer(_MyUI._Device, transferbuffer);
+
+        // PASS ONTO TEXTURE
+        SDL_GPUTextureTransferInfo transfer_info = {};
+        transfer_info.offset = 0;
+        transfer_info.transfer_buffer = transferbuffer;
+        SDL_GPUTextureRegion texture_region = {};
+        texture_region.texture = tex;
+        texture_region.w = w;
+        texture_region.h = h;
+        texture_region.d = 1;
+        SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(_MyUI._Device);
+        SDL_GPUCopyPass* copy_pass = SDL_BeginGPUCopyPass(cmd);
+        SDL_UploadToGPUTexture(copy_pass, &transfer_info, &texture_region, false);
+        SDL_EndGPUCopyPass(copy_pass);
+        SDL_SubmitGPUCommandBuffer(cmd);
+
+        // RELEASE RESOURCES
+        SDL_ReleaseGPUTransferBuffer(_MyUI._Device, transferbuffer);
+
+        // INSERT TEXTURE INTO LOADED ARRAY
+        pBinding->texture = tex;
+        ApplicationUI::ResourceTexture rtex{};
+        rtex.DrawBind = pBinding;
+        rtex.CommonTexture = {};
+        rtex.EditorTexture = tex;
+        it = _MyUI._ResourceTextures.insert(std::make_pair(name, std::move(rtex))).first;
+    }
+    if(it == _MyUI._ResourceTextures.end())
+    {
+        // Error texture
+        if(_MyUI._ErrorResources.count(name) == 0)
+        {
+            TTE_LOG("The required telltale editor resource '%s' was not found! Using a placeholder.", name.c_str());
+            _MyUI._ErrorResources.insert(name);
+        }
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+        ImVec2 screenSize = ImGui::GetWindowSize(); // ie window size
+        ImVec2 topLeft(xPosFrac * screenSize.x, yPosFrac * screenSize.y);
+        ImVec2 bottomRight(topLeft.x + xSizeFrac * screenSize.x, topLeft.y + ySizeFrac * screenSize.y);
+        ImVec2 topRight(bottomRight.x, topLeft.y);
+        ImVec2 bottomLeft(topLeft.x, bottomRight.y);
+
+        drawList->AddTriangleFilled(
+            topLeft,
+            topRight,
+            bottomRight,
+            IM_COL32(255, 0, 255, 255)
+        );
+        drawList->AddTriangleFilled(
+            topLeft,
+            bottomLeft,
+            bottomRight,
+            IM_COL32(0, 0, 0, 255)
+        );
+    }
+    else
+    {
+        ImTextureID id = (ImTextureID)it->second.DrawBind;
+        ImVec2 winSize = ImGui::GetWindowSize();
+        if(xPosFrac + xSizeFrac > 1.0f || yPosFrac + ySizeFrac > 1.0f)
+        {
+            // This is OK, user window is likely very very small
+            //TTE_LOG("WARNING: Trying to draw fractional texture region (%s) but extent lies outside window size", name.c_str());
+        }
+        else
+        {
+            ImGui::GetWindowDrawList()->AddImage(id, ImVec2{ xPosFrac * winSize.x, yPosFrac * winSize.y }, ImVec2{ winSize.x * (xPosFrac + xSizeFrac), winSize.y * (yPosFrac + ySizeFrac) }, ImVec2{0,0}, ImVec2{1.f,1.f}, sc);
+        }
+    }
+}
+
+ApplicationUI& UIComponent::GetApplication()
+{
+    return _MyUI;
+}
+
+// =========================================== MAIN APPLICATION LOOP
+
 class _OnExitHelper
 {
-public: String& Dir; _OnExitHelper(String& dir) : Dir(dir)
-{
-} ~_OnExitHelper()
-{
-    String f = Dir + "TTE_LatestLog.txt"; DumpLoggerCache(f.c_str());
-}
+
+    public: String& Dir; 
+          
+     _OnExitHelper(String& dir) : Dir(dir) {}
+         
+    ~_OnExitHelper()
+    {
+        String f = Dir + "TTE_LatestLog.txt"; 
+        DumpLoggerCache(f.c_str());
+    }
+
 };
+
+void ApplicationUI::PopUI()
+{
+    if(_UIStack.size())
+    {
+        _UIStack.pop_back();
+    }
+}
+
+void ApplicationUI::PushUI(Ptr<UIStackable> pStackable)
+{
+    if(pStackable)
+    {
+        _UIStack.push_back(pStackable);
+    }
+}
 
 void ApplicationUI::_Update()
 {
-    // Ok maybe an implementation is needed here
-    ImGui::Begin("Wind");
-    ImGui::Text("Hello");
-    ImGui::End();
+    ImGui::PushFont(_EditorFont);
+
+    if(_UIStack.size())
+    {
+        Ptr<UIStackable> pStackable = _UIStack.back(); // copy
+        pStackable->Render();
+    }
+    else
+    {
+        Ptr<UIStackable> pStackable = TTE_NEW_PTR(EditorUI, MEMORY_TAG_EDITOR_UI, *this);
+        PushUI(pStackable);
+        SDL_SetWindowSize(_Window, DEFAULT_WINDOW_SIZE);
+       // SDL_SetWindowBordered(_Window, false);
+        pStackable->Render();
+    }
+
+    ImGui::PopFont();
+}
+
+void ApplicationUI::_OnProjectLoad()
+{
+
+    // SWITCH SNAPSHOT
+    GameSnapshot snapshot = _ProjectMgr.GetHeadProject()->ProjectSnapshot;
+    _EditorResourceReg.reset();
+    _Editor->Switch(snapshot);
+
+    // LOAD REG + CONTEXT
+    _EditorResourceReg = _Editor->CreateResourceRegistry();
+    _EditorRenderContext = RenderContext::CreateShared(_Device, _Window, _EditorResourceReg);
+}
+
+const String& UIComponent::GetLanguageText(CString id)
+{
+    return _MyUI.GetLanguageText(id);
+}
+
+const String& ApplicationUI::GetLanguageText(CString id)
+{
+    static String _LastUnk{};
+    auto it = _LanguageMap.find(Symbol(id));
+    if(it == _LanguageMap.end())
+    {
+        if(_UnknownLanguageIDs.count(id) == 0)
+        {
+            _UnknownLanguageIDs.insert(id);
+            TTE_LOG("WARNING: Language ID %s has no mapping in current language %s!", id, _CurrentLanguage.c_str());
+        }
+        _LastUnk = id; // OK assign here, one thread for UI dispatch
+        return _LastUnk;
+    }
+    return it->second;
+}
+
+void ApplicationUI::_SetLanguage(const String& language)
+{
+    if(_CurrentLanguage != language)
+    {
+        String langData = _Editor->LoadLibraryStringResource("Resources/Language/" + language + ".txt");
+        if(langData.empty())
+        {
+            if(CompareCaseInsensitive(language, "English"))
+            {
+                TTE_LOG("ERROR: Could not load language %s! Language will be using IDs instead of text!", language.c_str());
+                _CurrentLanguage = "";
+            }
+            else
+            {
+                TTE_LOG("ERROR: Could not load language %s! Defaulting to english.", language.c_str());
+                _SetLanguage("English");
+            }
+            return;
+        }
+        _UnknownLanguageIDs.clear();
+        _LanguageMap.clear();
+        String line;
+        std::istringstream in{langData};
+        I32 lineN = 0;
+        while(std::getline(in, line))
+        {
+            ++lineN;
+            line = StringTrim(line);
+            if(StringStartsWith(line, "#") || line.empty())
+                continue;
+            I32 colon = line.find('=');
+            if(colon == String::npos)
+            {
+                TTE_LOG("WARNING: At language file %s.txt:%d: invalid syntax", language.c_str(), lineN);
+            }
+            else
+            {
+                String id = StringTrim(line.substr(0, colon));
+                String v = StringTrim(line.substr(colon + 1));
+                while(StringStartsWith(v,"\""))
+                    v = v.substr(1);
+                while (StringEndsWith(v, "\""))
+                    v = v.substr(0, v.length() - 1);
+                _LanguageMap[id] = v;
+            }
+        }
+        TTE_LOG("Loaded language %s", language.c_str());
+        _CurrentLanguage = language;
+        _WorkspaceProps.SetString(WORKSPACE_KEY_LANG, _CurrentLanguage);
+    }
 }
 
 I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
@@ -71,21 +343,43 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
         PlatformMessageBoxAndWait("Workspace Error", "There was an error reading the workspace properties. Please check the output log.");
         return 1;
     }
+    _ProjectMgr.LoadFromWorkspace();
 
     // INIT RENDER CONTEXT (SDL) HERE
     RenderContext::Initialise();
 
+    // INIT EMPTY CONTEXT
+    _Editor = CreateEditorContext({});
+
     // INIT IMGUI & MAIN WINDOW
-    _Window = SDL_CreateWindow("", 1280, 720, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN); // TODO make this inside workspace settings
+    U32 wW = 0, wH = 0;
+    Ptr<UIProjectSelect> pSelect = TTE_NEW_PTR(UIProjectSelect, MEMORY_TAG_EDITOR_UI, *this);
+    pSelect->GetWindowSize(wW, wH);
+    _Window = SDL_CreateWindow("Telltale Editor v" TTE_VERSION, wW, wH, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN); // TODO make this inside workspace settings
     SDL_SetWindowPosition(_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     SDL_ShowWindow(_Window);
+    PushUI(std::move(pSelect));
+
+    // APP ICON
+    I32 iW = 0, iH = 0;
+    U8* rgba = _LoadSTBI("Resources/Textures/LogoSquare.png", *this, iW, iH);
+    _AppIcon = SDL_CreateSurface(iW, iH, SDL_PIXELFORMAT_RGBA8888);
+    memcpy(_AppIcon->pixels, rgba, iW * iH * 4);
+    stbi_image_free(rgba);
+    rgba = nullptr;
+    SDL_SetWindowIcon(_Window, _AppIcon);
+
+    // CREATE DEVICE
     Bool bDebug = false;
 #ifdef DEBUG
     bDebug = true;
 #endif
-    _Device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_MSL | SDL_GPU_SHADERFORMAT_SPIRV | SDL_GPU_SHADERFORMAT_DXBC, bDebug, nullptr);
+    _Device = SDL_CreateGPUDevice(RENDER_CONTEXT_SHADER_FORMAT, bDebug, nullptr);
     SDL_ClaimWindowForGPUDevice(_Device, _Window);
+
+    // CREATE IMGUI CONTEXT
     IMGUI_CHECKVERSION();
+    RenderContext::DisableDebugHUD(_Window);
     _ImContext = ImGui::CreateContext();
     ImGui::StyleColorsDark(); // TODO MAKE THIS CUSTOM FROM WORKSPACE.
     ImGui_ImplSDL3_InitForSDLGPU(_Window);
@@ -94,6 +388,98 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     init_info.ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(_Device, _Window);
     init_info.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
     ImGui_ImplSDLGPU3_Init(&init_info);
+
+    // INIT FONT
+    _EditorFont = _EditorFontLarge = nullptr;
+    DataStreamRef fontStream = _Editor->LoadLibraryResource("Resources/Fonts/EditorFont.ttf");
+    U8* pFontData = nullptr;
+    if(fontStream)
+    {
+        pFontData = TTE_ALLOC(fontStream->GetSize(), MEMORY_TAG_TEMPORARY);
+        fontStream->Read(pFontData, fontStream->GetSize());
+        ImFontConfig c{};
+        c.FontDataOwnedByAtlas = false;
+        _EditorFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontStream->GetSize(), 14.0f, &c);
+        _EditorFontLarge = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontStream->GetSize(), 28.0f, &c);
+        TTE_FREE(pFontData);
+    }
+    fontStream.reset(); // release file handle
+    if(!_EditorFont)
+    {
+        TTE_LOG("Could not load editor font! Using default font");
+    }
+
+    // INIT LANGUAGE
+    String languages = _Editor->LoadLibraryStringResource("Resources/Language/Languages.txt");
+    String line;
+    std::istringstream langstream{languages};
+    while(std::getline(langstream, line))
+    {
+        if(StringEndsWith(line,".txt"))
+            line = line.substr(0, line.length() - 4);
+        _AvailLanguages.push_back(line);
+    }
+    _CurrentLanguage = "";
+    _SetLanguage(_WorkspaceProps.GetString(WORKSPACE_KEY_LANG, "English"));
+
+    // IM GUI STYLE (CHANGE AS WE GO ON!)
+    ImVec4* colors = ImGui::GetStyle().Colors;
+    colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
+    colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
+    colors[ImGuiCol_WindowBg] = ImVec4(0.04f, 0.04f, 0.04f, 0.94f);
+    colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
+    colors[ImGuiCol_Border] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
+    colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    colors[ImGuiCol_FrameBg] = ImVec4(0.11f, 0.11f, 0.11f, 0.54f);
+    colors[ImGuiCol_FrameBgHovered] = ImVec4(0.38f, 0.16f, 0.88f, 0.40f);
+    colors[ImGuiCol_FrameBgActive] = ImVec4(0.17f, 0.00f, 0.50f, 1.00f);
+    colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
+    colors[ImGuiCol_TitleBgActive] = ImVec4(0.21f, 0.16f, 0.48f, 1.00f);
+    colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
+    colors[ImGuiCol_MenuBarBg] = ImVec4(0.11f, 0.11f, 0.11f, 1.00f);
+    colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
+    colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
+    colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
+    colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
+    colors[ImGuiCol_CheckMark] = ImVec4(0.45f, 0.26f, 0.98f, 1.00f);
+    colors[ImGuiCol_SliderGrab] = ImVec4(0.41f, 0.00f, 1.00f, 0.40f);
+    colors[ImGuiCol_SliderGrabActive] = ImVec4(0.48f, 0.26f, 0.98f, 0.52f);
+    colors[ImGuiCol_Button] = ImVec4(0.15f, 0.15f, 0.15f, 0.40f);
+    colors[ImGuiCol_ButtonHovered] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
+    colors[ImGuiCol_ButtonActive] = ImVec4(0.24f, 0.06f, 0.58f, 1.00f);
+    colors[ImGuiCol_Header] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
+    colors[ImGuiCol_HeaderHovered] = ImVec4(0.15f, 0.15f, 0.15f, 0.80f);
+    colors[ImGuiCol_HeaderActive] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
+    colors[ImGuiCol_Separator] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
+    colors[ImGuiCol_SeparatorHovered] = ImVec4(0.10f, 0.40f, 0.75f, 0.78f);
+    colors[ImGuiCol_SeparatorActive] = ImVec4(0.10f, 0.40f, 0.75f, 1.00f);
+    colors[ImGuiCol_ResizeGrip] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
+    colors[ImGuiCol_ResizeGripHovered] = ImVec4(1.00f, 1.00f, 1.00f, 0.13f);
+    colors[ImGuiCol_ResizeGripActive] = ImVec4(0.38f, 0.38f, 0.38f, 1.00f);
+    colors[ImGuiCol_TabHovered] = ImVec4(0.40f, 0.26f, 0.98f, 0.50f);
+    colors[ImGuiCol_Tab] = ImVec4(0.18f, 0.20f, 0.58f, 0.73f);
+    colors[ImGuiCol_TabSelected] = ImVec4(0.29f, 0.20f, 0.68f, 1.00f);
+    colors[ImGuiCol_TabSelectedOverline] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    colors[ImGuiCol_TabDimmed] = ImVec4(0.07f, 0.10f, 0.15f, 0.97f);
+    colors[ImGuiCol_TabDimmedSelected] = ImVec4(0.14f, 0.26f, 0.42f, 1.00f);
+    colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.50f, 0.50f, 0.50f, 0.00f);
+    colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
+    colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
+    colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
+    colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
+    colors[ImGuiCol_TableHeaderBg] = ImVec4(0.19f, 0.19f, 0.20f, 1.00f);
+    colors[ImGuiCol_TableBorderStrong] = ImVec4(0.31f, 0.31f, 0.35f, 1.00f);
+    colors[ImGuiCol_TableBorderLight] = ImVec4(0.23f, 0.23f, 0.25f, 1.00f);
+    colors[ImGuiCol_TableRowBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+    colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
+    colors[ImGuiCol_TextLink] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    colors[ImGuiCol_TextSelectedBg] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
+    colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
+    colors[ImGuiCol_NavCursor] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
+    colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
+    colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
+    colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 
     // MAIN APPLICATION LOOP
     Bool bRunning = true;
@@ -146,21 +532,39 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     }
 
     // SAVE WORKSPACE
+    _ProjectMgr.SaveToWorkspace();
     _WorkspaceProps.Save();
 
     // END
+    _UIStack.clear();
+    for(auto& tex: _ResourceTextures)
+    {
+        if(tex.second.EditorTexture)
+        {
+            SDL_ReleaseGPUTexture(_Device, tex.second.EditorTexture);
+        }
+        if(tex.second.DrawBind)
+        {
+            TTE_DEL(tex.second.DrawBind);
+        }
+    }
+    _ResourceTextures.clear();
+    _EditorRenderContext.reset();
+    _EditorResourceReg.reset();
+    FreeEditorContext();
+    JobScheduler::Shutdown();
     SDL_WaitForGPUIdle(_Device);
     ImGui_ImplSDL3_Shutdown();
     ImGui_ImplSDLGPU3_Shutdown();
     ImGui::DestroyContext();
-    SDL_ReleaseWindowFromGPUDevice(_Device, _Window);
+    SDL_DestroySurface(_AppIcon);
     SDL_DestroyGPUDevice(_Device);
     SDL_DestroyWindow(_Window);
+    _AppIcon = nullptr;
     _Device = nullptr;
     _ImContext = nullptr;
     _Window = nullptr;
     _Editor = nullptr;
-    FreeEditorContext();
 
     return 0;
 }

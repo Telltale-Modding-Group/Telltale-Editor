@@ -868,7 +868,7 @@ Bool PropertySet::ExistsKey(Meta::ClassInstance prop, Symbol keyName, Bool bSear
         for(auto prnt: parents)
         {
             Meta::ClassInstance pProp = prnt.GetObject(pRegistry, true);
-            if(pProp != prop && ExistsKey(pProp, keyName, false, pRegistry))
+            if(pProp && pProp != prop && ExistsKey(pProp, keyName, false, pRegistry))
                 return true;
         }
     }

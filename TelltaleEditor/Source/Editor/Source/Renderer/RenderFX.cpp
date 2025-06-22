@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <iostream>
 #include <regex>
+#include <stack>
 
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
@@ -15,6 +16,32 @@
 #else
 //#error "Imp" // impl for mac and linux next
 #endif
+
+static void _Translator_HLSL(String& out, U32 index, ShaderParameterTypeClass clz)
+{
+    if (clz == ShaderParameterTypeClass::GENERIC_BUFFER || clz == ShaderParameterTypeClass::INDEX_BUFFER) // structured buffer + index buffer (meaning texture)
+        out = "register(t" + std::to_string(index) + ")";
+    else if (clz == ShaderParameterTypeClass::UNIFORM_BUFFER)
+        out = "register(b" + std::to_string(index) + ")";
+    else if (clz == ShaderParameterTypeClass::SAMPLER)
+        out = "register(s" + std::to_string(index) + ")";
+    else
+        out = "TEXCOORD" + std::to_string(index);
+}
+
+static void _Translator_MetalSL(String& out, U32 index, ShaderParameterTypeClass clz)
+{
+    if (clz == ShaderParameterTypeClass::GENERIC_BUFFER || clz == ShaderParameterTypeClass::UNIFORM_BUFFER)
+        out = "[[buffer(" + std::to_string(index) + ")]]";
+    else if (clz == ShaderParameterTypeClass::SAMPLER)
+        out = "[[sampler(" + std::to_string(index) + ")]]";
+    else if (clz == ShaderParameterTypeClass::INDEX_BUFFER) // texture
+        out = "[[texture(" + std::to_string(index) + ")]]";
+    else
+        out = "[[attribute(" + std::to_string(index) + ")]]";
+}
+
+// static void _Translator_GLSL(String& out, U32 index, ShaderParameterTypeClass clz)
 
 const RenderEffectDesc& RenderEffectCache::GetEffectDesc(RenderEffect effect)
 {
@@ -38,24 +65,52 @@ const RenderEffectFeatureDesc& RenderEffectCache::GetEffectFeatureDesc(RenderEff
     return RenderEffectFeatureDescriptors[0]; // will never happen
 }
 
-RenderEffectCache::RenderEffectCache(Ptr<ResourceRegistry> reg, RenderContext* pContext) : _Registry(reg), _ProgramCount(0), _Context(pContext)
+void RenderEffectCache::Initialise()
 {
-    using namespace std::filesystem;
-    _ProgramsResourceLocation = "<RenderFX>/";
-    if(!reg->ResourceLocationExists(_ProgramsResourceLocation))
+    if (!_Flags.Test(RenderEffectCacheFlag::INIT))
     {
-        path devPath = absolute(path("../../Dev/FX/")); // try use dev directories from default cmake development structure
-        if(is_directory(devPath))
+        _Flags.Add(RenderEffectCacheFlag::INIT);
+        using namespace std::filesystem;
+        _ProgramsResourceLocation = "<RenderFX>/";
+        if (!_Registry->ResourceLocationExists(_ProgramsResourceLocation))
         {
-            reg->MountSystem(_ProgramsResourceLocation, devPath.string(), true);
+            path devPath = absolute(path("../../Dev/FX/")); // try use dev directories from default cmake development structure
+            if (is_directory(devPath))
+            {
+                _Registry->MountSystem(_ProgramsResourceLocation, devPath.string(), true);
+            }
+            else
+            {
+                // user release shader pack gen in bigger releases, else we can default to other folder in el futuro
+                TTE_ASSERT(false, "The render FX shader resource location (%s) could not be found.", _ProgramsResourceLocation.c_str());
+            }
+        }
+        memset(_Program, 0, sizeof(RenderEffectProgram) * RENDER_FX_MAX_RUNTIME_PROGRAMS);
+        RenderDeviceType dev = _Context->GetDeviceType();
+        if (dev == RenderDeviceType::D3D12)
+        {
+            _PsuedoMacroTranslate = &_Translator_HLSL;
+            _FXFileNamePrefix = "DX12_";
+        }
+        else if (dev == RenderDeviceType::METAL)
+        {
+            _PsuedoMacroTranslate = &_Translator_MetalSL;
+            _FXFileNamePrefix = "MTL_";
+        }
+        else if (dev == RenderDeviceType::VULKAN)
+        {
+            TTE_ASSERT(false, "Impl GLSL translator");
+            _FXFileNamePrefix = "VK_";
         }
         else
         {
-            // user release shader pack gen in bigger releases, else we can default to other folder in el futuro
-            TTE_ASSERT(false, "The render effects resource location (%s) could not be found.", _ProgramsResourceLocation.c_str());
+            TTE_LOG("Error while initialising render effect cache: render device is unknown");
         }
     }
-    memset(_Program, 0, sizeof(RenderEffectProgram) * RENDER_FX_MAX_RUNTIME_PROGRAMS);
+}
+
+RenderEffectCache::RenderEffectCache(Ptr<ResourceRegistry> reg, RenderContext* pContext) : _Registry(reg), _ProgramCount(0), _Context(pContext)
+{
 }
 
 void RenderEffectCache::Release()
@@ -204,7 +259,13 @@ String RenderEffectCache::BuildName(RenderEffectParams params, String extension)
     for(auto it = params.Features.begin(); it != params.Features.end(); it++)
     {
         name += "_";
-        name += GetEffectFeatureDesc(*it).Name;
+        String n = GetEffectFeatureDesc(*it).Name;
+        std::transform(n.begin(), n.end(), n.begin(),
+        [](unsigned char c)
+        {
+            return std::toupper(c);
+        });
+        name += n;
     }
     return name + extension;
 }
@@ -239,24 +300,12 @@ RenderEffectCache::FXHashIterator RenderEffectCache::_ResolveFX(RenderEffect eff
 String RenderEffectCache::_ResolveFXSource(RenderEffect effect)
 {
     Memory::FastBufferAllocator allocator{};
-    String fxFilename = {};
-    RenderDeviceType dev = _Context->GetDeviceType();
-    if(dev == RenderDeviceType::D3D12)
-        fxFilename = "DX12_";
-    else if(dev == RenderDeviceType::METAL)
-        fxFilename = "MTL_";
-    else if (dev == RenderDeviceType::VULKAN)
-        fxFilename = "VK_";
-    else
-    {
-        TTE_LOG("Could not generate file name for FX %s: the current render device is unknown", GetEffectDesc(effect).FXFileName);
-        return "";
-    }
+    String fxFilename = _FXFileNamePrefix;
     fxFilename += GetEffectDesc(effect).FXFileName;
     DataStreamRef fxStream = _Registry->FindResourceFrom(_ProgramsResourceLocation, fxFilename);
     if(!fxStream)
     {
-        TTE_LOG("Could not locate or open FX shader source file %s in %s!", fxFilename.c_str(), _ProgramsResourceLocation.c_str());
+        TTE_LOG("Could not locate or open FX shader source file '%s' in '%s'!", fxFilename.c_str(), _ProgramsResourceLocation.c_str());
         return "";
     }
     U32 size = (U32)fxStream->GetSize();
@@ -274,8 +323,8 @@ String RenderEffectCache::_ResolveFXSource(RenderEffect effect)
 U32 RenderEffectCache::_InsertProgramRef(RenderEffectParams params, U64 srcHash)
 {
     RenderEffectProgram proxy{};
-    proxy.Params = params;
     U64 effectHash = _ComputeEffectHash(params);
+    proxy.EffectHash = effectHash;
 
     RenderEffectProgram* pProgram = std::upper_bound(_Program, _Program + _ProgramCount, proxy);
     U32 index = (U32)(pProgram - _Program);
@@ -306,8 +355,8 @@ U32 RenderEffectCache::_InsertProgramRef(RenderEffectParams params, U64 srcHash)
 
 U64 RenderEffectCache::_ComputeEffectHash(RenderEffectParams params)
 {
-    U32 effectU32 = (U32)params.Effect;
-    U64 hash = CRC64(reinterpret_cast<const U8*>(&effectU32), 4, effectU32 == 0);
+    U32 effectU32 = (U32)params.Effect ^ 0x298FEED3u;
+    U64 hash = CRC64(reinterpret_cast<const U8*>(&effectU32), 4);
     return CRC64(reinterpret_cast<const U8*>(params.Features.Words()), RenderEffectFeaturesBitSet::NumWords << 2, hash);
 }
 
@@ -333,8 +382,9 @@ U32 RenderEffectCache::_ResolveExistingRef(RenderEffectRef ref)
 }
 
 // CREATE SDL SHADER
-Ptr<RenderShader> RenderEffectCache::_CreateShader(const ShaderParameterTypes& parameters, RenderShaderType shtype, 
-                                                   const String& shaderName, const VertexAttributesBitset& vertexStateAttribs, const void* pShaderBinary, U32 binarySize, SDL_GPUShaderFormat expectedFormat)
+Ptr<RenderShader> RenderEffectCache::_CreateShader(const ShaderParameterTypes& parameters, RenderShaderType shtype, const String& shaderName, 
+                                                   U8* pParameterSlots, const VertexAttributesBitset& vertexStateAttribs, const void* pShaderBinary,
+                                                   U32 binarySize, SDL_GPUShaderFormat expectedFormat)
 {
     if((SDL_GetGPUShaderFormats(_Context->_Device) & expectedFormat) == 0)
     {
@@ -372,10 +422,12 @@ Ptr<RenderShader> RenderEffectCache::_CreateShader(const ShaderParameterTypes& p
     pShader->Context = _Context;
     pShader->Handle = gpuShader;
     pShader->Attribs = vertexStateAttribs;
+    memcpy(pShader->ParameterSlots, pParameterSlots, (U8)ShaderParameterType::PARAMETER_COUNT);
     return pShader;
 }
 
-String RenderEffectCache::_ResolveFXBindings(const String& source, const String& macroName, U32 (*resolver)(const String&, U32 line, const FXResolveState& state), const FXResolveState& resolverState)
+String RenderEffectCache::_ResolveFXBindings(const String& source, const String& macroName, ShaderParameterTypeClass clz,
+                                             U32 (*resolver)(const String&, U32 line, const FXResolveState& state), const FXResolveState& resolverState)
 {
     std::string patternStr = macroName + R"(\((\w+)\))";
     std::regex pattern(patternStr);
@@ -399,7 +451,9 @@ String RenderEffectCache::_ResolveFXBindings(const String& source, const String&
 
         result.append(source, lastPos, matchStart - lastPos);
 
-        result += std::to_string(index);
+        String repl{};
+        _PsuedoMacroTranslate(repl, index, clz);
+        result += repl;
 
         lastPos = matchEnd;
     }
@@ -409,120 +463,384 @@ String RenderEffectCache::_ResolveFXBindings(const String& source, const String&
     return result;
 }
 
+U32 RenderEffectCache::FXResolver_VertexAttribute(const String& arg, U32 line, const RenderEffectCache::FXResolveState& state)
+{
+    for(U32 i = 0; i < (U32)RenderAttributeType::COUNT; i++)
+    {
+        const AttribInfo& attrib = RenderContext::GetVertexAttributeDesc((RenderAttributeType)i);
+        if(CompareCaseInsensitive(attrib.FXName, arg))
+        {
+            return i;
+        }
+    }
+    TTE_LOG("At %s:%u: at TTE_VERTEX_ATTRIB specifier: the argument %s is not a valid vertex attribute!", state.FXName.c_str(), line, arg.c_str());
+    return UINT32_MAX;
+}
+
 U32 RenderEffectCache::FXResolver_Uniform(const String& arg, U32 line, const RenderEffectCache::FXResolveState& state)
 {
-    for(U32 i = PARAMETER_FIRST_UNIFORM; i <= PARAMETER_LAST_UNIFORM; i++)
+    for(U32 i = (U32)ShaderParameterType::PARAMETER_FIRST_UNIFORM; i <= (U32)ShaderParameterType::PARAMETER_LAST_UNIFORM; i++)
     {
         if(CompareCaseInsensitive(arg, ShaderParametersInfo[i].Name))
         {
-            if(!state.EffectParameters[(ShaderParameterType)i])
+            if (!state.EffectParameters[(ShaderParameterType)i])
             {
-                return 0; // parameter unused in this variant with macros
+                TTE_LOG("At %s[%s]: at TTE_UNIFORM_BUFFER specifier: the parameter %s is not an input of this variant", state.FXName.c_str(), state.BuiltName.c_str(), arg.c_str());
+                return UINT32_MAX;
             }
-            if(state.ParameterSlotsOut[i] != 0xFF)
-                return state.ParameterSlotsOut[i]; // could already be set. we dont care (macro guards are ignored in this parser), replace all.
+            if (state.ParameterSlotsOut[i] != 0xFF)
+            {
+                TTE_LOG("At %s[%s]: at TTE_UNIFORM_BUFFER specifier: the parameter %s has already been specified", state.FXName.c_str(), state.BuiltName.c_str(), arg.c_str());
+                return UINT32_MAX;
+            }
             U32 slot = state.UniformBuffersIndex++;
             state.ParameterSlotsOut[i] = slot;
             return slot;
         }
     }
-    TTE_LOG("FX Parser error: %s:%u: at TTE_UNIFORM_BUFFER specifier: the argument %s is not a valid uniform buffer!", state.FXName.c_str(), line, arg.c_str());
+    TTE_LOG("At %s: at TTE_UNIFORM_BUFFER specifier: the argument %s is not a valid uniform buffer!", state.FXName.c_str(), arg.c_str());
     return UINT32_MAX;
 }
 
 U32 RenderEffectCache::FXResolver_Generic(const String& arg, U32 line, const RenderEffectCache::FXResolveState& state)
 {
-    for (U32 i = PARAMETER_FIRST_GENERIC; i <= PARAMETER_LAST_GENERIC; i++)
+    for (U32 i = (U32)ShaderParameterType::PARAMETER_FIRST_GENERIC; i <= (U32)ShaderParameterType::PARAMETER_LAST_GENERIC; i++)
     {
         if (CompareCaseInsensitive(arg, ShaderParametersInfo[i].Name))
         {
             if (!state.EffectParameters[(ShaderParameterType)i])
             {
-                return 0; // parameter unused in this variant with macros
+                TTE_LOG("At %s[%s]: at TTE_GENERIC_BUFFER specifier: the parameter %s is not an input of this variant", state.FXName.c_str(), state.BuiltName.c_str(), arg.c_str());
+                return UINT32_MAX;
             }
             if (state.ParameterSlotsOut[i] != 0xFF)
-                return state.ParameterSlotsOut[i];
-            U32 slot = state.UniformBuffersIndex + state.GenericBuffersIndex++; // uniforms processed first. SDL indices generics after uniform indices
+            {
+                TTE_LOG("At %s[%s]: at TTE_GENERIC_BUFFER specifier: the parameter %s has already been specified", state.FXName.c_str(), state.BuiltName.c_str(), arg.c_str());
+                return UINT32_MAX;
+            }
+            U32 slot = state.GenericBuffersIndex++;
             state.ParameterSlotsOut[i] = slot;
             return slot;
         }
     }
-    TTE_LOG("FX Parser error: %s:%u: at TTE_GENERIC_BUFFER specifier: the argument %s is not a valid generic buffer!", state.FXName.c_str(), line, arg.c_str());
+    TTE_LOG("At %s: at TTE_GENERIC_BUFFER specifier: the argument %s is not a valid generic buffer!", state.FXName.c_str(), arg.c_str());
     return UINT32_MAX;
 }
 
 U32 RenderEffectCache::FXResolver_TextureSampler(const String& arg, U32 line, const RenderEffectCache::FXResolveState& state)
 {
-    for (U32 i = PARAMETER_FIRST_SAMPLER; i <= PARAMETER_LAST_SAMPELR; i++)
+    for (U32 i = (U32)ShaderParameterType::PARAMETER_FIRST_SAMPLER; i <= (U32)ShaderParameterType::PARAMETER_LAST_SAMPELR; i++)
     {
         if (CompareCaseInsensitive(arg, ShaderParametersInfo[i].Name))
         {
             if (!state.EffectParameters[(ShaderParameterType)i])
             {
-                return 0; // parameter unused in this variant with macros
+                TTE_LOG("At %s[%s]: at TTE_TEXTURE/TTE_SAMPLER specifier: the parameter %s is not an input of this variant", state.FXName.c_str(),state.BuiltName.c_str(), arg.c_str());
+                return UINT32_MAX;
             }
             if (state.ParameterSlotsOut[i] != 0xFF)
-                return state.ParameterSlotsOut[i];
-            U32 slot = ++state.TextureSamplersIndex;
+            {
+                return state.ParameterSlotsOut[i]; // quiet ignore. most devices have sampler + texture sharing common indices
+            }
+            U32 slot = state.TextureSamplersIndex++;
             state.ParameterSlotsOut[i] = slot;
             return slot;
         }
     }
-    TTE_LOG("FX Parser error: %s:%u: at TTE_TEXTURE/TTE_SAMPLER specifier: the argument %s is not a valid sampler type!", state.FXName.c_str(), line, arg.c_str());
+    TTE_LOG("At %s: at TTE_TEXTURE/TTE_SAMPLER specifier: the argument %s is not a valid sampler type!", state.FXName.c_str(), arg.c_str());
     return UINT32_MAX;
 }
 
-String RenderEffectCache::_ParseFX(const String& fxStr, U8* pParameterSlotsOut, const ShaderParameterTypes& effectParameters, const String& fxName)
+void RenderEffectCache::_FXSectionSkipWhitespace(SectionResolverState& state)
 {
-    FXResolveState resolver{pParameterSlotsOut, effectParameters, fxName};
-    String fxResolved = fxStr;
+    while (state.Position < state.Expression.size() && std::isspace(state.Expression[state.Position]))
+        ++state.Position;
+}
+
+Bool RenderEffectCache::_FXSectionParseIdentifier(SectionResolverState& state)
+{
+    _FXSectionSkipWhitespace(state);
+
+    Bool neg = false;
+    if (state.Position < state.Expression.size() && state.Expression[state.Position] == '!')
+    {
+        neg = true;
+        ++state.Position;
+    }
+
+    _FXSectionSkipWhitespace(state);
+
+    size_t start = state.Position;
+    while (state.Position < state.Expression.size() &&
+           (std::isalnum(state.Expression[state.Position]) || state.Expression[state.Position] == '_'))
+    {
+        ++state.Position;
+    }
+
+    if (start == state.Position)
+    {
+        state.Error = "expected identifier in expression";
+        return false;
+    }
+
+    String token = state.Expression.substr(start, state.Position - start);
+    Bool hasMacro = state.Macros.count(token) > 0;
+    return neg ? !hasMacro : hasMacro;
+}
+
+Bool RenderEffectCache::_FXSectionParsePrim(SectionResolverState& state)
+{
+    _FXSectionSkipWhitespace(state);
+    if(state.Error)
+        return false;
+    if (state.Position < state.Expression.size() && state.Expression[state.Position] == '(')
+    {
+        ++state.Position;
+        Bool val = _FXSectionParseOR(state);
+        if (state.Error)
+            return false;
+        _FXSectionSkipWhitespace(state);
+        if (state.Error)
+            return false;
+        if (state.Position >= state.Expression.size() || state.Expression[state.Position] != ')')
+        {
+            state.Error = "expected ')'";
+            return false;
+        }
+        ++state.Position;
+        return val;
+    }
+    return _FXSectionParseIdentifier(state);
+}
+
+Bool RenderEffectCache::_FXSectionParseAND(SectionResolverState& state)
+{
+    Bool left = _FXSectionParsePrim(state);
+    if (state.Error)
+        return false;
+    while (true)
+    {
+        _FXSectionSkipWhitespace(state);
+        if (state.Error)
+            return false;
+        if (state.Expression.compare(state.Position, 2, "&&") == 0)
+        {
+            state.Position += 2;
+            Bool right = _FXSectionParsePrim(state);
+            if (state.Error)
+                return false;
+            left = left && right;
+        }
+        else
+        {
+            break;
+        }
+    }
+    return left;
+}
+
+Bool RenderEffectCache::_FXSectionParseOR(SectionResolverState& state)
+{
+    Bool left = _FXSectionParseAND(state);
+    if (state.Error)
+        return false;
+    while (true)
+    {
+        _FXSectionSkipWhitespace(state);
+        if (state.Expression.compare(state.Position, 2, "||") == 0)
+        {
+            state.Position += 2;
+            Bool right = _FXSectionParseAND(state);
+            if (state.Error)
+                return false;
+            left = left || right;
+        }
+        else
+        {
+            break;
+        }
+    }
+    return left;
+}
+
+Bool RenderEffectCache::_FXSectionEval(SectionResolverState& state)
+{
+    Bool val = _FXSectionParseOR(state);
+    if (state.Error)
+        return false;
+    _FXSectionSkipWhitespace(state);
+    if (state.Position != state.Expression.size())
+    {
+        state.Error = "unexpected trailing characters in expression";
+        return false;
+    }
+    return val;
+}
+
+String RenderEffectCache::_ResolveFXSections(const String& src, const std::vector<std::string>& macrosV, const String& fx)
+{
+    std::unordered_set<std::string> macros(macrosV.begin(), macrosV.end());
+    std::istringstream stream{src};
+    String line{};
+    std::ostringstream output{};
+
+    struct SectionState
+    {
+        I32 LineNumber = 1;
+        Bool Enabled = false;
+        Bool ElseEncountered = false;
+    };
+
+    std::vector<SectionState> sectionStack{};
+
+    std::regex beginRegex(R"(\bTTE_SECTION_BEGIN\s*\(\s*([^\)]+?)\s*\)\s*.*)");
+    std::regex elseRegex(R"(\bTTE_SECTION_ELSE\s*\(\s*\)\s*.*)");
+    std::regex endRegex(R"(\bTTE_SECTION_END\s*\(\s*\)\s*.*)");
+
+    I32 lineNumber = 0;
+    while (std::getline(stream, line))
+    {
+        lineNumber++;
+        std::smatch match;
+
+        if (std::regex_search(line, match, beginRegex))
+        {
+            String expr = match[1].str();
+            Bool result = false;
+            SectionResolverState state(expr, macros);
+            result = _FXSectionEval(state);
+            if(state.Error)
+            {
+                TTE_LOG("At %s:%d => %s", fx.c_str(), lineNumber,state.Error);
+                return "";
+            }
+            if (!sectionStack.empty() && !sectionStack.back().Enabled)
+                result = false;
+            sectionStack.push_back({ lineNumber, result, false });
+            continue;
+        }
+        else if (std::regex_search(line, elseRegex))
+        {
+            if (!sectionStack.empty())
+            {
+                auto& top = sectionStack.back();
+                if (!top.ElseEncountered)
+                {
+                    top.Enabled = !top.Enabled;
+                    top.ElseEncountered = true;
+                    top.LineNumber = lineNumber;
+                    if (sectionStack.size() > 1)
+                    {
+                        auto it = sectionStack.rbegin();
+                        ++it; // parent
+                        if (!it->Enabled)
+                            top.Enabled = false;
+                    }
+                }
+                else
+                {
+                    TTE_LOG("At %s:%d => TTE_SECTION_ELSE(): repeated else block", fx.c_str(), lineNumber);
+                    return "";
+                }
+            }
+            else
+            {
+                TTE_LOG("At %s:%d => TTE_SECTION_ELSE(): no previous section statement found in chain", fx.c_str(), lineNumber);
+                return "";
+            }
+            continue;
+        }
+        else if (std::regex_search(line, match, endRegex))
+        {
+            if (!sectionStack.empty())
+            {
+                sectionStack.pop_back();
+            }
+            else
+            {
+                TTE_LOG("At %s:%d => TTE_SECTION_END(): no previous section statement found in chain", fx.c_str(), lineNumber);
+                return "";
+            }
+            continue;
+        }
+        else
+        {
+            if (sectionStack.empty() || sectionStack.back().Enabled)
+            {
+                output << line << '\n';
+            }
+        }
+    }
+    if(!sectionStack.empty())
+    {
+        TTE_LOG("At %s:%d: unexpected EOF: section chain not terminated from line %d", fx.c_str(), lineNumber, sectionStack.back().LineNumber);
+    }
+    return output.str();
+}
+
+String RenderEffectCache::_ParseFX(const String& fxStr, U8* pParameterSlotsOut, const ShaderParameterTypes& effectParameters, 
+                                   const String& fxName, RenderEffectParams effectParams,  const std::vector<String>& macros, const String& builtName)
+{
+    FXResolveState resolver{pParameterSlotsOut, effectParameters, fxName, effectParams, builtName};
+    resolver.TextureSamplersIndex = 0;
+    resolver.GenericBuffersIndex = 0;
+
+    // SECTIONS
+    String fxResolved = _ResolveFXSections(fxStr, macros, fxName);
+    if(fxResolved.length() == 0)
+        return "";
+
     // UNIFORMS
-    fxResolved = _ResolveFXBindings(fxResolved, "TTE_UNIFORM_BUFFER", &FXResolver_Uniform, resolver);
+    fxResolved = _ResolveFXBindings(fxResolved, "TTE_UNIFORM_BUFFER", ShaderParameterTypeClass::UNIFORM_BUFFER, &FXResolver_Uniform, resolver);
     if(fxResolved.length() == 0)
         return "";
     for(auto it = effectParameters.begin(); it != effectParameters.end(); it++)
     {
-        if(ShaderParametersInfo[*it].Class == ShaderParameterTypeClass::UNIFORM_BUFFER && pParameterSlotsOut[*it] == 0xFF)
+        if(ShaderParametersInfo[(U8)*it].Class == ShaderParameterTypeClass::UNIFORM_BUFFER && pParameterSlotsOut[(U8)*it] == 0xFF)
         {
-            TTE_LOG("FX Parser error for variant %s: uniform buffer %s not declared as input at any point but is required", fxName.c_str(), ShaderParametersInfo[*it].Name);
+            TTE_LOG("FX Parser error for variant %s: uniform buffer %s not declared as input at any point but is required", fxName.c_str(), ShaderParametersInfo[(U8)*it].Name);
             return "";
         }
     }
     // GENERICS
-    fxResolved = _ResolveFXBindings(fxResolved, "TTE_GENERIC_BUFFER", &FXResolver_Generic, resolver);
+    fxResolved = _ResolveFXBindings(fxResolved, "TTE_GENERIC_BUFFER", ShaderParameterTypeClass::GENERIC_BUFFER, &FXResolver_Generic, resolver);
     if (fxResolved.length() == 0)
         return "";
     for (auto it = effectParameters.begin(); it != effectParameters.end(); it++)
     {
-        if (ShaderParametersInfo[*it].Class == ShaderParameterTypeClass::GENERIC_BUFFER && pParameterSlotsOut[*it] == 0xFF)
+        if (ShaderParametersInfo[(U8)*it].Class == ShaderParameterTypeClass::GENERIC_BUFFER && pParameterSlotsOut[(U8)*it] == 0xFF)
         {
-            TTE_LOG("FX Parser error for variant %s: uniform buffer %s not declared as input at any point but is required", fxName.c_str(), ShaderParametersInfo[*it].Name);
+            TTE_LOG("FX Parser error for variant %s: uniform buffer %s not declared as input at any point but is required", fxName.c_str(), ShaderParametersInfo[(U8)*it].Name);
             return "";
         }
     }
     // TEXTURE SAMPLERS
-    fxResolved = _ResolveFXBindings(fxResolved, "TTE_TEXTURE", &FXResolver_TextureSampler, resolver);
+    fxResolved = _ResolveFXBindings(fxResolved, "TTE_TEXTURE", ShaderParameterTypeClass::INDEX_BUFFER, &FXResolver_TextureSampler, resolver);
     if (fxResolved.length() == 0)
         return "";
-    fxResolved = _ResolveFXBindings(fxResolved, "TTE_SAMPLER", &FXResolver_TextureSampler, resolver);
+    fxResolved = _ResolveFXBindings(fxResolved, "TTE_SAMPLER", ShaderParameterTypeClass::SAMPLER, &FXResolver_TextureSampler, resolver);
     if (fxResolved.length() == 0)
         return "";
     for (auto it = effectParameters.begin(); it != effectParameters.end(); it++)
     {
-        if (ShaderParametersInfo[*it].Class == ShaderParameterTypeClass::SAMPLER && pParameterSlotsOut[*it] == 0xFF)
+        if (ShaderParametersInfo[(U8)*it].Class == ShaderParameterTypeClass::SAMPLER && pParameterSlotsOut[(U8)*it] == 0xFF)
         {
-            TTE_LOG("FX Parser error for variant %s: texture/sampler %s not declared as input at any point but is required", fxName.c_str(), ShaderParametersInfo[*it].Name);
+            TTE_LOG("FX Parser error for variant %s: texture/sampler %s not declared as input at any point but is required", fxName.c_str(), ShaderParametersInfo[(U8)*it].Name);
             return "";
         }
     }
+    // attribs
+    fxResolved = _ResolveFXBindings(fxResolved, "TTE_VERTEX_ATTRIB", ShaderParameterTypeClass::VERTEX_BUFFER, &FXResolver_VertexAttribute, resolver);
+    if (fxResolved.length() == 0)
+        return "";
     return fxResolved;
 }
 
 Bool RenderEffectCache::_CreateProgram(const String& fxSrc, RenderEffectParams params, Ptr<RenderShader>& vert, Ptr<RenderShader>& pixel)
 {
-    U8 ParamSlotsVert[PARAMETER_COUNT], ParamSlotsPixel[PARAMETER_COUNT];
-    memset(ParamSlotsVert, 0xFF, PARAMETER_COUNT);
-    memset(ParamSlotsPixel, 0xFF, PARAMETER_COUNT);
+    U8 ParamSlotsVert[(U8)ShaderParameterType::PARAMETER_COUNT], ParamSlotsPixel[(U8)ShaderParameterType::PARAMETER_COUNT];
+    memset(ParamSlotsVert, 0xFF, (U8)ShaderParameterType::PARAMETER_COUNT);
+    memset(ParamSlotsPixel, 0xFF, (U8)ShaderParameterType::PARAMETER_COUNT);
     Memory::FastBufferAllocator fastAllocator{};
     ShaderParameterTypes vertexParameters = GetEffectDesc(params.Effect).VertexRequiredParameters;
     for (auto it = params.Features.begin(); it != params.Features.end(); it++)
@@ -533,14 +851,28 @@ Bool RenderEffectCache::_CreateProgram(const String& fxSrc, RenderEffectParams p
     VertexAttributesBitset vertexAttribs = GetEffectDesc(params.Effect).RequiredAttribs;
     for (auto it = params.Features.begin(); it != params.Features.end(); it++)
         vertexAttribs.Import(GetEffectFeatureDesc(*it).RequiredAttribs);
+
     String builtName = BuildName(params, ".ttefxb");
-    String fxResolvedVertex = _ParseFX(fxSrc, ParamSlotsVert, vertexParameters, builtName);
-    String fxResolvedPixel = _ParseFX(fxSrc, ParamSlotsPixel, pixelParameters, builtName);
+
     std::vector<String> macros{};
+    macros.push_back(GetEffectDesc(params.Effect).Macro);
     for (auto it = params.Features.begin(); it != params.Features.end(); it++)
     {
         macros.push_back(GetEffectFeatureDesc(*it).Macro);
     }
+
+    macros.push_back("TTE_VERTEX");
+    String fileNameFX = _FXFileNamePrefix + GetEffectDesc(params.Effect).FXFileName;
+    String fxResolvedVertex = _ParseFX(fxSrc, ParamSlotsVert, vertexParameters, fileNameFX, params, macros, builtName + ".vertex");
+    if(fxResolvedVertex.empty())
+        return false;
+    macros.pop_back();
+    macros.push_back("TTE_PIXEL");
+    String fxResolvedPixel = _ParseFX(fxSrc, ParamSlotsPixel, pixelParameters, fileNameFX, params, macros, builtName + ".pixel");
+    if (fxResolvedPixel.empty())
+        return false;
+    macros.pop_back();
+
     RenderDeviceType deviceType = _Context->GetDeviceType();
     if (deviceType== RenderDeviceType::D3D12)
     {
@@ -581,8 +913,10 @@ Bool RenderEffectCache::_CreateProgram(const String& fxSrc, RenderEffectParams p
         }
         if (errors)
             errors->Release();
-        vert = _CreateShader(vertexParameters, RenderShaderType::VERTEX, builtName + "_VERTEX", vertexAttribs, vertCode->GetBufferPointer(), (U32)vertCode->GetBufferSize(), SDL_GPU_SHADERFORMAT_DXBC);
-        pixel = _CreateShader(pixelParameters, RenderShaderType::FRAGMENT, builtName + "_FRAG", {}, pixelCode->GetBufferPointer(), (U32)pixelCode->GetBufferSize(), SDL_GPU_SHADERFORMAT_DXBC);
+        vert = _CreateShader(vertexParameters, RenderShaderType::VERTEX, builtName + "_VERTEX", ParamSlotsVert,
+                             vertexAttribs, vertCode->GetBufferPointer(), (U32)vertCode->GetBufferSize(), SDL_GPU_SHADERFORMAT_DXBC);
+        pixel = _CreateShader(pixelParameters, RenderShaderType::FRAGMENT, builtName + "_FRAG", ParamSlotsPixel,
+                              {}, pixelCode->GetBufferPointer(), (U32)pixelCode->GetBufferSize(), SDL_GPU_SHADERFORMAT_DXBC);
         if (vertCode) 
             vertCode->Release();
         if (pixelCode) 

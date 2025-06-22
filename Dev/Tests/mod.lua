@@ -1,9 +1,11 @@
 if TTE_GetPlatform() == "Windows" then
     TTE_MountSystem("<Data>/", "D:/Games/Bone - Out from Boneville/26_06_2007/Pack/data/", true) -- set input files
     TTE_MountSystem("<Vers>/", "c:/Users/lucas/Desktop/extract/Vers/", true)
+    TTE_MountSystem("<Extract>/", "c:/Users/lucas/Desktop/extract/", true)
 else
     TTE_MountSystem("<Data>/", "/Users/lucassaragosa/Desktop/Game/Boneville/StreamedData_Mac/", true) -- set input files
     TTE_MountSystem("<Vers>/", "/users/lucassaragosa/desktop/versprobe/", true)
+    TTE_MountSystem("<Extract>/", "/users/lucassaragosa/desktop/versprobe/extract/", true)
 end
 
 -- open and copy vers into vers folder
@@ -34,13 +36,26 @@ local function ProbeVers()
     end
 end
 
-local function Test()
-    local prop = Load("module_text.prop")
-    local props = PropertyKeys(prop)
-    for _,p in pairs(props) do
-        TTE_Log(p .. " " .. PropertyGetKeyType(prop, p))
+local function Extract()
+    local files = ResourceGetNames("!*.anm;!*.vox")
+    for _,file in ipairs(files) do
+        local locator = ResourceResolveAddressToConcreteLocationID(ResourceGetURL(file))
+        if string.match(locator, "ttarch") then
+            TTE_Log("- extract " .. file)
+            FileCopy(ResourceGetURL(file), "<Extract>/" .. file)
+        else
+            TTE_Log("- skip external " .. file)
+        end
     end
-    Save("logical://<Vers>/module_text.prop")
 end
 
-ProbeVers()
+local function Test()
+    local files = ResourceGetNames("*.d3dmesh")
+    for _,file in ipairs(files) do
+        TTE_Log("- " .. file)
+        -- FileCopy(ResourceGetURL(file), "logical://<Extract>/" .. file)
+        local ms = TTE_OpenMetaStream(ResourceGetURL(file))
+    end
+end
+
+Test()

@@ -37,13 +37,14 @@ constexpr SDL_FormatMappings[]
     {RenderSurfaceFormat::UNKNOWN, SDL_GPU_TEXTUREFORMAT_INVALID}, // do not add below this, add above
 };
 
-TextureFormatInfo GetSDLFormatInfo(RenderSurfaceFormat format);
+// Or use versions inside render context
+const TextureFormatInfo& GetSDLFormatInfo(RenderSurfaceFormat format);
 RenderSurfaceFormat FromSDLFormat(SDL_GPUTextureFormat format);
 
 // ==================================================
 
 /// A texture.
-class RenderTexture : public HandleableRegistered<RenderTexture>
+class RenderTexture : public HandleableRegistered<RenderTexture>, public RenderResource
 {
 private:
     
@@ -94,9 +95,9 @@ private:
     
     std::vector<Image> _Images; // sub images
     
-    void _Release();
-    
 public:
+
+    virtual void Release() override;
     
     static constexpr CString ClassHandle = "Handle<D3DTexture>;Handle<T3Texture>";
     static constexpr CString Class = "D3DTexture;T3Texture";
@@ -157,6 +158,11 @@ public:
         outHeight = _Height;
         outDepth = _Depth;
         outArraySize = _ArraySize;
+    }
+
+    inline String GetName() const
+    {
+        return _Name;
     }
     
 };
