@@ -5,9 +5,7 @@
 #include <Core/Config.hpp>
 #include <Meta/Meta.hpp>
 
-#include <Scripting/ScriptManager.hpp>
-
-// CALLBACKS HELPERS FOR META SYSTEM
+#include <Scripting/ScriptManager.hpp
 
 // ===================================================================         BASE
 // ===================================================================
