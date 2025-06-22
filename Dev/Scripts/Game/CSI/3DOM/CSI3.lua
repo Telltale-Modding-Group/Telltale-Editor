@@ -16,6 +16,7 @@ function CSI3_GetGameDescriptor()
 	CSI3.Platforms = "PC;PS2"
 	CSI3.Vendors = ""
 	MetaPushGameCapability(CSI3, kGameCapRawClassNames) -- CHECK OTHER CAPS
+	MetaPushExecutableHash(CSI3, "116178E31DA7C0F8", "PC", "")
 	MetaRegisterGame(CSI3)
 	return CSI3
 end

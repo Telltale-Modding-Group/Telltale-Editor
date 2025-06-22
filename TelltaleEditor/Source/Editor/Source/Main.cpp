@@ -40,11 +40,11 @@ static void _TestScene(TelltaleEditor* editor)
 // Run full application
 I32 CommandLine::Executor_Editor(const std::vector<TaskArgument>& args)
 {
-    _TestScene(CreateEditorContext({"BN100","PC","v2.0_Late"}));
-    FreeEditorContext();
-    return 0;
-    //ApplicationUI App{};
-    //return App.Run(args);
+    //_TestScene(CreateEditorContext({"BN100","PC","v2.0_Late"}));
+    //FreeEditorContext();
+    //return 0;
+    ApplicationUI App{};
+    return App.Run(args);
 }
 
 int main(int argc, char** argv)

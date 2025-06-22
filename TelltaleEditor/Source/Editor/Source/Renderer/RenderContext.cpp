@@ -651,6 +651,16 @@ std::vector<Ptr<Handleable>> RenderContext::_PurgeColdLocks()
     return std::move(toUnlock);
 }
 
+void RenderContext::DisableDebugHUD(SDL_Window* sdlWindow)
+{
+#if defined(PLATFORM_WINDOWS) && defined(DEBUG)
+    if(_Win32PIXModuleLoaded)
+    {
+        PIXSetHUDOptions(PIX_HUD_SHOW_ON_NO_WINDOWS);
+    }
+#endif
+}
+
 void RenderContext::_PurgeColdResources(RenderFrame* pFrame)
 {
     for (auto it = _AvailTransferBuffers.begin(); it != _AvailTransferBuffers.end();)

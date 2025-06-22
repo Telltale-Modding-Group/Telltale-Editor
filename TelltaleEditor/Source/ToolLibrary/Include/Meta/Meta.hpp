@@ -437,6 +437,7 @@ namespace Meta
         std::vector<String> ValidVendors; // if non zero it must be specified. eg 'DevBuild' for early dev releases etc. see script. empty string always allowed as well
         Flags Fl; // flags
         String CommonSelector;
+        std::map<U64, std::pair<String, String>> ExecutableHash; // exe hash => platform + vendor pair
 
         // These are snapshot => XX mappings. snapshot is not the game ID, but the 'Platform/Vendor' or just 'Platform' (substitute)
 

@@ -35,9 +35,11 @@ TelltaleEditor::TelltaleEditor(GameSnapshot s)
 
     _ModdingContext = CreateToolContext(std::move(commonAPI));
 
-    _ModdingContext->Switch(s); // create context loads the symbols. in the editor lets resave them in close
-    _PostSwitch(s);
+    if(s.ID.length() > 0)
+    {
+        Switch(s);
 
+    }
     RenderContext::Initialise();
     RenderStateBlob::Initialise();
 }
@@ -308,6 +310,11 @@ TTEProperties::TTEProperties() : _URI{}, _LoadState(true)
 {
 }
 
+TTEProperties::TTEProperties(ResourceURL URI) : _URI{URI}, _LoadState(true)
+{
+    Load(URI);
+}
+
 void TTEProperties::Load(ResourceURL physicalURI)
 {
     _LoadState = true;
@@ -480,8 +487,7 @@ std::vector<String> TTEProperties::GetStringArray(const String& key)
 
 void TTEProperties::AddArray(const String& key, const String& value)
 {
-    if (_StringArrayKeys.find(key) == _StringArrayKeys.end())
-        _StringArrayKeys[key].push_back(value);
+    _StringArrayKeys[key].push_back(value);
 }
 
 void TTEProperties::RemoveArray(const String& key, const String& value)

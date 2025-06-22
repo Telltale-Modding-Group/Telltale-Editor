@@ -35,6 +35,11 @@ function Bone1_GetGameDescriptor()
 	MetaPushGameCapability(bone1, kGameCapSeparateAnimationTransform)
 	MetaPushGameCapability(bone1, kGameCapUsesLenc)
 	MetaPushGameCapability(bone1, kGameCapRawClassNames)
+	MetaPushExecutableHash(bone1, "3F7E516806AD0638", "PC", "Demo_2005")
+	MetaPushExecutableHash(bone1, "65776A64C0D6236B", "PC", "v2.0_Main")
+	MetaPushExecutableHash(bone1, "6D0252245BC3FBA5", "PC", "v2.0_Late")
+	MetaPushExecutableHash(bone1, "2EF5F1B1EC0818C4", "PC", "v2.0_Late")
+	MetaPushExecutableHash(bone1, "DEBD66F6A23807E0", "MacOS", "")
 	MetaRegisterGame(bone1)
 	return bone1
 end

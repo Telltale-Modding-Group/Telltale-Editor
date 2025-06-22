@@ -87,6 +87,16 @@ void DataStreamManager::WriteString(DataStreamRef &stream, const String &str)
     stream->Write((const U8*)str.c_str(), str.length());
 }
 
+
+String DataStreamManager::ReadAllAsString(DataStreamRef& str)
+{
+    U32 size = (U32)(str->GetSize() - str->GetPosition());
+    String s{};
+    s.resize(size, '0');
+    str->Read((U8*)s.c_str(), (U64)size);
+    return s;
+}
+
 String DataStreamManager::ReadString(DataStreamRef& str)
 {
     U32 size{};

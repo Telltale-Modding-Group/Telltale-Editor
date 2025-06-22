@@ -95,9 +95,9 @@ private:
     
     std::vector<Image> _Images; // sub images
     
-    virtual void Release() override;
-    
 public:
+
+    virtual void Release() override;
     
     static constexpr CString ClassHandle = "Handle<D3DTexture>;Handle<T3Texture>";
     static constexpr CString Class = "D3DTexture;T3Texture";

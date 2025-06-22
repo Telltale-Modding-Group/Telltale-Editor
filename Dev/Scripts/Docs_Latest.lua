@@ -777,37 +777,24 @@ end
 function IsIsolated()
 end
 
---- Converts the container into a lua table and returns it. For keyed container, they are the table keys. For non keyed, they are 0 based indices.
---- @param container nil
---- @return table
-function TTE_TableToContainer(container)
-end
-
---- Inserts all key-value mappings from the input table into the container. For non keyed containers (eg arrays) keys are ignored and its added at the back.
---- @param container nil
---- @param table nil
---- @return table
-function TTE_ContainerToTable(container, table)
-end
-
---- Prints to the console all of the resource sets in the resource system, Must have a resource system attached!
+--- This function is only available to mod scripts! Prints to the console all of the resource sets in the resource system, Must have a resource system attached!
 --- @return nil
 function TTE_PrintResourceSets()
 end
 
---- Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that archive can be found. This supports .ttarch2/ttarch/iso/pk2. Physical
---- path is the path on your local machine. Location ID should be in the format <XXX>/. Please note that the archive must be from the current game snapshot! Otherwise it
---- will fail to read due to incorrect encryptino and expected format.
+--- This function is only available to mod scripts! Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that
+--- archive can be found. This supports .ttarch2/ttarch/iso/pk2. Physical path is the path on your local machine. Location ID should be in the format <XXX>/. Please note that the archive must
+--- be from the current game snapshot! Otherwise it will fail to read due to incorrect encryptino and expected format.
 --- @param locationID nil
 --- @param physPath nil
 --- @return nil
 function TTE_MountArchive(locationID, physPath)
 end
 
---- Mounts the resource system (like creating a concrete directory location) to the given physical path under the name locationID. Location ID should be in the format <XXX>/. Physical path can
---- be absolute or relative to your working directory. The last argument can be set to true to use the old telltale engine resource system which had no resource set descriptions.
---- This means that it will recurse all directories and add them all. Set this to true to just easily get all resources quickly for debugging, so that they are all
---- in resource system ready to be used.
+--- This function is only available to mod scripts! Mounts the resource system (like creating a concrete directory location) to the given physical path under the name locationID. Location ID should
+--- be in the format <XXX>/. Physical path can be absolute or relative to your working directory. The last argument can be set to true to use the old telltale engine
+--- resource system which had no resource set descriptions. This means that it will recurse all directories and add them all. Set this to true to just easily get all resources
+--- quickly for debugging, so that they are all in resource system ready to be used.
 --- @param locationID nil
 --- @param physPath nil
 --- @param forceLegacy nil
@@ -815,8 +802,8 @@ end
 function TTE_MountSystem(locationID, physPath, forceLegacy)
 end
 
---- Switches the editor context to a new game snapshot. Note that this can only be called from a mod script at startup or when no files are being read or
---- processed. If it is called at one of those times, an error is thrown to the log and it does nothing.
+--- This function is only available to mod scripts! Switches the editor context to a new game snapshot. Note that this can only be called from a mod script at startup
+--- or when no files are being read or processed. If it is called at one of those times, an error is thrown to the log and it does nothing.
 --- @param gameID nil
 --- @param platformName nil
 --- @param vendorName nil
@@ -824,38 +811,39 @@ end
 function TTE_Switch(gameID, platformName, vendorName)
 end
 
---- Opens and reads a meta stream, returning the base class instance that the file contains. This returns a strong reference to the instance. If one argument is passed in, filename
---- is the path on your computer where the file is (or relative to the executable). If two are passed in, the first must be the file name string and the
---- second is the archive (any version) which the file is located in.
---- @param filename nil
+--- This function is only available to mod scripts! Opens and reads a meta stream, returning the base class instance that the file contains. This returns a strong reference to the
+--- instance. If one argument is passed in, filename is resource address in the resource system where it is located. If two are passed in, the first must be the file
+--- name string and the second is the archive (any version) which the file is located in.
+--- @param address_or_file nil
 --- @param --[[optional]] archive nil
 --- @return instance
-function TTE_OpenMetaStream(filename, --[[optional]] archive)
+function TTE_OpenMetaStream(address_or_file, --[[optional]] archive)
 end
 
---- Writes the given instance to the file located at the filename argument. Returns if it was successfully written.
---- @param filename nil
+--- This function is only available to mod scripts! Writes the given instance to the file located at the given resource address. Returns if it was successfully written.
+--- @param address nil
 --- @param instance nil
 --- @return bool
-function TTE_SaveMetaStream(filename, instance)
+function TTE_SaveMetaStream(address, instance)
 end
 
---- Opens a TTARCH file which is located at the given file path on your computer (or relative, like all file paths, to the executable). Returns the archive instance, a strong
---- reference although this is not a class instance. You can then use this to list files and open files from it. Note that this archive MUST match the version of
---- the currently selected game,ie the archive must be from the game that the editor context is currently working with.
+--- This function is only available to mod scripts! Opens a TTARCH file which is located at the given file path on your computer (or relative, like all file paths, to
+--- the executable). Returns the archive instance, a strong reference although this is not a class instance. You can then use this to list files and open files from it. Note
+--- that this archive MUST match the version of the currently selected game,ie the archive must be from the game that the editor context is currently working with.
 --- @param filepath nil
 --- @return arc
 function TTE_OpenTTArchive(filepath)
 end
 
---- Opens a TTARCH2 file which is located at the given file path on your computer (or relative). Returns the archive instance, a strong reference. This archive, like others, must be
---- from the currently active game such that the encryption key matches.
+--- This function is only available to mod scripts! Opens a TTARCH2 file which is located at the given file path on your computer (or relative). Returns the archive instance, a
+--- strong reference. This archive, like others, must be from the currently active game such that the encryption key matches.
 --- @param filepath nil
 --- @return arc
 function TTE_OpenTTArchive2(filepath)
 end
 
---- Returns a table (indices 1 to N) of all the file names in the given archive, which was previously opened with open TTArchive or TTArchive2.
+--- This function is only available to mod scripts! Returns a table (indices 1 to N) of all the file names in the given archive, which was previously opened with open
+--- TTArchive or TTArchive2.
 --- @param archive nil
 --- @return table
 function TTE_ArchiveListFiles(archive)
@@ -869,6 +857,19 @@ end
 --- @param isEncrypt nil
 --- @return nil
 function TTE_Blowfish(bufferMetaInstance, size, isEncrypt)
+end
+
+--- Converts the container into a lua table and returns it. For keyed container, they are the table keys. For non keyed, they are 0 based indices.
+--- @param container nil
+--- @return table
+function TTE_TableToContainer(container)
+end
+
+--- Inserts all key-value mappings from the input table into the container. For non keyed containers (eg arrays) keys are ignored and its added at the back.
+--- @param container nil
+--- @param table nil
+--- @return table
+function TTE_ContainerToTable(container, table)
 end
 
 --- Dumps to the logger all memory which has not been freed yet. This will contain a lot of script stuff which won't matter as the script engine requires memory which
@@ -919,6 +920,16 @@ end
 function MetaPushGameCapability(gameTable, cap)
 end
 
+--- Push an executable hash which maps to the given platform/vendor pair. This is used for the Editor when user selects the mount points of their installation such that we can
+--- detect their installation game snapshot.
+--- @param gameTable nil
+--- @param hashStr nil
+--- @param platform nil
+--- @param vendor nil
+--- @return nil
+function MetaPushExecutableHash(gameTable, hashStr, platform, vendor)
+end
+
 --- This associates file name masks to folders. When extracting files in the Telltale Editor sometimes the user can select to extract to sub-folders. This function associates masks to sub-folders which
 --- the game engines. For example, a typical mapping is any files matching 'module_*.prop' should go into 'Properties/Primitives/'. You should use forward slashes and end with one, although if not it
 --- will be changed for you. This should only be called during initialisation.
@@ -947,7 +958,7 @@ end
 --- be nil for non keyed collections, such as most arrays, but must be a previoulsy registered table otherwise (eg for Map classes). If this is a static array (SArray) class,
 --- then this should be an integer being the number of elements. The third argument must always be non nil and a table, which is the previously registered value type in
 --- the collection. There is a special case where key or value type table can be strings. If you pass them as a string, this means they will be resolved once
---- all classes have been registered. This allows forward declaration of a class inside a collection before its fully defined. Instead of padding in the type table you pass in the
+--- all classes have been registered. This allows forward declaration of a class inside a collection before its fully defined. Instead of passing in the type table you pass in the
 --- string name of the class it should be. Optionally you can end the string with a semicolon followed by the version index, eg 'class Hello;1', such that version index 1
 --- is used in this example. By default version index 0 is used.
 --- @param table nil

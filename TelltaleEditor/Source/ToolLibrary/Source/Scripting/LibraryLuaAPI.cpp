@@ -78,6 +78,49 @@ namespace Meta
             
             return 0;
         }
+
+        U32 luaMetaPushHash(LuaManager& man)
+        {
+            TTE_ASSERT(_IsMain, "Can only be called in initialisation on the main thread");
+            if (!GetToolContext() || GetToolContext()->GetActiveGame()) // no active game can be set here
+            {
+                TTE_ASSERT(false, "This function can only be called during initialisation of a game");
+                return 0;
+            }
+            man.PushLString("HashMap");
+            man.GetTable(1);
+            if (man.Type(-1) != LuaType::TABLE)
+            {
+                man.Pop(1);
+                man.PushLString("HashMap");
+                man.PushTable();
+                man.SetTable(1);
+                man.PushLString("HashMap");
+                man.GetTable(1);
+            }
+            // game tab, hash str, platform, vendor, hash tab
+            String hash = man.ToString(2);
+            String plat = man.ToString(3);
+            String vend = man.ToString(4);
+            U64 hashVal = (U64)std::stoull(hash, nullptr, 16);
+            if(hashVal == 0)
+            {
+                TTE_LOG("WARNING: Hash %s is invalid when pushing game hash", hash.c_str());
+            }
+            else
+            {
+                man.PushLString(hash);
+                man.PushTable();
+                man.PushLString("Platform");
+                man.PushLString(plat);
+                man.SetTable(-3);
+                man.PushLString("Vendor");
+                man.PushLString(vend);
+                man.SetTable(-3);
+                man.SetTable(-3);
+            }
+            return 0;
+        }
         
         U32 luaMetaPushGameCap(LuaManager& man)
         {
@@ -193,6 +236,24 @@ namespace Meta
                     reg.Caps.Set((GameCapability)man.ToInteger(-1), true);
                     man.Pop(1);
                     index++;
+                }
+            }
+            man.Pop(1);
+
+            ScriptManager::TableGet(man, "HashMap");
+            if (man.Type(-1) == LuaType::TABLE)
+            {
+                ITERATE_TABLE(it, -1)
+                {
+                    String hash = man.ToString(it.KeyIndex());
+                    man.PushLString("Platform");
+                    man.GetTable(it.ValueIndex());
+                    String plat = ScriptManager::PopString(man);
+                    man.PushLString("Vendor");
+                    man.GetTable(it.ValueIndex());
+                    String vend = ScriptManager::PopString(man);
+                    U64 hashVal = (U64)std::stoull(hash, nullptr, 16);
+                    reg.ExecutableHash[hashVal] = std::make_pair(plat, vend);
                 }
             }
             man.Pop(1);
@@ -3286,6 +3347,10 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
         });
         Col.Functions.push_back({"MetaPushGameCapability",&Meta::L::luaMetaPushGameCap, "nil MetaPushGameCapability(gameTable, cap)","Push a game capability to the "
             "game table. Call before registering the game table."
+        });
+        Col.Functions.push_back({"MetaPushExecutableHash",&Meta::L::luaMetaPushHash, "nil MetaPushExecutableHash(gameTable, hashStr, platform, vendor)",
+                                "Push an executable hash which maps to the given platform/vendor pair. This is used for the Editor when user selects "
+                                "the mount points of their installation such that we can detect their installation game snapshot."
         });
         Col.Functions.push_back({"MetaAssociateFolderExtension",&Meta::L::luaAssignFolderExt,
             "nil MetaAssociateFolderExtension(gameID, mask, folder)", "This associates file name masks to folders. When extracting "

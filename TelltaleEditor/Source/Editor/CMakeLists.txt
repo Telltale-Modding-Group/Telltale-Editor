@@ -11,6 +11,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     ToolLibrary
     SDL3::SDL3-static
     imgui
+    nfd
 )
 
 # Include D3D libraries

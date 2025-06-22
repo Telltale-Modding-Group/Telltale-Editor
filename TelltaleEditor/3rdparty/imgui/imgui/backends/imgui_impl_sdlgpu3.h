@@ -47,4 +47,37 @@ IMGUI_IMPL_API void     ImGui_ImplSDLGPU3_DestroyDeviceObjects();
 IMGUI_IMPL_API void     ImGui_ImplSDLGPU3_CreateFontsTexture();
 IMGUI_IMPL_API void     ImGui_ImplSDLGPU3_DestroyFontsTexture();
 
+// SDL_GPU Data
+
+// Reusable buffers used for rendering 1 current in-flight frame, for ImGui_ImplSDLGPU3_RenderDrawData()
+struct ImGui_ImplSDLGPU3_FrameData
+{
+    SDL_GPUBuffer* VertexBuffer = nullptr;
+    SDL_GPUTransferBuffer* VertexTransferBuffer = nullptr;
+    uint32_t                VertexBufferSize = 0;
+    SDL_GPUBuffer* IndexBuffer = nullptr;
+    SDL_GPUTransferBuffer* IndexTransferBuffer = nullptr;
+    uint32_t                IndexBufferSize = 0;
+};
+
+struct ImGui_ImplSDLGPU3_Data
+{
+    ImGui_ImplSDLGPU3_InitInfo   InitInfo;
+
+    // Graphics pipeline & shaders
+    SDL_GPUShader* VertexShader = nullptr;
+    SDL_GPUShader* FragmentShader = nullptr;
+    SDL_GPUGraphicsPipeline* Pipeline = nullptr;
+
+    // Font data
+    SDL_GPUSampler* FontSampler = nullptr;
+    SDL_GPUTexture* FontTexture = nullptr;
+    SDL_GPUTextureSamplerBinding FontBinding = { nullptr, nullptr };
+
+    // Frame data for main window
+    ImGui_ImplSDLGPU3_FrameData  MainWindowFrameData;
+};
+
+ImGui_ImplSDLGPU3_Data* ImGui_ImplSDLGPU3_GetBackendData();
+
 #endif // #ifndef IMGUI_DISABLE

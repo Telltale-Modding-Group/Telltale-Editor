@@ -362,6 +362,8 @@ public:
     {
         return TTE_NEW_PTR(RenderContext, MEMORY_TAG_RENDERER, pDevice, pWindow, pEditorResourceSystem);
     }
+
+    static void DisableDebugHUD(SDL_Window* sdlWindow);
     
     // creates window. start rendering by calling frame update each main thread frame. frame rate cap from 1 to 120!
     RenderContext(String windowName, Ptr<ResourceRegistry> pEditorResourceSystem, U32 frameRateCap = DEFAULT_FRAME_RATE_CAP);
