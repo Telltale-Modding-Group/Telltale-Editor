@@ -10,6 +10,11 @@ public:
     
     static constexpr CString Extension = ".ttarch"; // also .TTA as well
     
+    /**
+     * VERSIONS:
+     * 0: First used in Boneville, no encryption.
+     * 1: Used in Boneville PC: encrypted header block with simple blowfish
+     */
     inline TTArchive(U32 version)
     {
         _Version = version; // version is determined by current game in tool context. pass it in here.

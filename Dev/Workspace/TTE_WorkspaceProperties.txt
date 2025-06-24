@@ -1,0 +1,8 @@
+# Telltale Editor Properties file (with v1.0.0)
+
+[S] Workspace - Language: English
+[S] Project Manager - Active Project: /Users/lucassaragosa/Desktop/Game/CSI3/CSIPC.tteproj
+[A] Project Manager - Previous Projects: 
+[
+	/Users/lucassaragosa/Desktop/Game/Boneville/BoneM.tteproj
+]

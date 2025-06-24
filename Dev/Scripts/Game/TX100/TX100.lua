@@ -13,7 +13,7 @@ require("ToolLibrary/Game/Common/InputMapper.lua")
 
 function TX100_GetGameDescriptor()
 	local texasHoldem = {}
-	texasHoldem.Name = "Telltale Texax Hold'em"
+	texasHoldem.Name = "Telltale Texas Hold'em"
 	texasHoldem.ID = "TX100" -- Texas S1 (100)
 	texasHoldem.DefaultMetaVersion = "MBIN"
 	texasHoldem.LuaVersion = "5.0.2"
@@ -24,6 +24,7 @@ function TX100_GetGameDescriptor()
 	MetaPushGameCapability(texasHoldem, kGameCapSeparateAnimationTransform)
 	MetaPushGameCapability(texasHoldem, kGameCapUsesLenc)
 	MetaPushGameCapability(texasHoldem, kGameCapRawClassNames)
+	MetaPushExecutableHash(texasHoldem, "E64AB49D1EE153E3", "PC", "")
 	MetaRegisterGame(texasHoldem) -- does not have any encryption, so no encryption keys
 	return texasHoldem
 end

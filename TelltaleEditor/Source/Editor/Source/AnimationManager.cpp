@@ -147,9 +147,27 @@ Float kDefaultContribution[256]{};
 
 void SceneModule<SceneModuleType::SKELETON>::OnSetupAgent(SceneAgent *pAgentGettingCreated)
 {
-    // TODO get key 'Skeleton File' Handle<Skeleton> from agent props check parent
-    SkeletonInstance* pSkeletonInst = pAgentGettingCreated->AgentNode->CreateObjData<SkeletonInstance>("");
-    pSkeletonInst->Build(Skl, *pAgentGettingCreated);
+    if(Skl.GetObject().GetCRC64() == 0)
+    {
+        Meta::ClassInstance hSklInst = PropertySet::Get(pAgentGettingCreated->Props, kSkeletonFileSymbol, true, pAgentGettingCreated->OwningScene->GetRegistry()); 
+        if(hSklInst)
+        {
+            Meta::ExtractCoercableInstance(Skl, hSklInst);
+        }
+        else
+        {
+            TTE_LOG("WARNING: Agent %s inherits from skeleton module but has no skeleton file key. Ignoring skeleton.", pAgentGettingCreated->Name.c_str());
+        }
+    }
+    if (Skl.GetObject().GetCRC64() != 0)
+    {
+        SkeletonInstance* pSkeletonInst = pAgentGettingCreated->AgentNode->CreateObjData<SkeletonInstance>("");
+        pSkeletonInst->Build(Skl, *pAgentGettingCreated);
+    }
+    else
+    {
+        TTE_LOG("WARNING: Agent %s skeleton file could not be found", pAgentGettingCreated->Name.c_str());
+    }
 }
 
 void SkeletonInstance::AddAnimatedValue(Ptr<PlaybackController> pController, Ptr<AnimationValueInterface> pAnimatedValue)
@@ -234,7 +252,7 @@ SkeletonInstance::SklNode* SkeletonInstance::GetNode(const String &name)
 
 Ptr<Node> SkeletonInstance::_GetAgentNode()
 {
-    return _RootNode->Parent;
+    return _RootNode->Parent.lock();
 }
 
 void SkeletonInstance::_ApplySkeletonInstanceRestPose(Scene* pScene, Ptr<Node>& rootNode, I32 nodeIndex)
@@ -244,7 +262,7 @@ void SkeletonInstance::_ApplySkeletonInstanceRestPose(Scene* pScene, Ptr<Node>& 
         nodeIndex = 0;
         for(auto& node: _Nodes)
         {
-            if(node.Parent == rootNode)
+            if(node.Parent.lock() == rootNode)
                 _ApplySkeletonInstanceRestPose(pScene, rootNode, nodeIndex);
             nodeIndex++;
         }
@@ -364,12 +382,12 @@ Transform SkeletonInstance::_ComputeGlobalRestTransform(const Ptr<Node>& node)
 {
     Transform result = ((SklNode*)node.get())->RestTransform;
     
-    Ptr<Node> current = node->Parent;
+    Ptr<Node> current = node->Parent.lock();
     
     while(current && current != _RootNode)
     {
         result = ((SklNode*)current.get())->RestTransform * result;
-        current = current->Parent;
+        current = current->Parent.lock();
     }
     
     return result;
@@ -395,7 +413,7 @@ void SkeletonInstance::_ComputeSkeletonInstancePoseMatrices(Ptr<Node> node)
         finalBonePose.Normalise();
         _CurrentPose[index] = MatrixTransformation(Vector3::Identity, finalBonePose._Rot, finalBonePose._Trans).Transpose(); // can now be sent off to GPU.
     }
-    for(Ptr<Node> child = node->FirstChild; child; child = child->NextSibling)
+    for(Ptr<Node> child = node->FirstChild.lock(); child; child = child->NextSibling.lock())
     {
         _ComputeSkeletonInstancePoseMatrices(child);
     }
@@ -407,7 +425,7 @@ void SkeletonInstance::_UpdateAnimation(U64 frameNumber)
     {
         Memory::FastBufferAllocator allocator{};
         // Update parents first ensure
-        Ptr<Node> pAgentParentNode = _GetAgentNode()->Parent; // root node parent is agent node, so agent node parent
+        Ptr<Node> pAgentParentNode = _GetAgentNode()->Parent.lock(); // root node parent is agent node, so agent node parent
         if(pAgentParentNode)
         {
             // ensure they are updated first

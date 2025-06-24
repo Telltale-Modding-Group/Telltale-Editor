@@ -9,6 +9,11 @@ This can be built for Windows, MacOS and Linux.
 
 This project uses CMake and to build everything you can use the build scripts. Simply run them passing in 'release' as the argument on your machine to build.
 
+### For Linux Users
+
+Note that this project is mainly tested on Windows and MacOS. Linux is supported but may have bugs so please report them.
+Zenity must be installed before using Telltale Editor on Linux! If not file dialogs won't open!
+
 ## Authors
 
 This project was made possible by lots of work done by various people. 
