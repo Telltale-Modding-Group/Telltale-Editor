@@ -102,6 +102,7 @@ class UIProjectCreate : public UIStackable
     String _SelectedPlatform = "";
     String _SelectedVendor = "";
     String _ProjectLocation = "";
+    U64 _GuessStart = 0;
     JobHandle _GuessJob = {};
     std::vector<String> _MountPoints;
     ProjectCreationPage _Page = ProjectCreationPage::INFO;

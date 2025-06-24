@@ -18,6 +18,9 @@ extern "C" {
 
 /* denotes UTF-8 char */
 typedef char nfdchar_t;
+    
+// modified by tte
+#define NFD_FOLDER_MAC_ONLY_APP_FOLDERS 1
 
 /* opaque data structure -- see NFD_PathSet_* */
 typedef struct {
@@ -53,7 +56,7 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
 
 /* select folder dialog */
 nfdresult_t NFD_PickFolder( const nfdchar_t *defaultPath,
-                            nfdchar_t **outPath);
+                            nfdchar_t **outPath, nfdchar_t flags);
 
 /* nfd_common.c */
 

@@ -276,7 +276,7 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
 }
 
 nfdresult_t NFD_PickFolder(const nfdchar_t *defaultPath,
-    nfdchar_t **outPath)
+    nfdchar_t **outPath, nfdchar_t)
 {
     int commandLen = 100;
     char* command[commandLen];

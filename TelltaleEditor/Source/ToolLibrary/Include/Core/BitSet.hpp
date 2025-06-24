@@ -249,6 +249,12 @@ public:
             Add(fl);
         else
             Remove(fl);
+    };
+    
+    template<typename IntOrEnum>
+    inline void Toggle(IntOrEnum fl)
+    {
+        Set(fl, !Test(fl));
     }
     
     template<typename IntOrEnum>

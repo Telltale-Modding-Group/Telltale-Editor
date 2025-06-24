@@ -1,3 +1,3 @@
-Detected development directory structure: using 'C:/Vunder/Telltale/Telltale-Editor/Dev/Workspace/' as development workspace directory
+Detected development directory structure: using '/Users/lucassaragosa/Documents/GitHub/TelltaleEditor/Dev/Workspace/' as development workspace directory
 Meta partially initialised with 3 games
 Loaded language English

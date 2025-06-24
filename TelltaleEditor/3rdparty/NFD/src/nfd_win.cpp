@@ -661,7 +661,7 @@ end:
 
 
 nfdresult_t NFD_PickFolder(const nfdchar_t *defaultPath,
-    nfdchar_t **outPath)
+    nfdchar_t **outPath, nfdchar_t)
 {
     nfdresult_t nfdResult = NFD_ERROR;
     DWORD dwOptions = 0;

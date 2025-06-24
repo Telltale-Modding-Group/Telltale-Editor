@@ -166,6 +166,12 @@ ApplicationUI& UIComponent::GetApplication()
     return _MyUI;
 }
 
+void ApplicationUI::SetWindowSize(I32 width, I32 height)
+{
+    _NewWidth = width;
+    _NewHeight = height;
+}
+
 // =========================================== MAIN APPLICATION LOOP
 
 class _OnExitHelper
@@ -212,7 +218,7 @@ void ApplicationUI::_Update()
     {
         Ptr<UIStackable> pStackable = TTE_NEW_PTR(EditorUI, MEMORY_TAG_EDITOR_UI, *this);
         PushUI(pStackable);
-        SDL_SetWindowSize(_Window, DEFAULT_WINDOW_SIZE);
+        SetWindowSize(DEFAULT_WINDOW_SIZE);
        // SDL_SetWindowBordered(_Window, false);
         pStackable->Render();
     }
@@ -285,7 +291,7 @@ void ApplicationUI::_SetLanguage(const String& language)
             line = StringTrim(line);
             if(StringStartsWith(line, "#") || line.empty())
                 continue;
-            I32 colon = line.find('=');
+            I32 colon = (I32)line.find('=');
             if(colon == String::npos)
             {
                 TTE_LOG("WARNING: At language file %s.txt:%d: invalid syntax", language.c_str(), lineN);
@@ -327,7 +333,7 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
         dev += std::filesystem::path("../../Dev/Workspace");
         if (std::filesystem::is_directory(dev))
         {
-            dev = std::filesystem::absolute(dev);
+            dev = std::filesystem::canonical(std::filesystem::absolute(dev));
             userDir = dev.string();
             std::replace(userDir.begin(), userDir.end(), '\\', '/');
             if (!StringEndsWith(userDir, "/"))
@@ -355,7 +361,7 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     U32 wW = 0, wH = 0;
     Ptr<UIProjectSelect> pSelect = TTE_NEW_PTR(UIProjectSelect, MEMORY_TAG_EDITOR_UI, *this);
     pSelect->GetWindowSize(wW, wH);
-    _Window = SDL_CreateWindow("Telltale Editor v" TTE_VERSION, wW, wH, SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY | SDL_WINDOW_HIDDEN); // TODO make this inside workspace settings
+    _Window = SDL_CreateWindow("Telltale Editor v" TTE_VERSION, wW, wH, SDL_WINDOW_HIDDEN); // TODO make this inside workspace settings
     SDL_SetWindowPosition(_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     SDL_ShowWindow(_Window);
     PushUI(std::move(pSelect));
@@ -381,6 +387,7 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     IMGUI_CHECKVERSION();
     RenderContext::DisableDebugHUD(_Window);
     _ImContext = ImGui::CreateContext();
+    //ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     ImGui::StyleColorsDark(); // TODO MAKE THIS CUSTOM FROM WORKSPACE.
     ImGui_ImplSDL3_InitForSDLGPU(_Window);
     ImGui_ImplSDLGPU3_InitInfo init_info = {};
@@ -505,30 +512,44 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
 
         // END
         ImGui::Render();
-        SDL_GPUCommandBuffer* command_buffer = SDL_AcquireGPUCommandBuffer(_Device); // Acquire a GPU command buffer
-
-        SDL_GPUTexture* swapchain_texture;
-        SDL_AcquireGPUSwapchainTexture(command_buffer, _Window, &swapchain_texture, nullptr, nullptr); // Acquire a swapchain texture
-
-        if (swapchain_texture != nullptr)
+        if(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
         {
-            // This is mandatory: call ImGui_ImplSDLGPU3_PrepareDrawData() to upload the vertex/index buffer!
-            ImGui_ImplSDLGPU3_PrepareDrawData(ImGui::GetDrawData(), command_buffer);
-
-            // Setup and start a render pass
-            SDL_GPUColorTargetInfo target_info = {};
-            target_info.texture = swapchain_texture;
-            target_info.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f };
-            target_info.load_op = SDL_GPU_LOADOP_CLEAR;
-            target_info.store_op = SDL_GPU_STOREOP_STORE;
-            target_info.mip_level = 0;
-            target_info.layer_or_depth_plane = 0;
-            target_info.cycle = false;
-            SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(command_buffer, &target_info, 1, nullptr);
-            ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), command_buffer, render_pass);
-            SDL_EndGPURenderPass(render_pass);
+            ImGui::UpdatePlatformWindows();
+            ImGui::RenderPlatformWindowsDefault();
         }
-        SDL_SubmitGPUCommandBuffer(command_buffer);
+        
+        if(_NewWidth == -1 && _NewHeight == -1) // If changes, drop this frame
+        {
+            SDL_GPUCommandBuffer* command_buffer = SDL_AcquireGPUCommandBuffer(_Device); // Acquire a GPU command buffer
+            SDL_GPUTexture* swapchain_texture;
+            SDL_AcquireGPUSwapchainTexture(command_buffer, _Window, &swapchain_texture, nullptr, nullptr); // Acquire a swapchain texture
+            
+            if (swapchain_texture != nullptr)
+            {
+                // This is mandatory: call ImGui_ImplSDLGPU3_PrepareDrawData() to upload the vertex/index buffer!
+                ImGui_ImplSDLGPU3_PrepareDrawData(ImGui::GetDrawData(), command_buffer);
+                
+                // Setup and start a render pass
+                SDL_GPUColorTargetInfo target_info = {};
+                target_info.texture = swapchain_texture;
+                target_info.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+                target_info.load_op = SDL_GPU_LOADOP_CLEAR;
+                target_info.store_op = SDL_GPU_STOREOP_STORE;
+                target_info.mip_level = 0;
+                target_info.layer_or_depth_plane = 0;
+                target_info.cycle = false;
+                SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(command_buffer, &target_info, 1, nullptr);
+                ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), command_buffer, render_pass);
+                SDL_EndGPURenderPass(render_pass);
+            }
+            SDL_SubmitGPUCommandBuffer(command_buffer);
+        }
+        else
+        {
+            SDL_SetWindowSize(_Window, _NewWidth, _NewHeight);
+            _NewWidth = _NewHeight = -1;
+        }
+        
     }
 
     // SAVE WORKSPACE

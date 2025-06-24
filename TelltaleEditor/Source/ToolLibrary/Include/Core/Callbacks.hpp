@@ -5,7 +5,7 @@
 #include <Core/Config.hpp>
 #include <Meta/Meta.hpp>
 
-#include <Scripting/ScriptManager.hpp
+#include <Scripting/ScriptManager.hpp>
 
 // ===================================================================         BASE
 // ===================================================================

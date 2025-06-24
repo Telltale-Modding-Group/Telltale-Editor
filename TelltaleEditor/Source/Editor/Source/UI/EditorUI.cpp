@@ -7,7 +7,7 @@ using namespace ImGui;
 
 EditorUI::EditorUI(ApplicationUI& app) : UIStackable(app), _MenuBar(app)
 {
-
+    SDL_SetWindowResizable(GetApplication()._Window, true);
 }
 
 void EditorUI::Render()

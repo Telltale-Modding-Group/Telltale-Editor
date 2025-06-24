@@ -36,7 +36,7 @@ void UIProjectSelect::Render()
         U32 w0 = 0, h0 = 0;
         GetWindowSize(w0, h0);
         if(w != w0 || h != h0)
-            SDL_SetWindowSize(_Application._Window, (int)w0, (int)h0);
+            GetApplication().SetWindowSize((int)w0, (int)h0);
     }
     _LangBoxSelect = _Application.GetLanguage();
     SetNextWindowPos({0,0});
@@ -253,12 +253,14 @@ void UIProjectSelect::Render()
         SetCursorPosX(10.0f);
         SetCursorPosY(offsetY + 10.0f);
         SetWindowFontScale(1.2f);
-        TextWrapped(recent.Name.c_str());
+        PushTextWrapPos(clipMax.x - clipMin.x);
+        TextUnformatted(recent.Name.c_str());
         SetWindowFontScale(1.0f);
         SetCursorPosX(10.0f);
         PushStyleColor(ImGuiCol_Text, IM_COL32(175, 175, 175, 255));
-        TextWrapped(recent.Location.c_str());
+        TextUnformatted(recent.Location.c_str());
         PopStyleColor(1);
+        PopTextWrapPos();
 
         ImGui::PopClipRect();
 

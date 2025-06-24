@@ -21,6 +21,11 @@ struct ImGuiContext;
 struct ImVec2;
 struct ImFont;
 
+enum class ApplicationFlag
+{
+
+};
+
 /**
  * Main Telltale Editor application, UI interface. The normal TelltaleEditor class is just the functionality which can be used without the UI.
  * Just call run with the command line arguments to run the UI.
@@ -42,6 +47,8 @@ public:
     void PushUI(Ptr<UIStackable> pStackable);
 
     void PopUI();
+    
+    void SetWindowSize(I32 width, I32 height);
 
     inline TelltaleEditor* GetEditorContext()
     {
@@ -107,6 +114,7 @@ private:
     ImFont* _EditorFont, *_EditorFontLarge;
     TTEProperties _WorkspaceProps; // workspace props
     ProjectManager _ProjectMgr;
+    I32 _NewWidth = -1, _NewHeight = -1;
 
     // RESOURCE MANAGEMENT
     SDL_Surface* _AppIcon;
@@ -128,5 +136,6 @@ private:
     friend class UIComponent;
     friend class UIProjectSelect;
     friend class UIProjectCreate;
+    friend class EditorUI;
 
 };

@@ -246,16 +246,28 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
 }
 
 nfdresult_t NFD_PickFolder(const nfdchar_t *defaultPath,
-    nfdchar_t **outPath)
+    nfdchar_t **outPath, nfdchar_t f)
 {
     NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
 
     NSWindow *keyWindow = [[NSApplication sharedApplication] keyWindow];
     NSOpenPanel *dialog = [NSOpenPanel openPanel];
-    [dialog setAllowsMultipleSelection:NO];
-    [dialog setCanChooseDirectories:YES];
-    [dialog setCanCreateDirectories:YES];
-    [dialog setCanChooseFiles:NO];
+    
+    if(f & NFD_FOLDER_MAC_ONLY_APP_FOLDERS)
+    {
+        [dialog setCanChooseFiles:YES];
+        [dialog setCanChooseDirectories:NO];
+        [dialog setAllowsMultipleSelection:NO];
+        [dialog setAllowedFileTypes:@[@"app"]];
+        [dialog setTreatsFilePackagesAsDirectories:NO];
+    }
+    else
+    {
+        [dialog setAllowsMultipleSelection:NO];
+        [dialog setCanChooseDirectories:YES];
+        [dialog setCanCreateDirectories:YES];
+        [dialog setCanChooseFiles:NO];
+    }
 
     // Set the starting directory
     SetDefaultPath(dialog, defaultPath);

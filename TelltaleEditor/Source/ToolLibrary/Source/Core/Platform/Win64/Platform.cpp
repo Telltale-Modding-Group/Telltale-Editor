@@ -60,7 +60,11 @@ U64 FileOpen(CString path)
 
     HANDLE file = CreateFileW(wpath.data(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
-    TTE_ASSERT(file != INVALID_HANDLE_VALUE, "Could not open %s => Windows err %d", path, GetLastError());
+    if(file == INVALID_HANDLE_VALUE)
+    {
+        TTE_LOG("Could not open %s => Windows err %d", path, GetLastError());
+        return FileNull();
+    }
 
     return (U64)file;
 }

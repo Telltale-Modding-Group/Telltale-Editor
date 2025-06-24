@@ -25,7 +25,7 @@ void MenuBar::Render()
     const String title = "The Telltale Editor (v" TTE_VERSION ")";
     ImGui::PushFont(GetApplication().GetEditorFontLarge());
     ImGui::SetCursorPos({ 50.0f, size.y * 0.5f - ImGui::CalcTextSize(title.c_str()).y * 0.5f });
-    ImGui::Text(title.c_str());
+    ImGui::TextUnformatted(title.c_str());
     ImGui::PopFont();
 
     // END

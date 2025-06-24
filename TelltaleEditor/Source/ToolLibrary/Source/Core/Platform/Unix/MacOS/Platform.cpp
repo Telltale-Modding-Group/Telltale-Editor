@@ -28,9 +28,14 @@ void DebugBreakpoint() { (void)raise(SIGINT); }
 
 // FILE STREAMS
 
-U64 FileOpen(CString path){
+U64 FileOpen(CString path)
+{
     int file = open(path, O_RDWR | O_CREAT, 0777);
-    TTE_ASSERT(file != -1, "Could not open %s => posix err %d", path, errno);
+    if(file == -1)
+    {
+        TTE_LOG("Could not open %s => posix err %d", path, errno);
+        return FileNull();
+    }
     return (U64)file;
 }
 

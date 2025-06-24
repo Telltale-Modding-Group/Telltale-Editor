@@ -12,7 +12,7 @@ using namespace ImGui;
 
 static GameSnapshot _AsyncDoGuess(DataStreamRef fileStream, U8*& Buffer, U32& BufferSize)
 {
-    if(fileStream->GetSize() > 1024 * 1024 * 30)
+    if(fileStream->GetSize() > 1024 * 1024 * 30 || fileStream->GetSize() == 0)
         return {}; // 30 MB cap on executables, at least that we know of.
     if(fileStream->GetSize() > BufferSize)
     {
@@ -67,17 +67,19 @@ static GameSnapshot _ProcessPlaystation_1_2_Config(ISO9660& iso, U8*& Buffer, U3
         char Data[64];
         U8* dpos = (U8*)Data;
         memset(Data, 0, 64);
-        while (ps12Config->Read(dpos, 1) && *dpos != '\x0D' && *dpos != '\0x0A' && (char*)dpos != Data + 63)
+        while (ps12Config->Read(dpos, 1) && *dpos != 0xD && *dpos != 0xA && (char*)dpos != Data + 63)
         {
             dpos++;
         }
+        *dpos = 0;
         String executable = Data;
-        if (StringStartsWith(executable, "cdrom:\\"))
+        if (StringStartsWith(executable, "cdrom0:\\"))
         {
-            executable = executable.substr(7);
-            I32 sc = executable.find_first_of(';');
+            executable = executable.substr(8);
+            I32 sc = (I32)executable.find_first_of(';');
             if (sc != String::npos)
                 executable = executable.substr(0, sc);
+            executable = StringTrim(executable);
             DataStreamRef exec = iso.Find(executable, _);
             GameSnapshot ss = {};
             if (exec)
@@ -107,6 +109,46 @@ static GameSnapshot _ProcessPlaystation_3_4(ISO9660& iso, U8*& Buffer, U32& Buff
             if (!ss.ID.empty())
             {
                 return ss;
+            }
+        }
+    }
+    return {};
+}
+
+static GameSnapshot _ProcessFolder(std::filesystem::path folder, U8*& Buffer, U32& BufferSize)
+{
+    using namespace std::filesystem;
+    if (StringEndsWith(ToLower(absolute(folder).string()), ".app"))
+    {
+        // Find info.plist, read from that
+        path infoXML = absolute(folder) / "Contents/Info.plist"; // mac
+        if(!is_regular_file(infoXML))
+            infoXML = absolute(folder) / "Info.plist"; // ios
+        if(is_regular_file(infoXML))
+        {
+            DataStreamRef xmlStream = DataStreamManager::GetInstance()->CreateFileStream(infoXML.string());
+            String xml = DataStreamManager::GetInstance()->ReadAllAsString(xmlStream);
+            String bundleExecutable = _ProcessInfoPlistBundle(xml);
+            path executablePath{};
+            if(bundleExecutable.length())
+            {
+                Bool bFound = false;
+                if (executablePath = absolute(folder) / "Contents/MacOS/" / bundleExecutable, is_regular_file(executablePath)) // MacOS
+                {
+                    bFound = true;
+                }
+                else if (executablePath = absolute(folder) / bundleExecutable, is_regular_file(executablePath)) // iOS
+                {
+                    bFound = true;
+                }
+                if(bFound)
+                {
+                    GameSnapshot ss = _AsyncDoGuess(DataStreamManager::GetInstance()->CreateFileStream(executablePath.string()), Buffer, BufferSize);
+                    if(!ss.ID.empty())
+                    {
+                        return ss;
+                    }
+                }
             }
         }
     }
@@ -160,13 +202,21 @@ Bool UIProjectCreate::AsyncSnapshotGuess(const JobThread& thread, void* pArg1, v
         }
         else if(is_directory(path(mp)))
         {
+            GameSnapshot ss = _ProcessFolder(path(mp), Buffer, BufferSize);
+            if(!ss.ID.empty())
+            {
+                guessState->ResolvedSnapshot = ss;
+                Result = true;
+                break;
+            }
             for (const directory_entry& entry : recursive_directory_iterator(mp))
             {
                 if (entry.is_regular_file())
                 {
                     String fileName = entry.path().filename().string();
                     String ext = ToLower(FileGetExtension(fileName));
-                    if (CompareCaseInsensitive(fileName, "EBOOT.BIN") || CompareCaseInsensitive(ext, "xex") || CompareCaseInsensitive(ext, "exe") || CompareCaseInsensitive(ext, "so") ||
+                    if (CompareCaseInsensitive(fileName, "EBOOT.BIN") || CompareCaseInsensitive(ext, "xex") ||
+                        CompareCaseInsensitive(ext, "exe") || CompareCaseInsensitive(ext, "so") || CompareCaseInsensitive(ext, "mll") ||
                        (ext.empty() && StringContains(fileName, "GameApp", true)))
                     {
                         GameSnapshot ss = _AsyncDoGuess(DataStreamManager::GetInstance()->CreateFileStream(absolute(entry.path()).string()), Buffer, BufferSize);
@@ -180,41 +230,12 @@ Bool UIProjectCreate::AsyncSnapshotGuess(const JobThread& thread, void* pArg1, v
                 }
                 else if (entry.is_directory())
                 {
-                    if (StringEndsWith(ToLower(absolute(entry.path()).string()), ".app"))
+                    GameSnapshot ss = _ProcessFolder(entry.path(), Buffer, BufferSize);
+                    if(!ss.ID.empty())
                     {
-                        // Find info.plist, read from that
-                        path infoXML = absolute(entry.path()) / "Contents/Info.plist"; // mac
-                        if(!is_regular_file(infoXML))
-                            infoXML = absolute(entry.path()) / "Info.plist"; // ios
-                        if(is_regular_file(infoXML))
-                        {
-                            DataStreamRef xmlStream = DataStreamManager::GetInstance()->CreateFileStream(infoXML.string());
-                            String xml = DataStreamManager::GetInstance()->ReadAllAsString(xmlStream);
-                            String bundleExecutable = _ProcessInfoPlistBundle(xml);
-                            path executablePath{};
-                            if(bundleExecutable.length())
-                            {
-                                Bool bFound = false;
-                                if (executablePath = absolute(entry.path()) / "Contents/MacOS/" / bundleExecutable, is_regular_file(executablePath)) // MacOS
-                                {
-                                    bFound = true;
-                                }
-                                else if (executablePath = absolute(entry.path()) / bundleExecutable, is_regular_file(executablePath)) // iOS
-                                {
-                                    bFound = true;
-                                }
-                                if(bFound)
-                                {
-                                    GameSnapshot ss = _AsyncDoGuess(DataStreamManager::GetInstance()->CreateFileStream(executablePath.string()), Buffer, BufferSize);
-                                    if(!ss.ID.empty())
-                                    {
-                                        guessState->ResolvedSnapshot = ss;
-                                        Result = true;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
+                        guessState->ResolvedSnapshot = ss;
+                        Result = true;
+                        break;
                     }
                 }
             }
@@ -268,6 +289,53 @@ void UIProjectCreate::Reset()
     }
 }
 
+static void _AddMountPointFolder(std::vector<String>& _MountPoints, String path)
+{
+    String name = FileGetFilename(path);
+    if(CompareCaseInsensitive(name, "data") || CompareCaseInsensitive(name, "archives") || CompareCaseInsensitive(name, "pack"))
+    {
+        PlatformMessageBoxAndWait("Incorrect directory", "The directory you entered looks like it's a game data folder! Please input the parent of this folder, "
+                                  "the one which contains it, and has the executable inside (.exe etc)! This is required for us to detect your installation type.");
+        return;
+    }
+    Bool exist = false, messaged = false;
+    std::filesystem::path absp = std::filesystem::absolute(std::filesystem::path(path));
+    for(auto it = _MountPoints.begin(); it != _MountPoints.end();)
+    {
+        if(CompareCaseInsensitive(*it, absp.string()))
+        {
+            exist = true;
+            break;
+        }
+        if(std::filesystem::is_directory(std::filesystem::path(*it)))
+        {
+            if(_IsParentPath(std::filesystem::path{ *it }, absp))
+            {
+                if (messaged)
+                    break;
+                PlatformMessageBoxAndWait("Parent directory", "There are one or more existing mount directories you have entered already which are a parent directory of this directory. Those already cover the directory just selected.");
+                messaged = true;
+                exist = true; // skip intertion
+                break;
+            }
+            else if(_IsParentPath(absp, std::filesystem::path{ *it }))
+            {
+                it = _MountPoints.erase(it);
+                if(messaged)
+                    continue;
+                PlatformMessageBoxAndWait("Parent directory", "There are one or more existing mount directories you have entered already which are a sub-directory of this directory. The parent-most will be kept, as it includes all sub-directories.");
+                messaged = true;
+                continue;
+            }
+        }
+        it++;
+    }
+    if(!exist)
+    {
+        _MountPoints.push_back(absp.string());
+    }
+}
+
 void UIProjectCreate::_ReleaseJob()
 {
     if(_GuessJob)
@@ -276,6 +344,7 @@ void UIProjectCreate::_ReleaseJob()
     }
     _AsyncGuessState.reset();
     _GuessJob = {};
+    _GuessStart = 0;
 }
 
 void UIProjectCreate::Render()
@@ -286,7 +355,7 @@ void UIProjectCreate::Render()
         U32 w0 = 0, h0 = 0;
         GetWindowSize(w0, h0);
         if (w != w0 || h != h0)
-            SDL_SetWindowSize(GetApplication()._Window, (int)w0, (int)h0);
+            GetApplication().SetWindowSize((int)w0, (int)h0);
     }
     if((SDL_GetWindowFlags(GetApplication()._Window) & SDL_WINDOW_RESIZABLE) != 0)
         SDL_SetWindowResizable(GetApplication()._Window, false);
@@ -318,12 +387,12 @@ void UIProjectCreate::Render()
     {
 
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.title").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.title").c_str());
 
         cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
 
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.name").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.name").c_str());
         cursorY += GetTextLineHeight() + labelSpacing;
         SetCursorScreenPos(ImVec2(contentX, cursorY));
         SetNextItemWidth(contentWidth);
@@ -331,7 +400,7 @@ void UIProjectCreate::Render()
         cursorY += GetItemRectSize().y + itemSpacingY;
 
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.description").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.description").c_str());
         cursorY += GetTextLineHeight() + labelSpacing;
         SetCursorScreenPos(ImVec2(contentX, cursorY));
         SetNextItemWidth(contentWidth);
@@ -339,7 +408,7 @@ void UIProjectCreate::Render()
         cursorY += GetItemRectSize().y + itemSpacingY;
 
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.author").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.author").c_str());
         cursorY += GetTextLineHeight() + labelSpacing;
         SetCursorScreenPos(ImVec2(contentX, cursorY));
         SetNextItemWidth(contentWidth);
@@ -347,7 +416,7 @@ void UIProjectCreate::Render()
         cursorY += GetItemRectSize().y + itemSpacingY;
 
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.file_name").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.file_name").c_str());
         cursorY += GetTextLineHeight() + labelSpacing;
         SetCursorScreenPos(ImVec2(contentX, cursorY));
         SetNextItemWidth(contentWidth);
@@ -373,20 +442,26 @@ void UIProjectCreate::Render()
         if (!validFile)
         {
             SetCursorScreenPos(ImVec2(contentX, cursorY));
-            TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), GetApplication().GetLanguageText("project_create.invalid_file").c_str());
+            PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.3f, 0.3f, 1.0f));
+            TextUnformatted(GetApplication().GetLanguageText("project_create.invalid_file").c_str());
             cursorY += GetTextLineHeightWithSpacing();
+            PopStyleColor();
         }
         else  if (nextable)
         {
+            PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 1.0f, 0.3f, 1.0f));
             SetCursorScreenPos(ImVec2(contentX, cursorY));
-            TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), GetApplication().GetLanguageText("project_create.next").c_str());
+            TextUnformatted(GetApplication().GetLanguageText("project_create.next").c_str());
             cursorY += GetTextLineHeightWithSpacing();
+            PopStyleColor();
         }
         else
         {
+            PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
             SetCursorScreenPos(ImVec2(contentX, cursorY));
-            TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), GetApplication().GetLanguageText("project_create.enter_name").c_str());
+            TextUnformatted(GetApplication().GetLanguageText("project_create.enter_name").c_str());
             cursorY += GetTextLineHeightWithSpacing();
+            PopStyleColor();
         }
 
         Float buttonWidth = 120.0f;
@@ -415,7 +490,7 @@ void UIProjectCreate::Render()
 
         // TITLE
         SetCursorScreenPos(ImVec2(contentX + 1.0f, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.pick_location_title").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.pick_location_title").c_str());
         cursorY += GetTextLineHeightWithSpacing() * 2.0f + itemSpacingY;
 
         Bool bNext = false;
@@ -455,7 +530,7 @@ void UIProjectCreate::Render()
         if(Button(GetApplication().GetLanguageText(_ProjectLocation.empty() ? "project_create.select" : "project_create.change").c_str()))
         {
             nfdchar_t* outp{};
-            if (NFD_PickFolder(NULL, &outp) == NFD_OKAY)
+            if (NFD_PickFolder(NULL, &outp, 0) == NFD_OKAY)
             {
                 String path = outp;
                 std::filesystem::path absp = std::filesystem::absolute(std::filesystem::path(path));
@@ -473,13 +548,14 @@ void UIProjectCreate::Render()
             if (fn.length() > 50)
                 fn = fn.substr(0, 30) + "..." + fn.substr(30);
 
-            TextColored(ImVec4{ 0.4f, 0.4f, 0.4f, 1.0f }, fn.c_str());
+            PushStyleColor(ImGuiCol_Text, ImVec4{ 0.4f, 0.4f, 0.4f, 1.0f });
+            TextUnformatted(fn.c_str());
+            PopStyleColor();
             cursorY += GetTextLineHeightWithSpacing() * 2.0f + itemSpacingY;
         }
 
         // MESSAGE
         Float buttonWidth = 120.0f;
-        Float buttonHeight = 0;
         ImVec2 buttonSize(buttonWidth, 0.0f);
         Float spacing = 10.0f;
         Float totalButtonsWidth = (2.0f * buttonWidth) + (1.0f * spacing);
@@ -487,7 +563,7 @@ void UIProjectCreate::Render()
         SetCursorScreenPos(ImVec2(contentX, cursorY));
         PushStyleColor(ImGuiCol_Text, col);
         PushTextWrapPos(winSize.x - sidePadding);
-        TextWrapped(message.c_str());
+        TextUnformatted(message.c_str());
         PopTextWrapPos();
         PopStyleColor(1);
         cursorY += GetTextLineHeightWithSpacing();
@@ -498,16 +574,32 @@ void UIProjectCreate::Render()
         {
             _Page = ProjectCreationPage::LOCATION;
             _GuessedSnap = false;
+            _GuessStart = 0;
         }
         SetCursorScreenPos({ startX + (buttonWidth + spacing) * 1.0f, cursorY + 10.0f });
-        if (Button(GetApplication().GetLanguageText("project_create.next_button").c_str(), buttonSize) && bNext)
+        Bool bTooLong = _GuessStart && GetTimeStampDifference(_GuessStart, GetTimeStamp()) > 10'000;
+        if(bTooLong)
+            bNext = true;
+        PushItemFlag(ImGuiItemFlags_Disabled, !bNext);
+        if (Button(GetApplication().GetLanguageText("project_create.next_button").c_str(), buttonSize))
         {
-            if(_AsyncGuessState)
+            if(bTooLong)
+            {
+                _AsyncGuessState->OnExecute->store(false, std::memory_order_relaxed);
+                _ReleaseJob();
+                _SelectedGame = _SelectedPlatform = "";
+                _SelectedVendor = "(Default)";
+                _SelectedGameIndex = 0;
+                _GuessedSnap = false;
+            }
+            if(_AsyncGuessState && !_AsyncGuessState->ResolvedSnapshot.ID.empty())
             {
                 _GuessedSnap = true;
                 _SelectedGame = _AsyncGuessState->ResolvedSnapshot.ID;
                 _SelectedPlatform = _AsyncGuessState->ResolvedSnapshot.Platform;
                 _SelectedVendor = _AsyncGuessState->ResolvedSnapshot.Vendor;
+                if(_SelectedVendor.empty())
+                    _SelectedVendor = "(Default)";
                 if (!_SelectedGame.empty())
                 {
                     I32 index = 0;
@@ -529,6 +621,16 @@ void UIProjectCreate::Render()
                 _GuessedSnap = false;
             }
             _Page = ProjectCreationPage::SNAPSHOT;
+            _GuessStart = 0;
+        }
+        PopItemFlag();
+        cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
+        
+        if(bTooLong) // 10 seconds is stupid!
+        {
+            PushStyleColor(ImGuiCol_Text, IM_COL32(200, 50, 50, 255));
+            TextUnformatted(GetApplication().GetLanguageText("project_create.await_too_long").c_str());
+            PopStyleColor();
         }
 
     }
@@ -536,14 +638,14 @@ void UIProjectCreate::Render()
     {
         // TITLE
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.locations_title").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.locations_title").c_str());
         cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
         SetCursorScreenPos(ImVec2(contentX, cursorY));
 
         // INFO
         PushStyleColor(ImGuiCol_Text, ImVec4{ 0.5f, 0.5f, 0.5f, 1.0f });
         PushTextWrapPos(winSize.x - sidePadding);
-        TextWrapped(GetApplication().GetLanguageText("project_create.location_info").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.location_info").c_str());
         cursorY += GetTextLineHeightWithSpacing() * 3.0f + itemSpacingY;
         PopStyleColor(1);
         PopTextWrapPos();
@@ -553,45 +655,10 @@ void UIProjectCreate::Render()
         if(Button(GetApplication().GetLanguageText("project_create.add_archives").c_str()))
         {
             nfdchar_t* outp{};
-            if(NFD_PickFolder(NULL, &outp) == NFD_OKAY)
+            if(NFD_PickFolder(NULL, &outp, 0) == NFD_OKAY)
             {
                 String path = outp;
-                Bool exist = false, messaged = false;
-                std::filesystem::path absp = std::filesystem::absolute(std::filesystem::path(path));
-                for(auto it = _MountPoints.begin(); it != _MountPoints.end();)
-                {
-                    if(CompareCaseInsensitive(*it, absp.string()))
-                    {
-                        exist = true;
-                        break;
-                    }
-                    if(std::filesystem::is_directory(std::filesystem::path(*it)))
-                    {
-                        if(_IsParentPath(std::filesystem::path{ *it }, absp))
-                        {
-                            if (messaged)
-                                break;
-                            PlatformMessageBoxAndWait("Parent directory", "There are one or more existing mount directories you have entered already which are a parent directory of this directory. Those already cover the directory just selected.");
-                            messaged = true;
-                            exist = true; // skip intertion
-                            break;
-                        }
-                        else if(_IsParentPath(absp, std::filesystem::path{ *it }))
-                        {
-                            it = _MountPoints.erase(it);
-                            if(messaged)
-                                continue;
-                            PlatformMessageBoxAndWait("Parent directory", "There are one or more existing mount directories you have entered already which are a sub-directory of this directory. The parent-most will be kept, as it includes all sub-directories.");
-                            messaged = true;
-                            continue;
-                        }
-                    }
-                    it++;
-                }
-                if(!exist)
-                {
-                    _MountPoints.push_back(absp.string());
-                }
+                _AddMountPointFolder(_MountPoints, path);
                 free(outp);
             }
         }
@@ -651,6 +718,20 @@ void UIProjectCreate::Render()
         }
         cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
 
+        // ADD APP
+        SetCursorScreenPos(ImVec2(contentX, cursorY));
+        if (Button(GetApplication().GetLanguageText("project_create.add_app").c_str()))
+        {
+            nfdchar_t* outp{};
+            if(NFD_PickFolder(NULL, &outp, NFD_FOLDER_MAC_ONLY_APP_FOLDERS) == NFD_OKAY)
+            {
+                String path = outp;
+                _AddMountPointFolder(_MountPoints, path);
+                free(outp);
+            }
+        }
+        cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
+        
         I32 mpIndex = 0;
         for (auto it = _MountPoints.begin(); it != _MountPoints.end(); )
         {
@@ -661,7 +742,9 @@ void UIProjectCreate::Render()
             if (fn.length() > 50)
                 fn = fn.substr(0, 30) + "..." + fn.substr(30);
 
-            TextColored(ImVec4{ 0.4f, 0.4f, 0.4f, 1.0f }, fn.c_str());
+            PushStyleColor(ImGuiCol_Text, ImVec4{ 0.4f, 0.4f, 0.4f, 1.0f });
+            TextUnformatted( fn.c_str());
+            PopStyleColor();
 
             SetCursorScreenPos(ImVec2(contentX + CalcTextSize(fn.c_str()).x + 10.f, cursorY));
 
@@ -688,14 +771,18 @@ void UIProjectCreate::Render()
         if (!_MountPoints.empty())
         {
             SetCursorScreenPos(ImVec2(contentX, cursorY));
-            TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), GetApplication().GetLanguageText("project_create.next").c_str());
+            PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 1.0f, 0.3f, 1.0f));
+            TextUnformatted(GetApplication().GetLanguageText("project_create.next").c_str());
             cursorY += GetTextLineHeightWithSpacing();
+            PopStyleColor();
         }
         else
         {
             SetCursorScreenPos(ImVec2(contentX, cursorY));
-            TextColored(ImVec4(0.5f, 0.5f, 0.5f, 1.0f), GetApplication().GetLanguageText("project_create.enter_more").c_str());
+            PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
+            TextUnformatted(GetApplication().GetLanguageText("project_create.enter_more").c_str());
             cursorY += GetTextLineHeightWithSpacing();
+            PopStyleColor();
         }
 
         SetCursorScreenPos({ startX + (buttonWidth + spacing) * 0.0f, cursorY + 10.0f });
@@ -718,6 +805,7 @@ void UIProjectCreate::Render()
             desc.Priority = JOB_PRIORITY_NORMAL;
             desc.UserArgA = _AsyncGuessState.get();
             _GuessJob = JobScheduler::Instance->Post(desc);
+            _GuessStart = GetTimeStamp();
             while(!executed.load(std::memory_order_relaxed))
             {
                 ThreadSleep(5); // wait 5 ms to kick off other thread. hacky way but we need to let it take on the shared pointer
@@ -730,24 +818,25 @@ void UIProjectCreate::Render()
 
         // TITLE
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.snapshot_title").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.snapshot_title").c_str());
         cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
 
         // INFO
         SetCursorScreenPos(ImVec2(contentX, cursorY));
         PushStyleColor(ImGuiCol_Text, ImVec4{ 0.5f, 0.5f, 0.5f, 1.0f });
         PushTextWrapPos(winSize.x - sidePadding);;
-        TextWrapped(GetApplication().GetLanguageText("project_create.snapshot_info").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.snapshot_info").c_str());
         cursorY += GetTextLineHeightWithSpacing() * 3.0f + itemSpacingY;
         PopStyleColor(1);
         PopTextWrapPos();
 
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.id_combo").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.id_combo").c_str());
         cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
 
         // ID COMBO
         SetCursorScreenPos(ImVec2(contentX, cursorY));
+        SetNextItemWidth(contentWidth);
         if(BeginCombo("##snapshot", _SelectedGame.c_str()))
         {
             I32 i = 0;
@@ -771,9 +860,10 @@ void UIProjectCreate::Render()
         // PLATFORM COMBO
         cursorY = GetCursorScreenPos().y + itemSpacingY;
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.platform_combo").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.platform_combo").c_str());
         cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
         SetCursorScreenPos(ImVec2(contentX, cursorY));
+        SetNextItemWidth(contentWidth);
         if (BeginCombo("##platform", _SelectedPlatform.c_str()))
         {
             if(_SelectedGame.length())
@@ -799,10 +889,10 @@ void UIProjectCreate::Render()
         // VENDOR COMBO
         cursorY = GetCursorScreenPos().y + itemSpacingY;
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        Text(GetApplication().GetLanguageText("project_create.vendor_combo").c_str());
+        TextUnformatted(GetApplication().GetLanguageText("project_create.vendor_combo").c_str());
         cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
         SetCursorScreenPos(ImVec2(contentX, cursorY));
-        
+        SetNextItemWidth(contentWidth);
         if (BeginCombo("##vendor", _SelectedVendor.c_str()))
         {
             if (!_SelectedGame.length() || Meta::GetInternalState().Games[_SelectedGameIndex].ValidVendors.empty() || Meta::GetInternalState().Games[_SelectedGameIndex].ValidVendors[0].empty())
@@ -832,8 +922,18 @@ void UIProjectCreate::Render()
         {
             SetCursorScreenPos(ImVec2(contentX, cursorY));
             PushTextWrapPos(winSize.x - sidePadding);
-            PushStyleColor(ImGuiCol_Text, ImVec4{ 0.4f, 0.4f, 0.4f, 1.0f });
-            TextWrapped(GetApplication().GetLanguageText("project_create.was_guessed").c_str());
+            PushStyleColor(ImGuiCol_Text, ImVec4{ 0.4f, 0.5f, 0.4f, 1.0f });
+            TextUnformatted(GetApplication().GetLanguageText("project_create.was_guessed").c_str());
+            cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
+            PopTextWrapPos();
+            PopStyleColor(1);
+        }
+        else
+        {
+            SetCursorScreenPos(ImVec2(contentX, cursorY));
+            PushTextWrapPos(winSize.x - sidePadding);
+            PushStyleColor(ImGuiCol_Text, ImVec4{ 0.5f, 0.4f, 0.4f, 1.0f });
+            TextUnformatted(GetApplication().GetLanguageText("project_create.not_guessed").c_str());
             cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
             PopTextWrapPos();
             PopStyleColor(1);
@@ -874,7 +974,7 @@ void UIProjectCreate::Render()
                 }
             }
             proj.ProjectSnapshot.Platform = _SelectedPlatform;
-            proj.ProjectSnapshot.Vendor = _SelectedVendor;
+            proj.ProjectSnapshot.Vendor = _SelectedVendor == "(Default)" ? "" : _SelectedVendor;
             for(const auto& mp: _MountPoints)
             {
                 proj.MountDirectories.push_back(std::filesystem::path{mp});

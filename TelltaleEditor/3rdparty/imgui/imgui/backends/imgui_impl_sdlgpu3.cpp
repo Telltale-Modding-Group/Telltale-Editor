@@ -38,6 +38,7 @@
 
 // Forward Declarations
 static void ImGui_ImplSDLGPU3_DestroyFrameData();
+static void Imgui_ImplSDLGPU3_CreateShaders();
 
 //-----------------------------------------------------------------------------
 // FUNCTIONS
@@ -342,7 +343,7 @@ void ImGui_ImplSDLGPU3_CreateFontsTexture()
 }
 
 
-static void Imgui_ImplSDLGPU3_CreateShaders()
+static void ImGui_ImplSDLGPU3_CreateShaders()
 {
 	// Create the shader modules
 	ImGui_ImplSDLGPU3_Data* bd = ImGui_ImplSDLGPU3_GetBackendData();
@@ -408,7 +409,7 @@ struct VertexOutput {
 };
 
 vertex VertexOutput vertex_main(VertexInput in [[stage_in]],
-                                constant Uniforms& ubo [[buffer(1)]])
+                                constant Uniforms& ubo [[buffer(0)]])
 {
     VertexOutput out;
     out.Color = in.aColor;
@@ -459,77 +460,16 @@ vertex VertexOutput vertex_main(VertexInput in [[stage_in]],
 // You probably never need to call this, as it is called by ImGui_ImplSDLGPU3_CreateFontsTexture() and ImGui_ImplSDLGPU3_Shutdown().
 void ImGui_ImplSDLGPU3_DestroyFontsTexture()
 {
-	ImGuiIO& io = ImGui::GetIO();
-	ImGui_ImplSDLGPU3_Data* bd = ImGui_ImplSDLGPU3_GetBackendData();
-	ImGui_ImplSDLGPU3_InitInfo* v = &bd->InitInfo;
-	if (bd->FontTexture)
-	{
-		SDL_ReleaseGPUTexture(v->Device, bd->FontTexture);
-		bd->FontBinding.texture = nullptr;
-		bd->FontTexture = nullptr;
-	}
-	io.Fonts->SetTexID(0);
-}
-
-static void ImGui_ImplSDLGPU3_CreateShaders()
-{
-	// Create the shader modules
-	ImGui_ImplSDLGPU3_Data* bd = ImGui_ImplSDLGPU3_GetBackendData();
-	ImGui_ImplSDLGPU3_InitInfo* v = &bd->InitInfo;
-
-	const char* driver = SDL_GetGPUDeviceDriver(v->Device);
-
-	SDL_GPUShaderCreateInfo vertex_shader_info = {};
-	vertex_shader_info.entrypoint = "main";
-	vertex_shader_info.stage = SDL_GPU_SHADERSTAGE_VERTEX;
-	vertex_shader_info.num_uniform_buffers = 1;
-	vertex_shader_info.num_storage_buffers = 0;
-	vertex_shader_info.num_storage_textures = 0;
-	vertex_shader_info.num_samplers = 0;
-
-	SDL_GPUShaderCreateInfo fragment_shader_info = {};
-	fragment_shader_info.entrypoint = "main";
-	fragment_shader_info.stage = SDL_GPU_SHADERSTAGE_FRAGMENT;
-	fragment_shader_info.num_samplers = 1;
-	fragment_shader_info.num_storage_buffers = 0;
-	fragment_shader_info.num_storage_textures = 0;
-	fragment_shader_info.num_uniform_buffers = 0;
-
-	if (strcmp(driver, "vulkan") == 0)
-	{
-		vertex_shader_info.format = SDL_GPU_SHADERFORMAT_SPIRV;
-		vertex_shader_info.code = spirv_vertex;
-		vertex_shader_info.code_size = sizeof(spirv_vertex);
-		fragment_shader_info.format = SDL_GPU_SHADERFORMAT_SPIRV;
-		fragment_shader_info.code = spirv_fragment;
-		fragment_shader_info.code_size = sizeof(spirv_fragment);
-	}
-	else if (strcmp(driver, "direct3d12") == 0)
-	{
-		vertex_shader_info.format = SDL_GPU_SHADERFORMAT_DXBC;
-		vertex_shader_info.code = dxbc_vertex;
-		vertex_shader_info.code_size = sizeof(dxbc_vertex);
-		fragment_shader_info.format = SDL_GPU_SHADERFORMAT_DXBC;
-		fragment_shader_info.code = dxbc_fragment;
-		fragment_shader_info.code_size = sizeof(dxbc_fragment);
-	}
-#ifdef __APPLE__
-	else
-	{
-		vertex_shader_info.entrypoint = "main0";
-		vertex_shader_info.format = SDL_GPU_SHADERFORMAT_METALLIB;
-		vertex_shader_info.code = metallib_vertex;
-		vertex_shader_info.code_size = sizeof(metallib_vertex);
-		fragment_shader_info.entrypoint = "main0";
-		fragment_shader_info.format = SDL_GPU_SHADERFORMAT_METALLIB;
-		fragment_shader_info.code = metallib_fragment;
-		fragment_shader_info.code_size = sizeof(metallib_fragment);
-	}
-#endif
-	bd->VertexShader = SDL_CreateGPUShader(v->Device, &vertex_shader_info);
-	bd->FragmentShader = SDL_CreateGPUShader(v->Device, &fragment_shader_info);
-	IM_ASSERT(bd->VertexShader != nullptr && "Failed to create vertex shader, call SDL_GetError() for more information");
-	IM_ASSERT(bd->FragmentShader != nullptr && "Failed to create fragment shader, call SDL_GetError() for more information");
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui_ImplSDLGPU3_Data* bd = ImGui_ImplSDLGPU3_GetBackendData();
+    ImGui_ImplSDLGPU3_InitInfo* v = &bd->InitInfo;
+    if (bd->FontTexture)
+    {
+        SDL_ReleaseGPUTexture(v->Device, bd->FontTexture);
+        bd->FontBinding.texture = nullptr;
+        bd->FontTexture = nullptr;
+    }
+    io.Fonts->SetTexID(0);
 }
 
 static void ImGui_ImplSDLGPU3_CreateGraphicsPipeline()
