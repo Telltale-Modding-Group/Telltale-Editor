@@ -584,3 +584,45 @@ dstVar |= dstVar >> 4; dstVar |= dstVar >> 8; dstVar |= dstVar >> 16; dstVar++; 
 #define COERCE(_Ptr, _WantedT) (*(_WantedT*)(_Ptr))
 
 #define MACRO_COMMA ,
+
+struct WeakPtrHash
+{
+
+    template <typename T>
+    std::size_t operator()(const std::weak_ptr<T>& wp) const
+    {
+        auto sp = wp.lock();
+        return std::hash<std::shared_ptr<T>>{}(sp);
+    }
+
+};
+
+struct WeakPtrEqual
+{
+
+    template <typename T>
+    Bool operator()(const std::weak_ptr<T>& a, const std::weak_ptr<T>& b) const
+    {
+        return !a.owner_before(b) && !b.owner_before(a);
+    }
+
+};
+
+class Ticker
+{
+public:
+
+    inline Ticker(I32 threshold) : _Threshold(MAX(1, threshold)), _Ticks(0) {}
+
+    inline Bool Tick()
+    {
+        _Ticks = (_Ticks + 1) % _Threshold;
+        return _Ticks == 0;
+    }
+
+private:
+
+    I32 _Threshold;
+    I32 _Ticks;
+
+};

@@ -24,10 +24,17 @@ public:
 
     UIComponent(ApplicationUI& appUI);
 
-    void SetNextWindowViewport(Float xPosFrac, Float yPosFrac, U32 xMinPix, U32 yMinPix, Float xExtentFrac, Float yExtentFrac, U32 xExtentMinPix, U32 yExtentMinPix);
+    void SetNextWindowViewport(Float xPosFrac, Float yPosFrac, U32 xMinPix, U32 yMinPix, Float xExtentFrac, Float yExtentFrac, U32 xExtentMinPix, U32 yExtentMinPix, U32 imguiCondition);
+    void SetNextWindowViewportPixels(Float posX, Float posY, Float SizeX, Float SizeY);
 
     // Pass in WINDOW fractional coordinates (inside Begin/End call window region)
     void DrawResourceTexture(const String& name, Float xPosFrac, Float yPosFrac, Float xSizeFrac, Float ySizeFrac, U32 colorScale = 0xFFFFFFFFu);
+
+    void DrawResourceTexturePixels(const String& name, Float xPos, Float yPos, Float xSize, Float ySize, U32 colorScale = 0xFFFFFFFFu);
+
+    String TruncateText(const String& src, Float truncWidth);
+
+    void DrawCenteredWrappedText(const String& text, Float maxWidth, Float centerPosX, Float centerPosY, I32 maxLines, Float fontSize);
 
     virtual void Render() = 0;
 

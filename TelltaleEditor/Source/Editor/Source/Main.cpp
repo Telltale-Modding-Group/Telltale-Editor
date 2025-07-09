@@ -13,7 +13,7 @@ static void _TestScene(TelltaleEditor* editor)
     registry->PrintLocations();
 
     // This simple examples loads a scene and runs it
-    RenderContext* pRenderContext = TTE_NEW(RenderContext, MEMORY_TAG_RENDERER, "Bone", registry);
+    RenderContext* pRenderContext = TTE_NEW(RenderContext, MEMORY_TAG_RENDERER, "Bone", registry, false);
     
     // Add a scene runtime layer to run the scene
     auto runtimeLayer = pRenderContext->PushLayer<SceneRuntime>(registry);

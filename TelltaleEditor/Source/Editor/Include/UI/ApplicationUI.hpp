@@ -23,7 +23,7 @@ struct ImFont;
 
 enum class ApplicationFlag
 {
-
+    RUNNING = 1,
 };
 
 /**
@@ -70,9 +70,9 @@ public:
         return _EditorFont;
     }
 
-    inline ImFont* GetEditorFontLarge()
+    inline ImFont* GetFallbackFont()
     {
-        return _EditorFontLarge;
+        return _FallbackFont;
     }
 
     inline ProjectManager& GetProjectManager()
@@ -84,8 +84,20 @@ public:
     {
         return _CurrentLanguage.empty() ? "English" : _CurrentLanguage;
     }
+    
+    inline Ptr<ResourceRegistry> GetRegistry()
+    {
+        return _EditorResourceReg;
+    }
+
+    inline Ptr<RenderContext> GetRenderContext()
+    {
+        return _EditorRenderContext;
+    }
 
     const String& GetLanguageText(CString id);
+
+    void Quit();
 
 private:
 
@@ -111,7 +123,7 @@ private:
     TelltaleEditor* _Editor;
     SDL_GPUDevice* _Device;
     SDL_Window* _Window;
-    ImFont* _EditorFont, *_EditorFontLarge;
+    ImFont* _EditorFont, *_FallbackFont;
     TTEProperties _WorkspaceProps; // workspace props
     ProjectManager _ProjectMgr;
     I32 _NewWidth = -1, _NewHeight = -1;

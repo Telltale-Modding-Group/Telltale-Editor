@@ -3233,7 +3233,7 @@ Bool InstanceTransformation::PerformNormaliseAsync(Ptr<Handleable> pCommonInstan
 {
     String fn = Meta::GetInternalState().Classes.find(Instance.GetClassID())->second.NormaliserStringFn;
     auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
-    TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found: '%s'", fn.c_str());
+    TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found: '%s' for class %s", fn.c_str(), Meta::GetInternalState().Classes.find(Instance.GetClassID())->second.Name.c_str());
     
     ScriptManager::GetGlobal(L, fn, true);
     if(L.Type(-1) != LuaType::FUNCTION)

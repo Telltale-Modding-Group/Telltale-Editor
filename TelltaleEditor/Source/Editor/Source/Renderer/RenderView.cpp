@@ -159,7 +159,8 @@ const RenderTargetDesc& GetRenderTargetDesc(RenderTargetConstantID id)
     return TargetDescs[0]; // never happen
 }
 
-void RenderContext::_ResolveBackBuffers(RenderCommandBuffer& buf)
+RenderTexture* RenderContext::_ResolveBackBuffers(RenderCommandBuffer& buf, 
+                                                  SDL_GPUCommandBuffer* preAcquire, SDL_GPUTexture* bb)
 {
     if(!_ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER])
         _ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER] = AllocateRuntimeTexture();
@@ -168,10 +169,18 @@ void RenderContext::_ResolveBackBuffers(RenderCommandBuffer& buf)
     RenderSurfaceFormat fmt = FromSDLFormat(SDL_GetGPUSwapchainTextureFormat(_Device, _Window));
     U32 sw, sh{};
     SDL_GPUTexture* stex{};
-    TTE_ASSERT(SDL_WaitAndAcquireGPUSwapchainTexture(buf._Handle,
-                                                     _Window, &stex, &sw,  &sh),
-               "Failed to acquire backend swapchain texture: %s", SDL_GetError());
+    if(preAcquire && bb)
+    {
+        stex = bb;
+    }
+    else
+    {
+        TTE_ASSERT(SDL_WaitAndAcquireGPUSwapchainTexture(buf._Handle,
+                   _Window, &stex, &sw, &sh),
+           "Failed to acquire backend swapchain texture: %s", SDL_GetError());
+    }
     _ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER]->CreateTarget(*this, texFlags, fmt, sw, sh, 1, 1, 1, false, stex);
+    return _ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER].get();
 }
 
 void RenderContext::_ResolveTarget(RenderFrame& frame, const RenderTargetIDSurface &surface, RenderTargetResolvedSurface &resolved, U32 w, U32 h)
@@ -179,11 +188,17 @@ void RenderContext::_ResolveTarget(RenderFrame& frame, const RenderTargetIDSurfa
     TTE_ASSERT(IsCallingFromMain(), "Only render main call");
     resolved.Mip = surface.Mip;
     resolved.Slice = surface.Slice;
-    TTE_ASSERT(!surface.ID.IsDynamicTarget(), "Dynamic targets not supported yet");
+    if(surface.ID.IsDynamicTarget())
+    {
+        // Dynamic target. Ignore w & h.
+        resolved.Target = _ResolveDynamicTarget(surface.ID).get();
+        TTE_ASSERT(resolved.Target, "The dynamic target ID %d could not be resolved", surface.ID._Value);
+    }
+    else
     {
         // Constant target
         Ptr<RenderTexture>& texture = _ConstantTargets[surface.ID._Value];
-        if(!texture || texture->_Width != w || texture->_Height != h)
+        if(!texture || texture->_Width != w || texture->_Height != h) // do we need w and h here?
         {
             if(!texture)
                 texture = AllocateRuntimeTexture();

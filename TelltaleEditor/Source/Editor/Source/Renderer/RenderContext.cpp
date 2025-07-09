@@ -18,6 +18,8 @@
 #undef USE_PIX
 #endif
 
+#include <imgui_impl_sdl3.h>
+
 // ============================ ENUM MAPPINGS
 
 const TextureFormatInfo& GetSDLFormatInfo(RenderSurfaceFormat format)
@@ -349,7 +351,8 @@ Bool RenderContext::IsRowMajor()
     }
 }
 
-RenderContext::RenderContext(SDL_GPUDevice* pDevice, SDL_Window* pWindow, Ptr<ResourceRegistry> pEditorResourceSystem) : _FXCache(pEditorResourceSystem, this)
+RenderContext::RenderContext(SDL_GPUDevice* pDevice, Bool sync,
+                             SDL_Window* pWindow, Ptr<ResourceRegistry> pEditorResourceSystem) : _FXCache(pEditorResourceSystem, this)
 {
     TTE_ASSERT(pDevice && pWindow, "Invalid arguments");
 
@@ -366,9 +369,14 @@ RenderContext::RenderContext(SDL_GPUDevice* pDevice, SDL_Window* pWindow, Ptr<Re
 
     _Flags |= RENDER_CONTEXT_AGGREGATED;
 
+    if (sync)
+        _Flags |= RENDER_CONTEXT_SYNC;
+
+    _FXCache.Initialise();
 }
 
-RenderContext::RenderContext(String wName, Ptr<ResourceRegistry> pEditorResourceSystem, U32 cap) : _FXCache(pEditorResourceSystem, this)
+RenderContext::RenderContext(String wName, Ptr<ResourceRegistry> pEditorResourceSystem, 
+                             Bool sync, U32 cap) : _FXCache(pEditorResourceSystem, this)
 {
     TTE_ASSERT(JobScheduler::Instance, "Job scheduler has not been initialised. Ensure a ToolContext exists.");
     TTE_ASSERT(SDL3_Initialised, "SDL3 has not been initialised, or failed to.");
@@ -392,6 +400,9 @@ RenderContext::RenderContext(String wName, Ptr<ResourceRegistry> pEditorResource
     _Device = SDL_CreateGPUDevice(RENDER_CONTEXT_SHADER_FORMAT, bDebug, nullptr);
     SDL_ClaimWindowForGPUDevice(_Device, _Window);
     _BackBuffer = SDL_GetWindowSurface(_Window);
+
+    if(sync)
+        _Flags |= RENDER_CONTEXT_SYNC;
 
     _FXCache.Initialise();
 }
@@ -437,6 +448,7 @@ RenderContext::~RenderContext()
 
     for (U32 i = 0; i < (U32)RenderTargetConstantID::COUNT; i++)
         _ConstantTargets[i].reset();
+    _DynamicTargets.clear();
 
     for (auto& transfer : _AvailTransferBuffers)
         SDL_ReleaseGPUTransferBuffer(_Device, transfer.Handle);
@@ -478,7 +490,7 @@ void RenderContext::_PushLayer(Ptr<RenderLayer> pLayer)
 }
 
 // USER CALL: called every frame by user to render the previous frame
-Bool RenderContext::FrameUpdate(Bool isLastFrame)
+Bool RenderContext::FrameUpdate(Bool isLastFrame, SDL_GPUCommandBuffer* acq, SDL_GPUTexture* preAcqBack)
 {
 
     // 1. locals
@@ -499,6 +511,11 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
         else
         {
             InputMapper::ConvertRuntimeEvents(e, events, (SDL_GetWindowFlags(_Window) & SDL_WINDOW_INPUT_FOCUS) != 0, windowSize);
+        }
+        if(acq)
+        {
+            // imgui update for UI
+            ImGui_ImplSDL3_ProcessEvent(&e);
         }
     }
 
@@ -525,16 +542,20 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
 
     // 4. Perform rendering. Create main command buffer to acquire swapchain texture. Then wait on all to finish.
     RenderFrame* pFrame = &GetFrame(false);
+    pFrame->BackBufferSize = windowSize;
     {
 
         // Translate high level render operations, eg draw text, draw verts, into command buffer operations for GPU optimised
-
+        
         {
 
-            RenderCommandBuffer* pMainCommandBuffer = _NewCommandBuffer();
+            RenderCommandBuffer* pMainCommandBuffer = _NewCommandBuffer(acq);
+            pFrame->SDL3MainCommandBuffer = pMainCommandBuffer;
 
             // setup swapchain tex
-            _ResolveBackBuffers(*pMainCommandBuffer);
+            pFrame->BackBuffer = _ResolveBackBuffers(*pMainCommandBuffer, acq, preAcqBack);
+
+            _PreMTRender.CallErased(&pFrame, 0, nullptr, 0, nullptr, 0, nullptr, 0);
 
             if (pFrame->FrameNumber == 1)
             {
@@ -546,6 +567,9 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
             {
                 _Render(dt, pMainCommandBuffer);
             }
+
+            _PostMTRender.CallErased(&pFrame, 0, nullptr, 0, nullptr, 0, nullptr, 0);
+
             // command buffer is submitted below
 
         }
@@ -556,17 +580,20 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
         SDL_GPUFence** awaitingFences = pFrame->Heap.NewArray<SDL_GPUFence*>((U32)pFrame->CommandBuffers.size());
         for (auto& commandBuffer : pFrame->CommandBuffers)
         {
-            if (!commandBuffer->_Submitted)
-                commandBuffer->Submit(); // submit if needed
+            {
+                if (!commandBuffer->_Submitted)
+                    commandBuffer->Submit(); // submit if needed
 
-            if (commandBuffer->_SubmittedFence && !commandBuffer->Finished())
-                awaitingFences[activeCommandBuffers++] = commandBuffer->_SubmittedFence; // add waiting fences
+                if (commandBuffer->_SubmittedFence && !commandBuffer->Finished())
+                    awaitingFences[activeCommandBuffers++] = commandBuffer->_SubmittedFence; // add waiting fences
+            }
         }
 
         // WAIT ON ALL ACTIVE COMMAND BUFFERS TO FINISH GPU EXECUTION
 
         if (activeCommandBuffers > 0)
             SDL_WaitForGPUFences(_Device, true, awaitingFences, activeCommandBuffers);
+
         for (auto& commandBuffer : pFrame->CommandBuffers) // free the fences
         {
             if (commandBuffer->_SubmittedFence != nullptr)
@@ -587,11 +614,14 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
         pFrame->CommandBuffers.clear();
     }
 
-    // 5. Wait for previous populater to complete if needed
-    if (_PopulateJob)
+    if((_Flags & RENDER_CONTEXT_SYNC) == 0)
     {
-        JobScheduler::Instance->Wait(_PopulateJob);
-        _PopulateJob.Reset(); // reset handle to empty
+        // 5. Wait for previous populater to complete if needed
+        if (_PopulateJob)
+        {
+            JobScheduler::Instance->Wait(_PopulateJob);
+            _PopulateJob.Reset(); // reset handle to empty
+        }
     }
 
     // 6. NO POPULATE THREAD JOB ACTIVE, SO NO LOCKING NEEDED UNTIL SUBMIT. Give our new processed frame, and swap.
@@ -615,17 +645,26 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame)
     // 7. Kick off populater job to render the last thread data (if needed)
     if (!isLastFrame && !bUserWantsQuit)
     {
-        JobDescriptor job{};
-        job.AsyncFunction = &_Populate;
-        job.Priority = JOB_PRIORITY_HIGHEST;
-        job.UserArgA = this;
-        union
+        if(_Flags & RENDER_CONTEXT_SYNC)
         {
-            void* a; Float b;
-        } _cvt{};
-        _cvt.b = dt;
-        job.UserArgB = _cvt.a;
-        _PopulateJob = JobScheduler::Instance->Post(job);
+            // Sync population
+            _DoPopulate(GetFrame(true), dt);
+        }
+        else
+        {
+            // Async population
+            JobDescriptor job{};
+            job.AsyncFunction = &_Populate;
+            job.Priority = JOB_PRIORITY_HIGHEST;
+            job.UserArgA = this;
+            union
+            {
+                void* a; Float b;
+            } _cvt{};
+            _cvt.b = dt;
+            job.UserArgB = _cvt.a;
+            _PopulateJob = JobScheduler::Instance->Post(job);
+        }
     }
 
     freedLocks.clear();
@@ -682,7 +721,7 @@ void RenderContext::_PurgeDeadResources()
         if(it->expired())
         {
             it->reset();
-            _OwnedResources.erase(it);
+            it = _OwnedResources.erase(it);
         }
         else
         {
@@ -859,6 +898,39 @@ void RenderTexture::Create2D(RenderContext* pContext, U32 width, U32 height, Ren
         pContext->_AttachContextDependentResource(std::static_pointer_cast<RenderTexture>(shared_from_this()), true);
         SDL_DestroyProperties(info.props);
     }
+}
+
+RenderTargetID RenderContext::CreateDynamicTarget(Ptr<RenderTexture> targetTexture)
+{
+    TTE_ASSERT(targetTexture, "At CreateDynamicTarget: no texture specified");
+    std::lock_guard<std::mutex> L{ _Lock };
+    RenderTargetDynamicTarget& target = _DynamicTargets.emplace_back();
+    RenderTargetID id = target.DynamicID = RenderTargetID::CreateDynamicID(_DynamicTargetIDCounter++);
+    target.Texture = targetTexture;
+    target.CreationFrame = GetFrame(!IsCallingFromMain()).FrameNumber;
+    return id;
+}
+
+Ptr<RenderTexture> RenderContext::_ResolveDynamicTarget(RenderTargetID dynID)
+{
+    TTE_ASSERT(IsCallingFromMain(), "Resolving can only be done from the main thread!");
+    TTE_ASSERT(dynID.IsDynamicTarget(), "The target ID is not a dynamic render target!");
+    for(auto it = _DynamicTargets.begin(); it != _DynamicTargets.end(); it++)
+    {
+        if(it->Texture.expired())
+        {
+            it = _DynamicTargets.erase(it);
+        }
+        else
+        {
+            RenderTargetDynamicTarget& dynTarget = *it;
+            if (dynTarget.DynamicID == dynID)
+            {
+                return dynTarget.Texture.lock();
+            }
+        }
+    }
+    return {};
 }
 
 Ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
@@ -1526,14 +1598,21 @@ RenderSampler::~RenderSampler()
 
 // ===================== COMMAND BUFFERS
 
-RenderCommandBuffer* RenderContext::_NewCommandBuffer()
+RenderCommandBuffer* RenderContext::_NewCommandBuffer(SDL_GPUCommandBuffer* preAcquired)
 {
     AssertMainThread();
     RenderFrame& frame = GetFrame(false);
     RenderCommandBuffer* pBuffer = frame.Heap.New<RenderCommandBuffer>();
 
-    pBuffer->_Handle = SDL_AcquireGPUCommandBuffer(_Device);
-    TTE_ASSERT(pBuffer->_Handle, "Could not acquire a new command buffer: %s", SDL_GetError());
+    if(preAcquired)
+    {
+        pBuffer->_Handle = preAcquired;
+    }
+    else
+    {
+        pBuffer->_Handle = SDL_AcquireGPUCommandBuffer(_Device);
+        TTE_ASSERT(pBuffer->_Handle, "Could not acquire a new command buffer: %s", SDL_GetError());
+    }
     pBuffer->_Context = this;
 
     frame.CommandBuffers.push_back(pBuffer);
@@ -2379,6 +2458,38 @@ ShaderParametersStack* RenderContext::AllocateParametersStack(RenderFrame& frame
     return frame.Heap.NewNoDestruct<ShaderParametersStack>(); // on heap no destruct needed its very lightweight
 }
 
+void RenderContext::_DoPopulate(RenderFrame& frame, Float dt)
+{
+    {
+        // update delta layers
+        std::lock_guard<std::mutex> G{ _Lock };
+        for (auto& dl : _DeltaLayers)
+        {
+            if (dl)
+            {
+                _LayerStack.push_back(std::move(dl));
+            }
+            else
+            {
+                TTE_ASSERT(_LayerStack.size(), "Trying to pop layer but stack is empty");
+                _LayerStack.pop_back();
+            }
+        }
+        _DeltaLayers.clear();
+    }
+
+    // process events
+    if (frame._Events.size())
+    {
+        for (auto it = _LayerStack.rbegin(); it != _LayerStack.rend(); it++)
+            (*it)->AsyncProcessEvents(frame._Events);
+    }
+
+    RenderNDCScissorRect rect{}; // full screen for now
+    for (auto& layer : _LayerStack)
+        rect = layer->AsyncUpdate(frame, rect, dt);
+}
+
 // NON-MAIN THREAD CALL: perform all higher level render calls and do any skinning / animation updates, etc.
 Bool RenderContext::_Populate(const JobThread& jobThread, void* pRenderCtx, void* pDT)
 {
@@ -2386,36 +2497,7 @@ Bool RenderContext::_Populate(const JobThread& jobThread, void* pRenderCtx, void
     Float dt = *((Float*)&pDT);
     RenderContext* pContext = static_cast<RenderContext*>(pRenderCtx);
     RenderFrame& frame = pContext->GetFrame(true);
-
-    {
-        // update delta layers
-        std::lock_guard<std::mutex> G{ pContext->_Lock };
-        for (auto& dl : pContext->_DeltaLayers)
-        {
-            if (dl)
-            {
-                pContext->_LayerStack.push_back(std::move(dl));
-            }
-            else
-            {
-                TTE_ASSERT(pContext->_LayerStack.size(), "Trying to pop layer but stack is empty");
-                pContext->_LayerStack.pop_back();
-            }
-        }
-        pContext->_DeltaLayers.clear();
-    }
-
-    // process events
-    if (frame._Events.size())
-    {
-        for (auto it = pContext->_LayerStack.rbegin(); it != pContext->_LayerStack.rend(); it++)
-            (*it)->AsyncProcessEvents(frame._Events);
-    }
-
-    RenderNDCScissorRect rect{}; // full screen for now
-    for (auto& layer : pContext->_LayerStack)
-        rect = layer->AsyncUpdate(frame, rect, dt);
-
+    pContext->_DoPopulate(frame, dt);
     return true;
 }
 

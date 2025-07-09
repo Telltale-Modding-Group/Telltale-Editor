@@ -181,6 +181,27 @@ public:
         return Iterator(*this, MaxValue);
     }
 
+    inline void Clear(Bool bValue)
+    {
+        if(bValue)
+        {
+            U32 nWords = NumValues >> 5;
+            U32 nRemBits = NumValues & 31;
+            for(U32 i = 0; i < nWords; i++)
+            {
+                _Words[i] = UINT32_MAX;
+            }
+            if(nRemBits)
+            {
+                _Words[nWords] = (1 << nRemBits) - 1;
+            }
+        }
+        else
+        {
+            memset(_Words.data(), 0, (size_t)NumWords << 2);
+        }
+    }
+
     // Add all compile time bits
     template<EnumClass... Values>
     constexpr inline void AddEnums()

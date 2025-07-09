@@ -374,11 +374,31 @@ Ptr<RenderShader> RenderEffectCache::_ResolveInternalShader(RenderShader* pShade
 
 U32 RenderEffectCache::_ResolveExistingRef(RenderEffectRef ref)
 {
-    RenderEffectProgram* start = _Program, *last = _Program + _ProgramCount;
-    RenderEffectProgram findme{};
-    findme.EffectHash = ref.EffectHash;
-    RenderEffectProgram* resolved = std::lower_bound(start, last, findme);
-    return resolved == last ? UINT32_MAX : (U32)(resolved - start);
+    RenderEffectProgram* start = _Program;
+    RenderEffectProgram* end = _Program + _ProgramCount;
+
+    U32 left = 0;
+    U32 right = _ProgramCount;
+
+    while (left < right)
+    {
+        U32 mid = left + (right - left) >> 1;
+        if (_Program[mid].EffectHash < ref.EffectHash)
+        {
+            left = mid + 1;
+        }
+        else
+        {
+            right = mid;
+        }
+    }
+
+    if (left == _ProgramCount || _Program[left].EffectHash != ref.EffectHash)
+    {
+        return UINT32_MAX;
+    }
+
+    return left;
 }
 
 // CREATE SDL SHADER

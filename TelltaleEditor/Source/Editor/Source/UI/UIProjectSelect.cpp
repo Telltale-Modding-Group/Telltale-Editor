@@ -39,10 +39,9 @@ void UIProjectSelect::Render()
             GetApplication().SetWindowSize((int)w0, (int)h0);
     }
     _LangBoxSelect = _Application.GetLanguage();
-    SetNextWindowPos({0,0});
-    ImVec2 winSize = ImGui::GetWindowViewport()->Size;
+    ImVec2 winSize = ImGui::GetMainViewport()->Size;
     Float rhsPanelPixels = SELECT_SIZE(winSize.x, 0.25f, 100.0f, 400.0f);
-    SetNextWindowSize({ winSize.x - rhsPanelPixels, winSize.y});
+    SetNextWindowViewportPixels(0,0, winSize.x - rhsPanelPixels, winSize.y);
     winSize = { winSize.x - rhsPanelPixels, winSize.y};
 
     // WELCOME SCREEN LHS PANEL
@@ -55,11 +54,11 @@ void UIProjectSelect::Render()
     const String projNew = _Application.GetLanguageText("project_select.new"), projExist = _Application.GetLanguageText("project_select.exist");
 
     // TITLE
-    PushFont(_Application.GetEditorFontLarge());
+    PushFont(_Application.GetEditorFont(), 20.0f);
     ImVec2 titleSize = ImGui::CalcTextSize(title.c_str());
     ImVec2 titlePos;
     titlePos.x = winSize.x * 0.5f - titleSize.x * 0.5f;
-    titlePos.y = winSize.y * 0.35f - titleSize.y * 0.5f;
+    titlePos.y = winSize.y * 0.35f - titleSize.y * 0.5f - 5.0f;
     ImVec2 titleMin = ImGui::GetCursorScreenPos();
     titleMin.x = titlePos.x + ImGui::GetWindowPos().x;
     titleMin.y = titlePos.y + ImGui::GetWindowPos().y;
@@ -77,7 +76,7 @@ void UIProjectSelect::Render()
     ImVec2 subtitleSize = ImGui::CalcTextSize(subtitle.c_str());
     ImVec2 subtitlePos;
     subtitlePos.x = winSize.x * 0.5f - subtitleSize.x * 0.5f;
-    subtitlePos.y = winSize.y * 0.35f + titleSize.y * 0.5f;
+    subtitlePos.y = winSize.y * 0.35f + titleSize.y * 0.5f + 5.0f;
     ImVec2 subtitleMin = subtitlePos + ImGui::GetWindowPos();
     ImVec2 subtitleMax = subtitleMin + subtitleSize;
     Bool subtitleHovered = ImGui::IsMouseHoveringRect(subtitleMin, subtitleMax);
@@ -113,21 +112,22 @@ void UIProjectSelect::Render()
 
         if (buttonWidth >= minRenderSize && buttonHeight >= minRenderSize)
         {
-            Bool newHov = IsMouseHoveringRect(ImVec2{newProjectXFrac, yFrac} * winSize, ImVec2{(newProjectXFrac + xSizeFrac), yFrac + ySizeFrac} * winSize);
-            Bool existHov = IsMouseHoveringRect(ImVec2{ openProjectXFrac, yFrac } *winSize, ImVec2{ (openProjectXFrac + xSizeFrac), yFrac + ySizeFrac } *winSize);
-            DrawResourceTexture("ProjectNew.png", newProjectXFrac, yFrac, xSizeFrac, ySizeFrac, newHov ? IM_COL32(200, 200, 200, 255) : IM_COL32(255,255,255,255));
-            DrawResourceTexture("ProjectExisting.png", openProjectXFrac, yFrac, xSizeFrac, ySizeFrac, existHov ? IM_COL32(200, 200, 200, 255) : IM_COL32(255, 255, 255, 255));
+            ImVec2 wmin = ImGui::GetWindowPos();
+            Bool newHov = IsMouseHoveringRect(wmin + ImVec2{newProjectXFrac, yFrac} * winSize, wmin + ImVec2{(newProjectXFrac + xSizeFrac), yFrac + ySizeFrac} * winSize);
+            Bool existHov = IsMouseHoveringRect(wmin + ImVec2{ openProjectXFrac, yFrac } * winSize, wmin + ImVec2{ (openProjectXFrac + xSizeFrac), yFrac + ySizeFrac } *winSize);
+            DrawResourceTexture("Project/ProjectNew.png", newProjectXFrac, yFrac, xSizeFrac, ySizeFrac, newHov ? IM_COL32(200, 200, 200, 255) : IM_COL32(255,255,255,255));
+            DrawResourceTexture("Project/ProjectExisting.png", openProjectXFrac, yFrac, xSizeFrac, ySizeFrac, existHov ? IM_COL32(200, 200, 200, 255) : IM_COL32(255, 255, 255, 255));
             ImVec2 newButtonPos = ImVec2(winSize.x * newProjectXFrac, winSize.y * yFrac);
             ImVec2 existingButtonPos = ImVec2(winSize.x * openProjectXFrac, winSize.y * yFrac);
             Float labelYOffset = buttonPixelSize + 8.0f;
             ImVec2 newTextSize = ImGui::CalcTextSize(projNew.c_str());
             ImVec2 existingTextSize = ImGui::CalcTextSize(projExist.c_str());
-            ImGui::SetCursorScreenPos(ImVec2(
+            ImGui::SetCursorScreenPos(wmin + ImVec2(
                 newButtonPos.x + (buttonPixelSize - newTextSize.x) * 0.5f,
                 newButtonPos.y + labelYOffset
             ));
             ImGui::TextUnformatted(projNew.c_str());
-            ImGui::SetCursorScreenPos(ImVec2(
+            ImGui::SetCursorScreenPos(wmin + ImVec2(
                 existingButtonPos.x + (buttonPixelSize - existingTextSize.x) * 0.5f,
                 existingButtonPos.y + labelYOffset
             ));
@@ -146,6 +146,7 @@ void UIProjectSelect::Render()
                         {
                             _SelectionState = true;
                             GetApplication().PopUI();
+                            _Application._OnProjectLoad();
                         }
                     }
                 }
@@ -154,6 +155,7 @@ void UIProjectSelect::Render()
                     GetApplication().PopUI();
                     GetApplication().PushUI(TTE_NEW_PTR(UIProjectCreate, MEMORY_TAG_EDITOR_UI, GetApplication()));
                     _SelectionState = true;
+                    _Application._OnProjectLoad();
                 }
             }
         }
@@ -162,9 +164,10 @@ void UIProjectSelect::Render()
     // CHANGE LANGUAGE
     const CString newLang = "Change Language...";
     ImVec2 newLangSize = CalcTextSize(newLang);
-    SetCursorScreenPos(ImVec2{winSize.x * 0.5f - newLangSize.x * 0.5f, winSize.y * 0.05f});
+    ImVec2 wmin = ImGui::GetWindowPos();
+    SetCursorScreenPos(wmin + ImVec2{winSize.x * 0.5f - newLangSize.x * 0.5f, winSize.y * 0.05f});
     TextUnformatted(newLang);
-    SetCursorScreenPos(ImVec2{ winSize.x * 0.5f - newLangSize.x * 0.5f, newLangSize.y + winSize.y * 0.05f + 4.0f });
+    SetCursorScreenPos(wmin + ImVec2{ winSize.x * 0.5f - newLangSize.x * 0.5f, newLangSize.y + winSize.y * 0.05f + 4.0f });
     SetNextItemWidth(newLangSize.x);
     if(BeginCombo("##langselect", _LangBoxSelect.c_str(), ImGuiComboFlags_None))
     {
@@ -186,9 +189,8 @@ void UIProjectSelect::Render()
     ImGui::End();
 
     // RECENT PROJECTS RHS PANEL
-    winSize = GetWindowViewport()->Size;
-    SetNextWindowPos({ winSize.x - rhsPanelPixels, 0 });
-    SetNextWindowSize({rhsPanelPixels, winSize.y});
+    winSize = GetMainViewport()->Size;
+    SetNextWindowViewportPixels(winSize.x - rhsPanelPixels, 0, rhsPanelPixels, winSize.y);
     Begin("#recents", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse
                                | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
                                | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_AlwaysVerticalScrollbar
@@ -199,13 +201,13 @@ void UIProjectSelect::Render()
     ImDrawList* draw_list = GetWindowDrawList();
     ImVec2 panelPos = GetCursorScreenPos();
     Float scrollY = GetScrollY();
-    Float windowHeight = GetWindowHeight();
+    Float windowHeight = winSize.y;
     Float itemHeight = 73.0f;
     Float offsetY = 45.f;
     SetWindowFontScale(0.8f);
-    PushFont(_Application.GetEditorFontLarge());
+    PushFont(_Application.GetEditorFont(), 22.0f);
     titleSize = CalcTextSize(recents.c_str());
-    SetCursorPosX((rhsPanelPixels * 0.5f) - titleSize.x * 0.5f);
+    SetCursorPosX((rhsPanelPixels * 0.5f) - titleSize.x * 0.5f - 5.0f);
     SetCursorPosY(45.0f * 0.5f - titleSize.y * 0.5f);
     TextUnformatted(recents.c_str());
     PopFont();
@@ -215,8 +217,8 @@ void UIProjectSelect::Render()
     {
         projIndex++;
         Float localY = offsetY - scrollY;
-        ImVec2 topLeft = ImVec2(panelPos.x, panelPos.y + localY);
-        ImVec2 bottomRight = ImVec2(panelPos.x + rhsPanelPixels, panelPos.y + localY + 70.0f);
+        ImVec2 topLeft = wmin + ImVec2(panelPos.x, panelPos.y + localY);
+        ImVec2 bottomRight = wmin + ImVec2(panelPos.x + rhsPanelPixels, panelPos.y + localY + 70.0f);
 
         Bool hovered = IsMouseHoveringRect(topLeft, bottomRight);
         ImU32 up = hovered ? IM_COL32(50, 50, 50, 255) : IM_COL32(70, 70, 70, 255);
@@ -230,6 +232,7 @@ void UIProjectSelect::Render()
                && CompareCaseInsensitive(_Application.GetProjectManager().GetHeadProject()->ProjectName, recent.Name)))
             {
                 _Application.GetProjectManager().SetProject(recent.Name);
+                _Application._OnProjectLoad();
                 _SelectionState = true;
                 _Application.PopUI();
             }
@@ -244,12 +247,12 @@ void UIProjectSelect::Render()
 
         ImVec2 itemMin = ImVec2(panelStart.x, localY);
         ImVec2 itemMax = ImVec2(panelStart.x + rhsPanelPixels, localY + 70.0f);
-        ImVec2 clipMin = ImVec2(itemMin.x + 10.0f, itemMin.y + 10.0f);
-        ImVec2 clipMax = ImVec2(itemMax.x - 10.0f, itemMax.y - 10.0f);
+        ImVec2 clipMin = wmin + ImVec2(itemMin.x + 10.0f, itemMin.y + 10.0f);
+        ImVec2 clipMax = wmin + ImVec2(itemMax.x - 10.0f, itemMax.y - 10.0f);
 
         ImGui::PushClipRect(clipMin, clipMax, true);
 
-        SetCursorScreenPos(panelStart);
+        SetCursorPos(panelStart);
         SetCursorPosX(10.0f);
         SetCursorPosY(offsetY + 10.0f);
         SetWindowFontScale(1.2f);
@@ -267,7 +270,7 @@ void UIProjectSelect::Render()
         offsetY += 73.0f;
     }
 
-    SetCursorScreenPos(panelStart);
+    SetCursorScreenPos(panelStart + wmin);
     Dummy(ImVec2(rhsPanelPixels, offsetY - scrollY));
     End();
 

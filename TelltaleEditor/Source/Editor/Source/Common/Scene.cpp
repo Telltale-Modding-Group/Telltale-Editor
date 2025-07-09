@@ -31,10 +31,10 @@ public:
         return 0;
     }
     
-    // state,agentname, props (will be copied)
+    // state,agentname, props (will be copied), initial transform
     static U32 luaScenePushAgent(LuaManager& man)
     {
-        TTE_ASSERT(man.GetTop() == 3, "Incorrect number of arguments");
+        TTE_ASSERT(man.GetTop() >= 3, "Incorrect number of arguments");
         Scene* pScene = Task(man);
         String agent = man.ToString(2);
         if(pScene->ExistsAgent(agent))
@@ -43,7 +43,10 @@ public:
             return 0;
         }
         Meta::ClassInstance props = Meta::CopyInstance(Meta::AcquireScriptInstance(man, 3));
-        pScene->AddAgent(agent, {}, std::move(props)); // modules setup at runtime
+        Transform trans{};
+        if(man.GetTop() >= 4)
+            Meta::ExtractCoercableLuaValue(trans, man, 4);
+        pScene->AddAgent(agent, {}, std::move(props), trans); // modules setup at runtime
         return 0;
     }
     
@@ -53,7 +56,7 @@ void Scene::RegisterScriptAPI(LuaFunctionCollection &Col)
 {
     PUSH_FUNC(Col, "CommonSceneSetName", &SceneAPI::luaSceneSetName, "nil CommonSceneSetName(state, name)", "Sets the name of the common scene");
     PUSH_FUNC(Col, "CommonSceneSetHidden", &SceneAPI::luaSceneSetHidden,"nil CommonSceneSetHidden(state, bHidden)", "Sets if the common scene is initially hidden");
-    PUSH_FUNC(Col, "CommonScenePushAgent", &SceneAPI::luaScenePushAgent, "nil CommonScenePushAgent(state, name, props)", "Pushes an agent to the common scene");
+    PUSH_FUNC(Col, "CommonScenePushAgent", &SceneAPI::luaScenePushAgent, "nil CommonScenePushAgent(state, name, props, --[[optional]] initialTransform)", "Pushes an agent to the common scene");
 }
 
 void Scene::FinaliseNormalisationAsync()
@@ -68,6 +71,7 @@ void Scene::_SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>:
     // create node
     Ptr<Node> pNode;
     pAgent->AgentNode = pNode = TTE_NEW_PTR(Node, MEMORY_TAG_OBJECT_DATA);
+    pNode->LocalTransform = pNode->GlobalTransform = pAgent->InitialTransform;
     pNode->AgentName = pAgent->Name;
     pNode->Name = pAgent->Name;
     pNode->AttachedScene = this;
@@ -202,13 +206,30 @@ void Scene::RemoveAgentModule(const Symbol& sym, SceneModuleType module)
     }
 }
 
-
 Bool Scene::ExistsAgent(const Symbol& sym)
 {
     for(auto& agent: _Agents)
         if(agent.second->NameSymbol == sym)
             return true;
     return false;
+}
+
+SceneModuleTypes Scene::GetAgentModules(const Symbol& Name)
+{
+    for (auto& agent : _Agents)
+    {
+        if (agent.second->NameSymbol == Name)
+        {
+            SceneModuleTypes m{};
+            for(I32 mod  = 0; mod < (I32)SceneModuleType::NUM; mod++)
+            {
+                if(agent.second->ModuleIndices[mod] != -1)
+                    m.Set((SceneModuleType)mod, true);
+            }
+            return m;
+        }
+    }
+    return {};
 }
 
 Bool Scene::HasAgentModule(const Symbol& sym, SceneModuleType module)
@@ -219,13 +240,14 @@ Bool Scene::HasAgentModule(const Symbol& sym, SceneModuleType module)
     return false;
 }
 
-void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance props)
+void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance props, Transform init)
 {
     TTE_ASSERT(!ExistsAgent(Name), "Agent %s already exists in %s", Name.c_str(), Name.c_str());
     Ptr<SceneAgent> pAgent = TTE_NEW_PTR(SceneAgent, MEMORY_TAG_SCENE_DATA, Name);
     auto agentIt = _Agents.insert({Symbol(Name), pAgent});
     auto& agentPtr = agentIt.first->second;
     agentPtr->OwningScene = this;
+    agentPtr->InitialTransform = init;
     agentPtr->Props = props;
     if(!agentPtr->Props)
     {
@@ -443,6 +465,7 @@ void Scene::RemoveNodeListener(Ptr<Node> node, NodeListener *pListener)
         pCurrent = pCurrent->Next.get();
     }
 }
+
 Ptr<Node> Scene::FindChildNode(Ptr<Node> node, Symbol name)
 {
     if (Symbol(node->Name) == name)

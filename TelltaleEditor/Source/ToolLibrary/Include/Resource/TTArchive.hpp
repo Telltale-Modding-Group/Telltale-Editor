@@ -33,6 +33,7 @@ public:
         {
             if(outName)
                 *outName = it->Name;
+            it->Stream->SetPosition(0);
             return it->Stream;
         }
         return {};

@@ -992,7 +992,10 @@ DataStreamRef ResourceLogicalLocation::LocateResource(const Symbol& name, String
         {
             DataStreamRef resolved = set.Resolved->LocateResource(name, outName);
             if(resolved)
+            {
+                resolved->SetPosition(0);
                 return resolved;
+            }
         }
     }
     return {};
@@ -1427,7 +1430,7 @@ void ResourceRegistry::BindLuaManager(LuaManager& man)
     ScriptManager::SetGlobal(man, "__ResourceRegistry", false);
 }
 
-ResourceRegistry::ResourceRegistry(LuaManager& man) : SnapshotDependentObject("ResourceRegistry"), _LVM(man)
+ResourceRegistry::ResourceRegistry(LuaManager& man) : SnapshotDependentObject("ResourceRegistry"), _LVM(man), _PreloadOffset(0), _PreloadSize(0)
 {
     TTE_ASSERT(Meta::GetInternalState().GameIndex != -1, "Resource registries can only be when a game is set!");
     TTE_ASSERT(man.GetVersion() == Meta::GetInternalState().Games[Meta::GetInternalState().GameIndex].LVersion,
@@ -2669,8 +2672,16 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
             if(job->HOI[i]._Instance)
             {
                 // Normalise
-                job->HOI[i]._Handle = job->Allocators[i](job->Registry);
-                bFail = !_PerformHandleNormalise(job->HOI[i], job->Registry);
+                CommonClassAllocator* pAllocator = Meta::GetCommonAllocator(job->HOI[i]._Instance.GetClassID());
+                if(pAllocator)
+                {
+                    job->HOI[i]._Handle = pAllocator(job->Registry);
+                    bFail = !_PerformHandleNormalise(job->HOI[i], job->Registry);
+                }
+                else
+                {
+                    bFail = true;
+                }
                 job->HOI[i]._Instance = {}; // ignore instance, not needed
             }
         }else bFail = true;

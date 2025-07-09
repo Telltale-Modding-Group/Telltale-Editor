@@ -53,6 +53,7 @@ private:
     friend class TextureNormalisationTask;
     friend class RenderFrameUpdateList;
     friend class TextureAPI;
+    friend class SceneView;
     
     struct Image
     {

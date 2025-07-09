@@ -21,6 +21,11 @@ struct Mesh : HandleLockOwner
         SHADOW = 1,
         NUM = 2,
     };
+
+    enum MeshBatchFlags
+    {
+        BATCH_BOUNDING_DIRTY = 1, // some games dont store the bounding box !
+    };
     
     // A mesh batch. This is a optimised way telltale use to draw once per material. Most members TODO.
     struct MeshBatch
@@ -28,6 +33,7 @@ struct Mesh : HandleLockOwner
         
         BoundingBox BBox;
         Sphere BSphere;
+        Flags BatchFlags;
         U32 BatchUsage = 0; // not in use right now but in future. 1:deformable, 2:single deformable, 4:double sided, 8:triangle strip
         U32 MinVertIndex = 0; // in vertex array
         U32 MaxVertIndex = 0; // in vertex array
@@ -52,17 +58,10 @@ struct Mesh : HandleLockOwner
     // May be extended. Vertex state.
     struct VertexState
     {
+
         RenderVertexState Default; // default. in future we can have more for skinning (compute etc). DO NOT CREATE. only set info members.
         Meta::BinaryBuffer VertexBuffers[32];
         Meta::BinaryBuffer IndexBuffer;
-        
-        struct
-        {
-            
-            Ptr<RenderBuffer> GPUVertexBuffers[32];
-            Ptr<RenderBuffer> GPUIndexBuffer;
-            
-        } RuntimeData; // runtime data. internal use for renderer.
         
     };
     
@@ -105,13 +104,6 @@ struct Mesh : HandleLockOwner
         std::vector<VertexState> VertexStates; // vertex states (draw call bind sets), containing verts/inds/etc.
         std::vector<MeshMaterial> Materials;
         
-        struct
-        {
-            
-            Ptr<RenderBuffer> BoneMatrixBuffer; // TODO move into bone matrix cache and volume packing
-            
-        } RuntimeData;
-        
         static constexpr CString ClassHandle = "Handle<D3DMesh>";
         static constexpr CString Class = "D3DMesh";
         static constexpr CString Extension = "d3dmesh";
@@ -124,6 +116,10 @@ struct Mesh : HandleLockOwner
         {
             return CommonClass::MESH;
         }
+
+    private:
+
+        void _GenerateBoundingBox(const LODInstance& lod, MeshBatch& batch);
         
     };
     

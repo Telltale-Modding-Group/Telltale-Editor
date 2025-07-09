@@ -89,8 +89,6 @@ protected:
     
     void AsyncProcessGlobalMessage(SceneMessage message);
     
-    Bool IsKeyDown(InputCode key);
-    
 private:
     
     friend class Scene;
@@ -102,8 +100,6 @@ private:
     std::vector<Ptr<Scene>> _AsyncScenes; // populator job access ONLY (ensure one thread access at a time). list of active rendering scenes. ACTIVE SCENES.
     std::mutex _MessagesLock; // for below
     std::priority_queue<SceneMessage> _AsyncMessages; // messages stack
-    
-    BitSetRanged<InputCode, InputCode::COMMON_MAPPINGS_START, InputCode::COMMON_MAPPINGS_END> _KeysDown;
     
     Ptr<ResourceRegistry> _AttachedRegistry; // attached resource registry
 

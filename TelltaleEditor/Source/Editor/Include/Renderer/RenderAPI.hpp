@@ -177,7 +177,25 @@ struct RenderNDCScissorRect
         width = maxX > minX ? (maxX - minX) : 0;
         height = maxY > minY ? (maxY - minY) : 0;
     }
-    
+
+    // Get in space 0-1 both x and y.
+    inline void GetFractional(Float& xMin, Float& yMin, Float& xMax, Float& yMax) const
+    {
+        xMin = (Min.x + 1.0f) * 0.5f;
+        yMin = (Min.y + 1.0f) * 0.5f;
+        xMax = (Max.x + 1.0f) * 0.5f;
+        yMax = (Max.y + 1.0f) * 0.5f;
+    }
+
+    // Set from space 0-1 in both x and y
+    inline void SetFractional(Float xMinFrac, Float yMinFrac, Float xMaxFrac, Float yMaxFrac)
+    {
+        Min.x = (xMinFrac * 2.0f) - 1.0f;
+        Min.y = (yMinFrac * 2.0f) - 1.0f;
+        Max.x = (xMaxFrac * 2.0f) - 1.0f;
+        Max.y = (yMaxFrac * 2.0f) - 1.0f;
+    }
+
     // sub rect. scales child inside parent one
     static inline RenderNDCScissorRect SubRect(const RenderNDCScissorRect& parent, const RenderNDCScissorRect& child)
     {
@@ -472,6 +490,16 @@ public:
     inline Bool IsValid() const { return _Value != (U32)-1; }
     
     inline U32 GetRawID() { return _Value; }
+
+    inline Bool operator==(const RenderTargetID& rhs) const
+    {
+        return _Value == rhs._Value;
+    }
+
+    inline Bool operator!=(const RenderTargetID& rhs) const
+    {
+        return _Value != rhs._Value;
+    }
     
 };
 
@@ -519,6 +547,14 @@ public:
     
     RenderTargetSet() = default;
     
+};
+
+// Internal dynamic render target
+struct RenderTargetDynamicTarget
+{
+    RenderTargetID DynamicID;
+    WeakPtr<RenderTexture> Texture;
+    U64 CreationFrame;
 };
 
 // ============================================= PIPELINE STATES AND PASSES =============================================

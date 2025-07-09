@@ -439,3 +439,24 @@ public:
     inline void SetHandled() const { EventFlags.Add(EVENT_HANDLED); }
     
 };
+
+/**
+ * Manages key event management. Enables API to check if a key is down.
+ */
+class RuntimeInputEventManager
+{
+public:
+
+    RuntimeInputEventManager() = default;
+
+    // Returns if the given key is down.
+    Bool IsKeyDown(InputCode key);
+
+    // Processes user events.
+    void ProcessEvents(const std::vector<RuntimeInputEvent>& events);
+
+private:
+
+    BitSetRanged<InputCode, InputCode::COMMON_MAPPINGS_START, InputCode::COMMON_MAPPINGS_END> _KeysDown;
+
+};

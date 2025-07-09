@@ -804,7 +804,6 @@ struct AsyncResourcePreloadBatchJob // async serialise and normalises
     U32 NumResources = 0; // 0 to 32 below
     Flags BatchFlags;
     HandleObjectInfo HOI[STATIC_PRELOAD_BATCH_SIZE];
-    CommonClassAllocator* Allocators[STATIC_PRELOAD_BATCH_SIZE];
     
 };
 
@@ -1066,6 +1065,14 @@ public:
         Handle<T> hHandle{};
         hHandle.SetObject(shared_from_this(), FileName, false, bEnsureLoaded);
         return hHandle;
+    }
+
+    inline void GetResourceLocationNames(std::vector<String>& names)
+    {
+        for(const auto& loc: _Locations)
+        {
+            names.push_back(loc->Name);
+        }
     }
     
 private:

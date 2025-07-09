@@ -62,6 +62,7 @@ enum RenderContextFlags
 {
     RENDER_CONTEXT_NEEDS_PURGE = 1,
     RENDER_CONTEXT_AGGREGATED = 2, // non owning device and window
+    RENDER_CONTEXT_SYNC = 4, // non-async, execute on the main thread both render instructions and render executions.
 };
 
 class RenderContext;
@@ -79,7 +80,9 @@ struct RenderFrame
     
     U64 FrameNumber = 0; // this frame number
     RenderTexture* BackBuffer = nullptr; // set at begin render frame internally
+    Vector2 BackBufferSize;
     
+    RenderCommandBuffer* SDL3MainCommandBuffer = nullptr; // with acquired swap chain tex
     std::vector<RenderCommandBuffer*> CommandBuffers; // command buffers which will be destroyed at frame end (render execution)
     
     Callbacks PreRenderCallbacks, PostRenderCallbacks; // callbacks to call on render thread. mostly used for UI layer render delegation.
@@ -350,7 +353,9 @@ struct RenderSceneContext
 class RenderContext : public HandleLockOwner
 {
 
-    RenderContext(SDL_GPUDevice* pDevice, SDL_Window* pWindow, Ptr<ResourceRegistry> pEditorResourceSystem); // aggregate constructor
+    // Sync: execute on main thread both population and execution
+    RenderContext(SDL_GPUDevice* pDevice, Bool bSync,
+                  SDL_Window* pWindow, Ptr<ResourceRegistry> pEditorResourceSystem); // aggregate constructor
 
 public:
 
@@ -358,20 +363,23 @@ public:
      * Creates a shared render context. This is the aggregated constructor and this context will not own the device and window.
      * Pass in the resource registry in which the TTE shader resources can be found
      */
-    inline static Ptr<RenderContext> CreateShared(SDL_GPUDevice *pDevice, SDL_Window *pWindow, Ptr<ResourceRegistry> pEditorResourceSystem)
+    inline static Ptr<RenderContext> CreateShared(SDL_GPUDevice *pDevice, Bool bSync,
+                                                  SDL_Window *pWindow, Ptr<ResourceRegistry> pEditorResourceSystem)
     {
-        return TTE_NEW_PTR(RenderContext, MEMORY_TAG_RENDERER, pDevice, pWindow, pEditorResourceSystem);
+        return TTE_NEW_PTR(RenderContext, MEMORY_TAG_RENDERER, pDevice, bSync, pWindow, pEditorResourceSystem);
     }
 
     static void DisableDebugHUD(SDL_Window* sdlWindow);
     
     // creates window. start rendering by calling frame update each main thread frame. frame rate cap from 1 to 120!
-    RenderContext(String windowName, Ptr<ResourceRegistry> pEditorResourceSystem, U32 frameRateCap = DEFAULT_FRAME_RATE_CAP);
+    RenderContext(String windowName, Ptr<ResourceRegistry> pEditorResourceSystem, Bool bSync,
+                  U32 frameRateCap = DEFAULT_FRAME_RATE_CAP);
     ~RenderContext(); // closes window and exists the context, freeing memory
     
     // Call each frame on the main thread to wait for the renderer job (render last frame) and prepare next scene render
     // Pass in if you want to force this to be the last frame (destructor called after). Returns if still running
-    Bool FrameUpdate(Bool isLastFrame);
+    Bool FrameUpdate(Bool isLastFrame, 
+                     SDL_GPUCommandBuffer* pPreAcquiredCmdBuffer = nullptr, SDL_GPUTexture* preAcquireBackBuffer = nullptr);
 
     // Gets an effect reference which can be used to get a render instance
     RenderEffectRef GetEffectRef(RenderEffect effect, RenderEffectFeaturesBitSet variantFeatures);
@@ -550,16 +558,30 @@ public:
     
     // Pushes a callback to the given frame (do this on async update) which will be asynchronously executed before other rendering commands. done in reverse order.
     // One argument is passed in, the frame pointer.
-    inline void PushPreRenderCallback(RenderFrame& frame, Ptr<FunctionBase> cb)
+    inline void PushPrePopulateCallback(RenderFrame& frame, Ptr<FunctionBase> cb)
     {
         frame.PreRenderCallbacks.PushCallback(std::move(cb));
     }
     
     // Pushes a callback to the given frame (do this on async update) which will be asynchronously executed after all other rendering commands. done in reverse order.
     // One argument is passed in, the frame pointer.
-    inline void PushPostRenderCallback(RenderFrame& frame, Ptr<FunctionBase> cb)
+    inline void PushPostPopulateCallback(RenderFrame& frame, Ptr<FunctionBase> cb)
     {
         frame.PostRenderCallbacks.PushCallback(std::move(cb));
+    }
+
+    // Gets the callbacks which are executed just before rendering populated instructions on the main thread.
+    // One argument is passed in, the frame pointer
+    inline Callbacks& GetPreRenderMainThreadCallbacks()
+    {
+        return _PreMTRender;
+    }
+
+    // Gets the callbacks which are executed just after rendering populated instructions on the main thread.
+        // One argument is passed in, the frame pointer
+    inline Callbacks& GetPostRenderMainThreadCallbacks()
+    {
+        return _PostMTRender;
     }
     
     Bool DbgCheckOwned(const Ptr<Handleable> handle) const; // thread safe to check if we own this resource. if not it was not locked and should have been
@@ -568,7 +590,10 @@ public:
     
     // Create and initialise new command buffer to render commands to. submit if wanted, if not it is automatically at frame end.
     // swap chain slot is put into slot 0! This is ONLY USED BY MAIN THREAD. Only use if in a render callback.
-    RenderCommandBuffer* _NewCommandBuffer();
+    RenderCommandBuffer* _NewCommandBuffer(SDL_GPUCommandBuffer* preAcquire = nullptr);
+
+    // Creates a dynamic render target. Create the texture first as a render target. Returns the ID for it.
+    RenderTargetID CreateDynamicTarget(Ptr<RenderTexture> targetTexture);
     
 private:
     
@@ -631,7 +656,8 @@ private:
     void _PrepareRenderPass(RenderFrame& frame, RenderPass& pass, const RenderViewPass& viewInfo);
     void _ResolveTargets(RenderFrame& frame, const RenderTargetIDSet& ids, RenderTargetSet& set);
     void _ResolveTarget(RenderFrame& frame, const RenderTargetIDSurface& surface, RenderTargetResolvedSurface& resolved, U32 screenW, U32 screenH);
-    void _ResolveBackBuffers(RenderCommandBuffer& buf);
+    RenderTexture* _ResolveBackBuffers(RenderCommandBuffer& buf, SDL_GPUCommandBuffer* preAcquire, SDL_GPUTexture* backBufPre);
+    Ptr<RenderTexture> _ResolveDynamicTarget(RenderTargetID dynID);
 
     void _PushDebugGroup(RenderCommandBuffer& buf, const String& name);
     void _PopDebugGroup(RenderCommandBuffer& buf);
@@ -640,14 +666,16 @@ private:
     
     // async job to populate render instructions
     static Bool _Populate(const JobThread& jobThread, void* pRenderCtx, void* pFrame);
+
+    void _DoPopulate(RenderFrame& frame, Float dt);
     
     RenderFrame _Frame[2]; // index swaps, main thread and render thread frame
     JobHandle _PopulateJob; // populate render instructions job
     U32 _MainFrameIndex; // 0 or 1. NOT of this value is the render frame index, into the _Frame array.
     U64 _StartTimeMicros = 0; // start time of current mt frame
-    U32 _MinFrameTimeMS; // min frame time (ie max frame rate)
-    U32 _HotResourceThresh; // hot resource threshold
-    U32 _HotLockThresh;
+    U32 _MinFrameTimeMS = 0; // min frame time (ie max frame rate)
+    U32 _HotResourceThresh = 0; // hot resource threshold
+    U32 _HotLockThresh = 0;
     
     SDL_Window* _Window; // SDL3 window handle
     SDL_GPUDevice* _Device; // SDL3 graphics device (vulkan,d3d,metal)
@@ -661,7 +689,9 @@ private:
     
     // ACCESS ONLY BY RENDER
     Ptr<RenderTexture> _ConstantTargets[(U32)RenderTargetConstantID::COUNT];
-    // Dynamic targets?
+    std::vector<RenderTargetDynamicTarget> _DynamicTargets;
+    U32 _DynamicTargetIDCounter = 0;
+    Callbacks _PreMTRender, _PostMTRender;
 
     std::mutex _Lock; // for below
     std::vector<Ptr<RenderPipelineState>> _Pipelines; // pipeline states
@@ -684,6 +714,8 @@ private:
     friend class RenderFrameUpdateList;
     friend class RenderLayer;
     friend class RenderEffectCache;
+
+    friend class SceneRenderer;
     
     // Both defined in render defaults source.
     friend void RegisterDefaultTextures(RenderContext& context, RenderCommandBuffer* cmds, std::vector<DefaultRenderTexture>& textures);

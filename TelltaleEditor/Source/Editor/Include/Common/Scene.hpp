@@ -25,6 +25,7 @@ class PlaybackController;
 class Scene;
 class SceneRuntime;
 class RenderContext;
+class EditorUI;
 struct Node;
 struct SceneAgent;
 struct SceneMessage;
@@ -258,6 +259,8 @@ template<> struct SceneModule<SceneModuleType::RENDERABLE> : SceneModuleBase
     
     // on setups create and gather stuff which is otherwise in the agent props or object cache to speed up.
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
+
+    void RenderUI(EditorUI& editor, SceneAgent& agent); // all RenderUI functions are defined in UI/ModuleUI.cpp
     
 };
 
@@ -278,6 +281,8 @@ template<> struct SceneModule<SceneModuleType::SKELETON> : SceneModuleBase
     
     // impl in animationmgr.cpp
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
+
+    void RenderUI(EditorUI& editor, SceneAgent& agent);
     
 };
 
@@ -292,8 +297,10 @@ struct SceneAgent
     
     mutable Scene* OwningScene = nullptr;
     mutable Meta::ClassInstance Props; // agent properties
-    mutable Ptr<Node> AgentNode; // NOTNULL. Is always set, only at runtime in rendering!
+    mutable Ptr<Node> AgentNode; // NOTNULL. Is always set only at runtime in rendering!
     mutable I32 ModuleIndices[(I32)SceneModuleType::NUM]; // points into arrays inside scene.
+
+    Transform InitialTransform;
     
     inline SceneAgent() : Name(""), NameSymbol()
     {
@@ -355,6 +362,8 @@ enum class SceneFlags
 class Scene : public HandleableRegistered<Scene>
 {
 public:
+
+    using AgentMap = std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>;
     
     static constexpr CString ClassHandle = "Handle<Scene>";
     static constexpr CString Class = "Scene";
@@ -378,7 +387,7 @@ public:
     }
     
     // Add a new agent. agent properties can be a nullptr, to start with default props. YOU MUST DISCARD AGENT PROPERTIES AFTER PASSING IT IN. copy it then pass if not!
-    void AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance AgentProperties);
+    void AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance AgentProperties, Transform initialTransform = {});
     
     // Adds an agent module to the given agent
     void AddAgentModule(const String& Name, SceneModuleType module);
@@ -393,6 +402,8 @@ public:
     
     // Returns if the given agent has the given module
     Bool HasAgentModule(const Symbol& Name, SceneModuleType module);
+
+    SceneModuleTypes GetAgentModules(const Symbol& Name);
     
     // Gets the given module for the given agent. This agent must have this module!
     template<SceneModuleType Type>
@@ -415,6 +426,16 @@ public:
     inline virtual CommonClass GetCommonClassType() override
     {
         return CommonClass::SCENE;
+    }
+
+    inline const AgentMap& GetAgents() const
+    {
+        return _Agents;
+    }
+
+    inline std::vector<Camera>& GetViewStack() 
+    {
+        return _ViewStack;
     }
     
 private:
@@ -480,7 +501,7 @@ private:
     
     String Name; // scene name
     Flags _Flags;
-    std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator> _Agents; // scene agent list
+    AgentMap _Agents; // scene agent list
     std::vector<Camera> _ViewStack; // view stack
     std::vector<AnimationManager*> _AnimationMgrs; // anim managers
     std::set<PlaybackController*> _Controllers;
@@ -497,6 +518,9 @@ private:
     friend class SkeletonInstance;
     friend class PlaybackController;
     friend class SceneAPI;
+    friend class EditorUI;
+    friend class InspectorView;
+    friend class SceneRenderer;
     
     template<SceneModuleType M>
     friend struct SceneModule;
@@ -602,6 +626,26 @@ namespace SceneModuleUtil
             if (PropertySet::IsMyParent(Agent.Props, SceneModule<Module>::GetModulePropertySet(), true, Registry))
             {
                 Modules.Set(Module, true);
+            }
+            return true;
+        }
+
+    };
+
+    struct _RenderUIModules
+    {
+
+        Scene& S;
+        SceneAgent& Agent;
+        EditorUI& Editor;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            if (S.HasAgentModule(Agent.NameSymbol, Module))
+            {
+                auto& module = S.GetAgentModule<Module>(Agent.NameSymbol);
+                module.RenderUI(Editor, Agent);
             }
             return true;
         }

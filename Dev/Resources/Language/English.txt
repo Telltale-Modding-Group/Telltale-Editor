@@ -40,3 +40,19 @@ project_create.cancel_button = "Cancel"
 project_create.awaiting = "Please wait while the Telltale Editor detects the game snapshot from your game data..."
 project_create.await_too_long = "Detection is taking long! Press next to skip if you are sure of the snapshot details."
 project_create.not_guessed = "We could not detect the snapshot from your mount points. If you are sure, enter manually else make sure the executable is inside the mount points or contact us for help."
+
+# FILE VIEW
+fv.title = "Resources"
+fv.back = "Previous Folder"
+fv.sidebar = "Resource View"
+
+# OUTLINE VIEW
+ov.title = "Scene Outline"
+
+# INSPECTOR VIEW
+iv.select = "Please select an agent or scene node"
+iv.title_prefix = "Inspecting"
+iv.title_default = "Inspector"
+
+# SCENE VIEW
+sv.title = "Scene"

@@ -259,6 +259,7 @@ function RegisterTX100(vendor)
 	local scene = NewClass("class Scene", 0)
 	scene.Extension = "scene"
 	scene.Serialiser = "SerialiseScene0"
+	scene.Normaliser = "NormaliseScene_V0"
 	scene.Members[1] = NewMember("mbHidden", kMetaBool)
 	scene.Members[2] = NewMember("mName", kMetaClassString)
 	scene.Members[3] = NewMember("_mAgents", arrayAgents, kMetaMemberVersionDisable + kMetaMemberSerialiseDisable)

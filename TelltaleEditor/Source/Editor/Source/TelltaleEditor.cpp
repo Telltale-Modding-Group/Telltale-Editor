@@ -348,20 +348,44 @@ void TTEProperties::Load(ResourceURL physicalURI)
             String value = StringTrim(line);
             if (value.length())
             {
+                if(value == "]")
+                {
+                    bInArray = false;
+                    continue;
+                }
                 Bool bLast = value[value.length() - 1] != ',';
                 if (!bLast)
                     value = value.substr(0, value.length() - 1);
                 currentArrayValues.push_back(std::move(value));
                 if (bLast)
                 {
-                    if (!std::getline(stream, line) || StringTrim(line) != "]")
+                    String trimmed;
+                    while (std::getline(stream, line))
+                    {
+                        trimmed = StringTrim(line);
+                        if (trimmed.empty())
+                            continue;
+                        if (trimmed == "]")
+                        {
+                            bInArray = false;
+                            _StringArrayKeys[currentKey] = std::move(currentArrayValues);
+                            break;
+                        }
+                        else
+                        {
+                            _LoadState = false;
+                            TTE_LOG("Could not read properties file: at terminator for string array key '%s': expected a ']' on a new line", currentKey.c_str());
+                            return;
+                        }
+                    }
+
+                    if (stream.eof() && trimmed != "]")
                     {
                         _LoadState = false;
-                        TTE_LOG("Could not read properties file: at terminator for string array key '%s': expected a ']' on a new line", currentKey.c_str());
+                        TTE_LOG("Could not read properties file: unexpected EOF while reading array for key '%s'", currentKey.c_str());
                         return;
                     }
-                    bInArray = false;
-                    _StringArrayKeys[currentKey] = std::move(currentArrayValues);
+
                     continue;
                 }
             }

@@ -13,6 +13,8 @@
 #include <filesystem>
 #include <sstream>
 
+DECL_VEC_ADDITION();
+
 // =========================================== APPLICATION UI CLASS
 
 ApplicationUI::ApplicationUI() : _Device(nullptr), _Window(nullptr), _Editor(nullptr), _ImContext(nullptr),  _ProjectMgr(_WorkspaceProps)
@@ -25,13 +27,26 @@ ApplicationUI::~ApplicationUI()
 
 }
 
+void ApplicationUI::Quit()
+{
+    _Flags.Remove(ApplicationFlag::RUNNING);
+}
+
 // =========================================== UI COMPONENT IMPL
 
-void UIComponent::SetNextWindowViewport(Float xPosFrac, Float yPosFrac, U32 xMinPix, U32 yMinPix, Float xExtentFrac, Float yExtentFrac, U32 xExtentMinPix, U32 yExtentMinPix)
+void UIComponent::SetNextWindowViewportPixels(Float posX, Float posY, Float SizeX, Float SizeY)
 {
-    ImVec2 windowSize = ImGui::GetWindowViewport()->Size;
-    ImGui::SetNextWindowPos({MAX(xPosFrac * windowSize.x, (Float)xMinPix), MAX(yPosFrac * windowSize.y, (Float)yMinPix)});
-    ImGui::SetNextWindowSize({ MAX(xExtentFrac * windowSize.x, (Float)xExtentMinPix), MAX(yExtentFrac * windowSize.y, (Float)yExtentMinPix) });
+    ImVec2 work = ImGui::GetMainViewport()->WorkPos;
+    ImGui::SetNextWindowPos(work + ImVec2{posX, posY});
+    ImGui::SetNextWindowSize({SizeX, SizeY});
+}
+
+void UIComponent::SetNextWindowViewport(Float xPosFrac, Float yPosFrac, U32 xMinPix, U32 yMinPix, Float xExtentFrac, Float yExtentFrac, U32 xExtentMinPix, U32 yExtentMinPix, U32 cnd)
+{
+    ImVec2 windowSize = ImGui::GetMainViewport()->WorkSize;
+    ImVec2 work = ImGui::GetMainViewport()->WorkPos;
+    ImGui::SetNextWindowPos({ work.x + MAX(xPosFrac * windowSize.x, (Float)xMinPix), work.y + MAX(yPosFrac * windowSize.y, (Float)yMinPix)}, (ImGuiCond)cnd);
+    ImGui::SetNextWindowSize({MAX(xExtentFrac * windowSize.x, (Float)xExtentMinPix), MAX(yExtentFrac * windowSize.y, (Float)yExtentMinPix) }, (ImGuiCond)cnd);
 }
 
 UIComponent::UIComponent(ApplicationUI& ui) : _MyUI(ui)
@@ -53,6 +68,83 @@ static U8* _LoadSTBI(String path, ApplicationUI& _MyUI, I32& width, I32& height)
         return (U8*)rgba;
     }
     return nullptr;
+}
+
+void UIComponent::DrawCenteredWrappedText(const String& text, Float maxWidth, Float x, Float y, I32 maxLines, Float z)
+{
+    const Float lineHeight = ImGui::GetTextLineHeightWithSpacing();
+    const I32 textLength = static_cast<I32>(text.length());
+    I32 cursor = 0;
+    I32 linesRendered = 0;
+
+    while (cursor < textLength && linesRendered < maxLines)
+    {
+        I32 lineLength = 1;
+
+        // Find the longest substring that fits within maxWidth
+        while ((cursor + lineLength) <= textLength)
+        {
+            String substr = text.substr(cursor, lineLength);
+            Float width = ImGui::CalcTextSize(substr.c_str()).x;
+
+            if (width > maxWidth)
+                break;
+
+            ++lineLength;
+        }
+
+        // Back off by one if we overstepped
+        if (lineLength > 1)
+            --lineLength;
+
+        String line = text.substr(cursor, lineLength);
+        ImVec2 lineSize = ImGui::CalcTextSize(line.c_str());
+
+        Float lineX = x - lineSize.x * 0.5f;
+        Float lineY = y + linesRendered * lineHeight;
+
+        ImGui::SetCursorScreenPos({ lineX, lineY });
+        ImGui::TextUnformatted(line.c_str());
+
+        cursor += lineLength;
+        ++linesRendered;
+    }
+}
+
+
+String UIComponent::TruncateText(const String& src, Float truncWidth)
+{
+    const Float text_width = ImGui::CalcTextSize(src.c_str(), nullptr, true).x;
+
+    if (text_width <= truncWidth)
+        return src;
+
+    constexpr CString ELLIPSIS = "...";
+    const Float ellipsis_width = ImGui::CalcTextSize(ELLIPSIS).x;
+
+    if (ellipsis_width > truncWidth)
+        return "";
+
+    I32 visible_start = 0;
+    for (I32 i = 0; i < static_cast<I32>(src.size()); ++i)
+    {
+        String substring = src.substr(i);
+        const Float current_width = ImGui::CalcTextSize(substring.c_str(), nullptr, true).x;
+
+        if (current_width + ellipsis_width <= truncWidth)
+        {
+            visible_start = i;
+            break;
+        }
+    }
+
+    return ELLIPSIS + src.substr(visible_start);
+}
+
+void UIComponent::DrawResourceTexturePixels(const String& name, Float xPos, Float yPos, Float xSize, Float ySize, U32 colorScale)
+{
+    ImVec2 w = ImGui::GetWindowSize();
+    DrawResourceTexture(name, xPos / w.x, yPos / w.y, xSize / w.x, ySize / w.y, colorScale);
 }
 
 void UIComponent::DrawResourceTexture(const String& name, Float xPosFrac, Float yPosFrac, Float xSizeFrac, Float ySizeFrac, U32 sc)
@@ -127,8 +219,9 @@ void UIComponent::DrawResourceTexture(const String& name, Float xPosFrac, Float 
         ImDrawList* drawList = ImGui::GetWindowDrawList();
 
         ImVec2 screenSize = ImGui::GetWindowSize(); // ie window size
-        ImVec2 topLeft(xPosFrac * screenSize.x, yPosFrac * screenSize.y);
-        ImVec2 bottomRight(topLeft.x + xSizeFrac * screenSize.x, topLeft.y + ySizeFrac * screenSize.y);
+        ImVec2 tl = ImGui::GetWindowPos();
+        ImVec2 topLeft(tl.x + xPosFrac * screenSize.x, tl.y + yPosFrac * screenSize.y);
+        ImVec2 bottomRight(topLeft.x + xSizeFrac * screenSize.x, tl.y + topLeft.y + ySizeFrac * screenSize.y);
         ImVec2 topRight(bottomRight.x, topLeft.y);
         ImVec2 bottomLeft(topLeft.x, bottomRight.y);
 
@@ -156,7 +249,9 @@ void UIComponent::DrawResourceTexture(const String& name, Float xPosFrac, Float 
         }
         else
         {
-            ImGui::GetWindowDrawList()->AddImage(id, ImVec2{ xPosFrac * winSize.x, yPosFrac * winSize.y }, ImVec2{ winSize.x * (xPosFrac + xSizeFrac), winSize.y * (yPosFrac + ySizeFrac) }, ImVec2{0,0}, ImVec2{1.f,1.f}, sc);
+            ImVec2 tl = ImGui::GetWindowPos(); //()->WorkPos;
+            ImGui::GetWindowDrawList()->AddImage(id, ImVec2{ tl.x + xPosFrac * winSize.x, tl.y + yPosFrac * winSize.y },
+                                                 ImVec2{ tl.x + winSize.x * (xPosFrac + xSizeFrac), tl.y + winSize.y * (yPosFrac + ySizeFrac) }, ImVec2{0,0}, ImVec2{1.f,1.f}, sc);
         }
     }
 }
@@ -207,7 +302,7 @@ void ApplicationUI::PushUI(Ptr<UIStackable> pStackable)
 
 void ApplicationUI::_Update()
 {
-    ImGui::PushFont(_EditorFont);
+    ImGui::PushFont(_EditorFont, 14.0f);
 
     if(_UIStack.size())
     {
@@ -236,7 +331,13 @@ void ApplicationUI::_OnProjectLoad()
 
     // LOAD REG + CONTEXT
     _EditorResourceReg = _Editor->CreateResourceRegistry();
-    _EditorRenderContext = RenderContext::CreateShared(_Device, _Window, _EditorResourceReg);
+    _EditorRenderContext = RenderContext::CreateShared(_Device, true, _Window, _EditorResourceReg);
+
+    for(const auto& mp: _ProjectMgr.GetHeadProject()->MountDirectories)
+    {
+        _EditorResourceReg->MountSystem("<" + FileGetName(mp.string()) + ">/", mp.string(), true); // force legacy needed here?
+    }
+
 }
 
 const String& UIComponent::GetLanguageText(CString id)
@@ -361,8 +462,13 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     U32 wW = 0, wH = 0;
     Ptr<UIProjectSelect> pSelect = TTE_NEW_PTR(UIProjectSelect, MEMORY_TAG_EDITOR_UI, *this);
     pSelect->GetWindowSize(wW, wH);
-    _Window = SDL_CreateWindow("Telltale Editor v" TTE_VERSION, wW, wH, SDL_WINDOW_HIDDEN); // TODO make this inside workspace settings
+    CString titleBar = "Telltale Editor v" TTE_VERSION;
+#ifdef DEBUG
+    titleBar = "Telltale Editor [Debug] v" TTE_VERSION;
+#endif
+    _Window = SDL_CreateWindow(titleBar, wW, wH, SDL_WINDOW_HIDDEN); // TODO make this inside workspace settings
     SDL_SetWindowPosition(_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+    SDL_SetWindowMinimumSize(_Window, 340, 250);
     SDL_ShowWindow(_Window);
     PushUI(std::move(pSelect));
 
@@ -387,7 +493,9 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     IMGUI_CHECKVERSION();
     RenderContext::DisableDebugHUD(_Window);
     _ImContext = ImGui::CreateContext();
-    //ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+    ImGui::GetIO().ConfigDpiScaleFonts = true;
     ImGui::StyleColorsDark(); // TODO MAKE THIS CUSTOM FROM WORKSPACE.
     ImGui_ImplSDL3_InitForSDLGPU(_Window);
     ImGui_ImplSDLGPU3_InitInfo init_info = {};
@@ -397,23 +505,33 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     ImGui_ImplSDLGPU3_Init(&init_info);
 
     // INIT FONT
-    _EditorFont = _EditorFontLarge = nullptr;
+    _EditorFont = nullptr;
     DataStreamRef fontStream = _Editor->LoadLibraryResource("Resources/Fonts/EditorFont.ttf");
-    U8* pFontData = nullptr;
-    if(fontStream)
+    DataStreamRef fallbackFontStream = _Editor->LoadLibraryResource("Resources/Fonts/FallbackFont.ttf");
+    U8* pFontData = nullptr, *pFallbackData = nullptr;
+    if(fontStream && fallbackFontStream)
     {
         pFontData = TTE_ALLOC(fontStream->GetSize(), MEMORY_TAG_TEMPORARY);
+        pFallbackData = TTE_ALLOC(fallbackFontStream->GetSize(), MEMORY_TAG_TEMPORARY);
         fontStream->Read(pFontData, fontStream->GetSize());
+        fallbackFontStream->Read(pFallbackData, fallbackFontStream->GetSize());
         ImFontConfig c{};
         c.FontDataOwnedByAtlas = false;
-        _EditorFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontStream->GetSize(), 14.0f, &c);
-        _EditorFontLarge = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontStream->GetSize(), 28.0f, &c);
+        c.OversampleV = 2;
+        c.PixelSnapH = true;
+        c.MergeMode = false;
+        _EditorFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFontData, (int)fontStream->GetSize(), 18.0f, &c);
+        c.MergeMode = true;
+        _FallbackFont = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(pFallbackData, (int)fallbackFontStream->GetSize(), 18.0f, &c);
         TTE_FREE(pFontData);
+        TTE_FREE(pFallbackData);
     }
     fontStream.reset(); // release file handle
+    fallbackFontStream.reset();
     if(!_EditorFont)
     {
         TTE_LOG("Could not load editor font! Using default font");
+        _EditorFont = _FallbackFont = ImGui::GetIO().FontDefault;
     }
 
     // INIT LANGUAGE
@@ -429,8 +547,29 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     _CurrentLanguage = "";
     _SetLanguage(_WorkspaceProps.GetString(WORKSPACE_KEY_LANG, "English"));
 
-    // IM GUI STYLE (CHANGE AS WE GO ON!)
+    // IM GUI STYLE (CHANGE AS WE GO ON!) // 0.47 0.05 0.23
+
+    ImVec4 redAccent = ImVec4(0.47f, 0.05f, 0.23f, 1.00f); // Telltale Logo warm red
+    ImVec4 redAccentDim = ImVec4(0.47f, 0.05f, 0.23f, 0.6f);
+
     ImVec4* colors = ImGui::GetStyle().Colors;
+
+    colors[ImGuiCol_FrameBgHovered] = redAccentDim;
+    colors[ImGuiCol_FrameBgActive] = redAccent;
+    colors[ImGuiCol_TitleBgActive] = redAccent;
+    colors[ImGuiCol_ButtonActive] = redAccent;
+    colors[ImGuiCol_HeaderHovered] = redAccentDim;
+    colors[ImGuiCol_HeaderActive] = redAccent;
+    colors[ImGuiCol_SeparatorHovered] = redAccentDim;
+    colors[ImGuiCol_SeparatorActive] = redAccent;
+    colors[ImGuiCol_SliderGrabActive] = redAccent;
+    colors[ImGuiCol_CheckMark] = redAccent;
+    colors[ImGuiCol_TabHovered] = redAccentDim;
+    colors[ImGuiCol_TabSelected] = redAccent;
+    colors[ImGuiCol_TabSelectedOverline] = redAccent;
+    colors[ImGuiCol_TextSelectedBg] = ImVec4(redAccent.x, redAccent.y, redAccent.z, 0.3f); // transparent ish
+    colors[ImGuiCol_TextLink] = redAccent;
+
     colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
     colors[ImGuiCol_WindowBg] = ImVec4(0.04f, 0.04f, 0.04f, 0.94f);
@@ -439,35 +578,21 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     colors[ImGuiCol_Border] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
     colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
     colors[ImGuiCol_FrameBg] = ImVec4(0.11f, 0.11f, 0.11f, 0.54f);
-    colors[ImGuiCol_FrameBgHovered] = ImVec4(0.38f, 0.16f, 0.88f, 0.40f);
-    colors[ImGuiCol_FrameBgActive] = ImVec4(0.17f, 0.00f, 0.50f, 1.00f);
     colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
-    colors[ImGuiCol_TitleBgActive] = ImVec4(0.21f, 0.16f, 0.48f, 1.00f);
     colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
     colors[ImGuiCol_MenuBarBg] = ImVec4(0.11f, 0.11f, 0.11f, 1.00f);
     colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
     colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
     colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
     colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
-    colors[ImGuiCol_CheckMark] = ImVec4(0.45f, 0.26f, 0.98f, 1.00f);
     colors[ImGuiCol_SliderGrab] = ImVec4(0.41f, 0.00f, 1.00f, 0.40f);
-    colors[ImGuiCol_SliderGrabActive] = ImVec4(0.48f, 0.26f, 0.98f, 0.52f);
     colors[ImGuiCol_Button] = ImVec4(0.15f, 0.15f, 0.15f, 0.40f);
     colors[ImGuiCol_ButtonHovered] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
-    colors[ImGuiCol_ButtonActive] = ImVec4(0.24f, 0.06f, 0.58f, 1.00f);
     colors[ImGuiCol_Header] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
-    colors[ImGuiCol_HeaderHovered] = ImVec4(0.15f, 0.15f, 0.15f, 0.80f);
-    colors[ImGuiCol_HeaderActive] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
-    colors[ImGuiCol_Separator] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
-    colors[ImGuiCol_SeparatorHovered] = ImVec4(0.10f, 0.40f, 0.75f, 0.78f);
-    colors[ImGuiCol_SeparatorActive] = ImVec4(0.10f, 0.40f, 0.75f, 1.00f);
     colors[ImGuiCol_ResizeGrip] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
     colors[ImGuiCol_ResizeGripHovered] = ImVec4(1.00f, 1.00f, 1.00f, 0.13f);
     colors[ImGuiCol_ResizeGripActive] = ImVec4(0.38f, 0.38f, 0.38f, 1.00f);
-    colors[ImGuiCol_TabHovered] = ImVec4(0.40f, 0.26f, 0.98f, 0.50f);
     colors[ImGuiCol_Tab] = ImVec4(0.18f, 0.20f, 0.58f, 0.73f);
-    colors[ImGuiCol_TabSelected] = ImVec4(0.29f, 0.20f, 0.68f, 1.00f);
-    colors[ImGuiCol_TabSelectedOverline] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
     colors[ImGuiCol_TabDimmed] = ImVec4(0.07f, 0.10f, 0.15f, 0.97f);
     colors[ImGuiCol_TabDimmedSelected] = ImVec4(0.14f, 0.26f, 0.42f, 1.00f);
     colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.50f, 0.50f, 0.50f, 0.00f);
@@ -480,8 +605,6 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     colors[ImGuiCol_TableBorderLight] = ImVec4(0.23f, 0.23f, 0.25f, 1.00f);
     colors[ImGuiCol_TableRowBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
     colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
-    colors[ImGuiCol_TextLink] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-    colors[ImGuiCol_TextSelectedBg] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
     colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
     colors[ImGuiCol_NavCursor] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
     colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
@@ -489,19 +612,9 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 
     // MAIN APPLICATION LOOP
-    Bool bRunning = true;
-    while (bRunning)
+    _Flags.Add(ApplicationFlag::RUNNING);
+    while (_Flags.Test(ApplicationFlag::RUNNING))
     {
-        SDL_Event event{};
-        while (SDL_PollEvent(&event))
-        {
-            ImGui_ImplSDL3_ProcessEvent(&event);
-            if (event.type == SDL_EVENT_QUIT)
-                bRunning = false;
-            if (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(_Window))
-                bRunning = false;
-        }
-
         // BEGIN
         ImGui_ImplSDLGPU3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
@@ -542,14 +655,36 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
                 ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), command_buffer, render_pass);
                 SDL_EndGPURenderPass(render_pass);
             }
-            SDL_SubmitGPUCommandBuffer(command_buffer);
+            if(_EditorRenderContext)
+            {
+                if (!_EditorRenderContext->FrameUpdate(!_Flags.Test(ApplicationFlag::RUNNING), command_buffer, swapchain_texture))
+                {
+                    Quit();
+                }
+            }
+            else
+            {
+                SDL_GPUFence * fence = SDL_SubmitGPUCommandBufferAndAcquireFence(command_buffer);
+                SDL_WaitForGPUFences(_Device, true, &fence, 1);
+                SDL_ReleaseGPUFence(_Device, fence);
+
+                SDL_Event event{};
+                while (SDL_PollEvent(&event))
+                {
+                    ImGui_ImplSDL3_ProcessEvent(&event);
+                    if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(_Window)))
+                    {
+                        Quit();
+                    }
+                }
+
+            }
         }
         else
         {
             SDL_SetWindowSize(_Window, _NewWidth, _NewHeight);
             _NewWidth = _NewHeight = -1;
-        }
-        
+        } 
     }
 
     // SAVE WORKSPACE

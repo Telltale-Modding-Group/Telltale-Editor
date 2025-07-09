@@ -23,14 +23,15 @@ end
 function NormaliseScene_V0(inst, boneScene)
     CommonSceneSetName(boneScene, MetaGetClassValue(MetaGetMember(inst, "mName")))
     CommonSceneSetHidden(boneScene, MetaGetClassValue(MetaGetMember(inst, "mbHidden")))
-    -- TODO referenced scene stuff
+    -- referenced scenes are a non stripped runtime thing ignore them (can be empty)
     local agentArray = MetaGetMember(inst, "_mAgents")
     local numAgents = ContainerGetNumElements(agentArray)
     for i=1,numAgents do
         local agentInfo = ContainerGetElement(agentArray, i-1)
         local agentName = MetaGetClassValue(MetaGetMember(agentInfo, "mAgentName"))
         local agentProps = MetaGetMember(agentInfo, "mAgentSceneProps")
-        CommonScenePushAgent(boneScene, agentName, agentProps)
+        -- TODO TO MAKE TO WORK GET LOCATION
+        CommonScenePushAgent(boneScene, agentName, agentProps, {})
     end
     return true
 end
@@ -45,7 +46,7 @@ function NormaliseScene_Bone1(inst, boneScene)
         local agentInfo = ContainerGetElement(agentArray, i-1)
         local agentName = MetaGetClassValue(MetaGetMember(agentInfo, "mAgentName"))
         local agentProps = MetaGetMember(agentInfo, "mAgentSceneProps")
-        -- TODO non prop key stuff. (mbMembersimported too??)
+        -- TODO non prop key stuff. (mbMembersimported too??) AND TODO LOCATION
         print("imported?: ", MetaGetClassValue(MetaGetMember(agentInfo, "mbMembersImportedIntoSceneProps")))
         CommonScenePushAgent(boneScene, agentName, agentProps)
     end

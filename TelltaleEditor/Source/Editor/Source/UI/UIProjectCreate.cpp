@@ -22,7 +22,7 @@ static GameSnapshot _AsyncDoGuess(DataStreamRef fileStream, U8*& Buffer, U32& Bu
         BufferSize = (U32)fileStream->GetSize();
     }
     fileStream->Read(Buffer, fileStream->GetSize());
-    U64 hash = CRC64(Buffer, BufferSize, 0);
+    U64 hash = CRC64(Buffer, (U32)fileStream->GetSize(), 0);
     for(const auto& game: Meta::GetInternalState().Games)
     {
         for(const auto& entry: game.ExecutableHash)
@@ -365,13 +365,11 @@ void UIProjectCreate::Render()
         _SchedulerNeedsShutdown = true;
     }
 
-    ImVec2 winSize = GetWindowViewport()->Size;
-    SetNextWindowSize(winSize);
-    SetNextWindowPos({});
+    ImVec2 winSize = GetMainViewport()->Size;
+    SetNextWindowViewportPixels(0,0,winSize.x, winSize.y);
     PushStyleColor(ImGuiCol_WindowBg, IM_COL32(50, 50, 50, 255));
     Begin("#page_payload", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse
                                 | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
-                                | ImGuiWindowFlags_NoDocking
                                 | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoScrollWithMouse);
 
     ImVec2 winPos = GetCursorScreenPos();

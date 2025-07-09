@@ -19,12 +19,13 @@ class Camera
 {
 public:
     
-    Transform _AgentTransform;
     //YOU MUST UPDATE THIS YOURSELF! THEN CALL OnScreenModified!
     U32 _ScreenWidth;
     U32 _ScreenHeight;
     
 private:
+
+    Transform _AgentTransform;
     
     float _AspectRatio;
     Bool _BCullObjects;
@@ -34,10 +35,8 @@ private:
     Bool _BAllowBlending;
     Bool _BShouldUpdateBlendDestination;
     Frustum _CachedFrustum;
-    Matrix4 _CachedWorldMatrix;
     Matrix4 _CachedViewMatrix;
     Matrix4 _CachedProjectionMatrix;
-    Bool _BWorldTransformDirty;
     Bool _BFrustumDirty;
     Bool _BViewMatrixDirty;
     Bool _BProjectionMatrixDirty;
@@ -105,31 +104,25 @@ public:
     Bool _FXRadialBlurActive;
     
     /*
-     Sy_Bol mAudioListenerOverrideAgentName;
-     Sy_Bol mAudioPlayerOriginOverrideAgentName;
+     Symol mAudioListenerOverrideAgentName;
+     SymBol mAudioPlayerOriginOverrideAgentName;
      WeakPtr<Agent> mpAudioListenerOverrideAgent;
      WeakPtr<Agent> mpAudioPlayerOriginOverrideAgent;
      Handle<SoundReverbDefinition> _HAudioReverbOverride;
      SoundEventName<1> mtReverbSnapshotOverride;
      bool _BInLensCallback;*/
-    
-    // Gets the world matrix. INTERNAL
-    inline Matrix4& GetWorldMatrix()
-    {
-        if (_BWorldTransformDirty)
-            _UpdateCachedTransform();
-        return _CachedWorldMatrix;
-    }
+   
     
 public:
     
     // Constructor to defaults
     inline Camera()
     {
-        _CachedProjectionMatrix = _CachedViewMatrix = _CachedWorldMatrix = Matrix4::Identity();
-        _BWorldTransformDirty = false;
+        _BPushed = _BIsViewCamera = _BAllowInvertedDepth = _BShouldUpdateBlendDestination = false;
+        _CachedProjectionMatrix = _CachedViewMatrix = Matrix4::Identity();
         _BViewMatrixDirty = _BFrustumDirty = _BProjectionMatrixDirty = true;
         _HFOVScale = 1.0f;
+        _BCullObjects = _BDOFEnabled = _BBrushDOFEnabled = false;
         _HFOV = 1.0f;
         _NearClip = _FarClip = -1.f;
         _BIsOrthoCamera = false;
@@ -141,12 +134,14 @@ public:
         _FXLevelsBlack = _FXLevelsWhite = 0.f;
         _FXLevelsIntensity = 0.f;
         _FXRadialBlurInnerRadius = 0.f;
-        _FXRadialBlurOuterRadius = 1.f;
+        _FXRadialBlurOuterRadius = _FXRadialBlurScale = 1.f;
         _FXRadialBlurIntensity = 0.f;
+        _BAllowBlending = false;
+        mName = Symbol();
         _FXRadialBlurTint = Colour::Black;
         _FXRadialBlurTintIntensity = 0.f;
         _FXMotionBlurActive = _FXMotionBlurThresholdActive = _FXMotionBlurThresholdRotActive = _MotionBlurDelay = false;
-        _FXMotionBlurStrength = _FXMotionBlurRotationThreshold = _FXMotionBlurRotationThreshold = 0.f;
+        _FXMotionBlurStrength = _FXMotionBlurRotationThreshold = _FXMotionBlurRotationThreshold = 0.0f;
         _DOFNear = 2.0f;
         _DOFFar = 4.0f;
         _DOFNearRamp = 1.0f;
@@ -158,6 +153,9 @@ public:
         _UseHQDOF = true;
         _BBrushDOFEnabled = false;
         _UseBokeh = false;
+        _FXMotionBlurThreshold = 0.0f;
+        _DOFFarMax = 1.0f;
+        _hBokehTexture = {};
         _BokehBrightnessDeltaThreshold = 0.075f;
         _BokehBrightnessThreshold = _BokehBlurThreshold = 0.25f;
         _BokehMinSize = 0.005f;
@@ -171,28 +169,6 @@ public:
     inline bool IsAgentExcluded(Symbol agent)
     {
         return _ExcludeAgents.find(agent) != _ExcludeAgents.cend();
-    }
-    
-    // Returns the relative up vector in this camera
-    inline Vector3 Up()
-    {
-        if (_BWorldTransformDirty)
-            _UpdateCachedTransform();
-        return _CachedWorldMatrix.TransformNormal(Vector3::Up);
-    }
-    
-    // Returns the relative forward vector in this camera
-    inline Vector3 Forward()
-    {
-        if (_BWorldTransformDirty)
-            _UpdateCachedTransform();
-        return _CachedWorldMatrix.TransformNormal(Vector3::Forward);
-    }
-    
-    // Computes the local view matrix
-    inline Matrix4 ComputeLocalViewMatrix()
-    {
-        return Matrix4::LookAt({ 0.f,0.f,0.f }, Forward(), Up());
     }
     
     // Computes the project matrix, not inverted even if invert depth is set.
@@ -258,7 +234,7 @@ public:
         screenOffset *= scale;
         
         // Get the world matrix and apply the transformation
-        Matrix4 worldmat = GetWorldMatrix();
+        Matrix4 worldmat = GetViewMatrix().Inverse();
         Vector3 worldPos = worldmat.TransformPoint(screenOffset);
         
         // Adjust for depth using the world matrix
@@ -330,7 +306,7 @@ public:
             float projectionFactor = ((float)_ScreenHeight * 0.5f) / tanf((_HFOVScale * _HFOV) * 0.0065449849f);
             
             // Retrieve the world matrix
-            Matrix4 worldMatrix = GetWorldMatrix();
+            Matrix4 worldMatrix = GetViewMatrix().Inverse();
             
             // Calculate direction vector components by transforming the screen position into world space
             float dirX = (offsetY * worldMatrix._Entries[1][1]) + (offsetX * worldMatrix._Entries[0][1]);
@@ -348,38 +324,37 @@ public:
         return Vector3::Forward;
     }
     
-    
-    // Updates the internally cached world matrix
-    inline void _UpdateCachedTransform()
+    inline void SetWorldPosition(const Vector3& pos)
     {
-        _BWorldTransformDirty = false;
-        _CachedWorldMatrix = MatrixTransformation(_AgentTransform._Rot, _AgentTransform._Trans);
+        _AgentTransform._Trans = pos;
+        _BViewMatrixDirty = true;
+        _BFrustumDirty = true;
+    }
+
+    inline void SetWorldRotation(const Quaternion& rot)
+    {
+        _AgentTransform._Rot = rot;
+        _BViewMatrixDirty = true;
+        _BFrustumDirty = true;
     }
     
+    // Get the view matrix
+    inline Matrix4 GetViewMatrix()
+    {
+        if(_BViewMatrixDirty)
+        {
+            _CachedViewMatrix = MatrixTransformation(_AgentTransform._Rot, _AgentTransform._Trans).Inverse();
+            _BViewMatrixDirty = false;
+        }
+        return _CachedViewMatrix;
+    }
+
     // Gets the adjusted vertical and horizontal FOV, scaled if needed.
     inline void GetAdjustedFOV(float& hfov_radians, float& vfov_radians)
     {
         vfov_radians = (_HFOV * _HFOVScale) * 0.01308997f/*pi/240*/;
         hfov_radians = vfov_radians * _AspectRatio;
     }
-    
-    // Get the view matrix
-    inline Matrix4 GetViewMatrix()
-    {
-        if(_BViewMatrixDirty){
-            if (_BWorldTransformDirty)
-                _UpdateCachedTransform();
-            
-            Vector3 Eye = Vector3(_CachedWorldMatrix.GetRow(3));  // Extract camera position
-            Vector3 ForwardDir = Vector3(_CachedWorldMatrix.GetRow(2));  // Third row is forward in row-major
-            Vector3 At = Eye + ForwardDir;
-            
-            _CachedViewMatrix = Matrix4::LookAt(Eye, At, Up());
-            _BViewMatrixDirty = false;
-        }
-        return _CachedViewMatrix;
-    }
-    
     
     // Return true if depth is inverted
     inline bool IsInvertedDepth() const
@@ -390,7 +365,8 @@ public:
     // Gets the frustum defined by this camera
     inline Frustum GetFrustum()
     {
-        if(_BFrustumDirty){
+        if(_BFrustumDirty)
+        {
             Matrix4 viewProjection = GetViewMatrix() * _BuildProjectionMatrix(_NearClip, _FarClip, IsInvertedDepth());
             _CachedFrustum._Plane[FRUSTUM_PLANE_ZNEAR]._Plane = Vector4(Vector3::Forward, 1.0f);
             _CachedFrustum._Plane[FRUSTUM_PLANE_LEFT]._Plane = Vector4(Vector3::Left, 1.0f);
@@ -417,12 +393,6 @@ public:
         _BProjectionMatrixDirty = true;
     }
     
-    // Call when the camera agent transform has been modified
-    inline void OnAgentTransformModified()
-    {
-        _BWorldTransformDirty = true;
-    }
-    
     // Gets the calculated projection matrix
     inline Matrix4 GetProjectionMatrix()
     {
@@ -438,11 +408,8 @@ public:
     // Make the camera look at the given position (make it the center of the screen)
     inline void LookAt(const Vector3& worldAt)
     {
-        if (_BWorldTransformDirty)
-            _UpdateCachedTransform();
-        
         // Extract translation from row-major matrix (position is stored in row 3)
-        Vector3 Translation = Vector3(_CachedWorldMatrix.GetRow(3));
+        Vector3 Translation = _AgentTransform._Trans;
         
         // Compute new forward direction
         Vector3 normalDir = worldAt - Translation;
@@ -451,11 +418,10 @@ public:
         // Convert forward direction to quaternion
         Quaternion Rotation = Quaternion(normalDir);
         
-        _CachedWorldMatrix = MatrixTransformation(Rotation, Translation);
+        _AgentTransform = Transform(Rotation, Translation);
         
         _BFrustumDirty = true;
         _BViewMatrixDirty = true;
-        _BWorldTransformDirty = false;
     }
     
     
@@ -465,7 +431,7 @@ public:
         Vector3 normalDir = worldAt - worldEye;
         normalDir.Normalize();
         Quaternion Rotation = Quaternion(normalDir);
-        _CachedWorldMatrix = MatrixTransformation(Rotation, worldEye);
+        _AgentTransform = Transform(Rotation, worldEye);
         _BFrustumDirty = true;
         _BViewMatrixDirty = true;
     }
@@ -473,47 +439,8 @@ public:
     // Manually set the view matrix
     inline void SetViewMatrix(const Matrix4& lhs)
     {
-        _CachedWorldMatrix = Matrix4::Identity();
         _CachedViewMatrix = lhs;
         _BFrustumDirty = _BViewMatrixDirty = false;
-    }
-    
-    // Manually set the world matrix
-    inline void SetWorldMatrix(const Matrix4& lhs)
-    {
-        _CachedWorldMatrix = lhs;
-        _BViewMatrixDirty = true;
-        _BFrustumDirty = true;
-        _BWorldTransformDirty = false;
-    }
-    
-    // Set the position of the camera in row-major order
-    inline void SetWorldPosition(const Vector3& position){
-        _CachedWorldMatrix.SetRow(3, Vector4(position, 1.0f)); // Store translation in the last row
-        _BFrustumDirty = _BViewMatrixDirty = true;
-        _BWorldTransformDirty = false;
-    }
-    
-    // Set the camera's rotation in row-major order
-    inline void SetWorldQuaternion(const Quaternion& quat){
-        if (_BWorldTransformDirty)
-            _UpdateCachedTransform();
-        
-        // Extract current translation from row-major matrix (last row)
-        Vector3 position = Vector3(_CachedWorldMatrix.GetRow(3));
-        
-        // Apply new rotation while keeping the translation
-        _CachedWorldMatrix = MatrixTransformation(quat, position);
-        
-        _BFrustumDirty = _BViewMatrixDirty = true;
-        _BWorldTransformDirty = false;
-    }
-    
-    // Set the transform of the camera, its rotation and translation
-    inline void SetWorldTransform(const Transform& transform)
-    {
-        _CachedWorldMatrix = MatrixTransformation(transform._Rot, transform._Trans);
-        _BFrustumDirty = _BViewMatrixDirty = true;
     }
     
     // Set the orthographic projection camera parameters
@@ -602,9 +529,8 @@ public:
     // Manually set the projection matrix
     inline void SetProjectionMatrix(const Matrix4& proj)
     {
-        _CachedWorldMatrix = _CachedViewMatrix = Matrix4::Identity();
         _CachedProjectionMatrix = proj;
-        _BWorldTransformDirty = _BViewMatrixDirty = _BFrustumDirty = _BProjectionMatrixDirty = false;
+        _BProjectionMatrixDirty = false;
     }
     
     // Parameters
