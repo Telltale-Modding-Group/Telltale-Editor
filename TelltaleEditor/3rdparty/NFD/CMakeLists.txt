@@ -23,7 +23,7 @@ elseif (WIN32)
     set_target_properties(nfd PROPERTIES LINKER_LANGUAGE CXX)
 elseif (UNIX)
     message(STATUS "-nfd for unix / linux")
-    target_sources(nfd PRIVATE ${nfd_SOURCE_DIR}/src/nfd_zenity.c)
+    target_sources(nfd PRIVATE ${nfd_SOURCE_DIR}/src/nfd_zenity.c ${nfd_SOURCE_DIR}/src/simple_exec.h)
 endif()
 
 target_include_directories(nfd PUBLIC  ${nfd_SOURCE_DIR}/include)
