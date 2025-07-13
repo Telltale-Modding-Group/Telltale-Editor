@@ -348,6 +348,8 @@ struct MethodImpl;
 template<typename Object, Bool Checked> // 0 ARGS
 struct MethodImpl<Object, Checked, Placeholder, Placeholder, Placeholder, Placeholder> : MethodImplBase<Object, Checked>
 {
+
+    using _MethodImplBase = MethodImplBase<Object, Checked>;
     
     fastdelegate::FastDelegate0<> Delegate;
     
@@ -370,16 +372,16 @@ struct MethodImpl<Object, Checked, Placeholder, Placeholder, Placeholder, Placeh
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
     {
-        const MethodImpl* pMethod = dynamic_cast<const MethodImpl*>(&rhs);
-        return pMethod && MethodImplBase::CompareBase(*pMethod) && this->Delegate == pMethod->Delegate;
+        const _MethodImplBase* pMethod = dynamic_cast<const _MethodImplBase*>(&rhs);
+        return pMethod && _MethodImplBase::CompareBase(*pMethod) && this->Delegate == pMethod->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)()) : MethodImplBase(pObject)
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)()) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
     }
 
-    inline MethodImpl(Object* pObject, void (Object::* pMethod)()) : MethodImplBase(pObject)
+    inline MethodImpl(Object* pObject, void (Object::* pMethod)()) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject, pMethod);
     }
@@ -397,6 +399,8 @@ protected:
 template<typename Object, Bool Checked, typename Arg1> // 1 ARG
 struct MethodImpl<Object, Checked, Arg1, Placeholder, Placeholder, Placeholder> : MethodImplBase<Object, Checked>
 {
+    
+    using _MethodImplBase = MethodImplBase<Object, Checked>;
     
     fastdelegate::FastDelegate1<Arg1> Delegate;
     
@@ -426,16 +430,16 @@ struct MethodImpl<Object, Checked, Arg1, Placeholder, Placeholder, Placeholder> 
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
     {
-        const auto* pMethod = dynamic_cast<const MethodImpl*>(&rhs);
-        return pMethod && MethodImplBase::CompareBase(*pMethod) && this->Delegate == pMethod->Delegate;
+        const auto* pMethod = dynamic_cast<const _MethodImplBase*>(&rhs);
+        return pMethod && _MethodImplBase::CompareBase(*pMethod) && this->Delegate == ((const MethodImpl*)pMethod)->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1)) : MethodImplBase(pObject)
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
     }
 
-    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1)) : MethodImplBase(pObject)
+    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject, pMethod);
     }
@@ -453,6 +457,8 @@ protected:
 template<typename Object, Bool Checked, typename Arg1, typename Arg2> // 2 ARGS
 struct MethodImpl<Object, Checked, Arg1, Arg2, Placeholder, Placeholder> : MethodImplBase<Object, Checked>
 {
+    
+    using _MethodImplBase = MethodImplBase<Object, Checked>;
     
     fastdelegate::FastDelegate2<Arg1, Arg2> Delegate;
     
@@ -484,16 +490,16 @@ struct MethodImpl<Object, Checked, Arg1, Arg2, Placeholder, Placeholder> : Metho
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
     {
-        const auto* pMethod = dynamic_cast<const MethodImpl*>(&rhs);
-        return pMethod && MethodImplBase::CompareBase(*pMethod) && this->Delegate == pMethod->Delegate;
+        const auto* pMethod = dynamic_cast<const _MethodImplBase*>(&rhs);
+        return pMethod && _MethodImplBase::CompareBase(*pMethod) && this->Delegate == ((const MethodImpl*)pMethod)->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2)) : MethodImplBase(pObject)
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
     }
 
-    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1, Arg2)) : MethodImplBase(pObject)
+    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1, Arg2)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject, pMethod);
     }
@@ -511,6 +517,8 @@ protected:
 template<typename Object, Bool Checked, typename Arg1, typename Arg2, typename Arg3> // 3 ARGS
 struct MethodImpl<Object, Checked, Arg1, Arg2, Arg3, Placeholder> : MethodImplBase<Object, Checked>
 {
+    
+    using _MethodImplBase = MethodImplBase<Object, Checked>;
     
     fastdelegate::FastDelegate3<Arg1, Arg2, Arg3> Delegate;
     
@@ -543,16 +551,16 @@ struct MethodImpl<Object, Checked, Arg1, Arg2, Arg3, Placeholder> : MethodImplBa
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
     {
-        const auto* pMethod = dynamic_cast<const MethodImpl*>(&rhs);
-        return pMethod && MethodImplBase::CompareBase(*pMethod) && this->Delegate == pMethod->Delegate;
+        const auto* pMethod = dynamic_cast<const _MethodImplBase*>(&rhs);
+        return pMethod && _MethodImplBase::CompareBase(*pMethod) && this->Delegate == ((const MethodImpl*)pMethod)->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3)) : MethodImplBase(pObject)
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
     }
 
-    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1, Arg2, Arg3)) : MethodImplBase(pObject)
+    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1, Arg2, Arg3)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject, pMethod);
     }
@@ -570,6 +578,8 @@ protected:
 template<typename Object, Bool Checked, typename Arg1, typename Arg2, typename Arg3, typename Arg4> // 4 ARGS
 struct MethodImpl : MethodImplBase<Object, Checked>
 {
+    
+    using _MethodImplBase = MethodImplBase<Object, Checked>;
     
     fastdelegate::FastDelegate4<Arg1, Arg2, Arg3, Arg4> Delegate;
     
@@ -609,16 +619,16 @@ struct MethodImpl : MethodImplBase<Object, Checked>
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
     {
-        const MethodImpl* pMethod = dynamic_cast<const MethodImpl*>(&rhs);
-        return pMethod && MethodImplBase::CompareBase(*pMethod) && this->Delegate == pMethod->Delegate;
+        const _MethodImplBase* pMethod = dynamic_cast<const _MethodImplBase*>(&rhs);
+        return pMethod && _MethodImplBase::CompareBase(*pMethod) && this->Delegate == ((const MethodImpl*)pMethod)->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3, Arg4)) : MethodImplBase(pObject)
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3, Arg4)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
     }
 
-    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1, Arg2, Arg3, Arg4)) : MethodImplBase(pObject)
+    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1, Arg2, Arg3, Arg4)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject, pMethod);
     }

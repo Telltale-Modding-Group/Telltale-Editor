@@ -166,6 +166,11 @@ public:
         return _Name;
     }
     
+    inline RenderSurfaceFormat GetFormat() const
+    {
+        return _Format;
+    }
+    
 };
 
 

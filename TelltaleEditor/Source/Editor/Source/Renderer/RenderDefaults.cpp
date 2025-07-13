@@ -93,6 +93,7 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
     
     {
         mesh.Type = DefaultRenderMeshType::QUAD;
+        mesh.PipelineDesc.PrimitiveType = RenderPrimitiveType::TRIANGLE_LIST;
         mesh.PipelineDesc.EffectHash = context.GetEffectRef(RenderEffect::MESH, {}).EffectHash;
         mesh.PipelineDesc.VertexState.BufferPitches[0] = sizeof(SampledVertex);
         mesh.PipelineDesc.VertexState.NumVertexBuffers = 1;

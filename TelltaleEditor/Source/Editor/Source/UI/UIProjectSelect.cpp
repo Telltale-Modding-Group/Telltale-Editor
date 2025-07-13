@@ -155,7 +155,6 @@ void UIProjectSelect::Render()
                     GetApplication().PopUI();
                     GetApplication().PushUI(TTE_NEW_PTR(UIProjectCreate, MEMORY_TAG_EDITOR_UI, GetApplication()));
                     _SelectionState = true;
-                    _Application._OnProjectLoad();
                 }
             }
         }

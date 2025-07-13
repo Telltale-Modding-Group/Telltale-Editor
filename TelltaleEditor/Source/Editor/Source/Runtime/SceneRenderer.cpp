@@ -64,26 +64,58 @@ void SceneRenderer::_CopyMainTarget(SceneState& state, RenderFrame* pRenderFrame
         copier._Handle = buf;
         copier._Context = _Renderer.get();
 
-        SDL_GPUTextureLocation src = {}, dst = {};
-        src.layer = 0, src.mip_level = 0, src.x = 0, src.y = 0, src.z = 0;
-        dst.layer = 0, dst.mip_level = 0, dst.x = 0, dst.y = 0, dst.z = 0;
         Vector2 backBufferSize = pRenderFrame->BackBufferSize;
         U32 backBufferX = (U32)backBufferSize.x, backBufferY = (U32)backBufferSize.y;
         Vector2 min, max;
         state.Scissor.GetFractional(min.x, min.y, max.x, max.y);
-        dst.x = (U32)(min.x * (Float)backBufferSize.x);
-        dst.y = (U32)(min.y * (Float)backBufferSize.y);
-        dst.texture = pRenderFrame->BackBuffer->GetHandle(_Renderer.get());
-
+        
+        DefaultRenderMesh& quad = _Renderer->_GetDefaultMesh(DefaultRenderMeshType::QUAD);
+        RenderPipelineState quadState = quad.PipelineDesc;
+        quadState.NumColourTargets = 1;
+        quadState.TargetFormat[0] = pRenderFrame->BackBuffer->GetFormat();
+        
         RenderTargetIDSurface srcSurface{state.Target, 0, 0};
         RenderTargetResolvedSurface resolvedSrc{};
         _Renderer->_ResolveTarget(*pRenderFrame, srcSurface, resolvedSrc, backBufferX, backBufferY);
-        src.texture = resolvedSrc.Target->GetHandle(_Renderer.get());
+        RenderTexture* tex = resolvedSrc.Target;
         U32 sW = 0, sH = 0, sD = 0, sA = 0;
         resolvedSrc.Target->GetDimensions(sW, sH, sD, sA);
-
-        copier.StartCopyPass();
-        SDL_CopyGPUTextureToTexture(copier._CurrentPass->_CopyHandle, &src, &dst, (int)sW, (int)sH, 1, false);
+        
+        // PASS
+        RenderPass pass{};
+        pass.Name = "Copy Main Target";
+        pass.Targets.Target[0] = {tex, 0, 0};
+        copier.StartPass(std::move(pass));
+        
+        // PIPELINE
+        SDL_BindGPUGraphicsPipeline(copier._CurrentPass->_Handle, _Renderer->_FindPipelineState(quadState)->_Internal._Handle);
+        
+        // PARAMS
+        ShaderParameter_Camera param_cam{};
+        memset(&param_cam, 0, sizeof(param_cam));
+        FinalisePlatformMatrix(*_Renderer.get(), param_cam.ViewProj, Matrix4::Identity());
+        SDL_PushGPUVertexUniformData(copier._Handle, (U32)ShaderParameterType::PARAMETER_CAMERA - (U32)ShaderParameterType::PARAMETER_FIRST_UNIFORM, &param_cam, sizeof(param_cam));
+        ShaderParameter_Object param_obj{};
+        RenderUtility::SetObjectParameters(*_Renderer.get(), &param_obj, Matrix4::Identity(), Colour::White);
+        SDL_PushGPUVertexUniformData(copier._Handle, (U32)ShaderParameterType::PARAMETER_OBJECT - (U32)ShaderParameterType::PARAMETER_FIRST_UNIFORM, &param_obj, sizeof(param_obj));
+        
+        // SAMPLER
+        SDL_GPUTextureSamplerBinding b{};
+        b.texture = tex->GetHandle(_Renderer.get());
+        b.sampler = _Renderer->_FindSampler({})->_Handle;
+        SDL_BindGPUFragmentSamplers(copier._CurrentPass->_Handle, (U32)ShaderParameterType::PARAMETER_SAMPLER_DIFFUSE - (U32)ShaderParameterType::PARAMETER_FIRST_SAMPLER, &b, 1);
+        
+        // BUFFERS
+        SDL_GPUBufferBinding bind{};
+        bind.offset = 0;
+        bind.buffer = quad.IndexBuffer->_Handle;
+        SDL_BindGPUIndexBuffer(copier._CurrentPass->_Handle, &bind, quad.PipelineDesc.VertexState.IsHalf ? SDL_GPU_INDEXELEMENTSIZE_16BIT : SDL_GPU_INDEXELEMENTSIZE_32BIT);
+        bind.buffer = quad.VertexBuffer->_Handle;
+        SDL_BindGPUVertexBuffers(copier._CurrentPass->_Handle, 0, &bind, 1);
+        
+        // DRAW
+        SDL_DrawGPUIndexedPrimitives(copier._CurrentPass->_Handle, quad.NumIndices, 1, 0, 0, 0);
+        
         copier.EndPass();
     }
 }

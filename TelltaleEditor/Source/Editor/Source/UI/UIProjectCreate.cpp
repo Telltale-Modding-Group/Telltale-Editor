@@ -644,7 +644,7 @@ void UIProjectCreate::Render()
         PushStyleColor(ImGuiCol_Text, ImVec4{ 0.5f, 0.5f, 0.5f, 1.0f });
         PushTextWrapPos(winSize.x - sidePadding);
         TextUnformatted(GetApplication().GetLanguageText("project_create.location_info").c_str());
-        cursorY += GetTextLineHeightWithSpacing() * 3.0f + itemSpacingY;
+        cursorY += GetTextLineHeightWithSpacing() * 4.0f + itemSpacingY;
         PopStyleColor(1);
         PopTextWrapPos();
 

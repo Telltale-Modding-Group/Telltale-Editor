@@ -539,6 +539,7 @@ class RenderTargetSet
     
     friend class RenderContext;
     friend struct RenderCommandBuffer;
+    friend class SceneRenderer;
     
     RenderTargetResolvedSurface Target[8];
     RenderTargetResolvedSurface Depth;
