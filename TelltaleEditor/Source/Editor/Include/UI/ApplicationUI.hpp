@@ -20,10 +20,25 @@
 struct ImGuiContext;
 struct ImVec2;
 struct ImFont;
+struct EditorUI;
 
 enum class ApplicationFlag
 {
     RUNNING = 1,
+};
+
+
+struct EditorPopup
+{
+
+    const String Name;
+    EditorUI* Editor = nullptr;
+
+    inline EditorPopup(const String& N) : Name(N) {}
+
+    virtual ImVec2 GetPopupSize() = 0;
+    virtual Bool Render() = 0;
+
 };
 
 /**
@@ -99,6 +114,8 @@ public:
 
     void Quit();
 
+    void SetCurrentPopup(Ptr<EditorPopup>, EditorUI& editor);
+
 private:
 
     struct ResourceTexture
@@ -117,6 +134,8 @@ private:
 
     void _SetLanguage(const String& language);
 
+    void _RenderPopups();
+
     // GENERAL FUNCTIONALITY
     Flags _Flags;
     ImGuiContext* _ImContext;
@@ -127,6 +146,7 @@ private:
     TTEProperties _WorkspaceProps; // workspace props
     ProjectManager _ProjectMgr;
     I32 _NewWidth = -1, _NewHeight = -1;
+    Ptr<EditorPopup> _ActivePopup;
 
     // RESOURCE MANAGEMENT
     SDL_Surface* _AppIcon;

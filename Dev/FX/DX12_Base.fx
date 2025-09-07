@@ -109,12 +109,14 @@ TTE_SECTION_BEGIN(FEATURE_KEY_LIGHT)
     float3 ambient = 0.6f * Diffuse;
     vout.Colour = (ambient + diff) * Diffuse;
 
-TTE_SECTION_ELSE()
+TTE_SECTION_ELSE() // FEATURE_KEY_LIGHT
 
     vout.Colour = Diffuse;
 
 TTE_SECTION_BEGIN(!EFFECT_FLAT)
+
     vout.UV = vin.UV;
+
 TTE_SECTION_END() // !EFFECT_FLAT
 
 TTE_SECTION_END() // FEATURE_KEY_LIGHT
@@ -135,7 +137,7 @@ float4 PixelMain(VertexOut vin) : SV_Target
     return float4(vin.Colour, 1.0f);
 }
 
-TTE_SECTION_ELSE()
+TTE_SECTION_ELSE() // EFFECT_FLAT
 
 Texture2D<float4> textureMap : TTE_TEXTURE(SamplerDiffuse);
 SamplerState textureSampler : TTE_SAMPLER(SamplerDiffuse);
@@ -146,6 +148,6 @@ float4 PixelMain(VertexOut vin) : SV_Target
     return texColor * float4(vin.Colour, 1.0f);
 }
 
-TTE_SECTION_END() // EFFECT_FLAT
+TTE_SECTION_END() // !EFFECT_FLAT
 
 TTE_SECTION_END() // TTE_PIXEL

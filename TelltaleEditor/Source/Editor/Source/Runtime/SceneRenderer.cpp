@@ -3,8 +3,8 @@
 SceneRenderer::SceneRenderer(Ptr<RenderContext> pRenderContext) : _Renderer(pRenderContext), _CallbackTag(0)
 {
     _CallbackTag = GetTimeStamp() ^ ((U64)((std::uintptr_t)this));
-    Ptr<FunctionBase> pPostCallback = ALLOCATE_METHOD_CALLBACK_1(this, _PostRenderCallback, SceneRenderer, RenderFrame*);
-    pRenderContext->GetPostRenderMainThreadCallbacks().PushCallback(pPostCallback);
+    //Ptr<FunctionBase> pPostCallback = ALLOCATE_METHOD_CALLBACK_1(this, _PostRenderCallback, SceneRenderer, RenderFrame*);
+    //pRenderContext->GetPostRenderMainThreadCallbacks().PushCallback(pPostCallback);
 }
 
 SceneRenderer::~SceneRenderer()
@@ -20,32 +20,33 @@ void SceneRenderer::SetEditMode(Bool bOnOff)
 
 void SceneRenderer::_SwitchSceneState(Ptr<Scene> pScene)
 {
-    if (_CurrentScene.MyScene.lock() != pScene)
+    if(pScene != _CurrentScene.MyScene.lock())
     {
-        // Switch scene state
-        for (auto it = _PersistentScenes.begin(); it != _PersistentScenes.end(); it++)
+        for (auto it = _PersistentScenes.begin(); it != _PersistentScenes.end(); )
         {
             if (it->MyScene.expired())
             {
                 it = _PersistentScenes.erase(it);
+                continue; // skip
+            }
+
+            Ptr<Scene> pCur = it->MyScene.lock();
+            if (pCur == pScene)
+            {
+                SceneState cache = std::move(_CurrentScene);
+                _CurrentScene = std::move(*it);
+                it = _PersistentScenes.erase(it);
+                if (!cache.MyScene.expired())
+                {
+                    _PersistentScenes.push_back(std::move(cache));
+                }
+                return;
             }
             else
             {
-                Ptr<Scene> pCur = it->MyScene.lock();
-                if(pCur == pScene)
-                {
-                    SceneState cache = std::move(_CurrentScene);
-                    _CurrentScene = std::move(*it);
-                    _PersistentScenes.erase(it);
-                    if(!cache.MyScene.expired())
-                    {
-                        _PersistentScenes.push_back(std::move(cache));
-                    }
-                    break;
-                }
+                ++it;
             }
         }
-        // New
         SceneState cache = std::move(_CurrentScene);
         _InitSceneState(_CurrentScene, pScene);
         if (!cache.MyScene.expired())
@@ -55,76 +56,9 @@ void SceneRenderer::_SwitchSceneState(Ptr<Scene> pScene)
     }
 }
 
-void SceneRenderer::_CopyMainTarget(SceneState& state, RenderFrame* pRenderFrame, SDL_GPUCommandBuffer* buf)
-{
-    if(state.StateFlags.Test(SceneRendererFlag::SCENE_TARGET_COPY_NEEDED))
-    {
-        state.StateFlags.Remove(SceneRendererFlag::SCENE_TARGET_COPY_NEEDED);
-        RenderCommandBuffer copier{};
-        copier._Handle = buf;
-        copier._Context = _Renderer.get();
-
-        Vector2 backBufferSize = pRenderFrame->BackBufferSize;
-        U32 backBufferX = (U32)backBufferSize.x, backBufferY = (U32)backBufferSize.y;
-        Vector2 min, max;
-        state.Scissor.GetFractional(min.x, min.y, max.x, max.y);
-        
-        DefaultRenderMesh& quad = _Renderer->_GetDefaultMesh(DefaultRenderMeshType::QUAD);
-        RenderPipelineState quadState = quad.PipelineDesc;
-        quadState.NumColourTargets = 1;
-        quadState.TargetFormat[0] = pRenderFrame->BackBuffer->GetFormat();
-        
-        RenderTargetIDSurface srcSurface{state.Target, 0, 0};
-        RenderTargetResolvedSurface resolvedSrc{};
-        _Renderer->_ResolveTarget(*pRenderFrame, srcSurface, resolvedSrc, backBufferX, backBufferY);
-        RenderTexture* tex = resolvedSrc.Target;
-        U32 sW = 0, sH = 0, sD = 0, sA = 0;
-        resolvedSrc.Target->GetDimensions(sW, sH, sD, sA);
-        
-        // PASS
-        RenderPass pass{};
-        pass.Name = "Copy Main Target";
-        pass.Targets.Target[0] = {tex, 0, 0};
-        copier.StartPass(std::move(pass));
-        
-        // PIPELINE
-        SDL_BindGPUGraphicsPipeline(copier._CurrentPass->_Handle, _Renderer->_FindPipelineState(quadState)->_Internal._Handle);
-        
-        // PARAMS
-        ShaderParameter_Camera param_cam{};
-        memset(&param_cam, 0, sizeof(param_cam));
-        FinalisePlatformMatrix(*_Renderer.get(), param_cam.ViewProj, Matrix4::Identity());
-        SDL_PushGPUVertexUniformData(copier._Handle, (U32)ShaderParameterType::PARAMETER_CAMERA - (U32)ShaderParameterType::PARAMETER_FIRST_UNIFORM, &param_cam, sizeof(param_cam));
-        ShaderParameter_Object param_obj{};
-        RenderUtility::SetObjectParameters(*_Renderer.get(), &param_obj, Matrix4::Identity(), Colour::White);
-        SDL_PushGPUVertexUniformData(copier._Handle, (U32)ShaderParameterType::PARAMETER_OBJECT - (U32)ShaderParameterType::PARAMETER_FIRST_UNIFORM, &param_obj, sizeof(param_obj));
-        
-        // SAMPLER
-        SDL_GPUTextureSamplerBinding b{};
-        b.texture = tex->GetHandle(_Renderer.get());
-        b.sampler = _Renderer->_FindSampler({})->_Handle;
-        SDL_BindGPUFragmentSamplers(copier._CurrentPass->_Handle, (U32)ShaderParameterType::PARAMETER_SAMPLER_DIFFUSE - (U32)ShaderParameterType::PARAMETER_FIRST_SAMPLER, &b, 1);
-        
-        // BUFFERS
-        SDL_GPUBufferBinding bind{};
-        bind.offset = 0;
-        bind.buffer = quad.IndexBuffer->_Handle;
-        SDL_BindGPUIndexBuffer(copier._CurrentPass->_Handle, &bind, quad.PipelineDesc.VertexState.IsHalf ? SDL_GPU_INDEXELEMENTSIZE_16BIT : SDL_GPU_INDEXELEMENTSIZE_32BIT);
-        bind.buffer = quad.VertexBuffer->_Handle;
-        SDL_BindGPUVertexBuffers(copier._CurrentPass->_Handle, 0, &bind, 1);
-        
-        // DRAW
-        SDL_DrawGPUIndexedPrimitives(copier._CurrentPass->_Handle, quad.NumIndices, 1, 0, 0, 0);
-        
-        copier.EndPass();
-    }
-}
-
 void SceneRenderer::_PostRenderCallback(RenderFrame* pFrame)
 {
-    _CopyMainTarget(_CurrentScene, pFrame, pFrame->SDL3MainCommandBuffer->_Handle);
-    for(auto& s: _PersistentScenes)
-        _CopyMainTarget(s, pFrame, pFrame->SDL3MainCommandBuffer->_Handle);
+    // Disabled for now
 }
 
 void SceneRenderer::_InitSceneState(SceneState& state, Ptr<Scene> pScene)
@@ -293,26 +227,25 @@ void SceneRenderer::_UpdateMeshBuffers(RenderFrame& frame, const Ptr<Mesh::MeshI
     }
 }
 
-void SceneRenderer::RenderScene(Ptr<Scene> pScene, RenderTargetID target, RenderNDCScissorRect sc, U32 tW, U32 tH) // Scissor is the final copied size. render tW and tH to target as normal.
+void SceneRenderer::RenderScene(const SceneFrameRenderParams& frameRender) // Scissor is the final copied size. render tW and tH to target as normal.
 {
     // SETUP SCENE RENDER STATE ASSOCIATED WITH pScenes
-    if(!pScene)
+    if(!frameRender.RenderScene)
         return;
-    _SwitchSceneState(pScene);
-    _CurrentScene.Target = target;
-    _CurrentScene.Scissor = sc;
-    if(_CurrentScene.Target != RenderTargetID(RenderTargetConstantID::BACKBUFFER))
-    {
-        _CurrentScene.StateFlags.Add(SceneRendererFlag::SCENE_TARGET_COPY_NEEDED);
-    }
+    _SwitchSceneState(frameRender.RenderScene);
+    _CurrentScene.Viewport = frameRender.Viewport;
+
+    RenderViewport vp = frameRender.Viewport.GetAsViewport();
+    vp.x *= (Float)frameRender.TargetWidth;  vp.w *= (Float)frameRender.TargetWidth;
+    vp.y *= (Float)frameRender.TargetHeight;  vp.h *= (Float)frameRender.TargetHeight;
 
     // CAMERA PARAMETERS (ALL OBJECTS SHARE COMMON CAMERA) AND BASE SETUP
     RenderContext& context = *_Renderer;
     RenderFrame& frame = context.GetFrame(true);
 
     ShaderParameter_Camera* cam = frame.Heap.NewNoDestruct<ShaderParameter_Camera>();
-    Camera& drawCam = pScene->_ViewStack.front(); // Top most camera
-    drawCam._ScreenWidth = tW, drawCam._ScreenHeight = tH;
+    Camera& drawCam = frameRender.RenderScene->_ViewStack.front(); // Top most camera
+    drawCam._ScreenWidth = (U32)vp.w, drawCam._ScreenHeight = (U32)vp.h;
     drawCam.SetAspectRatio();
     RenderUtility::SetCameraParameters(context, cam, &drawCam);
 
@@ -334,9 +267,10 @@ void SceneRenderer::RenderScene(Ptr<Scene> pScene, RenderTargetID target, Render
     diffuseParams.ClearStencil = 0;
     diffuseParams.ClearColour = Colour::Black;
     RenderViewPass* pDiffusePass = pMainView->PushPass(diffuseParams);
-    pDiffusePass->SetRenderTarget(0, target, 0, 0);
+    pDiffusePass->SetViewport(vp);
+    pDiffusePass->SetRenderTarget(0, frameRender.Target, 0, 0);
     pDiffusePass->SetDepthTarget(RenderTargetID(RenderTargetConstantID::DEPTH), 0, 0);
-    pDiffusePass->SetName("%s Diffuse", pScene->GetName().c_str());
+    pDiffusePass->SetName("%s Diffuse", frameRender.RenderScene->GetName().c_str());
 
     // this can be different per material but for now use constant
     RenderStateBlob globalRenderState{};
@@ -344,14 +278,18 @@ void SceneRenderer::RenderScene(Ptr<Scene> pScene, RenderTargetID target, Render
     globalRenderState.SetValue(RenderStateType::Z_WRITE_ENABLE, true);
     globalRenderState.SetValue(RenderStateType::Z_COMPARE_FUNC, SDL_GPU_COMPAREOP_LESS_OR_EQUAL);
 
-    for(SceneModule<SceneModuleType::RENDERABLE>& renderable: pScene->_Renderables)
+    for(SceneModule<SceneModuleType::RENDERABLE>& renderable: frameRender.RenderScene->_Renderables)
     {
         Transform agentWorld = Scene::GetNodeWorldTransform(renderable.AgentNode);
         for(Ptr<Mesh::MeshInstance>& meshInstance: renderable.Renderable.MeshList)
         {
-            _RenderMeshInstance(pScene, frame, meshInstance, agentWorld, pDiffusePass, globalRenderState);
+            _RenderMeshInstance(frameRender.RenderScene, frame, meshInstance, agentWorld, pDiffusePass, globalRenderState);
         }
     }
+
+    if (frameRender.RenderPost != nullptr)
+        frameRender.RenderPost(frameRender.UserData, frameRender, pMainView);
+
     for(auto it = _CurrentScene.MeshData.begin(); it != _CurrentScene.MeshData.end();)
     {
         if(it->first.expired())

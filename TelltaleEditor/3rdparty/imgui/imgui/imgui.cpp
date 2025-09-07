@@ -1399,7 +1399,7 @@ namespace ImGui
     static int              UpdateWindowManualResize(ImGuiWindow* window, const ImVec2& size_auto_fit, int* border_hovered, int* border_held, int resize_grip_count, ImU32 resize_grip_col[4], const ImRect& visibility_rect);
     static void             RenderWindowOuterBorders(ImGuiWindow* window);
     static void             RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar_rect, bool title_bar_is_highlight, bool handle_borders_and_resize_grips, int resize_grip_count, const ImU32 resize_grip_col[4], float resize_grip_draw_size);
-    static void             RenderWindowTitleBarContents(ImGuiWindow* window, const ImRect& title_bar_rect, const char* name, bool* p_open);
+    static void             RenderWindowTitleBarContents(ImGuiWindow* window, const ImRect& title_bar_rect, const char* name, bool* p_open, const char* rhstext);
     static void             RenderDimmedBackgroundBehindWindow(ImGuiWindow* window, ImU32 col);
     static void             RenderDimmedBackgrounds();
     static void             SetLastItemDataForWindow(ImGuiWindow* window, const ImRect& rect);
@@ -7555,7 +7555,7 @@ void ImGui::RenderWindowDecorations(ImGuiWindow* window, const ImRect& title_bar
 
 // When inside a dock node, this is handled in DockNodeCalcTabBarLayout() instead.
 // Render title text, collapse button, close button
-void ImGui::RenderWindowTitleBarContents(ImGuiWindow* window, const ImRect& title_bar_rect, const char* name, bool* p_open)
+void ImGui::RenderWindowTitleBarContents(ImGuiWindow* window, const ImRect& title_bar_rect, const char* name, bool* p_open, const char* rhst)
 {
     ImGuiContext& g = *GImGui;
     ImGuiStyle& style = g.Style;
@@ -7645,6 +7645,12 @@ void ImGui::RenderWindowTitleBarContents(ImGuiWindow* window, const ImRect& titl
     //if (g.IO.KeyShift) window->DrawList->AddRect(layout_r.Min, layout_r.Max, IM_COL32(255, 128, 0, 255)); // [DEBUG]
     //if (g.IO.KeyCtrl) window->DrawList->AddRect(clip_r.Min, clip_r.Max, IM_COL32(255, 128, 0, 255)); // [DEBUG]
     RenderTextClipped(layout_r.Min, layout_r.Max, name, NULL, &text_size, style.WindowTitleAlign, &clip_r);
+    if(rhst && *rhst != 0)
+    {
+        PushStyleColor(ImGuiCol_Text, IM_COL32(150, 150, 150, 255));
+        RenderTextClipped(layout_r.Min + ImVec2{ title_bar_rect.GetWidth() - 15.0f - CalcTextSize(rhst).x, 0.0f}, layout_r.Max, rhst, NULL, NULL, style.WindowTitleAlign, &clip_r);
+        PopStyleColor();
+    }
 }
 
 void ImGui::UpdateWindowParentAndRootLinks(ImGuiWindow* window, ImGuiWindowFlags flags, ImGuiWindow* parent_window)
@@ -7712,7 +7718,7 @@ static void SetWindowActiveForSkipRefresh(ImGuiWindow* window)
 //   You can use the "##" or "###" markers to use the same label with different id, or same id with different label. See documentation at the top of this file.
 // - Return false when window is collapsed, so you can early out in your code. You always need to call ImGui::End() even if false is returned.
 // - Passing 'bool* p_open' displays a Close button on the upper-right corner of the window, the pointed value will be set to false when the button is pressed.
-bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
+bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags, const char* rhst)
 {
     ImGuiContext& g = *GImGui;
     const ImGuiStyle& style = g.Style;
@@ -8507,7 +8513,7 @@ bool ImGui::Begin(const char* name, bool* p_open, ImGuiWindowFlags flags)
 
         // Title bar
         if (!(flags & ImGuiWindowFlags_NoTitleBar) && !window->DockIsActive)
-            RenderWindowTitleBarContents(window, ImRect(title_bar_rect.Min.x + window->WindowBorderSize, title_bar_rect.Min.y, title_bar_rect.Max.x - window->WindowBorderSize, title_bar_rect.Max.y), name, p_open);
+            RenderWindowTitleBarContents(window, ImRect(title_bar_rect.Min.x + window->WindowBorderSize, title_bar_rect.Min.y, title_bar_rect.Max.x - window->WindowBorderSize, title_bar_rect.Max.y), name, p_open, rhst);
         else if (!(flags & ImGuiWindowFlags_NoTitleBar) && window->DockIsActive)
             LogText("%.*s\n", (int)(FindRenderedTextEnd(window->Name) - window->Name), window->Name);
 

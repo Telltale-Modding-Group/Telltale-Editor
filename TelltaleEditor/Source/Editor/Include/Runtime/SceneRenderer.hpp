@@ -6,7 +6,16 @@
 enum class SceneRendererFlag
 {
     EDIT_MODE = 1, // edit mode
-    SCENE_TARGET_COPY_NEEDED = 2, // need to copy render target to dest target (eg editor target => main editor UI scissor)
+};
+
+struct SceneFrameRenderParams
+{
+    Ptr<Scene> RenderScene;
+    RenderTargetID Target;
+    RenderNDCScissorRect Viewport;
+    U32 TargetWidth, TargetHeight;
+    void(*RenderPost)(void* UserData, const SceneFrameRenderParams& params, RenderSceneView* pMainSceneView) = nullptr;
+    void* UserData = nullptr;
 };
 
 /**
@@ -25,7 +34,7 @@ public:
 
     // Render the scene! Target is dest target (eg editor target, or main back buffer). Scissor is used if not 
     // default back buffer. Copies all of target into main back buffer within scissor inside the main back buffer
-    void RenderScene(Ptr<Scene> pScene, RenderTargetID target, RenderNDCScissorRect scissor, U32 targetW, U32 targetH);
+    void RenderScene(const SceneFrameRenderParams& frameRender);
 
     // Reset all scene render information
     void ResetScene(Ptr<Scene> pScene);
@@ -65,15 +74,11 @@ private:
         };
 
         WeakPtr<Scene> MyScene;
-        RenderNDCScissorRect Scissor; 
-        RenderTargetID Target;
+        RenderNDCScissorRect Viewport; 
         Flags StateFlags;
         std::unordered_map<WeakPtr<Mesh::MeshInstance>, MeshInstanceData, WeakPtrHash, WeakPtrEqual> MeshData;
 
     };
-
-    // copy non main target to main target with scissor
-    void _CopyMainTarget(SceneState& state, RenderFrame* pFrame, SDL_GPUCommandBuffer* cmd);
 
     void _InitSceneState(SceneState& state, Ptr<Scene> pScene); // init the scene state
     void _SwitchSceneState(Ptr<Scene> pCurrentScene); // ensure that is the current scene

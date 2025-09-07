@@ -385,6 +385,9 @@ public:
     {
         return Name;
     }
+
+    // by selectable: use selectable. only selectable module objects (like in game). else does by render meshes.
+    String GetAgentAtScreenPosition(Camera& cam, U32 screenX, U32 screenY, Bool bBySelectable);
     
     // Add a new agent. agent properties can be a nullptr, to start with default props. YOU MUST DISCARD AGENT PROPERTIES AFTER PASSING IT IN. copy it then pass if not!
     void AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance AgentProperties, Transform initialTransform = {});
@@ -402,6 +405,9 @@ public:
     
     // Returns if the given agent has the given module
     Bool HasAgentModule(const Symbol& Name, SceneModuleType module);
+
+    // Remvoes an agent from the scene
+    void RemoveAgent(const Symbol& Name);
 
     SceneModuleTypes GetAgentModules(const Symbol& Name);
     

@@ -136,9 +136,10 @@ U32 EditorUIComponent::GetUICondition()
 
 FileView::FileView(EditorUI& app) : EditorUIComponent(app)
 {
-    _IconMap["*.dlg"] = "FileView/Dialog_DLG_DLOG.png";
-    _IconMap["*.dlog"] = "FileView/Dialog_DLG_DLOG.png";
-    _IconMap["*.anm"] = "FileView/Animation_ANM.png";
+    _IconMap["*.dlg"] = { "FileView/Dialog_DLG_DLOG.png", "StoryBoard Dialog File" };
+    _IconMap["*.dlog"] = { "FileView/Dialog_DLG_DLOG.png", "StoryBoard Dialog File" };
+    _IconMap["*.anm"] = { "FileView/Animation_ANM.png", "Animation File" };
+    _IconMap["*.scene"] = { "FileView/Scene_SCENE.png", "Scene File" };
 }
 
 void FileView::_Gather(Ptr<ResourceRegistry> pRegistry, std::vector<String>& entries, FolderGroup group, String parent)
@@ -263,6 +264,7 @@ void FileView::Render()
         GetWindowDrawList()->AddLine(winPos + ImVec2{ 140.f, 0.0f }, winPos + ImVec2{ 140.f, size.y }, IM_COL32(120, 17, 47, 255), 2.0f);
 
         // OPTIONS
+        Bool bResetScroll = false;
         DrawCenteredWrappedText(GetApplication().GetLanguageText("fv.sidebar").c_str(), 120.f, winPos.x + 70.f, winPos.y + 30.f, 1, GetFontSize());
         SetCursorScreenPos(winPos + ImVec2{ 15.0f, 50.0f });
         PushFont(GetApplication().GetEditorFont(), 12.0f);
@@ -275,6 +277,7 @@ void FileView::Render()
             _Group[_CurGroup].Entries.clear();
             _Group[_CurGroup].UpdateStamp = GetTimeStamp();
             _Gather(pRegistry, _Group[_CurGroup].Entries, _CurGroup, _ViewStack.size() ? _ViewStack.back() : "");
+            bResetScroll = true;
         }
         SetCursorScreenPos(winPos + ImVec2{10.0f, 80.0f});
         PushStyleColor(ImGuiCol_Text, IM_COL32(30, 30, 30, 255));
@@ -303,6 +306,8 @@ void FileView::Render()
         const Float Spacing = 110.0f, Icon = 90.f;
         I32 index = 0;
         String ico = "";
+        String localDesc{};
+        const String* pDesc = nullptr;
         for(const auto& mp: _Group[_CurGroup].Entries)
         {
             if(x + 110.0f >= size.x)
@@ -316,11 +321,12 @@ void FileView::Render()
             {
                 if (ico.empty())
                 {
-                    for (const auto& icomp : _IconMap)
+                    for (const auto& [icomp, mapp] : _IconMap)
                     {
-                        if (icomp.first == mp)
+                        if (icomp == mp)
                         {
-                            ico = icomp.second;
+                            pDesc = &mapp.Description;
+                            ico = mapp.IconFile;
                             break;
                         }
                     }
@@ -331,12 +337,35 @@ void FileView::Render()
             }
             else
             {
+                //localDesc = "Virtual Folder";
+                //pDesc = &localDesc;
                 DrawResourceTexturePixels("FileView/Folder.png", x, localY, Icon, Icon);
             }
             ImVec2 center = winPos + ImVec2{ x + Icon * 0.5f, localY + Icon };
             DrawCenteredWrappedText(mp.length() > 25 ? "..." + mp.substr(mp.length() - 25, 25) : mp, Icon * 0.95f, center.x, center.y, 2, 10.f);
-            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && ImGui::IsMouseHoveringRect(winPos + ImVec2{ x, localY }, winPos + ImVec2{ x + Icon, localY + Icon }))
+            Bool Hov = ImGui::IsMouseHoveringRect(winPos + ImVec2{ x, localY }, winPos + ImVec2{ x + Icon, localY + Icon });
+            if(Hov)
             {
+                ImGui::BeginTooltip();
+                if(pDesc)
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(150, 150, 150, 255));
+                    ImGui::TextUnformatted(pDesc->c_str());
+                    ImGui::PopStyleColor();
+                }
+                else if(_CurGroup == FILES)
+                {
+                    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(250, 150, 150, 255));
+                    ImGui::TextUnformatted(GetApplication().GetLanguageText("fv.unsupported_file").c_str());
+                    ImGui::PopStyleColor();
+                }
+                ImGui::TextUnformatted(mp.c_str());
+                ImGui::EndTooltip();
+            }
+            if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && Hov)
+            {
+                if (_CurGroup != FILES)
+                    bResetScroll = true;
                 _Update(pRegistry, index);
                 break; // continue next
             }
@@ -344,18 +373,64 @@ void FileView::Render()
             index++;
         }
         SetCursorScreenPos(winPos);
-        Dummy(ImVec2(150.0f, y - scrollY + 50.f));
+        Dummy(ImVec2(150.0f, y - scrollY + Spacing));
         PopFont();
+        if(bResetScroll)
+        {
+            ImGui::SetScrollY(0.0f);
+        }
     }
     ImGui::End();
 }
 
 // ===================================================== OUTLINE VIEW
 
-OutlineView::OutlineView(EditorUI& ui) : EditorUIComponent(ui) {}
-
-void OutlineView::_RenderSceneNode(WeakPtr<Node> pNodeWk)
+NewAgentPopup::NewAgentPopup(OutlineView* ov) : EditorPopup("New Agent"), _OV(ov)
 {
+    memset(_Input, 0, 48);
+}
+
+Bool NewAgentPopup::Render()
+{
+    Bool end = false;
+    ImGui::Text("Name");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(100.0f);
+    ImGui::InputText("##in", _Input, 48);
+    Bool ok = Editor->GetActiveScene().GetAgents().find(Symbol(_Input)) == Editor->GetActiveScene().GetAgents().end();
+    if(!ok)
+    {
+        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(200, 50, 50, 255));
+        ImGui::Text("An agent already exists with this name!");
+        ImGui::PopStyleColor();
+    }
+    if(ImGui::Button("Create") && ok && _Input[0] != 0)
+    {
+        end = true;
+        Editor->GetActiveScene().AddAgent(_Input, {}, {}); // no props by default (maybe create defaults?)
+        memset(_Input, 0, 48);
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("Cancel"))
+    {
+        end = true;
+    }
+    return end;
+}
+
+ImVec2 NewAgentPopup::GetPopupSize()
+{
+    return { 150.f, 100.f };
+}
+
+OutlineView::OutlineView(EditorUI& ui) : EditorUIComponent(ui)
+{
+    memset(_ContainTextFilter, 0, 32);
+}
+
+Bool OutlineView::_RenderSceneNode(WeakPtr<Node> pNodeWk)
+{
+    Bool del = false;
     Node* pNode = pNodeWk.lock().get();
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
     if(pNode->FirstChild.expired())
@@ -367,14 +442,28 @@ void OutlineView::_RenderSceneNode(WeakPtr<Node> pNodeWk)
             _EditorUI.InspectingNode = pNodeWk;
             _EditorUI.IsInspectingAgent = pNode->Parent.use_count() == 0;
         }
-        Ptr<Node> pChild = pNode->FirstChild.lock();
-        while(pChild)
+        else if(IsItemHovered(ImGuiHoveredFlags_None) && pNode->Parent.use_count() == 0)
         {
-            _RenderSceneNode(pChild);
-            pChild = pChild->NextSibling.lock();
+            BeginTooltip();
+            if(Button(_EditorUI.GetApplication().GetLanguageText("ov.delete_agent").c_str()))
+            {
+                del = true;
+                _EditorUI.GetActiveScene().RemoveAgent(pNode->AgentName);
+            }
+            EndTooltip();
+        }
+        if(!del)
+        {
+            Ptr<Node> pChild = pNode->FirstChild.lock();
+            while (pChild)
+            {
+                _RenderSceneNode(pChild);
+                pChild = pChild->NextSibling.lock();
+            }
         }
         TreePop();
     }
+    return del;
 }
 
 void OutlineView::Render()
@@ -383,12 +472,63 @@ void OutlineView::Render()
     SetNextWindowViewport(0.0f, yOff, 0, 0, 0.20f, 1.00f - yOff, 100, 300, GetUICondition());
     if (ImGui::Begin(GetApplication().GetLanguageText("ov.title").c_str(), NULL, ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
     {
-        SetCursorPosY(30.0f); // option bar
-        for(const auto& agent: _EditorUI.GetActiveScene().GetAgents())
+        if (!_EditorUI.GetActiveScene().GetName().empty())
         {
-            _RenderSceneNode(agent.second->AgentNode);
+            SetCursorPosY(50.0f); // option bar
+            ImGui::GetWindowDrawList()->PushClipRect(ImGui::GetWindowPos(), ImGui::GetWindowPos() + ImGui::GetWindowSize());
+            // BG
+            ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetWindowPos() + ImVec2{ 0.0f, 40.0f }, ImGui::GetWindowPos() + ImVec2{ ImGui::GetWindowSize().x - 15.0f, ImGui::GetWindowSize().y }, IM_COL32(40, 40, 40, 255));
+            ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetWindowPos() + ImVec2{ 0.0f, 21.0f }, ImGui::GetWindowPos() + ImVec2{ ImGui::GetWindowSize().x - 15.0f, 40.0f }, IM_COL32(60, 60, 60, 255));
+            ImGui::GetWindowDrawList()->AddLine(ImGui::GetWindowPos() + ImVec2{ 0.0f, 40.0f }, ImGui::GetWindowPos() + ImVec2{ ImGui::GetWindowSize().x - 15.0f, 40.0f }, IM_COL32(30, 30, 30, 255), 1.0f);
+
+            // FILTER BAR
+            ImVec2 textMin{ MAX(50.0f, ImGui::GetWindowSize().x - 150.0f), 22.0f };
+            ImVec2 textMax{ ImGui::GetWindowSize().x - 20.0f, 38.0f };
+            ImGui::SetNextItemWidth(textMax.x - textMin.x);
+            ImVec2 c = ImGui::GetCursorPos();
+            ImGui::SetCursorPos(textMin);
+            ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
+            ImGui::PushFont(ImGui::GetFont(), textMax.y - textMin.y - 5.0f);
+            ImGui::InputTextWithHint("##filterbox", _EditorUI.GetApplication().GetLanguageText("ov.filter").c_str(), _ContainTextFilter, sizeof(_ContainTextFilter));
+            ImGui::PopFont();
+            ImGui::SetCursorPos(c);
+            ImGui::PopStyleVar();
+
+            ImVec2 buttonMin{ ImVec2{2.0f, 24.0f} };
+            ImVec2 buttonExtent{ 14.0f, 14.0f };
+            _EditorUI.DrawResourceTexturePixels("Misc/Add.png", buttonMin.x, buttonMin.y, buttonExtent.x, buttonExtent.y);
+            if (ImGui::IsMouseHoveringRect(GetWindowPos() + buttonMin, GetWindowPos() + buttonMin + buttonExtent, false) && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            {
+                _EditorUI.SetCurrentPopup(TTE_NEW_PTR(NewAgentPopup, MEMORY_TAG_EDITOR_UI, this));
+            }
+
+            ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(60, 60, 60, 255));
+            ImGui::PushStyleColor(ImGuiCol_HeaderActive, IM_COL32(60, 60, 60, 255));
+            ImGui::PushStyleColor(ImGuiCol_HeaderHovered, IM_COL32(80, 80, 80, 255));
+            for (const auto& agent : _EditorUI.GetActiveScene().GetAgents())
+            {
+                if (_ContainTextFilter[0] != 0)
+                {
+                    std::size_t pos = 0;
+                    Bool no = false;
+                    for (const char* v = _ContainTextFilter; *v; v++)
+                    {
+                        if ((pos = agent.second->Name.find(v, pos)) == std::string::npos)
+                        {
+                            no = true;
+                            break;
+                        }
+                    }
+                    if (no)
+                        continue;
+                }
+                if (_RenderSceneNode(agent.second->AgentNode))
+                    break;
+            }
+            ImGui::GetWindowDrawList()->PopClipRect();
+            ImGui::PopStyleColor(3);
+            Dummy(GetCursorPos());
         }
-        Dummy(GetCursorPos());
     }
     End();
 }
@@ -413,7 +553,7 @@ void InspectorView::Render()
     {
         title = GetApplication().GetLanguageText("iv.title_default") + "##inspector";
     }
-    if (ImGui::Begin(title.c_str(), NULL,ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize))
+    if (ImGui::Begin(title.c_str(), NULL,ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysHorizontalScrollbar))
     {
         if (_EditorUI.InspectingNode.expired())
         {
@@ -428,6 +568,8 @@ void InspectorView::Render()
             if(_EditorUI.IsInspectingAgent)
             {
                 String agent = _EditorUI.InspectingNode.lock()->AgentName;
+                _EditorUI.InspectorViewY = 0.0f;
+                RenderNode();
                 SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, // ModuleUI.cpp
                                  SceneModuleUtil::_RenderUIModules{_EditorUI.GetActiveScene(), *_EditorUI.GetActiveScene()._Agents[agent], _EditorUI});
             }
@@ -449,15 +591,15 @@ struct SceneViewData
     Vector3 CameraRot = Vector3::Zero;
     Vector2 LastMouse = Vector2::Zero;
     Vector2 MouseAmount = Vector2::Zero;
+    String HoveringAgent = "";
 };
 
 SceneView::SceneView(EditorUI& ui) : EditorUIComponent(ui), _SceneRenderer(ui.GetApplication().GetRenderContext())
 {
     _SceneData = nullptr;
     _SceneRenderer.SetEditMode(true);
-    _ViewTarget = _SceneRenderer.GetRenderer()->AllocateRuntimeTexture();
-    _ViewTargetID = _SceneRenderer.GetRenderer()->CreateDynamicTarget(_ViewTarget);
     _SceneData = TTE_NEW(SceneViewData, MEMORY_TAG_EDITOR_UI); // default scene data allowed for empty scene
+    _EditorSceneCache = TTE_PROXY_PTR(&_EditorUI.GetActiveScene(), Scene);
 }
 
 RenderSurfaceFormat FromSDLFormat(SDL_GPUTextureFormat format);
@@ -475,97 +617,91 @@ void SceneView::_UpdateViewNoActiveScene(Ptr<Scene> pEditorScene, SceneViewData&
         pEditorScene->GetViewStack().push_back(editorCam);
     }
     ::RenderFrame& frame = _SceneRenderer.GetRenderer()->GetFrame(true);
-    if(bWindowFocused)
+    if (bWindowFocused)
     {
+        Quaternion viewRot;
+        viewRot.SetEuler(viewData.CameraRot.x, viewData.CameraRot.y, 0.0f); // pitch, yaw, roll
+        Matrix4 rotMatrix = MatrixRotation(viewRot);
+
+        Vector3 forward = rotMatrix.GetForward();
+        if(_EditorUI.GetApplication().GetRenderContext()->IsLeftHanded())
+        {
+            forward *= -1.0f;
+        }
+        Vector3 right = rotMatrix.GetRight();
+        Vector3 up = rotMatrix.GetUp();
+
+        const Float moveSpeed = 0.25f;
+        const Float mouseSensitivity = 0.4f;
+
         for (auto& event : frame._Events)
         {
-            Bool bRotate = false;
             if (event.Code == InputCode::MOUSE_MOVE)
             {
+                // Only rotate if mouse button is down
                 if (_ViewInputMgr.IsKeyDown(InputCode::MOUSE_LEFT_BUTTON) && !event.BeenHandled())
                 {
                     Float xCursorDiff = event.X - viewData.LastMouse.x;
                     Float yCursorDiff = event.Y - viewData.LastMouse.y;
 
-                    // Apply sensitivity
-                    viewData.MouseAmount.x -= (PI_F * xCursorDiff * 0.6f); // Yaw
-                    viewData.MouseAmount.y -= (PI_F * yCursorDiff * 0.6f); // Pitch
+                    viewData.MouseAmount.x -= xCursorDiff * mouseSensitivity; // Yaw
+                    viewData.MouseAmount.y -= yCursorDiff * mouseSensitivity; // Pitch
+                    viewData.MouseAmount.y = std::clamp(viewData.MouseAmount.y, -PI_F * 0.5f + 0.01f, PI_F * 0.5f - 0.01f);
 
-                    // Clamp pitch
-                    viewData.MouseAmount.y = fmaxf(-PI_F * 0.5f, fminf(viewData.MouseAmount.y, PI_F * 0.5f));
-
-                    viewData.CameraRot = Vector3(viewData.MouseAmount.y, viewData.MouseAmount.x, 0.0f);
+                    viewData.CameraRot = Vector3(-viewData.MouseAmount.y, -viewData.MouseAmount.x, 0.0f);
+                    event.SetHandled();
                 }
+
                 viewData.LastMouse = Vector2(event.X, event.Y);
-                bRotate = true;
             }
 
-            Vector3 forward = Vector3(
-                                      cosf(viewData.CameraRot.x) * sinf(viewData.CameraRot.y),
-                                      0.0f,
-                                      cosf(viewData.CameraRot.x) * cosf(viewData.CameraRot.y)
-            );
-            forward.Normalize();
-
-            Vector3 right = Vector3(
-                                    sinf(viewData.CameraRot.y - PI_F * 0.5f),
-                                    0.0f,
-                                    cosf(viewData.CameraRot.y - PI_F * 0.5f)
-            );
-            right.Normalize();
-
-            Vector3 up = -Vector3::Cross(forward, right);
-            up.Normalize();
-
-            const Float speed = 0.25f;
-
+            // Movement keys (WASD + arrows)
             if (event.Type == InputMapper::EventType::BEGIN)
             {
                 switch (event.Code)
                 {
-                    case InputCode::S:
-                        event.SetHandled();
-                        viewData.CameraPosition += forward * speed;
-                        break;
                     case InputCode::W:
+                        viewData.CameraPosition += forward * moveSpeed;
                         event.SetHandled();
-                        viewData.CameraPosition -= forward * speed;
                         break;
-                    case InputCode::D:
+                    case InputCode::S:
+                        viewData.CameraPosition -= forward * moveSpeed;
                         event.SetHandled();
-                        viewData.CameraPosition -= right * speed;
                         break;
                     case InputCode::A:
+                        viewData.CameraPosition -= right * moveSpeed;
                         event.SetHandled();
-                        viewData.CameraPosition += right * speed;
                         break;
-                    case InputCode::DOWN_ARROW:
+                    case InputCode::D:
+                        viewData.CameraPosition += right * moveSpeed;
                         event.SetHandled();
-                        viewData.CameraPosition += up * speed;
                         break;
                     case InputCode::UP_ARROW:
+                        viewData.CameraPosition += up * moveSpeed;
                         event.SetHandled();
-                        viewData.CameraPosition -= up * speed;
+                        break;
+                    case InputCode::DOWN_ARROW:
+                        viewData.CameraPosition -= up * moveSpeed;
+                        event.SetHandled();
                         break;
                     default:
                         break;
                 }
-                pEditorScene->GetViewStack().front().SetWorldPosition(viewData.CameraPosition);
-            }
-
-            if(bRotate)
-            {
-                Quaternion rot{};
-                rot.SetEuler(viewData.CameraRot.x, viewData.CameraRot.y, viewData.CameraRot.z);
-                pEditorScene->GetViewStack().front().SetWorldRotation(rot);
             }
         }
+
+        Quaternion updatedRotation;
+        updatedRotation.SetEuler(viewData.CameraRot.x, viewData.CameraRot.y, 0.0f);
+        auto& cam = pEditorScene->GetViewStack().front();
+        cam.SetWorldRotation(updatedRotation);
+        cam.SetWorldPosition(viewData.CameraPosition);
     }
     else
     {
+        // If not focused, still track mouse position to avoid jumps
         for (auto& event : frame._Events)
         {
-            if(event.Code == InputCode::MOUSE_MOVE)
+            if (event.Code == InputCode::MOUSE_MOVE)
             {
                 viewData.LastMouse = Vector2(event.X, event.Y);
             }
@@ -606,12 +742,52 @@ SceneView::~SceneView()
     _FreeSceneData();
 }
 
+void SceneView::PostRender(void* me, const SceneFrameRenderParams& params, RenderSceneView* mv)
+{
+    SceneView* self = (SceneView*)me;
+    // Camera& drawCam = params.RenderScene->GetViewStack().front(); parameter is scene view wide already
+    RenderViewPassParams outlineParams{};
+    RenderViewport vp = params.Viewport.GetAsViewport();
+    vp.x *= (Float)params.TargetWidth;  vp.w *= (Float)params.TargetWidth;
+    vp.y *= (Float)params.TargetHeight;  vp.h *= (Float)params.TargetHeight;
+
+    RenderViewPass* outlinePass = mv->PushPass(outlineParams);
+    outlinePass->SetName("Post-EditorOutlines");
+    outlinePass->SetViewport(vp);
+    outlinePass->SetRenderTarget(0, params.Target, 0, 0);
+    outlinePass->SetDepthTarget(RenderTargetID(RenderTargetConstantID::DEPTH), 0, 0);
+
+    RenderStateBlob defRenderState{};
+    defRenderState.SetValue(RenderStateType::Z_ENABLE, true);
+    defRenderState.SetValue(RenderStateType::Z_WRITE_ENABLE, false);
+    defRenderState.SetValue(RenderStateType::Z_COMPARE_FUNC, SDL_GPU_COMPAREOP_LESS_OR_EQUAL);
+
+    if(self->_SceneData)
+    {
+        for (const auto& renderable : SceneModule<SceneModuleType::RENDERABLE>::GetModuleArray(*self->_EditorSceneCache))
+        {
+            if (renderable.AgentNode == self->_EditorUI.InspectingNode.lock())
+            {
+                // render bounding sphere(s)
+                Matrix4 agentMat = MatrixTransformation(Scene::GetNodeWorldTransform(renderable.AgentNode));
+                for(const auto& mesh: renderable.Renderable.MeshList)
+                {
+                    Matrix4 meshMat = MatrixTransformation(Vector3(mesh->BSphere._Radius), Quaternion(), mesh->BSphere._Center);
+                    RenderUtility::DrawWireSphere(*self->_EditorUI.GetApplication().GetRenderContext(), nullptr, agentMat * meshMat, Colour(1.0f, 1.0f, 0.0f, 0.5f), outlinePass, &defRenderState);
+                }
+                break;
+            }
+        }
+    }
+}
+
 void SceneView::Render()
 {
     Float yOff = MAX(0.04f, 40.f / GetMainViewport()->WorkSize.y);
     SetNextWindowViewport(0.20f, yOff, 0, 0, 0.60f, 0.70f - yOff, 300, 200, GetUICondition());
     ImGui::Begin(GetApplication().GetLanguageText("sv.title").c_str(), NULL, 
-                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize);
+                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize, _SceneData ? _SceneData->HoveringAgent.c_str() : 0);
+
     {
         ImVec2 winSize = GetCurrentWindowRead()->Size;
         winSize.y -= GetCurrentWindowRead()->TitleBarHeight;
@@ -627,19 +803,6 @@ void SceneView::Render()
             Float winBottomRightY = yOff + GetCurrentWindowRead()->TitleBarHeight / mnView.y + winSize.y / mnView.y;
             scissor.SetFractional(winTopLeftX, winTopLeftY, winBottomRightX, winBottomRightY);
 
-            // Target sizing
-            if (_ViewTarget->_Handle == nullptr ||
-               (_ViewTarget->GetDimensions(targetX, targetY, _, _), winX != targetX || winY != targetY))
-            {
-                // Resize target
-                _ViewTarget->Release();
-                RenderSurfaceFormat scFormat = FromSDLFormat(
-                    SDL_GetGPUSwapchainTextureFormat(_SceneRenderer.GetRenderer()->GetDeviceUnsafe(),
-                    _SceneRenderer.GetRenderer()->GetWindowUnsafe()));
-                _ViewTarget->CreateTarget(*_SceneRenderer.GetRenderer().get(), 0, scFormat,
-                                          winX, winY, 1, 1, 1, false);
-            }
-
             // Input
             const std::vector<RuntimeInputEvent>& events = _SceneRenderer.GetRenderer()->GetFrame(true)._Events;
             _ViewInputMgr.ProcessEvents(events);
@@ -652,8 +815,8 @@ void SceneView::Render()
                 }
             }
 
-            // Perform view render
-            Ptr<Scene> pEditorScene = TTE_PROXY_PTR(&_EditorUI.GetActiveScene(), Scene);
+            // update view
+            Ptr<Scene>& pEditorScene = _EditorSceneCache;
             if(_EditorUI.GetActiveScene().GetName().empty())
             {
                 _UpdateViewNoActiveScene(pEditorScene, *(SceneViewData*)_SceneData, IsWindowFocused());
@@ -662,7 +825,58 @@ void SceneView::Render()
             {
                 _UpdateView(pEditorScene, *(SceneViewData*)_SceneData, IsWindowFocused());
             }
-            _SceneRenderer.RenderScene(pEditorScene, _ViewTargetID, scissor, winX, winY);
+            ImVec2 tSize = ImGui::GetMainViewport()->Size;
+
+            // update selected agent
+            RenderViewport vp = scissor.GetAsViewport();
+            U32 viewportWidth = (U32)(vp.w * (Float)tSize.x);
+            U32 viewportHeight = (U32)(vp.h * (Float)tSize.y);
+            U32 viewportX = (U32)(vp.x * (Float)tSize.x);
+            U32 viewportY = (U32)(vp.y * (Float)tSize.y);
+            U32 cursorX = (U32)(ImGui::GetMousePos().x - ImGui::GetMainViewport()->Pos.x);
+            U32 cursorY = (U32)(ImGui::GetMousePos().y - ImGui::GetMainViewport()->Pos.y);
+            if(_SceneData && cursorX > viewportX && cursorY > viewportY && cursorX < viewportX + viewportWidth && cursorY < viewportY + viewportHeight && !_EditorSceneCache->GetViewStack().empty())
+            {
+                // mouse is in scene viewport. screen pos x and y are the coords in that viewport 0 0 being TL
+                U32 screenPosX = cursorX - viewportX, screenPosY = cursorY - viewportY;
+                _SceneData->HoveringAgent = _EditorSceneCache->GetAgentAtScreenPosition(_EditorSceneCache->GetViewStack().back(), screenPosX, screenPosY, false);
+                if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+                {
+                    if(_SceneData->HoveringAgent.empty())
+                    {
+                        _EditorUI.InspectingNode = {};
+                        _EditorUI.IsInspectingAgent = false;
+                    }
+                    else
+                    {
+                        for(const auto& agent: _EditorSceneCache->GetAgents())
+                        {
+                            if(agent.second->Name == _SceneData->HoveringAgent)
+                            {
+                                _EditorUI.IsInspectingAgent = true;
+                                _EditorUI.InspectingNode = agent.second->AgentNode;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                _SceneData->HoveringAgent = ""; // selected is still ok!
+            }
+
+            // render scene
+            SceneFrameRenderParams params{};
+            params.RenderScene = pEditorScene;
+            params.Target = RenderTargetID::RenderTargetID(RenderTargetConstantID::BACKBUFFER);
+            params.Viewport = scissor;
+            params.TargetWidth = (U32)tSize.x;
+            params.TargetHeight = (U32)tSize.y;
+            params.UserData = this;
+            params.RenderPost = &PostRender;
+            _SceneRenderer.RenderScene(params);
+
         }
     }
     End();

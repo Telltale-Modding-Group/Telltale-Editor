@@ -8008,3 +8008,15 @@ ui_splashScreen.d3dmesh
 ui_splashCircle.d3dmesh
 ui_menuScreen.d3dtx
 ui_splashScreen.d3dtx
+poker_text_stats.prop
+poker_text_name.prop
+poker_text_amount.prop
+poker_ui_community_card.prop
+poker_ui_player_card_full.prop
+poker_ui_player_card.prop
+poker_text_popup.prop
+poker_dealer_button.prop
+poker_announcer.prop
+ui_cardCommunity.d3dmesh
+ui_dealerButton.d3dmesh
+ui_dealerButton.d3dtx

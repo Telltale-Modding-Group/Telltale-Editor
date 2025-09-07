@@ -25,7 +25,7 @@ namespace RenderUtility
         cam->CameraFar = ac->_FarClip;
     }
     
-    void _DrawInternal(RenderContext& context, Camera* ac, Matrix4 model, Colour col, DefaultRenderMeshType primitive, RenderViewPass* pass)
+    void _DrawInternal(RenderContext& context, Camera* ac, Matrix4 model, Colour col, DefaultRenderMeshType primitive, RenderViewPass* pass, RenderStateBlob* pRenderState)
     {
         TTE_ASSERT(pass, "Pass is not specified!");
         RenderFrame& frame = context.GetFrame(true);
@@ -62,6 +62,8 @@ namespace RenderUtility
         // Queue the draw command
         RenderInst draw {};
         draw.DrawDefaultMesh(primitive);
+        if (pRenderState)
+            draw.GetRenderState() = *pRenderState;
         pass->PushRenderInst(context, std::move(draw), group);
     }
     

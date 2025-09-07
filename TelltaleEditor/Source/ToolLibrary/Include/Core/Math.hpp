@@ -1189,6 +1189,23 @@ public:
         return _Entries[Row];
     }
     
+    inline Vector3 GetRight() const
+    {
+        return Vector3(_Entries[0][0], _Entries[0][1], _Entries[0][2]);
+    }
+
+    // Returns local +Y axis
+    inline Vector3 GetUp() const
+    {
+        return Vector3(_Entries[1][0], _Entries[1][1], _Entries[1][2]);
+    }
+
+    // Returns local +Z axis
+    inline Vector3 GetForward() const
+    {
+        return Vector3(_Entries[2][0], _Entries[2][1], _Entries[2][2]);
+    }
+
     inline void SetColumn(U32 Column, const Vector4& Values)
     {
         _Entries[0][Column] = Values.x;
@@ -1269,6 +1286,11 @@ Matrix4 MatrixTransformation(const Quaternion& rot, const Vector3& Translation);
 // Matrix which scales and transforms
 Matrix4 MatrixTransformation(const Vector3 scale, const Quaternion& rot, const Vector3& Translation);
 
+inline Matrix4 MatrixTransformation(const Transform& transform)
+{
+    return MatrixTransformation(transform._Rot, transform._Trans);
+}
+
 // Matrix which scales differently in each direction
 Matrix4 MatrixScaling(float ScaleX, float ScaleY, float ScaleZ);
 
@@ -1289,12 +1311,14 @@ Matrix4 operator + (const Matrix4& Left, const Matrix4& Right);
 Matrix4 operator - (const Matrix4& Left, const Matrix4& Right);
 
 // Apply matrix to vector 4
-inline Vector4 operator * (const Vector4& Right, const Matrix4& Left)
+inline Vector4 operator * (const Vector4& v, const Matrix4& m)
 {
-    return Vector4(Right.x * Left[0][0] + Right.y * Left[1][0] + Right.z * Left[2][0] + Right.w * Left[3][0],
-                   Right.x * Left[0][1] + Right.y * Left[1][1] + Right.z * Left[2][1] + Right.w * Left[3][1],
-                   Right.x * Left[0][2] + Right.y * Left[1][2] + Right.z * Left[2][2] + Right.w * Left[3][2],
-                   Right.x * Left[0][3] + Right.y * Left[1][3] + Right.z * Left[2][3] + Right.w * Left[3][3]);
+    return Vector4(
+        v.x * m[0][0] + v.y * m[0][1] + v.z * m[0][2] + v.w * m[0][3],
+        v.x * m[1][0] + v.y * m[1][1] + v.z * m[1][2] + v.w * m[1][3],
+        v.x * m[2][0] + v.y * m[2][1] + v.z * m[2][2] + v.w * m[2][3],
+        v.x * m[3][0] + v.y * m[3][1] + v.z * m[3][2] + v.w * m[3][3]
+    );
 }
 
 // A plane, defined by the normal vector.

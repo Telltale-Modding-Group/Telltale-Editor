@@ -61,7 +61,7 @@ static U8* _LoadSTBI(String path, ApplicationUI& _MyUI, I32& width, I32& height)
         U8* data = TTE_ALLOC(stream->GetSize(), MEMORY_TAG_TEMPORARY);
         stream->Read(data, stream->GetSize());
         int w = 0, h = 0;
-        stbi_uc* rgba = stbi_load_from_memory((stbi_uc*)data, (int)stream->GetSize(), &w, &h, 0, 0);
+        stbi_uc* rgba = stbi_load_from_memory((stbi_uc*)data, (int)stream->GetSize(), &w, &h, 0, STBI_rgb_alpha);
         width = w;
         height = h;
         TTE_FREE(data);
@@ -242,17 +242,9 @@ void UIComponent::DrawResourceTexture(const String& name, Float xPosFrac, Float 
     {
         ImTextureID id = (ImTextureID)it->second.DrawBind;
         ImVec2 winSize = ImGui::GetWindowSize();
-        if(xPosFrac + xSizeFrac > 1.0f || yPosFrac + ySizeFrac > 1.0f)
-        {
-            // This is OK, user window is likely very very small
-            //TTE_LOG("WARNING: Trying to draw fractional texture region (%s) but extent lies outside window size", name.c_str());
-        }
-        else
-        {
-            ImVec2 tl = ImGui::GetWindowPos(); //()->WorkPos;
-            ImGui::GetWindowDrawList()->AddImage(id, ImVec2{ tl.x + xPosFrac * winSize.x, tl.y + yPosFrac * winSize.y },
-                                                 ImVec2{ tl.x + winSize.x * (xPosFrac + xSizeFrac), tl.y + winSize.y * (yPosFrac + ySizeFrac) }, ImVec2{0,0}, ImVec2{1.f,1.f}, sc);
-        }
+        ImVec2 tl = ImGui::GetWindowPos(); //()->WorkPos;
+        ImGui::GetWindowDrawList()->AddImage(id, ImVec2{ tl.x + xPosFrac * winSize.x, tl.y + yPosFrac * winSize.y },
+            ImVec2{ tl.x + winSize.x * (xPosFrac + xSizeFrac), tl.y + winSize.y * (yPosFrac + ySizeFrac) }, ImVec2{ 0,0 }, ImVec2{ 1.f,1.f }, sc);
     }
 }
 
@@ -268,6 +260,22 @@ void ApplicationUI::SetWindowSize(I32 width, I32 height)
 }
 
 // =========================================== MAIN APPLICATION LOOP
+
+void ApplicationUI::SetCurrentPopup(Ptr<EditorPopup> p, EditorUI& ui)
+{
+    if (p && !_ActivePopup)
+    {
+        _ActivePopup = p;
+        _ActivePopup->Editor = &ui;
+        ImGui::PushOverrideID(9991);
+        ImGui::OpenPopup(p->Name.c_str());
+        ImGui::PopID();
+    }
+    else
+    {
+        TTE_LOG("WARN: Cannot set current popup one is already open or null");
+    }
+}
 
 class _OnExitHelper
 {
@@ -723,4 +731,26 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     _Editor = nullptr;
 
     return 0;
+}
+
+void ApplicationUI::_RenderPopups()
+{
+    if (_ActivePopup)
+    {
+        ImVec2 size = _ActivePopup->GetPopupSize();
+        ImGui::SetNextWindowSize(size);
+
+        ImGui::PushOverrideID(9991);
+        if (ImGui::BeginPopupModal(_ActivePopup->Name.c_str()))
+        {
+            ImGui::FocusWindow(ImGui::GetCurrentWindowRead());
+            if (_ActivePopup->Render())
+            {
+                ImGui::CloseCurrentPopup();
+                _ActivePopup = nullptr;
+            }
+            ImGui::EndPopup();
+        }
+        ImGui::PopID();
+    }
 }

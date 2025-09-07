@@ -1742,6 +1742,15 @@ void RenderCommandBuffer::StartPass(RenderPass&& pass)
         _Context->_PushDebugGroup(*this, "Unnamed TTE Pass");
     }
 
+    if(pass.ClearViewport.w > 0.5f && pass.ClearViewport.h > 0.5f)
+    {
+        targets[0].BeginPassClearRect = 1;
+        targets[0].BeginPassClearX = pass.ClearViewport.x;
+        targets[0].BeginPassClearY = pass.ClearViewport.y;
+        targets[0].BeginPassClearW = pass.ClearViewport.w;
+        targets[0].BeginPassClearH = pass.ClearViewport.h;
+    }
+
     RenderPass* pPass = _Context->GetFrame(false).Heap.New<RenderPass>();
     *pPass = std::move(pass);
     pPass->_Handle = SDL_BeginGPURenderPass(_Handle, nTargets ? targets : 0, nTargets, hasDepth ? &depth : nullptr);

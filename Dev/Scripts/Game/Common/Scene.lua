@@ -30,8 +30,14 @@ function NormaliseScene_V0(inst, boneScene)
         local agentInfo = ContainerGetElement(agentArray, i-1)
         local agentName = MetaGetClassValue(MetaGetMember(agentInfo, "mAgentName"))
         local agentProps = MetaGetMember(agentInfo, "mAgentSceneProps")
-        -- TODO TO MAKE TO WORK GET LOCATION
-        CommonScenePushAgent(boneScene, agentName, agentProps, {})
+
+        local startPos = MetaGetMember(agentInfo, "mStartPos")
+        local startRot = MetaGetMember(agentInfo, "mStartQuat")
+        local myTransform = {TransX=MetaGetClassValue(MetaGetMember(startPos, "x")),
+                            TransY=MetaGetClassValue(MetaGetMember(startPos, "y")), TransZ=MetaGetClassValue(MetaGetMember(startPos, "z")),
+                            RotX=MetaGetClassValue(MetaGetMember(startRot, "x")), RotY=MetaGetClassValue(MetaGetMember(startRot, "y")), 
+                            RotZ=MetaGetClassValue(MetaGetMember(startRot, "z")), RotW=MetaGetClassValue(MetaGetMember(startRot, "w"))}
+        CommonScenePushAgent(boneScene, agentName, agentProps, myTransform)
     end
     return true
 end

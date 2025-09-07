@@ -45,14 +45,18 @@ project_create.not_guessed = "We could not detect the snapshot from your mount p
 fv.title = "Resources"
 fv.back = "Previous Folder"
 fv.sidebar = "Resource View"
+fv.unsupported_file = "This file type cannot be opened yet!"
 
 # OUTLINE VIEW
 ov.title = "Scene Outline"
+ov.delete_agent = "Delete Agent"
+ov.filter = "Filter..."
 
 # INSPECTOR VIEW
 iv.select = "Please select an agent or scene node"
 iv.title_prefix = "Inspecting"
 iv.title_default = "Inspector"
+iv.add_module = "Add Module"
 
 # SCENE VIEW
 sv.title = "Scene"

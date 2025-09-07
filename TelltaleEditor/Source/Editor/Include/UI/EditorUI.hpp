@@ -18,6 +18,7 @@ enum class EditorFlag
 class EditorUI;
 class EditorUIComponent;
 class SceneView;
+struct ImVec2;
 
 class EditorUI : public UIStackable
 {
@@ -52,6 +53,7 @@ public:
     Flags UIFlags; // pub
     WeakPtr<Node> InspectingNode;
     Bool IsInspectingAgent = false;
+    Float InspectorViewY = 0.0f;
 
     EditorUI(ApplicationUI& app);
 
@@ -95,11 +97,17 @@ class FileView : public EditorUIComponent
         U64 UpdateStamp = 0;
     };
 
+    struct IconMapping
+    {
+        String IconFile;
+        String Description;
+    };
+
     FolderGroup _CurGroup = MOUNTS;
     FolderGroupData _Group[COUNT];
     std::unordered_map<String, String> _StrippedToLocation;
     std::vector<String> _ViewStack;
-    std::map<StringMask, String> _IconMap;
+    std::map<StringMask, IconMapping> _IconMap;
 
     void _Gather(Ptr<ResourceRegistry> pRegistry, std::vector<String>& entries, FolderGroup group, String parent);
 
@@ -116,7 +124,8 @@ public:
 class OutlineView : public EditorUIComponent
 {
 
-    void _RenderSceneNode(WeakPtr<Node> pNode);
+    char _ContainTextFilter[32];
+    Bool _RenderSceneNode(WeakPtr<Node> pNode);
 
 public:
 
@@ -134,6 +143,8 @@ public:
 
     virtual void Render() override;
 
+    void RenderNode();
+
 };
 
 struct SceneViewData;
@@ -143,10 +154,9 @@ class SceneView : public EditorUIComponent
 
     friend class EditorUI;
 
+    Ptr<Scene> _EditorSceneCache;
     SceneViewData* _SceneData;
     SceneRenderer _SceneRenderer;
-    Ptr<RenderTexture> _ViewTarget;
-    RenderTargetID _ViewTargetID;
     RuntimeInputEventManager _ViewInputMgr;
 
     void _OnSceneLoad(Ptr<Scene> pEditorScene);
@@ -155,6 +165,8 @@ class SceneView : public EditorUIComponent
     void _UpdateView(Ptr<Scene> pEditorScene, SceneViewData& viewData, Bool bWindowFocused);
     void _FreeSceneData();
 
+    static void PostRender(void* ud, const SceneFrameRenderParams& params, RenderSceneView* mv);
+
 public:
 
     SceneView(EditorUI& ui);
@@ -162,5 +174,20 @@ public:
     ~SceneView();
 
     virtual void Render() override;
+
+};
+
+// POPUPS
+
+
+struct NewAgentPopup : EditorPopup
+{
+
+    OutlineView* _OV;
+    char _Input[48];
+
+    NewAgentPopup(OutlineView* ov);
+    virtual Bool Render() override;
+    virtual ImVec2 GetPopupSize() override;
 
 };

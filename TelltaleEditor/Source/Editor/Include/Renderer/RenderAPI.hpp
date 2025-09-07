@@ -156,6 +156,17 @@ SDL_PrimitiveMappings[3]
 
 // ============================================= UTIL ENUMS AND TYPES =============================================
 
+struct RenderViewport
+{
+
+    Float x, y, w, h;
+
+    inline RenderViewport() : x(0.0f), y(0.0f), w(0.0f), h(0.0f) {}
+
+    inline RenderViewport(Float xPos, Float yPos, Float xLen, Float yLen) : x(xPos), y(yPos), w(xLen), h(yLen) {}
+
+};
+
 // NDC (Normalised device coords) scissor rect. From -1 to 1 in both. By default is whole screen
 struct RenderNDCScissorRect
 {
@@ -194,6 +205,17 @@ struct RenderNDCScissorRect
         Min.y = (yMinFrac * 2.0f) - 1.0f;
         Max.x = (xMaxFrac * 2.0f) - 1.0f;
         Max.y = (yMaxFrac * 2.0f) - 1.0f;
+    }
+
+    // Gets as a viewport in 0-1 with width and height.
+    inline RenderViewport GetAsViewport() const
+    {
+        RenderViewport vp{};
+        Float xmin = 0.0f, ymin = 0.0f, xmax = 0.0f, ymax=0.0f;
+        GetFractional(xmin, ymin, xmax, ymax);
+        vp.x = xmin; vp.y = ymin;
+        vp.w = xmax - xmin; vp.h = ymax - ymin;
+        return vp;
     }
 
     // sub rect. scales child inside parent one
@@ -605,6 +627,7 @@ struct RenderPass
     SDL_GPURenderPass* _Handle = nullptr;
     SDL_GPUCopyPass* _CopyHandle = nullptr;
     
+    RenderViewport ClearViewport;
     CString Name = nullptr;
     Colour ClearColour = Colour::Black;
     Float ClearDepth = 0.0f;
@@ -931,78 +954,78 @@ namespace RenderUtility
     }
     
     // internal draw. null camera means a higher level camera will be searched for in the base parameters stack
-    void _DrawInternal(RenderContext& context, Camera* cam, Matrix4 world, Colour col, DefaultRenderMeshType primitive, RenderViewPass* pBaseParams);
+    void _DrawInternal(RenderContext& context, Camera* cam, Matrix4 world, Colour col, DefaultRenderMeshType primitive, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState);
     
     /**
      Draws a wire sphere with the given camera and model matrix specifying its world transformation. Vertices from -1 to 1. Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawWireSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_SPHERE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_SPHERE, pBaseParams, pRenderState);
     }
     
     /**
      Draws a wireframe unit capsule with the given camera and model matrix specifying its world transformation. Vertices are from -1 to 1! Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireCapsule(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawWireCapsule(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CAPSULE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CAPSULE, pBaseParams, pRenderState);
     }
     
     /**
      Draws a wireframe box with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawWireBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_BOX, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_BOX, pBaseParams, pRenderState);
     }
     
     /**
      Draws a filled coloured box with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawFilledBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_BOX, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_BOX, pBaseParams, pRenderState);
     }
     
     /**
      Draws a filled in sphere with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawFilledSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_SPHERE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_SPHERE, pBaseParams, pRenderState);
     }
     
     /**
      Draws a filled in cone with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 in height and width. Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawFilledCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CONE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CONE, pBaseParams, pRenderState);
     }
     
     /**
      Draws a wireframe cone with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawWireCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CONE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CONE, pBaseParams, pRenderState);
     }
     
     /**
      Draws a filled in cylinder with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 in height and width. Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawFilledCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CYLINDER, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CYLINDER, pBaseParams, pRenderState);
     }
     
     /**
      Draws a wireframe cylinder with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawWireCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CYLINDER, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CYLINDER, pBaseParams, pRenderState);
     }
     
 }

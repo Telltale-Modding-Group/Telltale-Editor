@@ -2643,6 +2643,7 @@ U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles, Bool bO
 Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
 {
     AsyncResourcePreloadBatchJob* job = (AsyncResourcePreloadBatchJob*)j;
+    job->Registry->BindLuaManager(thread.L); // ensure bound!
     
     U32 nFailed = 0;
     std::stringstream ss{};

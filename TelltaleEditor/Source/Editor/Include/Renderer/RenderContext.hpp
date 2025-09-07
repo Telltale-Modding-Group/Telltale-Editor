@@ -280,13 +280,10 @@ class RenderViewPass
     RenderViewPass* Next = nullptr, *Prev = nullptr;
     
     RenderViewPassParams Params;
-    
     CString Name = "";
-    
     PagedList<RenderInst, 32> DrawCalls;
-    
     RenderTargetIDSet TargetRefs{};
-    
+    RenderViewport Viewport;
     ShaderParametersStack Parameters; // base params
     
 public:
@@ -300,6 +297,8 @@ public:
     
     void SetRenderTarget(U32 index, RenderTargetID id, U32 mip, U32 slice);
     void SetDepthTarget(RenderTargetID id, U32 mip, U32 slice);
+
+    void SetViewport(RenderViewport vp);
     
 };
 

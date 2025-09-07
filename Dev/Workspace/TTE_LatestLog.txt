@@ -1,4 +1,8 @@
-Detected development directory structure: using '/Users/lucassaragosa/Documents/GitHub/TelltaleEditor/Dev/Workspace/' as development workspace directory
-WARNING: The project path '/Users/lucassaragosa/Documents/GitHub/TelltaleEditor/Bin/Debug/D:\Games\CSI 3 Dimensions Of Murder\CSIP3.tteproj' does not exist anymore. Removing and ignoring.
+Detected development directory structure: using 'C:/Vunder/Telltale/Telltale-Editor/Dev/Workspace/' as development workspace directory
 Meta partially initialised with 3 games
 Loaded language English
+Meta fully initialised with snapshot of TX100: registered 127 classes
+
+Attempting to load scene logical://<TelltaleTexasHoldEm>/data.ttarch/default.scene with preload batch 1
+Initialising and setting up scene for editor: default.scene
+WARNING: Agent foo2 is marked renderable but does not specify any meshes (TODO Check MeshList for future games)

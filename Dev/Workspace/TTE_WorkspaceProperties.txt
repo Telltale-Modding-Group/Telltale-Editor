@@ -1,4 +1,4 @@
 # Telltale Editor Properties file (with v1.0.0)
 
-[S] Project Manager - Active Project: 
+[S] Project Manager - Active Project: D:\Games\TelltaleTexasHoldEm\Texas.tteproj
 [S] Workspace - Language: English

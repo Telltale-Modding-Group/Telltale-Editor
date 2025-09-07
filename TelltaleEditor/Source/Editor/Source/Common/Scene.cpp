@@ -44,8 +44,17 @@ public:
         }
         Meta::ClassInstance props = Meta::CopyInstance(Meta::AcquireScriptInstance(man, 3));
         Transform trans{};
-        if(man.GetTop() >= 4)
-            Meta::ExtractCoercableLuaValue(trans, man, 4);
+        if (man.GetTop() >= 4)
+        {   
+            if(man.Type(4) == LuaType::TABLE)
+            {
+                Meta::ExtractCoercableLuaValue(trans, man, 4);
+            }
+            else
+            {
+                Meta::ExtractCoercableInstance(trans, Meta::AcquireScriptInstance(man, 4));
+            }
+        }
         pScene->AddAgent(agent, {}, std::move(props), trans); // modules setup at runtime
         return 0;
     }
@@ -90,7 +99,7 @@ void Scene::_SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>:
     if (reg)
         SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_CollectAgentModules{ modules, *pAgent.get(), reg });
     for(auto it = modules.begin(); it != modules.end(); it++)
-        AddAgentModule(Name, *it);
+        AddAgentModule(pAgent->Name, *it);
     
     // ADD CALLBACKS
     
@@ -206,6 +215,24 @@ void Scene::RemoveAgentModule(const Symbol& sym, SceneModuleType module)
     }
 }
 
+void Scene::RemoveAgent(const Symbol& Name)
+{
+    auto it = _Agents.find(Name);
+    if(it != _Agents.end())
+    {
+        // On remove
+
+        for (I32 mod = 0; mod < (I32)SceneModuleType::NUM; mod++)
+        {
+            if (it->second->ModuleIndices[mod] != -1)
+            {
+                RemoveAgentModule(Name, (SceneModuleType)mod);
+            }
+        }
+        _Agents.erase(it);
+    }
+}
+
 Bool Scene::ExistsAgent(const Symbol& sym)
 {
     for(auto& agent: _Agents)
@@ -238,6 +265,138 @@ Bool Scene::HasAgentModule(const Symbol& sym, SceneModuleType module)
         if(agent.second->NameSymbol == sym)
             return agent.second->ModuleIndices[(U32)module] != -1;
     return false;
+}
+
+static Bool RayIntersectBB(
+    const Vector3& rayOrigin,
+    const Vector3& rayDir,
+    const Vector3& boxMin, 
+    const Vector3& boxMax,
+    Float& t)
+{
+    Float tmin = (boxMin.x - rayOrigin.x) / rayDir.x;
+    Float tmax = (boxMax.x - rayOrigin.x) / rayDir.x;
+
+    if (tmin > tmax) std::swap(tmin, tmax);
+
+    Float tymin = (boxMin.y - rayOrigin.y) / rayDir.y;
+    Float tymax = (boxMax.y - rayOrigin.y) / rayDir.y;
+
+    if (tymin > tymax) std::swap(tymin, tymax);
+
+    if ((tmin > tymax) || (tymin > tmax))
+        return false;
+
+    if (tymin > tmin)
+        tmin = tymin;
+    if (tymax < tmax)
+        tmax = tymax;
+
+    Float tzmin = (boxMin.z - rayOrigin.z) / rayDir.z;
+    Float tzmax = (boxMax.z - rayOrigin.z) / rayDir.z;
+
+    if (tzmin > tzmax) std::swap(tzmin, tzmax);
+
+    if ((tmin > tzmax) || (tzmin > tmax))
+        return false;
+
+    if (tzmin > tmin)
+        tmin = tzmin;
+    if (tzmax < tmax)
+        tmax = tzmax;
+
+    if (tmax < 0)
+        return false;
+
+    t = (tmin >= 0) ? tmin : tmax;
+    return true;
+}
+
+static Bool RayIntersectSphere(
+    const Vector3& rayOrigin,
+    const Vector3& rayDir,
+    const Vector3& sphereCenter,
+    Float sphereRadius, Float& t)
+{
+    Vector3 oc = rayOrigin - sphereCenter;
+
+    Float a = Vector3::Dot(rayDir, rayDir);
+    Float b = 2.0f * Vector3::Dot(oc, rayDir);
+    Float c = Vector3::Dot(oc, oc) - sphereRadius * sphereRadius;
+
+    Float discriminant = b * b - 4 * a * c;
+    if (discriminant < 0.0f)
+        return false;
+
+    Float sqrtDisc = sqrtf(discriminant);
+    Float t0 = (-b - sqrtDisc) / (2.0f * a);
+    Float t1 = (-b + sqrtDisc) / (2.0f * a);
+
+    t = (t0 >= 0.0f) ? t0 : ((t1 >= 0.0f) ? t1 : -1.0f);
+    if (t < 0.0f)
+    {
+        t = 0.0f;
+        return false;
+    }
+
+    return true;
+}
+
+String Scene::GetAgentAtScreenPosition(Camera& cam, U32 screenX, U32 screenY, Bool bBySelectable)
+{
+    TTE_ASSERT(!bBySelectable, "Not supported by selectable"); // IMPL SELECTABLE MODULE
+
+    Float ndcX = (2.0f * screenX) / cam._ScreenWidth - 1.0f;
+    Float ndcY = 1.0f - (2.0f * screenY) / cam._ScreenHeight;
+    Vector4 nearPointClip(ndcX, ndcY, 0.0f, 1.0f);
+    Vector4 farPointClip(ndcX, ndcY, 1.0f, 1.0f);
+
+    Matrix4 invViewProj = (cam.GetProjectionMatrix() * cam.GetViewMatrix()).Inverse();
+
+    Vector4 nearWorld = nearPointClip * invViewProj;
+    Vector4 farWorld = farPointClip * invViewProj;
+
+    nearWorld /= nearWorld.w;
+    farWorld /= farWorld.w;
+
+    Vector3 origin = Vector3(nearWorld.x, nearWorld.y, nearWorld.z);
+    Vector3 direction = (Vector3(farWorld.x, farWorld.y, farWorld.z) - origin);
+    direction.Normalize();
+
+    Float tmin = FLT_MAX;
+    String agent{};
+    for (const auto& renderable : _Renderables)
+    {
+        Transform agentTransform = GetNodeWorldTransform(renderable.AgentNode);
+        Matrix4 agentMat = MatrixTransformation(agentTransform._Rot, agentTransform._Trans);
+        for (const auto& mesh : renderable.Renderable.MeshList)
+        {
+            Float tSphere = 0.0f;
+            Vector3 worldCenter = Vector4(mesh->BSphere._Center, 1.0f) * agentMat;
+
+            if (RayIntersectSphere(origin, direction, worldCenter, mesh->BSphere._Radius, tSphere))
+            {
+                Float tBox = 0.0f;
+                Vector3 boxMin = (Vector4(mesh->BBox._Min, 1.0f)) * agentMat;
+                Vector3 boxMax = (Vector4(mesh->BBox._Max, 1.0f)) * agentMat;
+
+                Bool intersects = RayIntersectBB(origin, direction, boxMin, boxMax, tBox);
+
+                if (intersects && tBox < tmin)
+                {
+                    tmin = tBox;
+                    agent = renderable.AgentNode->AgentName;
+                }
+                else if (!intersects && tSphere < tmin)
+                {
+                    // fallback to sphere if box miss
+                    tmin = tSphere;
+                    agent = renderable.AgentNode->AgentName;
+                }
+            }
+        }
+    }
+    return agent;
 }
 
 void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance props, Transform init)

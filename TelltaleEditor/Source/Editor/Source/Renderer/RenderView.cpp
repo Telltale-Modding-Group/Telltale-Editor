@@ -81,6 +81,11 @@ void RenderViewPass::PushPassParameters(RenderContext& context, ShaderParameters
     context.PushParameterGroup(*SceneView->Frame, &Parameters, pGroup);
 }
 
+void RenderViewPass::SetViewport(RenderViewport vp)
+{
+    Viewport = vp;
+}
+
 void RenderSceneView::PushViewParameters(RenderContext &context, ShaderParametersGroup *pGroup)
 {
     context.PushParameterGroup(*Frame, &Parameters, pGroup);
@@ -198,7 +203,7 @@ void RenderContext::_ResolveTarget(RenderFrame& frame, const RenderTargetIDSurfa
     {
         // Constant target
         Ptr<RenderTexture>& texture = _ConstantTargets[surface.ID._Value];
-        if(!texture || texture->_Width != w || texture->_Height != h) // do we need w and h here?
+        if((surface.ID._Value != (U32)RenderTargetConstantID::BACKBUFFER) && (!texture || texture->_Width != w || texture->_Height != h)) // do we need w and h here?
         {
             if(!texture)
                 texture = AllocateRuntimeTexture();
@@ -227,6 +232,10 @@ void RenderContext::_ResolveTargets(RenderFrame& frame, const RenderTargetIDSet 
 void RenderContext::_PrepareRenderPass(RenderFrame& frame, RenderPass& pass, const RenderViewPass& viewInfo)
 {
     _ResolveTargets(frame, viewInfo.TargetRefs, pass.Targets);
+    if (viewInfo.Viewport.w > 0.5f && viewInfo.Viewport.h > 0.5f)
+    {
+        pass.ClearViewport = viewInfo.Viewport;
+    }
     pass.ClearColour = viewInfo.Params.ClearColour;
     pass.ClearDepth = viewInfo.Params.ClearDepth;
     pass.ClearStencil = viewInfo.Params.ClearStencil;
@@ -264,6 +273,17 @@ void RenderContext::_ExecutePass(RenderFrame &frame, RenderSceneContext &context
         colourFormats[x++] = RenderSurfaceFormat::UNKNOWN;
     passDesc.Name = pass->Name;
     context.CommandBuf->StartPass(std::move(passDesc));
+
+    if(pass->Viewport.w > 0.5f && pass->Viewport.h > 0.5f)
+    {
+        SDL_GPUViewport gpuViewport{};
+        gpuViewport.x = pass->Viewport.x;
+        gpuViewport.y = pass->Viewport.y;
+        gpuViewport.w = pass->Viewport.w;
+        gpuViewport.h = pass->Viewport.h;
+        gpuViewport.min_depth = 0.0f; gpuViewport.max_depth = 1.0f;
+        SDL_SetGPUViewport(context.CommandBuf->_CurrentPass->_Handle, &gpuViewport);
+    }
     
     // DRAW
     for(i = 0; i < pass->DrawCalls.GetSize(); i++)
