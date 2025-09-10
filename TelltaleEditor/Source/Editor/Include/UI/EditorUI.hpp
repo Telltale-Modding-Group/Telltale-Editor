@@ -80,6 +80,19 @@ public:
 
 };
 
+struct EditorPopup
+{
+    
+    const String Name;
+    EditorUI* Editor = nullptr;
+    
+    inline EditorPopup(const String& N) : Name(N) {}
+    
+    virtual ImVec2 GetPopupSize() = 0;
+    virtual Bool Render() = 0;
+    
+};
+
 class FileView : public EditorUIComponent
 {
 

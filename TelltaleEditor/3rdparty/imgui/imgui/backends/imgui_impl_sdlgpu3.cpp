@@ -550,7 +550,7 @@ static void ImGui_ImplSDLGPU3_CreateGraphicsPipeline()
 	pipeline_info.multisample_state = multisample_state;
 	pipeline_info.depth_stencil_state = depth_stencil_state;
 	pipeline_info.target_info = target_info;
-    pipeline_info.IsSDL3Shader = true;
+    //pipeline_info.IsSDL3Shader = true;
 	bd->Pipeline = SDL_CreateGPUGraphicsPipeline(v->Device, &pipeline_info);
     //SDL_DestroyProperties(props);
 	IM_ASSERT(bd->Pipeline != nullptr && "Failed to create graphics pipeline, call SDL_GetError() for more information");

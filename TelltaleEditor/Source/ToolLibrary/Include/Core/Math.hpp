@@ -94,18 +94,23 @@ struct alignas(4) Colour {
 };
 
 // 2D VECTOR
-struct alignas(4) Vector2 {
+struct alignas(4) Vector2
+{
     
     static Vector2 Zero;
     
     // Access by vec2.x,u,array[0] and vec2.y,v,array[1]
-    union {
-        struct {
-            union {
+    union
+    {
+        struct
+        {
+            union
+            {
                 float x;
                 float u;
             };
-            union {
+            union
+            {
                 float y;
                 float v;
             };
@@ -206,7 +211,8 @@ struct alignas(4) Vector2 {
 struct Vector4;
 
 // 3D VECTOR
-struct alignas(4) Vector3 {
+struct alignas(4) Vector3
+{
     
     // Returns 2D vector of the first two components
     inline operator Vector2() const
@@ -225,7 +231,8 @@ struct alignas(4) Vector3 {
         z = _z;
     }
     
-    inline Float DistanceSquared(const Vector3& other) const {
+    inline Float DistanceSquared(const Vector3& other) const
+    {
         float dx = x - other.x;
         float dy = y - other.y;
         float dz = z - other.z;
@@ -329,9 +336,7 @@ struct alignas(4) Vector3 {
     
     // Construct from vector 2 setting z to zero.
     inline Vector3(Vector2 xy) : Vector3(xy,0.f) {}
-    
-    inline Vector3(Vector4 xyz);
-    
+
     inline static Vector3 Orthogonal(const Vector3& v)
     {
         if (fabsf(v.x) < fabsf(v.y) && fabsf(v.x) < fabsf(v.z))
@@ -410,10 +415,12 @@ struct alignas(4) Vector3 {
     
 };
 
-struct alignas(4) Vector4 {
+struct alignas(4) Vector4
+{
     
     // Convert to color, rgba to xyzw
-    inline operator Colour() {
+    inline operator Colour()
+    {
         return Colour(x, y, z, w);
     }
     
@@ -444,8 +451,6 @@ struct alignas(4) Vector4 {
     {
         return Vector2(x, y);
     }
-    
-    inline Vector4(Vector3 xyz) : Vector4(xyz, 0.f) {}
     
     inline Vector4(Vector2 xy) : Vector4(xy, 0.f, 0.f) {}
     
@@ -555,13 +560,6 @@ inline Colour Vector4ToColour(Vector4 v)
 inline Vector4 ColourToVector4(Colour c)
 {
     return Vector4(c.r, c.g, c.b, c.a);
-}
-
-inline Vector3::Vector3(Vector4 rhs)
-{
-    x = rhs.x;
-    y = rhs.y;
-    z = rhs.z;
 }
 
 inline Vector2 operator*(const Vector2& lhs, const Vector2& rhs)

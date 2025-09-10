@@ -27,20 +27,6 @@ enum class ApplicationFlag
     RUNNING = 1,
 };
 
-
-struct EditorPopup
-{
-
-    const String Name;
-    EditorUI* Editor = nullptr;
-
-    inline EditorPopup(const String& N) : Name(N) {}
-
-    virtual ImVec2 GetPopupSize() = 0;
-    virtual Bool Render() = 0;
-
-};
-
 /**
  * Main Telltale Editor application, UI interface. The normal TelltaleEditor class is just the functionality which can be used without the UI.
  * Just call run with the command line arguments to run the UI.

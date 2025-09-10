@@ -3,6 +3,8 @@
 #include <Core/Callbacks.hpp>
 #include <Symbols.hpp>
 
+#include <cfloat>
+
 class SceneAPI
 {
 public:
@@ -52,7 +54,8 @@ public:
             }
             else
             {
-                Meta::ExtractCoercableInstance(trans, Meta::AcquireScriptInstance(man, 4));
+                Meta::ClassInstance inst = Meta::AcquireScriptInstance(man, 4);
+                Meta::ExtractCoercableInstance(trans, inst);
             }
         }
         pScene->AddAgent(agent, {}, std::move(props), trans); // modules setup at runtime
