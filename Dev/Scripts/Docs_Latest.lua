@@ -1741,6 +1741,18 @@ kGameCapUsesLocationInfo = 0
 --- @type number
 kGameCapUsesLenc = 0
 
+--- Registers data which describes how the inspector view should render this module. Data table is a table of UI element to a table of that elements info. Class, PropKey and
+--- Default are required keys. In each entry, 'UI' is a required table which describes how to render it. It should contain InputType which is a string of the valid kPropRenderXXX
+--- types. Or 'handle:xxx' where xxx is the *extension* of the file name to have a handle set as. Note in this case that the handle property must be a string
+--- or symbol. Along with InputType, SubPath is a string. By default set it to 'this', else a chain of variables to get to the input type variable, eg this.mHandle if
+--- the type is a handle and a string is required if mHandle is a string in the Handle class specifying the file name. There can be as many this.sub.paths.as.needed .
+--- @param moduleID nil
+--- @param moduleImage nil
+--- @param dataTable nil
+--- @return nil
+function RegisterModuleUI(moduleID, moduleImage, dataTable)
+end
+
 --- Set the common mesh name
 --- @param state nil
 --- @param name nil
@@ -1883,8 +1895,9 @@ end
 --- @param state nil
 --- @param name nil
 --- @param props nil
+--- @param --[[optional]] initialTransform nil
 --- @return nil
-function CommonScenePushAgent(state, name, props)
+function CommonScenePushAgent(state, name, props, --[[optional]] initialTransform)
 end
 
 --- Sets the name of the common texture
@@ -2026,10 +2039,6 @@ end
 function CommonSkeletonPushEntry(state, entryInfoTable)
 end
 
---- Animation value types
---- @type number
-kAnimationValueTypeTextureRotate = 0
-
 --- Vertex attribute formats
 --- @type number
 kCommonMeshUByte4Norm = 0
@@ -2045,6 +2054,10 @@ kAnimationValueTypeSkeletonRootAnim = 0
 --- Vertex attribute formats
 --- @type number
 kCommonMeshFloat1 = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderVector2 = ""
 
 --- Vertex attribute formats
 --- @type number
@@ -2117,6 +2130,10 @@ kCommonMeshUByte2 = 0
 --- Animation value types
 --- @type number
 kAnimationValueTypeContribution = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderFloat = ""
 
 --- Vertex attribute formats
 --- @type number
@@ -2222,13 +2239,17 @@ kCommonMeshAttributeUVLightMap = 0
 --- @type number
 kCommonMeshAttributeUnknown = 0
 
+--- Module property render instructions
+--- @type string
+kPropRenderVector4 = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderVector3 = ""
+
 --- Mesh compressed format involving unsigned normed UV values
 --- @type number
 kCommonMeshCompressedFormatUNormUV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureScaleV = 0
 
 --- Mesh compressed format involving signed normed normal vector3 values
 --- @type number
@@ -2293,6 +2314,14 @@ kAnimationValueTypeTextureMoveV = 0
 --- Animation value types
 --- @type number
 kAnimationValueTypeTextureScaleU = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureScaleV = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureRotate = 0
 
 --- Animation value types
 --- @type number

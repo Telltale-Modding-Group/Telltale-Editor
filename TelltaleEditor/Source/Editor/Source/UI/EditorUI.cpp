@@ -395,7 +395,7 @@ Bool NewAgentPopup::Render()
     Bool end = false;
     ImGui::Text("Name");
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(100.0f);
+    ImGui::SetNextItemWidth(250.0f);
     ImGui::InputText("##in", _Input, 48);
     Bool ok = Editor->GetActiveScene().GetAgents().find(Symbol(_Input)) == Editor->GetActiveScene().GetAgents().end();
     if(!ok)
@@ -403,6 +403,10 @@ Bool NewAgentPopup::Render()
         ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(200, 50, 50, 255));
         ImGui::Text("An agent already exists with this name!");
         ImGui::PopStyleColor();
+    }
+    else
+    {
+        ImGui::Text("");
     }
     if(ImGui::Button("Create") && ok && _Input[0] != 0)
     {
@@ -420,7 +424,7 @@ Bool NewAgentPopup::Render()
 
 ImVec2 NewAgentPopup::GetPopupSize()
 {
-    return { 150.f, 100.f };
+    return { 400.f, 125.f };
 }
 
 OutlineView::OutlineView(EditorUI& ui) : EditorUIComponent(ui)
@@ -499,7 +503,7 @@ void OutlineView::Render()
             _EditorUI.DrawResourceTexturePixels("Misc/Add.png", buttonMin.x, buttonMin.y, buttonExtent.x, buttonExtent.y);
             if (ImGui::IsMouseHoveringRect(GetWindowPos() + buttonMin, GetWindowPos() + buttonMin + buttonExtent, false) && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
             {
-                _EditorUI.SetCurrentPopup(TTE_NEW_PTR(NewAgentPopup, MEMORY_TAG_EDITOR_UI, this));
+                _EditorUI.GetApplication().SetCurrentPopup(TTE_NEW_PTR(NewAgentPopup, MEMORY_TAG_EDITOR_UI, this), _EditorUI);
             }
 
             ImGui::PushStyleColor(ImGuiCol_Header, IM_COL32(60, 60, 60, 255));
@@ -539,6 +543,511 @@ InspectorView::InspectorView(EditorUI& ui) : EditorUIComponent(ui)
 {
 }
 
+InspectorView::~InspectorView()
+{
+    _ResetModulesCache();
+}
+
+void InspectorView::_ResetModulesCache()
+{
+    _RuntimeModuleProps.clear();
+}
+
+extern TelltaleEditor* _MyContext;
+
+void InspectorView::_InitModuleCache(Meta::ClassInstance agentProps, SceneModuleType module)
+{
+    if(_RuntimeModuleProps.find(module) == _RuntimeModuleProps.end())
+    {
+        SceneModuleUtil::_GetModuleInfo Getter{module};
+        String moduleID{};
+        String moduleName{};
+        Getter.OutName = &moduleName;
+        Getter.OutID = &moduleID;
+        SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, std::move(Getter));
+        auto it = _MyContext->_ModuleVisualProperties.find(moduleID);
+        if(it != _MyContext->_ModuleVisualProperties.end())
+        {
+            std::vector<PropertyRuntimeInstance> props{};
+            for(const auto& entry: it->second.VisualProperties)
+            {
+                PropertyRuntimeInstance& runtime = props.emplace_back();
+                runtime.Specification = &entry;
+                runtime.Property = PropertySet::Get(agentProps, entry.Key, true, _EditorUI.GetApplication().GetRegistry());
+                if (runtime.Property)
+                {
+                    for (const auto& sp : runtime.Specification->SubPaths)
+                    {
+                        Meta::ClassInstance mem = Meta::GetMember(runtime.Property, sp, false);
+                        if (!mem)
+                        {
+                            TTE_LOG("ERROR: Sub paths in %s, specifically %s do not point to an existing member in %s", moduleName.c_str(), sp.c_str(), Meta::GetClass(runtime.Property.GetClassID()).Name.c_str());
+                            return;
+                        }
+                        runtime.Property = std::move(mem);
+                    }
+                }
+            }
+
+            std::sort(props.begin(), props.end(), [](const PropertyRuntimeInstance& lhs, const PropertyRuntimeInstance& rhs)
+            {
+                return lhs.Specification->Name < rhs.Specification->Name;
+            });
+            _RuntimeModuleProps[module] = PropertyRuntimeGroup{ std::move(moduleName), it->second.ImagePath, std::move(props), 40.0f, false };
+        }
+    }
+}
+
+namespace PropertyRenderFunctions
+{
+
+    // 2 to 4
+    Bool _DrawVectorInput(const char* label, float* valArray, U32 n)
+    {
+        if (label)
+        {
+            ImGui::PushID(label);
+            ImGui::Text("%s", label);
+        }
+
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+        bool changed = false;
+        const float item_width = 55.0f;
+        const ImVec2 label_size = ImGui::CalcTextSize("X");
+        const char Txt[] = "X\0Y\0Z\0W\0";
+
+        // Colors for RGB
+        ImU32 colors[4] = {
+            IM_COL32(200,  40,  40, 255),  // red background
+            IM_COL32(40, 200,  40, 255),   // green background
+            IM_COL32(40,  40, 200, 255),   // blue background
+            IM_COL32(130, 130, 130, 255),   // grey background
+        };
+
+        ImGui::SetCursorPos(ImVec2(8.0f, ImGui::GetCursorPosY())); // start x=8, keep y
+
+        for (int i = 0; i < n; i++)
+        {
+            ImVec2 pos = ImGui::GetCursorPos();  // relative to window content
+
+            ImVec2 rect_size = ImVec2(label_size.x + 8, label_size.y + 4);
+
+            // Convert pos to screen pos for drawing rect/text
+            ImVec2 screen_pos = ImGui::GetCursorScreenPos();
+
+            drawList->AddRectFilled(screen_pos, screen_pos + rect_size, colors[i], 0.0f);
+
+            ImVec2 text_pos = ImVec2(
+                screen_pos.x + (rect_size.x - label_size.x) * 0.5f,
+                screen_pos.y + (rect_size.y - label_size.y) * 0.5f + 1.0f
+            );
+
+            drawList->AddText(text_pos, IM_COL32(255, 255, 255, 255), Txt + (i << 1));
+
+            // Move cursor right after colored box (relative)
+            ImGui::SetCursorPosX(pos.x + rect_size.x);
+
+            ImGui::PushItemWidth(item_width);
+
+            if (ImGui::InputFloat(
+                (std::string("##") + (label ? label : "") + (char)('X' + i)).c_str(),
+                &valArray[i],
+                0.0f, 0.0f, "%.3f",
+                ImGuiInputTextFlags_CharsDecimal))
+            {
+                changed = true;
+            }
+            ImGui::PopItemWidth();
+
+            if (i < n-1)
+            {
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 2.0f); // gap between groups
+            }
+        }
+
+        if (label)
+            ImGui::PopID();
+
+        return changed;
+    }
+
+}
+
+struct AddModulePopup : EditorPopup
+{
+
+    struct ModuleDescription
+    {
+        String Name, Desc;
+        SceneModuleType Ty;
+    };
+
+    String Selected = "";
+    const String* Desc = nullptr;
+    SceneModuleType SelType;
+    std::vector<ModuleDescription> AvailModules{};
+    WeakPtr<Node> AgentNode;
+
+    AddModulePopup(SceneModuleTypes existingModules, Ptr<Node> nod, EditorUI* editor) : EditorPopup("Add Module"), AgentNode(nod), SelType()
+    {
+        Editor = editor;
+        std::vector<std::pair<SceneModuleType, CString>> moduleIDs{};
+        SceneModuleUtil::PerformRecursiveModuleOperation<SceneModuleUtil::_ModuleIDCollector>(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_ModuleIDCollector{ moduleIDs });
+        for (const auto& id : moduleIDs)
+        {
+            if (!existingModules[id.first])
+            {
+                AvailModules.push_back(ModuleDescription{ Editor->GetLanguageText(String(String("mod.") + String(id.second) + ".name").c_str()),
+                                                         Editor->GetLanguageText(String(String("mod.") + String(id.second) + ".desc").c_str()),
+                                                         id.first });
+            }
+        }
+    }
+
+    ImVec2 GetPopupSize() override
+    {
+        return { 500.0f, 200.f };
+    }
+
+    Bool Render() override
+    {
+        Ptr<Node> pNode = AgentNode.lock();
+        if (!pNode)
+        {
+            return true;
+        }
+        Bool closing = false;
+        if (AvailModules.empty())
+        {
+            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 50, 50, 255));
+            ImGui::Text(Editor->GetLanguageText("mod.used").c_str());
+            ImGui::PopStyleColor();
+        }
+        else
+        {
+            ImGui::Text(Editor->GetLanguageText("mod.select").c_str());
+            if (ImGui::BeginCombo("##cmb", Selected.c_str()))
+            {
+                for (const auto& avail : AvailModules)
+                {
+                    if (ImGui::Selectable(avail.Name.c_str()))
+                    {
+                        Selected = avail.Name;
+                        Desc = &avail.Desc;
+                        SelType = avail.Ty;
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            if (!Selected.empty() && Desc)
+            {
+                ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(50, 150, 50, 255));
+                ImGui::TextWrapped(Desc->c_str());
+                ImGui::PopStyleColor();
+            }
+            if (ImGui::Button("Add"))
+            {
+                closing = true;
+                pNode->AttachedScene->AddAgentModule(pNode->AgentName, SelType);
+                SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_SetupAgentModule{ *pNode->AttachedScene, pNode, SelType });
+            }
+            ImGui::SameLine();
+        }
+        if (ImGui::Button("Cancel"))
+        {
+            closing = true;
+        }
+        return closing;
+    }
+
+    void _DoHandleRender(String* handleFile, Symbol* sym)
+    {
+
+    }
+
+};
+
+U32 luaRegisterModuleUI(LuaManager& man)
+{
+    String modid = man.ToString(1);
+    ModuleUI elem{};
+
+    // PROP KEYS
+    ITERATE_TABLE(it, 3)
+    {
+
+        PropertyVisualAdapter adapter{};
+
+        adapter.Name = man.ToString(it.KeyIndex());
+
+        man.PushLString("Key");
+        man.GetTable(it.ValueIndex());
+        adapter.Key = ScriptManager::PopString(man);
+
+        man.PushLString("Class");
+        man.GetTable(it.ValueIndex());
+        String ty = ScriptManager::PopString(man);
+        adapter.ClassID = Meta::FindClass(ty, 0, false);
+
+        man.PushLString("UI");
+        man.GetTable(it.ValueIndex());
+
+        man.PushLString("InputType");
+        man.GetTable(man.GetTop()-1);
+        String inputType = ScriptManager::PopString(man);
+
+        man.PushLString("SubPath");
+        man.GetTable(man.GetTop()-1);
+        String subpath = ScriptManager::PopString(man);
+
+        man.Pop(1);
+
+        if (adapter.ClassID == 0)
+        {
+            TTE_LOG("ERROR: For module %s, visual property %s class '%s' not found", modid.c_str(), adapter.Name.c_str(), ty.c_str());
+        }
+        else
+        {
+            for(const PropertyRenderInstruction* i = PropertyRenderInstructions; i->Name; i++)
+            {
+                if(inputType == i->Name)
+                {
+                    adapter.RenderInstruction = i;
+                    break;
+                }
+            }
+            if(!adapter.RenderInstruction)
+            {
+                if(StringStartsWith(inputType, "handle:"))
+                {
+                    inputType = inputType.substr(7);
+                    adapter.HandleClassID = Meta::FindClassByExtension(inputType, 0);
+                    if(!adapter.HandleClassID)
+                    {
+                        TTE_LOG("ERROR: Unknown handle class extension %s for %s", inputType.c_str(), modid.c_str());
+                        return 0;
+                    }
+                }
+                else
+                {
+                    TTE_LOG("ERROR: Invalid render instruction input type: %s for %s", inputType.c_str(), modid.c_str());
+                    return 0;
+                }
+            }
+            if(subpath != "this")
+            {
+                std::vector<String> result{};
+                std::stringstream ss(subpath);
+                std::string token{};
+                while (std::getline(ss, token, '.')) 
+                {
+                    result.push_back(token);
+                }
+                if (!result.empty() && result[0] == "this")
+                {
+                    result.erase(result.begin());
+                }
+                adapter.SubPaths = std::move(result);
+            }
+            elem.VisualProperties.push_back(std::move(adapter));
+        }
+
+    }
+
+    elem.ImagePath = man.ToString(2);
+    _MyContext->_ModuleVisualProperties[std::move(modid)] = std::move(elem);
+
+    return 0;
+}
+
+void luaModuleUI(LuaFunctionCollection& Col)
+{
+    PUSH_FUNC(Col, "RegisterModuleUI", &luaRegisterModuleUI, "nil RegisterModuleUI(moduleID, moduleImage, dataTable)", "Registers data which describes how the inspector view should render this module."
+        " Data table is a table of UI element to a table of that elements info. Class, PropKey and Default are required keys. In each entry, 'UI' is a required table which describes how to render it."
+        " It should contain InputType which is a string of the valid kPropRenderXXX types. Or 'handle:xxx' where xxx is the *extension* of the file name to have a handle set as. Note in this case that"
+        " the handle property must be a string or symbol. Along with InputType, SubPath is a string. By default set it to 'this', else a chain of variables to get to the input type variable, eg this.mHandle"
+        " if the type is a handle and a string is required if mHandle is a string in the Handle class specifying the file name. There can be as many this.sub.paths.as.needed .");
+
+    const PropertyRenderInstruction* Instruction = PropertyRenderInstructions;
+    while(Instruction->Name)
+    {
+        PUSH_GLOBAL_S(Col, Instruction->ConstantName, Instruction->Name, "Module property render instructions");
+        Instruction++;
+    }
+}
+
+static void _DoHandleRender(EditorUI& editor, String* handleFile, Symbol* sym, U32 clazz)
+{
+    const Meta::Class& c = Meta::GetClass(clazz);
+    if(sym && sym->GetCRC64() && handleFile->empty())
+    {
+        *handleFile = editor.GetApplication().GetRegistry()->FindResourceName(*sym);
+        if(handleFile->empty())
+        {
+            *handleFile = "<!!>"; // not found placeholder
+        }
+    }
+    ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(60, 60, 60, 255));
+    const char* textShow = *handleFile == "<!!>" ? "<Unknown>" : *handleFile == "" ? "Empty" : handleFile->c_str();
+    ImGui::InputText("##inpHandle", (char*)textShow, strlen(textShow)+1, ImGuiInputTextFlags_ReadOnly);
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::BeginTooltip();
+        ImGui::SetTooltip("Drag a %s file here!", c.Extension);
+        ImGui::EndTooltip();
+    }
+    ImGui::PopStyleColor();
+    ImGui::PushFont(ImGui::GetFont(), 11.0f);
+    ImGui::SameLine();
+    if(ImGui::Button("reset") && !handleFile->empty() && *handleFile != "<!!>")
+    {
+        *handleFile = "";
+        if(sym)
+            *sym = Symbol();
+        // on change
+    }
+    ImGui::PopFont();
+    // TODO DRAG DROP
+}
+
+static Bool BeginModule(EditorUI& editor, const char* title, Float bodyHeight, Bool& isOpen, Float sY, const char* icon, Bool* pAddModule = nullptr)
+{
+    ImVec2 wpos = ImGui::GetWindowPos() + ImVec2{ 0.0f, editor.InspectorViewY - sY } + ImVec2{ 1.0f, 20.0f };
+    ImVec2 wsize = ImGui::GetWindowSize() + ImVec2{ -15.0f, -20.0f };
+    ImDrawList* list = ImGui::GetWindowDrawList();
+
+    const Float headerHeight = 20.0f;
+
+    // Header background
+    list->AddRectFilled(
+        wpos,
+        wpos + ImVec2(wsize.x, headerHeight),
+        IM_COL32(70, 70, 70, 255)
+    );
+
+    // Header bottom border
+    list->AddLine(
+        wpos + ImVec2(0.0f, headerHeight),
+        wpos + ImVec2(wsize.x, headerHeight),
+        IM_COL32(30, 30, 30, 255)
+    );
+
+    // Arrow icon
+    if (ImGui::IsMouseHoveringRect(wpos, wpos + ImVec2{ 18.0f, 18.0f }, false) && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        isOpen = !isOpen;
+
+    if (isOpen)
+        list->AddTriangleFilled(
+        wpos + ImVec2(6.0f, 6.0f),
+        wpos + ImVec2(14.0f, 6.0f),
+        wpos + ImVec2(10.0f, 14.0f),
+        IM_COL32(120, 120, 120, 255)
+        );
+    else
+        list->AddTriangleFilled(
+        wpos + ImVec2(6.0f, 6.0f),
+        wpos + ImVec2(6.0f, 14.0f),
+        wpos + ImVec2(14.0f, 10.0f),
+        IM_COL32(120, 120, 120, 255)
+        );
+
+    if (icon)
+    {
+        editor.DrawResourceTexturePixels(icon, wpos.x + 15.0f - ImGui::GetWindowPos().x, wpos.y + 1.0f - ImGui::GetWindowPos().y, 18.0f, 18.0f);
+    }
+
+    // Title text
+    list->AddText(
+        wpos + ImVec2(icon ? 35.0f : 25.0f, 4.0f),
+        IM_COL32(190, 190, 190, 255),
+        title
+    );
+
+    if (pAddModule)
+    {
+        ImVec2 pos{ wpos.x + wsize.x - 20.0f - ImGui::GetWindowPos().x, wpos.y + 1.0f - ImGui::GetWindowPos().y };
+        editor.DrawResourceTexturePixels("Misc/AddModule.png", pos.x, pos.y, 18.0f, 18.0f);
+        if (ImGui::IsMouseHoveringRect(ImGui::GetWindowPos() + pos, ImGui::GetWindowPos() + pos + ImVec2{ 18.0f, 18.0f }, false) && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            *pAddModule = true;
+        }
+        else
+        {
+            *pAddModule = false;
+        }
+    }
+
+    if (isOpen)
+    {
+        // Body BG
+        list->AddRectFilled(
+            wpos + ImVec2(0.0f, headerHeight),
+            wpos + ImVec2(wsize.x, bodyHeight + headerHeight),
+            IM_COL32(60, 60, 60, 255)
+        );
+        list->AddLine(
+            wpos + ImVec2(0.0f, headerHeight),
+            wpos + ImVec2(wsize.x, headerHeight),
+            IM_COL32(45, 45, 45, 255)
+        );
+        // Full border
+        list->AddRect(
+            wpos,
+            wpos + ImVec2(wsize.x, bodyHeight + headerHeight),
+            IM_COL32(40, 40, 40, 255)
+        );
+    }
+    else
+    {
+        // Full border
+        list->AddRect(
+            wpos,
+            wpos + ImVec2(wsize.x, headerHeight),
+            IM_COL32(40, 40, 40, 255)
+        );
+    }
+
+    editor.InspectorViewY += headerHeight + (isOpen ? bodyHeight : 0.0f);
+    ImGui::SetCursorScreenPos(wpos + ImVec2{ 0.0f, headerHeight + 8.0f }); // set pointer to little offset for drawing.
+
+    return isOpen;
+}
+
+void InspectorView::RenderNode(Float scrollY)
+{
+    static Bool IsOpen = true;
+    Ptr<Node> pNode = _EditorUI.InspectingNode.lock();
+    Bool clicked = false;
+    Bool* pclicked = IsWeakPtrUnbound(pNode->Parent) ? &clicked : nullptr;
+    if (pNode && BeginModule(_EditorUI, "Node", 100.0f, IsOpen, scrollY, "Module/TransformGizmo.png", pclicked) && !clicked)
+    {
+        Transform orig = pNode->LocalTransform;
+        Float* pos = (Float*)&pNode->LocalTransform._Trans;
+        ImGui::SetCursorPosX(ImGui::GetCursorStartPos().x + 0.0f);
+        Bool bChanged = PropertyRenderFunctions::_DrawVectorInput("Position", (Float*)&pNode->LocalTransform._Trans, 3);
+        Vector3 Euler{};
+        pNode->LocalTransform._Rot.GetEuler(Euler);
+        Euler *= Vector3(180.0f / 3.14159265f);
+        if (PropertyRenderFunctions::_DrawVectorInput("Rotation", (Float*)&Euler, 3))
+            bChanged = true;
+        if (bChanged)
+        {
+            Transform newTransform = pNode->LocalTransform;
+            Euler /= Vector3(180.0f / 3.14159265f);
+            newTransform._Rot.SetEuler(Euler.x, Euler.y, Euler.z);
+            pNode->LocalTransform = orig;
+            Scene::UpdateNodeLocalTransform(pNode, newTransform, true);
+        }
+    }
+    if (clicked)
+    {
+        // add new agent module (ie entity component)
+        GetApplication().SetCurrentPopup(TTE_NEW_PTR(AddModulePopup, MEMORY_TAG_EDITOR_UI, pNode->AttachedScene->GetAgentModules(pNode->AgentName), pNode, &_EditorUI), _EditorUI);
+    }
+}
+
 void InspectorView::Render()
 {
     Float yOff = MAX(0.04f, 40.f / GetMainViewport()->Size.y);
@@ -555,6 +1064,7 @@ void InspectorView::Render()
     }
     if (ImGui::Begin(title.c_str(), NULL,ImGuiWindowFlags_AlwaysVerticalScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysHorizontalScrollbar))
     {
+        Float scrollY = ImGui::GetScrollY();
         if (_EditorUI.InspectingNode.expired())
         {
             PushFont(GetApplication().GetEditorFont(), 10.0f);
@@ -565,20 +1075,77 @@ void InspectorView::Render()
         }
         else
         {
+            Ptr<Node> node = _EditorUI.InspectingNode.lock();
+            if(node != _CurrentNode)
+            {
+                _CurrentNode = node;
+                _ResetModulesCache();
+            }
             if(_EditorUI.IsInspectingAgent)
             {
+                ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
+                ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
+                ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
                 String agent = _EditorUI.InspectingNode.lock()->AgentName;
                 _EditorUI.InspectorViewY = 0.0f;
-                RenderNode();
-                SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, // ModuleUI.cpp
-                                 SceneModuleUtil::_RenderUIModules{_EditorUI.GetActiveScene(), *_EditorUI.GetActiveScene()._Agents[agent], _EditorUI});
+                RenderNode(scrollY);
+                Meta::ClassInstance& props = _EditorUI.GetActiveScene()._Agents[agent]->Props;
+                U32 r = 0;
+                for(U32 i = 0; i < (U32)SceneModuleType::NUM; i++)
+                {
+                    if(_EditorUI.GetActiveScene()._Agents[agent]->ModuleIndices[i] != -1)
+                    {
+                        _InitModuleCache(props, (SceneModuleType)i);
+                        auto it = _RuntimeModuleProps.find((SceneModuleType)i);
+                        Float yCur = ImGui::GetCursorPosY();
+                        if (it != _RuntimeModuleProps.end())
+                        {
+                            if (BeginModule(_EditorUI, it->second.ModuleName.c_str(),
+                                it->second.LastHeight, it->second.IsOpen, scrollY, it->second.ModuleIcon.c_str()))
+                            {
+                                for(const auto& prop: it->second.Properties)
+                                {
+                                    ImGui::PushID(r++);
+                                    ImGui::SetCursorPosX(ImGui::GetCursorStartPos().x + 0.0f);
+                                    ImGui::Dummy(ImVec2{ 1.0f, 2.0f });
+                                    ImGui::PushFont(ImGui::GetFont(), 13.0f);
+                                    ImGui::TextUnformatted(prop.Specification->Name.c_str());
+                                    ImGui::PopFont();
+                                    ImGui::Dummy(ImVec2{ 1.0f, 2.0f });
+                                    if(prop.Specification->RenderInstruction)
+                                    {
+                                        prop.Specification->RenderInstruction->Render(*prop.Specification, prop.Property);
+                                    }
+                                    else if(prop.Specification->HandleClassID)
+                                    {
+                                        if (Meta::IsSymbolClass(Meta::GetClass(prop.Property.GetClassID())))
+                                        {
+                                            _DoHandleRender(_EditorUI, &prop.Specification->RuntimeCache.SymbolCache, (Symbol*)prop.Property._GetInternal(), prop.Specification->HandleClassID);
+                                        }
+                                        else if (Meta::IsStringClass(Meta::GetClass(prop.Property.GetClassID())))
+                                        {
+                                            _DoHandleRender(_EditorUI, (String*)prop.Property._GetInternal(), 0, prop.Specification->HandleClassID);
+                                        }
+                                        else
+                                        {
+                                            ImGui::Text("FIXME!Handle:%s", Meta::GetClass(prop.Property.GetClassID()).Name.c_str()); // incorrect not a handle. render error here
+                                        }
+                                    }
+                                    ImGui::PopID();
+                                }
+                            }
+                            it->second.LastHeight = MAX(40.0f, ImGui::GetCursorPosY() - yCur);
+                        }
+                    }
+                }
+                Dummy(ImVec2(0.0f, _EditorUI.InspectorViewY - scrollY));
+                ImGui::PopStyleVar(3);
             }
             else
             {
                 TextUnformatted("im a node do me pls");
             }
         }
-        Dummy(GetCursorPos());
     }
     End();
 }
@@ -786,7 +1353,7 @@ void SceneView::Render()
     Float yOff = MAX(0.04f, 40.f / GetMainViewport()->WorkSize.y);
     SetNextWindowViewport(0.20f, yOff, 0, 0, 0.60f, 0.70f - yOff, 300, 200, GetUICondition());
     ImGui::Begin(GetApplication().GetLanguageText("sv.title").c_str(), NULL, 
-                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize, _SceneData ? _SceneData->HoveringAgent.c_str() : 0);
+                 ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground, _SceneData ? _SceneData->HoveringAgent.c_str() : 0);
 
     {
         ImVec2 winSize = GetCurrentWindowRead()->Size;

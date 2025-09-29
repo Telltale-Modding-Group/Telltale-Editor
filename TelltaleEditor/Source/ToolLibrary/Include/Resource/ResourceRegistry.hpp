@@ -42,7 +42,8 @@ inline HandleableRegistered<T>::HandleableRegistered(Ptr<ResourceRegistry> reg) 
 template<typename T>
 inline Ptr<Handleable> HandleableRegistered<T>::Clone() const
 {
-    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, *dynamic_cast<const T*>(this));
+    Ptr<Handleable> pCloned = TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, *dynamic_cast<const T*>(this));
+    return pCloned;
 }
 
 enum class HandleFlags

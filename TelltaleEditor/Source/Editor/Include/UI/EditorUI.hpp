@@ -7,6 +7,7 @@
 #include <Runtime/SceneRenderer.hpp>
 
 #include <unordered_set>
+#include <unordered_map>
 
 #define DEFAULT_WINDOW_SIZE 1280, 720
 
@@ -148,15 +149,40 @@ public:
 
 };
 
+struct PropertyVisualAdapter;
+
 class InspectorView : public EditorUIComponent
 {
+
+    struct PropertyRuntimeInstance
+    {
+        Meta::ClassInstance Property;
+        const PropertyVisualAdapter* Specification = nullptr;
+    };
+
+    struct PropertyRuntimeGroup
+    {
+        String ModuleName;
+        String ModuleIcon;
+        std::vector<PropertyRuntimeInstance> Properties;
+        Float LastHeight = 40.0f;
+        Bool IsOpen = false;
+    };
+
+    std::unordered_map<SceneModuleType, PropertyRuntimeGroup> _RuntimeModuleProps;
+    Ptr<Node> _CurrentNode;
+
+    void _ResetModulesCache();
+    void _InitModuleCache(Meta::ClassInstance agentProps, SceneModuleType module);
+
 public:
 
     InspectorView(EditorUI& ui);
+    ~InspectorView();
 
     virtual void Render() override;
 
-    void RenderNode();
+    void RenderNode(Float sY);
 
 };
 

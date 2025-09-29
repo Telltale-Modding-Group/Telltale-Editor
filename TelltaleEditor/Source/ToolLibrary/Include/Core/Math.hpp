@@ -230,6 +230,8 @@ struct alignas(4) Vector3
         y = _y;
         z = _z;
     }
+
+    inline Vector3(const Vector4& vec4);
     
     inline Float DistanceSquared(const Vector3& other) const
     {
@@ -561,6 +563,8 @@ inline Vector4 ColourToVector4(Colour c)
 {
     return Vector4(c.r, c.g, c.b, c.a);
 }
+
+inline Vector3::Vector3(const Vector4& vec4) : Vector3(vec4.x, vec4.y, vec4.z) {}
 
 inline Vector2 operator*(const Vector2& lhs, const Vector2& rhs)
 {

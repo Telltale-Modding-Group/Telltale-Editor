@@ -60,3 +60,11 @@ iv.add_module = "Add Module"
 
 # SCENE VIEW
 sv.title = "Scene"
+
+# MODULES
+mod.select = "Select Module"
+mod.used = "This agent already has all supported modules!"
+mod.renderable.name = "Renderable"
+mod.renderable.desc = "Renderable modules allow the agent to have mesh(es) attached and be rendered."
+mod.skeleton.name = "Skeleton"
+mod.skeleton.desc = "Enables a skeleton to be attached to this agent (typically has the renderable component as well), for skeleton animation for example."

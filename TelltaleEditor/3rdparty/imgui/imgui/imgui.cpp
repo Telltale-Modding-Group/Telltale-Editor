@@ -6869,6 +6869,12 @@ static ImGuiWindow* CreateNewWindow(const char* name, ImGuiWindowFlags flags)
     window->Flags = flags;
     g.WindowsById.SetVoidPtr(window->ID, window);
 
+    // TTE CLASSIFICATION
+    if((flags & ImGuiWindowFlags_Tooltip) || (flags & ImGuiWindowFlags_Popup) || (flags & ImGuiWindowFlags_Modal))
+    {
+        window->DrawList->Flags |= ImDrawListFlags_PostGroupTTE;
+    }
+
     ImGuiWindowSettings* settings = NULL;
     if (!(flags & ImGuiWindowFlags_NoSavedSettings))
         if ((settings = ImGui::FindWindowSettingsByWindow(window)) != 0)

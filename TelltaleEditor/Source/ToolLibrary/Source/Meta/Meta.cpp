@@ -1517,7 +1517,23 @@ namespace Meta {
         if(lhs.GetClassID() != rhs.GetClassID())
             return false;
         auto op = State.Classes[lhs.GetClassID()].LessThan;
-        return op ? op(lhs._GetInternal(), rhs._GetInternal()) : false;
+        if (op)
+        {
+            return op(lhs._GetInternal(), rhs._GetInternal());
+        }
+        else
+        {
+            for (const auto& mem : State.Classes[lhs.GetClassID()].Members)
+            {
+                ClassInstance meminstLHS = ClassInstance(mem.ClassID, Ptr<U8>(meminstLHS._InstanceMemory, meminstLHS._GetInternal() + mem.RTOffset), meminstLHS.ObtainParentRef());
+                ClassInstance meminstRHS = ClassInstance(mem.ClassID, Ptr<U8>(meminstRHS._InstanceMemory, meminstRHS._GetInternal() + mem.RTOffset), meminstRHS.ObtainParentRef());
+                if (!PerformLessThan(meminstLHS, meminstRHS))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
     
     Bool PerformEquality(ClassInstance& lhs, ClassInstance& rhs)
@@ -1527,7 +1543,23 @@ namespace Meta {
         if(lhs.GetClassID() != rhs.GetClassID())
             return false;
         auto op = State.Classes[lhs.GetClassID()].Equals;
-        return op ? op(lhs._GetInternal(), rhs._GetInternal()) : false;
+        if(op)
+        {
+            return op(lhs._GetInternal(), rhs._GetInternal());
+        }
+        else
+        {
+            for(const auto& mem: State.Classes[lhs.GetClassID()].Members)
+            {
+                ClassInstance meminstLHS = ClassInstance(mem.ClassID, Ptr<U8>(lhs._InstanceMemory, lhs._GetInternal() + mem.RTOffset), lhs.ObtainParentRef());
+                ClassInstance meminstRHS = ClassInstance(mem.ClassID, Ptr<U8>(rhs._InstanceMemory, rhs._GetInternal() + mem.RTOffset), rhs.ObtainParentRef());
+                if(!PerformEquality(meminstLHS, meminstRHS))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
     
     String PerformToString(ClassInstance& inst)

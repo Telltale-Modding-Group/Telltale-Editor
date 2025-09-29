@@ -3697,6 +3697,9 @@ enum ImDrawListFlags_
     ImDrawListFlags_AntiAliasedLinesUseTex = 1 << 1,  // Enable anti-aliased lines/borders using textures when possible. Require backend to render with bilinear filtering (NOT point/nearest filtering).
     ImDrawListFlags_AntiAliasedFill = 1 << 2,  // Enable anti-aliased edge around filled shapes (rounded rectangles, circles).
     ImDrawListFlags_AllowVtxOffset = 1 << 3,  // Can emit 'VtxOffset > 0' to allow large meshes. Set when 'ImGuiBackendFlags_RendererHasVtxOffset' is enabled.
+
+    ImDrawListFlags_PostGroupTTE = 1 << 4, // by TTE for rendering popups/tooltips after scene render as opposed to everything else before it.
+
 };
 
 // Draw command list

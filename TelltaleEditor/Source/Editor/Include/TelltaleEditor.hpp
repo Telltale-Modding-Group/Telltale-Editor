@@ -10,6 +10,7 @@
 #include <Meta/Meta.hpp>
 #include <Resource/ResourceRegistry.hpp>
 #include <Common/Common.hpp>
+#include <UI/ModuleUI.inl>
 
 class TelltaleEditor;
 
@@ -168,7 +169,12 @@ private:
     U32 _TaskFence = 0; // counter
     
     std::vector<std::pair<EditorTask*, JobHandle>> _Active;
+
+    std::unordered_map<String, ModuleUI> _ModuleVisualProperties;
     
+    friend class InspectorView;
+    friend U32 luaRegisterModuleUI(LuaManager& man);
+
     friend TelltaleEditor* CreateEditorContext(GameSnapshot snapshot);
     
 };

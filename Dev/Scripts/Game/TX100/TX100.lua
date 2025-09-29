@@ -2,6 +2,8 @@
 
 require("ToolLibrary/Game/Common/LuaPropertySet.lua")
 require("ToolLibrary/Game/VersionCRC.lua")
+require("ToolLibrary/UI/ModuleRenderable.lua")
+require("ToolLibrary/UI/ModuleSkeleton.lua")
 
 require("ToolLibrary/Game/TX100/D3DTexture.lua")
 require("ToolLibrary/Game/TX100/D3DMesh.lua")
@@ -10,6 +12,13 @@ require("ToolLibrary/Game/Common/Audio.lua")
 require("ToolLibrary/Game/Common/Animation.lua")
 require("ToolLibrary/Game/Common/Chore.lua")
 require("ToolLibrary/Game/Common/InputMapper.lua")
+
+function TX100_RegisterModuleUI()
+
+	ModuleRenderable_RegisterUI(0)
+	ModuleSkeleton_RegisterUI(0)
+
+end
 
 function TX100_GetGameDescriptor()
 	local texasHoldem = {}

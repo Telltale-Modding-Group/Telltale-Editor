@@ -154,6 +154,12 @@ Meta::ClassInstance Scene::GetAgentProps(const Symbol & sym)
 
 void Scene::AddAgentModule(const String& Name, SceneModuleType module)
 {
+    Ptr<ResourceRegistry> pReg = _Registry.lock();
+    if(!pReg)
+    {
+        TTE_LOG("WARNING: Could not acquire resource registry. Module cannot be added to agent %s", Name.c_str());
+        return;
+    }
     Symbol sym{Name};
     for(auto& agent: _Agents)
     {
@@ -170,6 +176,21 @@ void Scene::AddAgentModule(const String& Name, SceneModuleType module)
                     return;
                 }
                 agent.second->ModuleIndices[(U32)module] = index;
+                // add prop as parent!
+                if(!agent.second->Props)
+                {
+                    U32 clazz = Meta::_Impl::_ResolveCommonClassIDSafe(CommonClass::PROPERTY_SET);
+                    if (clazz == 0)
+                    {
+                        TTE_ASSERT(false, "Cannot resolve property set class!");
+                    }
+                    agent.second->Props = Meta::CreateInstance(clazz);
+                }
+                String propName{};
+                SceneModuleUtil::_GetModuleInfo Getter{ module };
+                Getter.OutPropName = &propName;
+                SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, std::move(Getter));
+                PropertySet::AddParent(agent.second->Props, propName, pReg);
             }
             break;
         }
@@ -765,6 +786,129 @@ void Scene::UnAttachAllChildren(Ptr<Node> node, Bool bAttachChildrenToParent)
     }
 }
 
+static Ptr<Node> _DeepCopyNodeTree(const Ptr<Node> src, Scene* newScene, Ptr<Node> parent = nullptr)
+{
+    if (!src)
+        return nullptr;
+
+    Ptr<Node> copy = TTE_NEW_PTR(Node, MEMORY_TAG_SCENE_DATA);
+
+    copy->Name = src->Name;
+    copy->Fl = src->Fl;
+    copy->AgentName = src->AgentName;
+
+    copy->LocalTransform = src->LocalTransform;
+    copy->GlobalTransform = src->GlobalTransform;
+    copy->AttachedScene = newScene;
+    copy->Parent = parent;
+
+    // --- Recursively copy children ---
+    Ptr<Node> prevChildCopy = nullptr;
+    for (Ptr<Node> child = src->FirstChild.lock(); child; child = child->NextSibling.lock())
+    {
+        Ptr<Node> childCopy = _DeepCopyNodeTree(child, newScene, copy);
+
+        if (IsWeakPtrUnbound(copy->FirstChild))
+        {
+            copy->FirstChild = childCopy;
+        }
+
+        if (prevChildCopy) 
+        {
+            prevChildCopy->NextSibling = childCopy;
+            childCopy->PrevSibling = prevChildCopy;
+        }
+
+        prevChildCopy = childCopy;
+    }
+
+    return copy;
+}
+
+static Bool _DoTraverseNode(Ptr<Node> node, NodeVisitorTraversal traverseType, NodeVisitor* visitor, void* user)
+{
+    if (!node) return true;
+
+    switch (traverseType)
+    {
+
+        case NodeVisitorTraversal::PRE_ORDER:
+        {
+            if (!(*visitor)(node, user)) return false;
+            for (Ptr<Node> child = node->FirstChild.lock(); child; child = child->NextSibling.lock())
+                if (!_DoTraverseNode(child, traverseType, visitor, user)) return false;
+            break;
+        }
+
+        case NodeVisitorTraversal::IN_ORDER:
+        {
+            Ptr<Node> firstChild = node->FirstChild.lock();
+            if (firstChild)
+                if (!_DoTraverseNode(firstChild, traverseType, visitor, user)) return false;
+
+            if (!(*visitor)(node, user)) return false;
+
+            for (Ptr<Node> child = firstChild ? firstChild->NextSibling.lock() : nullptr;
+                child;
+                child = child->NextSibling.lock())
+            {
+                if (!_DoTraverseNode(child, traverseType, visitor, user)) return false;
+            }
+            break;
+        }
+
+        case NodeVisitorTraversal::POST_ORDER:
+        {
+            for (Ptr<Node> child = node->FirstChild.lock(); child; child = child->NextSibling.lock())
+                if (!_DoTraverseNode(child, traverseType, visitor, user)) return false;
+            if (!(*visitor)(node, user)) return false;
+            break;
+        }
+    }
+
+    return true;
+}
+
+void Scene::PerformNodeTraversal(Ptr<Node> baseNode, NodeVisitorTraversal traverseType, NodeVisitor* visitor, void* user)
+{
+    if (!baseNode || !visitor)
+        return;
+    _DoTraverseNode(baseNode, traverseType, visitor, user);
+}
+
+static Bool _SceneMovePostTraverse(Ptr<Node> node, void* me)
+{
+    node->AttachedScene = (Scene*)me;
+    return true;
+}
+
+Scene::Scene(Scene&& rhs) noexcept : HandleableRegistered(rhs), Name(std::move(rhs.Name)), _Flags(rhs._Flags)
+{
+    _Agents = std::move(rhs._Agents);
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_ModuleVectorMoveRecurser{ std::move(rhs), *this });
+    for(auto& agent: _Agents)
+    {
+        agent.second->OwningScene = this;
+        if (agent.second->AgentNode)
+            PerformNodeTraversal(agent.second->AgentNode, NodeVisitorTraversal::PRE_ORDER, &_SceneMovePostTraverse, this);
+    }
+    // we dont need to move the other runtime stuff and scene moving only moves static scene data.
+}
+
+Scene::Scene(const Scene& rhs) : HandleableRegistered(rhs), Name(rhs.Name), _Flags(rhs._Flags)
+{
+    for(const auto& agent: rhs._Agents)
+    {
+        Ptr<SceneAgent> pCopyAgent = TTE_NEW_PTR(SceneAgent, MEMORY_TAG_SCENE_DATA, *agent.second);
+        pCopyAgent->OwningScene = this;
+        // module incides OK same
+        pCopyAgent->Props = pCopyAgent->Props ? Meta::CopyInstance(pCopyAgent->Props) : Meta::ClassInstance{}; // copy agent props
+        pCopyAgent->AgentNode = _DeepCopyNodeTree(pCopyAgent->AgentNode, this);
+        _Agents[agent.first] = std::move(pCopyAgent);
+    }
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_ModuleVectorCopyRecurser{ rhs, *this });
+}
+
 Scene::~Scene()
 {
     _Agents.clear();
@@ -772,10 +916,7 @@ Scene::~Scene()
 
 Node::~Node()
 {
-    if(Name == "BabyThorn")
-    {
-        int x;
-    }
+
 }
 
 // OBJECT CACHE MANAGER

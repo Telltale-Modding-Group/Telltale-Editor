@@ -178,7 +178,7 @@ void ImGui_ImplSDLGPU3_PrepareDrawData(ImDrawData* draw_data, SDL_GPUCommandBuff
 	SDL_EndGPUCopyPass(copy_pass);
 }
 
-void ImGui_ImplSDLGPU3_RenderDrawData(ImDrawData* draw_data, SDL_GPUCommandBuffer* command_buffer, SDL_GPURenderPass* render_pass, SDL_GPUGraphicsPipeline* pipeline)
+void ImGui_ImplSDLGPU3_RenderDrawData(ImDrawData* draw_data, SDL_GPUCommandBuffer* command_buffer, SDL_GPURenderPass* render_pass, SDL_GPUGraphicsPipeline* pipeline, uint32_t* popup_filter)
 {
 	// Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
 	int fb_width = (int)(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
@@ -205,61 +205,64 @@ void ImGui_ImplSDLGPU3_RenderDrawData(ImDrawData* draw_data, SDL_GPUCommandBuffe
 	for (int n = 0; n < draw_data->CmdListsCount; n++)
 	{
 		const ImDrawList* draw_list = draw_data->CmdLists[n];
-		for (int cmd_i = 0; cmd_i < draw_list->CmdBuffer.Size; cmd_i++)
+		if(!popup_filter || (popup_filter && (((draw_list->Flags & ImDrawListFlags_PostGroupTTE) != 0) == *popup_filter)))
 		{
-			const ImDrawCmd* pcmd = &draw_list->CmdBuffer[cmd_i];
-			if (pcmd->UserCallback != nullptr)
-			{
-				// User callback, registered via ImDrawList::AddCallback()
-				// (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
-				if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
-					ImGui_ImplSDLGPU3_SetupRenderState(draw_data, pipeline, command_buffer, render_pass, fd, fb_width, fb_height);
-				else
-					pcmd->UserCallback(draw_list, pcmd);
-			}
-			else
-			{
-				// Project scissor/clipping rectangles into framebuffer space
-				ImVec2 clip_min((pcmd->ClipRect.x - clip_off.x) * clip_scale.x, (pcmd->ClipRect.y - clip_off.y) * clip_scale.y);
-				ImVec2 clip_max((pcmd->ClipRect.z - clip_off.x) * clip_scale.x, (pcmd->ClipRect.w - clip_off.y) * clip_scale.y);
+            for (int cmd_i = 0; cmd_i < draw_list->CmdBuffer.Size; cmd_i++)
+            {
+                const ImDrawCmd* pcmd = &draw_list->CmdBuffer[cmd_i];
+                if (pcmd->UserCallback != nullptr)
+                {
+                    // User callback, registered via ImDrawList::AddCallback()
+                    // (ImDrawCallback_ResetRenderState is a special callback value used by the user to request the renderer to reset render state.)
+                    if (pcmd->UserCallback == ImDrawCallback_ResetRenderState)
+                        ImGui_ImplSDLGPU3_SetupRenderState(draw_data, pipeline, command_buffer, render_pass, fd, fb_width, fb_height);
+                    else
+                        pcmd->UserCallback(draw_list, pcmd);
+                }
+                else
+                {
+                    // Project scissor/clipping rectangles into framebuffer space
+                    ImVec2 clip_min((pcmd->ClipRect.x - clip_off.x) * clip_scale.x, (pcmd->ClipRect.y - clip_off.y) * clip_scale.y);
+                    ImVec2 clip_max((pcmd->ClipRect.z - clip_off.x) * clip_scale.x, (pcmd->ClipRect.w - clip_off.y) * clip_scale.y);
 
-				// Clamp to viewport as SDL_SetGPUScissor() won't accept values that are off bounds
-				if (clip_min.x < 0.0f)
-				{
-					clip_min.x = 0.0f;
-				}
-				if (clip_min.y < 0.0f)
-				{
-					clip_min.y = 0.0f;
-				}
-				if (clip_max.x > fb_width)
-				{
-					clip_max.x = (float)fb_width;
-				}
-				if (clip_max.y > fb_height)
-				{
-					clip_max.y = (float)fb_height;
-				}
-				if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
-					continue;
+                    // Clamp to viewport as SDL_SetGPUScissor() won't accept values that are off bounds
+                    if (clip_min.x < 0.0f)
+                    {
+                        clip_min.x = 0.0f;
+                    }
+                    if (clip_min.y < 0.0f)
+                    {
+                        clip_min.y = 0.0f;
+                    }
+                    if (clip_max.x > fb_width)
+                    {
+                        clip_max.x = (float)fb_width;
+                    }
+                    if (clip_max.y > fb_height)
+                    {
+                        clip_max.y = (float)fb_height;
+                    }
+                    if (clip_max.x <= clip_min.x || clip_max.y <= clip_min.y)
+                        continue;
 
-				// Apply scissor/clipping rectangle
-				SDL_Rect scissor_rect = {};
-				scissor_rect.x = (int)clip_min.x;
-				scissor_rect.y = (int)clip_min.y;
-				scissor_rect.w = (int)(clip_max.x - clip_min.x);
-				scissor_rect.h = (int)(clip_max.y - clip_min.y);
-				SDL_SetGPUScissor(render_pass, &scissor_rect);
+                    // Apply scissor/clipping rectangle
+                    SDL_Rect scissor_rect = {};
+                    scissor_rect.x = (int)clip_min.x;
+                    scissor_rect.y = (int)clip_min.y;
+                    scissor_rect.w = (int)(clip_max.x - clip_min.x);
+                    scissor_rect.h = (int)(clip_max.y - clip_min.y);
+                    SDL_SetGPUScissor(render_pass, &scissor_rect);
 
-				// Bind DescriptorSet with font or user texture
-				SDL_BindGPUFragmentSamplers(render_pass, 0, (SDL_GPUTextureSamplerBinding*)pcmd->GetTexID(), 1);
+                    // Bind DescriptorSet with font or user texture
+                    SDL_BindGPUFragmentSamplers(render_pass, 0, (SDL_GPUTextureSamplerBinding*)pcmd->GetTexID(), 1);
 
-				// Draw
-				SDL_DrawGPUIndexedPrimitives(render_pass, pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
-			}
+                    // Draw
+                    SDL_DrawGPUIndexedPrimitives(render_pass, pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
+                }
+            }
+            global_idx_offset += draw_list->IdxBuffer.Size;
+            global_vtx_offset += draw_list->VtxBuffer.Size;
 		}
-		global_idx_offset += draw_list->IdxBuffer.Size;
-		global_vtx_offset += draw_list->VtxBuffer.Size;
 	}
 
 	// Note: at this point both SDL_SetGPUViewport() and SDL_SetGPUScissor() have been called.
@@ -550,7 +553,7 @@ static void ImGui_ImplSDLGPU3_CreateGraphicsPipeline()
 	pipeline_info.multisample_state = multisample_state;
 	pipeline_info.depth_stencil_state = depth_stencil_state;
 	pipeline_info.target_info = target_info;
-    //pipeline_info.IsSDL3Shader = true;
+    pipeline_info.IsSDL3Shader = true;
 	bd->Pipeline = SDL_CreateGPUGraphicsPipeline(v->Device, &pipeline_info);
     //SDL_DestroyProperties(props);
 	IM_ASSERT(bd->Pipeline != nullptr && "Failed to create graphics pipeline, call SDL_GetError() for more information");

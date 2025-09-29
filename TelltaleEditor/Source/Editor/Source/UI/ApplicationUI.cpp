@@ -154,59 +154,64 @@ void UIComponent::DrawResourceTexture(const String& name, Float xPosFrac, Float 
     {
         I32 w = 0, h = 0;
         U8* rgba = _LoadSTBI("Resources/Textures/" + name, _MyUI, w, h);
-        SDL_GPUTextureSamplerBinding* pBinding = TTE_NEW(SDL_GPUTextureSamplerBinding, MEMORY_TAG_EDITOR_UI);
-        ImGui_ImplSDLGPU3_Data* bd = ImGui_ImplSDLGPU3_GetBackendData();
-        pBinding->sampler = bd->FontSampler;
 
-        // CREATE TEXTURE
-        SDL_GPUTextureCreateInfo texture_info = {};
-        texture_info.type = SDL_GPU_TEXTURETYPE_2D;
-        texture_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-        texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
-        texture_info.width = w;
-        texture_info.height = h;
-        texture_info.layer_count_or_depth = 1;
-        texture_info.num_levels = 1;
-        texture_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
-        SDL_GPUTexture* tex = SDL_CreateGPUTexture(_MyUI._Device, &texture_info);
+        if (rgba)
+        {
+            SDL_GPUTextureSamplerBinding* pBinding = TTE_NEW(SDL_GPUTextureSamplerBinding, MEMORY_TAG_EDITOR_UI);
+            ImGui_ImplSDLGPU3_Data* bd = ImGui_ImplSDLGPU3_GetBackendData();
+            pBinding->sampler = bd->FontSampler;
 
-        // CREATE TRANSFER BUFFER
-        SDL_GPUTransferBufferCreateInfo transferbuffer_info = {};
-        transferbuffer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
-        transferbuffer_info.size = w * h * 4;
-        SDL_GPUTransferBuffer* transferbuffer = SDL_CreateGPUTransferBuffer(_MyUI._Device, &transferbuffer_info);
+            // CREATE TEXTURE
+            SDL_GPUTextureCreateInfo texture_info = {};
+            texture_info.type = SDL_GPU_TEXTURETYPE_2D;
+            texture_info.format = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
+            texture_info.usage = SDL_GPU_TEXTUREUSAGE_SAMPLER;
+            texture_info.width = w;
+            texture_info.height = h;
+            texture_info.layer_count_or_depth = 1;
+            texture_info.num_levels = 1;
+            texture_info.sample_count = SDL_GPU_SAMPLECOUNT_1;
+            SDL_GPUTexture* tex = SDL_CreateGPUTexture(_MyUI._Device, &texture_info);
 
-        // TRANSFER TEXTURE MEMORY
-        void* texture_ptr = SDL_MapGPUTransferBuffer(_MyUI._Device, transferbuffer, false);
-        memcpy(texture_ptr, rgba, w*h*4);
-        stbi_image_free(rgba);
-        SDL_UnmapGPUTransferBuffer(_MyUI._Device, transferbuffer);
+            // CREATE TRANSFER BUFFER
+            SDL_GPUTransferBufferCreateInfo transferbuffer_info = {};
+            transferbuffer_info.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD;
+            transferbuffer_info.size = w * h * 4;
+            SDL_GPUTransferBuffer* transferbuffer = SDL_CreateGPUTransferBuffer(_MyUI._Device, &transferbuffer_info);
 
-        // PASS ONTO TEXTURE
-        SDL_GPUTextureTransferInfo transfer_info = {};
-        transfer_info.offset = 0;
-        transfer_info.transfer_buffer = transferbuffer;
-        SDL_GPUTextureRegion texture_region = {};
-        texture_region.texture = tex;
-        texture_region.w = w;
-        texture_region.h = h;
-        texture_region.d = 1;
-        SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(_MyUI._Device);
-        SDL_GPUCopyPass* copy_pass = SDL_BeginGPUCopyPass(cmd);
-        SDL_UploadToGPUTexture(copy_pass, &transfer_info, &texture_region, false);
-        SDL_EndGPUCopyPass(copy_pass);
-        SDL_SubmitGPUCommandBuffer(cmd);
+            // TRANSFER TEXTURE MEMORY
+            void* texture_ptr = SDL_MapGPUTransferBuffer(_MyUI._Device, transferbuffer, false);
+            memcpy(texture_ptr, rgba, w * h * 4);
+            stbi_image_free(rgba);
+            SDL_UnmapGPUTransferBuffer(_MyUI._Device, transferbuffer);
 
-        // RELEASE RESOURCES
-        SDL_ReleaseGPUTransferBuffer(_MyUI._Device, transferbuffer);
+            // PASS ONTO TEXTURE
+            SDL_GPUTextureTransferInfo transfer_info = {};
+            transfer_info.offset = 0;
+            transfer_info.transfer_buffer = transferbuffer;
+            SDL_GPUTextureRegion texture_region = {};
+            texture_region.texture = tex;
+            texture_region.w = w;
+            texture_region.h = h;
+            texture_region.d = 1;
+            SDL_GPUCommandBuffer* cmd = SDL_AcquireGPUCommandBuffer(_MyUI._Device);
+            SDL_GPUCopyPass* copy_pass = SDL_BeginGPUCopyPass(cmd);
+            SDL_UploadToGPUTexture(copy_pass, &transfer_info, &texture_region, false);
+            SDL_EndGPUCopyPass(copy_pass);
+            SDL_SubmitGPUCommandBuffer(cmd);
 
-        // INSERT TEXTURE INTO LOADED ARRAY
-        pBinding->texture = tex;
-        ApplicationUI::ResourceTexture rtex{};
-        rtex.DrawBind = pBinding;
-        rtex.CommonTexture = {};
-        rtex.EditorTexture = tex;
-        it = _MyUI._ResourceTextures.insert(std::make_pair(name, std::move(rtex))).first;
+            // RELEASE RESOURCES
+            SDL_ReleaseGPUTransferBuffer(_MyUI._Device, transferbuffer);
+
+            // INSERT TEXTURE INTO LOADED ARRAY
+            pBinding->texture = tex;
+            ApplicationUI::ResourceTexture rtex{};
+            rtex.DrawBind = pBinding;
+            rtex.CommonTexture = {};
+            rtex.EditorTexture = tex;
+            it = _MyUI._ResourceTextures.insert(std::make_pair(name, std::move(rtex))).first;
+
+        }
     }
     if(it == _MyUI._ResourceTextures.end())
     {
@@ -422,6 +427,23 @@ void ApplicationUI::_SetLanguage(const String& language)
     }
 }
 
+template<ApplicationUI::_UIRenderFilter _MyFilter, Bool _ForceNoClear>
+void ApplicationUI::_PerformUIRenderFiltered(RenderFrame* pFrame)
+{
+    uint32_t filter_type = _MyFilter == _UIRenderFilter::FILTER_OVERLAYS;
+    SDL_GPUColorTargetInfo target_info = {};
+    target_info.texture = _UIRenderBackBuffer;
+    target_info.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+    target_info.load_op = (!_ForceNoClear && (_MyFilter == _UIRenderFilter::FILTER_NONE || _MyFilter == _UIRenderFilter::FILTER_NORMAL)) ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
+    target_info.store_op = SDL_GPU_STOREOP_STORE;
+    target_info.mip_level = 0;
+    target_info.layer_or_depth_plane = 0;
+    target_info.cycle = false;
+    SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(_UIRenderCommandBuffer, &target_info, 1, nullptr);
+    ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), _UIRenderCommandBuffer, render_pass, nullptr, _MyFilter == _UIRenderFilter::FILTER_NONE ? nullptr : &filter_type);
+    SDL_EndGPURenderPass(render_pass);
+}
+
 I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
 {
     String userDir{};
@@ -501,7 +523,7 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     IMGUI_CHECKVERSION();
     RenderContext::DisableDebugHUD(_Window);
     _ImContext = ImGui::CreateContext();
-    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+   // ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::GetIO().ConfigDpiScaleFonts = true;
     ImGui::StyleColorsDark(); // TODO MAKE THIS CUSTOM FROM WORKSPACE.
@@ -628,8 +650,9 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
 
-        // UPDATE
+        // UPDATE AND RENDER UI
         _Update();
+        _RenderPopups();
 
         // END
         ImGui::Render();
@@ -647,45 +670,43 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
             
             if (swapchain_texture != nullptr)
             {
-                // This is mandatory: call ImGui_ImplSDLGPU3_PrepareDrawData() to upload the vertex/index buffer!
                 ImGui_ImplSDLGPU3_PrepareDrawData(ImGui::GetDrawData(), command_buffer);
-                
-                // Setup and start a render pass
-                SDL_GPUColorTargetInfo target_info = {};
-                target_info.texture = swapchain_texture;
-                target_info.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f };
-                target_info.load_op = SDL_GPU_LOADOP_CLEAR;
-                target_info.store_op = SDL_GPU_STOREOP_STORE;
-                target_info.mip_level = 0;
-                target_info.layer_or_depth_plane = 0;
-                target_info.cycle = false;
-                SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(command_buffer, &target_info, 1, nullptr);
-                ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), command_buffer, render_pass);
-                SDL_EndGPURenderPass(render_pass);
-            }
-            if(_EditorRenderContext)
-            {
-                if (!_EditorRenderContext->FrameUpdate(!_Flags.Test(ApplicationFlag::RUNNING), command_buffer, swapchain_texture))
-                {
-                    Quit();
-                }
-            }
-            else
-            {
-                SDL_GPUFence * fence = SDL_SubmitGPUCommandBufferAndAcquireFence(command_buffer);
-                SDL_WaitForGPUFences(_Device, true, &fence, 1);
-                SDL_ReleaseGPUFence(_Device, fence);
+                _UIRenderBackBuffer = swapchain_texture;
+                _UIRenderCommandBuffer = command_buffer;
 
-                SDL_Event event{};
-                while (SDL_PollEvent(&event))
+                if (_EditorRenderContext)
                 {
-                    ImGui_ImplSDL3_ProcessEvent(&event);
-                    if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(_Window)))
+                    // UI RENDER CALLBACK
+                    Method<ApplicationUI, false, RenderFrame*>
+                        callback(this, static_cast<void (ApplicationUI::*)(RenderFrame*)>(&ApplicationUI::_PerformUIRenderFiltered<_UIRenderFilter::FILTER_NONE, true>));
+                    _EditorRenderContext->GetPostRenderMainThreadCallbacks().PushCallback(TTE_PROXY_PTR(&callback, FunctionBase));
+
+                    // PERFORM RENDER & GPU SYNCH
+                    if (!_EditorRenderContext->FrameUpdate(!_Flags.Test(ApplicationFlag::RUNNING), command_buffer, swapchain_texture))
                     {
                         Quit();
                     }
                 }
+                else
+                {
+                    // NO SCENE VIEW YET. NORMAL RENDER
+                    _PerformUIRenderFiltered<_UIRenderFilter::FILTER_NONE, false>(nullptr);
+                    SDL_GPUFence* fence = SDL_SubmitGPUCommandBufferAndAcquireFence(command_buffer);
+                    SDL_WaitForGPUFences(_Device, true, &fence, 1);
+                    SDL_ReleaseGPUFence(_Device, fence);
 
+                    SDL_Event event{};
+                    while (SDL_PollEvent(&event))
+                    {
+                        ImGui_ImplSDL3_ProcessEvent(&event);
+                        if (event.type == SDL_EVENT_QUIT || (event.type == SDL_EVENT_WINDOW_CLOSE_REQUESTED && event.window.windowID == SDL_GetWindowID(_Window)))
+                        {
+                            Quit();
+                        }
+                    }
+                }
+                _UIRenderBackBuffer = nullptr;
+                _UIRenderCommandBuffer = nullptr;
             }
         }
         else
@@ -741,9 +762,10 @@ void ApplicationUI::_RenderPopups()
         ImGui::SetNextWindowSize(size);
 
         ImGui::PushOverrideID(9991);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
         if (ImGui::BeginPopupModal(_ActivePopup->Name.c_str()))
         {
-            ImGui::FocusWindow(ImGui::GetCurrentWindowRead());
             if (_ActivePopup->Render())
             {
                 ImGui::CloseCurrentPopup();
@@ -751,6 +773,7 @@ void ApplicationUI::_RenderPopups()
             }
             ImGui::EndPopup();
         }
+        ImGui::PopStyleVar(2);
         ImGui::PopID();
     }
 }

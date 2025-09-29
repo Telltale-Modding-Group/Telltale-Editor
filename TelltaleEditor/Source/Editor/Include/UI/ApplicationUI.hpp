@@ -122,6 +122,19 @@ private:
 
     void _RenderPopups();
 
+    enum class _UIRenderFilter
+    {
+        FILTER_NONE = 0,
+        FILTER_NORMAL = 1,
+        FILTER_OVERLAYS = 2,
+    };
+
+    template<_UIRenderFilter _MyFilter, Bool _ForceNoClear>
+    void _PerformUIRenderFiltered(RenderFrame* pFrame);
+
+    SDL_GPUCommandBuffer* _UIRenderCommandBuffer = nullptr;
+    SDL_GPUTexture* _UIRenderBackBuffer = nullptr;
+
     // GENERAL FUNCTIONALITY
     Flags _Flags;
     ImGuiContext* _ImContext;
@@ -157,3 +170,11 @@ private:
     friend class EditorUI;
 
 };
+
+template void ApplicationUI::_PerformUIRenderFiltered<ApplicationUI::_UIRenderFilter::FILTER_NONE, false>(RenderFrame* pFrame);
+template void ApplicationUI::_PerformUIRenderFiltered<ApplicationUI::_UIRenderFilter::FILTER_NORMAL, false>(RenderFrame* pFrame);
+template void ApplicationUI::_PerformUIRenderFiltered<ApplicationUI::_UIRenderFilter::FILTER_OVERLAYS, false>(RenderFrame* pFrame);
+
+template void ApplicationUI::_PerformUIRenderFiltered<ApplicationUI::_UIRenderFilter::FILTER_NONE, true>(RenderFrame* pFrame);
+template void ApplicationUI::_PerformUIRenderFiltered<ApplicationUI::_UIRenderFilter::FILTER_NORMAL, true>(RenderFrame* pFrame);
+template void ApplicationUI::_PerformUIRenderFiltered<ApplicationUI::_UIRenderFilter::FILTER_OVERLAYS, true>(RenderFrame* pFrame);

@@ -492,6 +492,9 @@ namespace Meta
         
         friend void _Impl::_DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete,
                                      Bool bSrcTopLevel, Bool bTopLevel);
+
+        friend Bool PerformLessThan(ClassInstance& lhs, ClassInstance& rhs);
+        friend Bool PerformEquality(ClassInstance& lhs, ClassInstance& rhs);
         
     public:
         

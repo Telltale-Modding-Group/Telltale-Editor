@@ -24,6 +24,8 @@ inline void RegisterCommonClassInfo()
                                          "PropertySet", "Handle<PropertySet>", "prop", nullptr});
 }
 
+extern void luaModuleUI(LuaFunctionCollection& Col); // defined in editor ui cpp
+
 /**
  Creates function collection to register all common classes. PropertySet is done by ToolLibrary as it is more fundamental.
  */
@@ -33,6 +35,7 @@ inline LuaFunctionCollection CreateScriptAPI()
     
     RegisterRenderConstants(Col);
     CommonClassInfo::RegisterConstants(Col);
+    luaModuleUI(Col);
 
     Mesh::RegisterScriptAPI(Col);
     Scene::RegisterScriptAPI(Col);

@@ -570,6 +570,8 @@ Bool RenderContext::FrameUpdate(Bool isLastFrame, SDL_GPUCommandBuffer* acq, SDL
 
             _PostMTRender.CallErased(&pFrame, 0, nullptr, 0, nullptr, 0, nullptr, 0);
 
+            _PreMTRender.Clear(); _PostMTRender.Clear();
+
             // command buffer is submitted below
 
         }
