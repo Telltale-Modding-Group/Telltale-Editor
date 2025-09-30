@@ -2,6 +2,8 @@
 
 ![Telltale Editor](https://github.com/Telltale-Modding-Group/Telltale-Editor/actions/workflows/cmake-multi-platform.yml/badge.svg)
 
+![editor_example](Screenshots/EditorMain_TX100.png)
+
 This project is an all in one modding application for all games made in the Telltale Tool by Telltale Games. For information about how it works, what you can do with it and more, see the [wiki](https://github.com/Telltale-Modding-Group/Telltale-Editor/wiki).
 This can be built for Windows, MacOS and Linux.
 
