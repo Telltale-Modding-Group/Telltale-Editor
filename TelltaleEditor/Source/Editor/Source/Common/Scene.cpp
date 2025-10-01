@@ -138,6 +138,26 @@ void Scene::_SetupAgentsModules()
     {
         _SetupAgent(agent);
     }
+    if(_Agents.find(GetName()) == _Agents.end())
+    {
+        // must have a scene agent! set it up now
+        AddAgent(Name, SceneModuleTypes::MakeWith<SceneModuleType::SCENE>(), {});
+    }
+    else
+    {
+        SceneAgent& agent = *_Agents.find(GetName())->second;
+        for(SceneModuleType m = SceneModuleType::FIRST_PRERENDERABLE; m != SceneModuleType::NUM; m = (SceneModuleType)((U32)m + 1))
+        {
+            if(m == SceneModuleType::SCENE && agent.ModuleIndices[(U32)m] == -1)
+            {
+                AddAgentModule(Name, m);
+            }
+            else if(m != SceneModuleType::SCENE && agent.ModuleIndices[(U32)m] != -1)
+            {
+                RemoveAgentModule(Name, m);
+            }
+        }
+    }
 }
 
 Meta::ClassInstance Scene::GetAgentProps(const Symbol & sym)
@@ -212,7 +232,8 @@ void Scene::RemoveAgentModule(const Symbol& sym, SceneModuleType module)
                 toRemove = agent->ModuleIndices[(U32)module];
                 Bool bResult = false;
                 
-                SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_RemoveModuleRecurser{*this, module, toRemove, bResult});
+                SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,
+                    SceneModuleUtil::_RemoveModuleRecurser{*this, module, toRemove, bResult, *agent});
                 
                 if(!bResult)
                 {
@@ -389,7 +410,7 @@ String Scene::GetAgentAtScreenPosition(Camera& cam, U32 screenX, U32 screenY, Bo
 
     Float tmin = FLT_MAX;
     String agent{};
-    for (const auto& renderable : _Renderables)
+    for (const auto& renderable : _Modules.GetModuleArray<SceneModuleType::RENDERABLE>())
     {
         Transform agentTransform = GetNodeWorldTransform(renderable.AgentNode);
         Matrix4 agentMat = MatrixTransformation(agentTransform._Rot, agentTransform._Trans);

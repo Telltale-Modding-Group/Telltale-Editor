@@ -77,6 +77,7 @@ private:
         RenderNDCScissorRect Viewport; 
         Flags StateFlags;
         std::unordered_map<WeakPtr<Mesh::MeshInstance>, MeshInstanceData, WeakPtrHash, WeakPtrEqual> MeshData;
+        Ptr<Camera> DefaultCam;
 
     };
 

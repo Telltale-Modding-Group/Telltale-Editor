@@ -65,13 +65,17 @@ void SceneRenderer::_InitSceneState(SceneState& state, Ptr<Scene> pScene)
 {
     state.MyScene = WeakPtr<Scene>(pScene);
 
+    if(!state.DefaultCam)
+    {
+        state.DefaultCam = TTE_NEW_PTR(Camera, MEMORY_TAG_RENDERER);
+    }
+
     // Push a default view camera bottom of the view stack (so at least always one cam)
-    Camera cam{};
-    cam.SetHFOV(50.f);
-    cam.SetNearClip(0.2f);
-    cam.SetFarClip(1000.f);
-    cam.SetWorldPosition({0,0, 10.f});
-    pScene->_ViewStack.push_back(cam);
+    state.DefaultCam->SetHFOV(50.f);
+    state.DefaultCam->SetNearClip(0.2f);
+    state.DefaultCam->SetFarClip(1000.f);
+    state.DefaultCam->SetWorldPosition({0,0, 10.f});
+    pScene->_ViewStack.push_back(state.DefaultCam);
 }
 
 void SceneRenderer::ResetScene(Ptr<Scene> pScene)
@@ -244,7 +248,7 @@ void SceneRenderer::RenderScene(const SceneFrameRenderParams& frameRender) // Sc
     RenderFrame& frame = context.GetFrame(true);
 
     ShaderParameter_Camera* cam = frame.Heap.NewNoDestruct<ShaderParameter_Camera>();
-    Camera& drawCam = frameRender.RenderScene->_ViewStack.front(); // Top most camera
+    Camera& drawCam = *frameRender.RenderScene->_ViewStack.front().lock(); // Top most camera
     drawCam._ScreenWidth = (U32)vp.w, drawCam._ScreenHeight = (U32)vp.h;
     drawCam.SetAspectRatio();
     RenderUtility::SetCameraParameters(context, cam, &drawCam);
@@ -278,7 +282,7 @@ void SceneRenderer::RenderScene(const SceneFrameRenderParams& frameRender) // Sc
     globalRenderState.SetValue(RenderStateType::Z_WRITE_ENABLE, true);
     globalRenderState.SetValue(RenderStateType::Z_COMPARE_FUNC, SDL_GPU_COMPAREOP_LESS_OR_EQUAL);
 
-    for(SceneModule<SceneModuleType::RENDERABLE>& renderable: frameRender.RenderScene->_Renderables)
+    for(SceneModule<SceneModuleType::RENDERABLE>& renderable: frameRender.RenderScene->_Modules.GetModuleArray<SceneModuleType::RENDERABLE>())
     {
         Transform agentWorld = Scene::GetNodeWorldTransform(renderable.AgentNode);
         for(Ptr<Mesh::MeshInstance>& meshInstance: renderable.Renderable.MeshList)

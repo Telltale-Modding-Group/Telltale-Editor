@@ -2,8 +2,8 @@
 
 require("ToolLibrary/Game/Common/LuaPropertySet.lua")
 require("ToolLibrary/Game/VersionCRC.lua")
-require("ToolLibrary/UI/ModuleRenderable.lua")
-require("ToolLibrary/UI/ModuleSkeleton.lua")
+
+require("ToolLibrary/UI/ModuleCollector.lua")
 
 require("ToolLibrary/Game/TX100/D3DTexture.lua")
 require("ToolLibrary/Game/TX100/D3DMesh.lua")
@@ -15,9 +15,7 @@ require("ToolLibrary/Game/Common/InputMapper.lua")
 
 function TX100_RegisterModuleUI()
 
-	ModuleRenderable_RegisterUI(0)
-	ModuleSkeleton_RegisterUI(0)
-
+	ModuleCollector_RegisterUI(0)
 end
 
 function TX100_GetGameDescriptor()
@@ -173,9 +171,15 @@ function RegisterTX100(vendor)
 	MetaRegisterClass(lightType)
 
 	local textAlign = NewClass("class TextAlignmentType", 0)
-	textAlign.Members[1] = NewMember("mAlignmentType", kMetaInt, 0)
+	textAlign.Members[1] = NewMember("mAlignmentType", kMetaInt, kMetaMemberEnum)
+	AddEnum(textAlign, 1, "None", 0)
+	AddEnum(textAlign, 1, "Left Justified", 1)
+	AddEnum(textAlign, 1, "Centered", 2)
+	AddEnum(textAlign, 1, "Right Justified", 4)
+	AddEnum(textAlign, 1, "Top", 8)
+	AddEnum(textAlign, 1, "Middle", 16)
+	AddEnum(textAlign, 1, "Bottom", 32)
 	MetaRegisterClass(textAlign)
-
 
 	local audStreamed = NewClass("struct AudioData::Streamed", 0)
 	audStreamed.Members[1] = NewMember("mStreamRegionSize", kMetaInt)

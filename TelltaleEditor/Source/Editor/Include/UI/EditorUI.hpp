@@ -171,7 +171,10 @@ class InspectorView : public EditorUIComponent
 
     std::unordered_map<SceneModuleType, PropertyRuntimeGroup> _RuntimeModuleProps;
     Ptr<Node> _CurrentNode;
+    U64 _LastPropFlush = 0;
+    Bool _CurrentIsAgent = false;
 
+    void _FlushProps();
     void _ResetModulesCache();
     void _InitModuleCache(Meta::ClassInstance agentProps, SceneModuleType module);
 
@@ -194,6 +197,7 @@ class SceneView : public EditorUIComponent
     friend class EditorUI;
 
     Ptr<Scene> _EditorSceneCache;
+    Ptr<Camera> _SceneViewCamDefault;
     SceneViewData* _SceneData;
     SceneRenderer _SceneRenderer;
     RuntimeInputEventManager _ViewInputMgr;

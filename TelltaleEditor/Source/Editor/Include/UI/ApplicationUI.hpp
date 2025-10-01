@@ -98,6 +98,8 @@ public:
 
     const String& GetLanguageText(CString id);
 
+    Bool HasLanguageText(CString id);
+
     void Quit();
 
     void SetCurrentPopup(Ptr<EditorPopup>, EditorUI& editor);

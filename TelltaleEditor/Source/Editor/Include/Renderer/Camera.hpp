@@ -6,6 +6,8 @@
 
 #include <set>
 
+class Scene;
+
 //You can define this to 1 if you want inverted depth in the camera (if _BAllowInvertedDepth)
 #ifndef INVERTED_DEPTH
 #define INVERTED_DEPTH 0
@@ -15,7 +17,7 @@
 
 /// A camera. Screen width, height, aspect ratio and agent transform should be updated manually to the camera agent location information and screen info. Ensure if the screen size changes
 /// then you update the aspect ratio and screen w/h and also call on screen modified to mark it as dirty. When the agent transform, ie camera moves, call on agent transform modified.
-class Camera
+class Camera : public std::enable_shared_from_this<Camera>
 {
 public:
     
@@ -43,6 +45,7 @@ private:
     
 public:
     
+    Scene* AttachScene;
     Symbol mName;
     std::set<Symbol> _ExcludeAgents;
     float _HFOV;
@@ -58,6 +61,7 @@ public:
     float _OrthoFar;
     Colour _FXColour;
     float _FXColourOpacity;
+    float _FXColourTint;
     float _Exposure;
     float _FXLevelsBlack;
     float _FXLevelsWhite;
@@ -134,6 +138,7 @@ public:
         _FXLevelsBlack = _FXLevelsWhite = 0.f;
         _FXLevelsIntensity = 0.f;
         _FXRadialBlurInnerRadius = 0.f;
+        _FXColourTint = 0.f;
         _FXRadialBlurOuterRadius = _FXRadialBlurScale = 1.f;
         _FXRadialBlurIntensity = 0.f;
         _BAllowBlending = false;
@@ -458,12 +463,12 @@ public:
     }
     
     // Set the near clip plane Z position
-    inline void SetNearClip(float near_clip, int renderDeviceDepthSize = 24)
+    inline void SetNearClip(float near_clip/*, int renderDeviceDepthSize = 24*/)
     {
         if (near_clip != _NearClip)
         {
-            if (renderDeviceDepthSize < 24)
-                near_clip = fmaxf(near_clip, 0.1f);
+           //if (renderDeviceDepthSize < 24)
+             near_clip = fmaxf(near_clip, 0.1f);
             _NearClip = near_clip;
             _BFrustumDirty = 1;
             _BProjectionMatrixDirty = 1;
@@ -497,7 +502,22 @@ public:
             v2->_FocalLength = 0.5f / v3;
         }
     }
-    
+
+    inline void SetCullObjects(Bool bCull)
+    {
+        _BCullObjects = bCull;
+    }
+
+    inline void SetExcludeAgents(std::set<Symbol> excludeAgents)
+    {
+        _ExcludeAgents = excludeAgents;
+    }
+
+    inline void SetUseHQDOF(Bool highq)
+    {
+        _UseHQDOF = highq;
+    }
+
     // Set the horizontal FOV, in degrees
     inline void SetHFOV(float fov_degrees)
     {
@@ -544,7 +564,7 @@ public:
     }
     
     // Parameters
-    inline void SetFXRadialBlurTint(const Colour& tint)
+    inline void SetFXRadialBlurTint(Colour tint)
     {
         this->_FXRadialBlurTint = tint;
     }
@@ -654,7 +674,12 @@ public:
     {
         this->_FXLevelsActive = active;
     }
-    
+
+    inline void SetFXColourTint(float tint)
+    {
+        this->_FXColourTint = tint;
+    }
+
     inline void SetFXColourOpacity(float opacity)
     {
         if (opacity != this->_FXColourOpacity)
@@ -716,6 +741,8 @@ public:
     {
         this->_DOFFar = DOFFar;
     }
+
+    void PushCamera(bool onOff); // modules.cpp with camera
     
     inline void SetDOFEnabled(bool isEnabled)
     {
@@ -732,6 +759,16 @@ public:
         this->_DOFCoverageBoost = v;
     }
     
+    inline void SetBokehTexture(Symbol handleTex)
+    {
+        _hBokehTexture = handleTex;
+    }
+
+    inline void SetUseBokeh(bool v)
+    {
+        _UseBokeh = v;
+    }
+
     inline void SetBokehMinSize(float v)
     {
         this->_BokehMinSize = v;
@@ -762,16 +799,35 @@ public:
         this->_BokehBlurThreshold = v;
     }
     
-    inline void SetBokehAberrationOffsetsY(const Vector3& v)
+    inline void SetBokehAberrationOffsetsY(Vector3 v)
     {
         this->_BokehAberrationOffsetsY = v;
     }
     
-    inline void SetBokehAberrationOffsetsX(const Vector3& v)
+    inline void SetBokehAberrationOffsetsX(Vector3 v)
     {
         this->_BokehAberrationOffsetsX = v;
     }
-    
+
+    String _AgentOverrideListener = "";
+    String _AgentPlayerOriginOverride = "";
+    Symbol _AudioReverbOverride; // file name .REVERB
+
+    inline void SetAudioListenerOverrideAgent(String v)
+    {
+        this->_AgentOverrideListener = v;
+    }
+
+    inline void SetPlayerOriginOverrideAgent(String v)
+    {
+        this->_AgentPlayerOriginOverride = v;
+    }
+
+    inline void SetAudioReverbOverride(Symbol v)
+    {
+        this->_AudioReverbOverride = v;
+    }
+
     inline void SetAspectRatio(float aspect)
     {
         if (aspect != this->_AspectRatio)

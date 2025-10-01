@@ -221,88 +221,7 @@ enum class NodeVisitorTraversal
 
 // ========================================= SCENE MODULES =========================================
 
-// Scene modules are module_xxx.prop parent properties. they are 'components' or 'behaviour's of game objects.
-// in the engine these correspond to XXX::OnSetupAgent(Ptr<Agent> pAgentGettingCreated, Handle<PropertySet>& hRenderableProps) functions.
-enum class SceneModuleType : I32
-{
-    
-    FIRST_PRERENDERABLE = 0, // Two groups. First set here don't depend on the renderable module.
-    
-    RENDERABLE = 0, // module_renderable.prop
-    SKELETON = 1, // module_skeleton.prop
-    
-    LAST_PRERENDERABLE = 1,
-    
-    FIRST_POSTRENDERABLE = 1,
-    LAST_POSTRENDERABLE = 1,
-    
-    NUM = 2,
-    UNKNOWN = -1,
-
-};
-
-// Bitset for specifying module types attached to an agent
-using SceneModuleTypes = BitSet<SceneModuleType, (U32)SceneModuleType::NUM, (SceneModuleType)0>;
-
-template<SceneModuleType> struct SceneModule;
-
-struct SceneModuleBase
-{
-    Ptr<Node> AgentNode;
-};
-
-// Renderable scene component (RenderObject_Mesh* obj).
-// Any actual render types (eg RenderVertexState) can be filled up, but not created
-// As in the actual buffers should only be in data streams on CPU side.
-template<> struct SceneModule<SceneModuleType::RENDERABLE> : SceneModuleBase
-{
-    
-    static constexpr SceneModuleType ModuleType = SceneModuleType::RENDERABLE;
-    static constexpr CString ModuleID = "renderable";
-    static constexpr CString ModuleName = "Renderable";
-
-    static inline String GetModulePropertySet()
-    {
-        return kRenderablePropName;
-    }
-
-    // Gets this module for the scene
-    static inline std::vector<SceneModule<SceneModuleType::RENDERABLE>>& GetModuleArray(Scene& scene);
-    static inline const std::vector<SceneModule<SceneModuleType::RENDERABLE>>& GetModuleArray(const Scene& scene);
-
-    Mesh Renderable; // group of meshes
-    
-    // on setups create and gather stuff which is otherwise in the agent props or object cache to speed up.
-    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
-
-    void RenderUI(EditorUI& editor, SceneAgent& agent); // all RenderUI functions are defined in UI/ModuleUI.cpp
-    
-};
-
-// Skeleton component
-template<> struct SceneModule<SceneModuleType::SKELETON> : SceneModuleBase
-{
-    
-    static constexpr SceneModuleType ModuleType = SceneModuleType::SKELETON;
-    static constexpr CString ModuleID = "skeleton";
-    static constexpr CString ModuleName = "Skeleton";
-    
-    Handle<Skeleton> Skl; // skeleton handle
-    
-    static inline std::vector<SceneModule<SceneModuleType::SKELETON>>& GetModuleArray(Scene& scene);
-    static inline const std::vector<SceneModule<SceneModuleType::SKELETON>>& GetModuleArray(const Scene& scene);
-
-    static inline String GetModulePropertySet()
-    {
-        return kSkeletonPropName;
-    }
-    
-    // impl in animationmgr.cpp
-    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
-
-    void RenderUI(EditorUI& editor, SceneAgent& agent);
-    
-};
+#include <SceneModules.inl>
 
 // ========================================= SCENE / SCENE AGENT =========================================
 
@@ -470,9 +389,15 @@ public:
         return _Agents;
     }
 
-    inline std::vector<Camera>& GetViewStack() 
+    inline std::vector<WeakPtr<Camera>>& GetViewStack() 
     {
         return _ViewStack;
+    }
+
+    template<SceneModuleType M>
+    inline const std::vector<SceneModule<M>>& GetModuleView() const
+    {
+        return _Modules.GetModuleArray<M>();
     }
     
 private:
@@ -539,14 +464,13 @@ private:
     String Name; // scene name
     Flags _Flags;
     AgentMap _Agents; // scene agent list
-    std::vector<Camera> _ViewStack; // view stack
+    std::vector<WeakPtr<Camera>> _ViewStack; // view stack
     std::vector<AnimationManager*> _AnimationMgrs; // anim managers
     std::set<PlaybackController*> _Controllers;
     
     // ==== DATA ORIENTATED AGENT MODULE ATTACHMENTS
-    
-    std::vector<SceneModule<SceneModuleType::RENDERABLE>> _Renderables;
-    std::vector<SceneModule<SceneModuleType::SKELETON>> _Skeletons;
+
+    SceneModuleContainer _Modules;
     
     friend class SceneRuntime;
     friend struct SceneAgent;
@@ -558,309 +482,17 @@ private:
     friend class EditorUI;
     friend class InspectorView;
     friend class SceneRenderer;
-    
+    friend class Camera;
+
     template<SceneModuleType M>
     friend struct SceneModule;
 
     friend struct SceneModuleUtil::_SetupAgentModule;
+
+    template<SceneModuleType M>
+    friend SceneModule<M>& SceneModuleUtil::GetSceneModule(Scene& scene, const SceneAgent& agent);
     
 };
-
-// ========================================= MODULE TEMPLATES =========================================
-// This section is not really needed to ever be modified. A very simple ECS with templates reducing code.
-
-#define _DEFINE_SCENE_GETTER(MOD, MEM) \
-inline std::vector<SceneModule<MOD>>& SceneModule<MOD>::GetModuleArray(Scene& scene)\
-{\
-    return scene.MEM;\
-}\
-inline const std::vector<SceneModule<MOD>>& SceneModule<MOD>::GetModuleArray(const Scene& scene)\
-{\
-    return scene.MEM;\
-}
-
-_DEFINE_SCENE_GETTER(SceneModuleType::RENDERABLE, _Renderables)
-_DEFINE_SCENE_GETTER(SceneModuleType::SKELETON, _Skeletons)
-
-#undef _DEFINE_SCENE_GETTER
-
-namespace SceneModuleUtil
-{
-    
-    template<SceneModuleType M>
-    inline SceneModule<M>& GetSceneModule(Scene& scene, const SceneAgent& agent)
-    {
-        TTE_ASSERT(agent.ModuleIndices[(U32)M] != -1, "Agent %s does not have this module", agent.Name.c_str());
-        return SceneModule<M>::GetModuleArray(scene)[agent.ModuleIndices[(U32)M]];
-    }
-    
-    // recursively perform a function on each scene module type in the range. No need to write if-else chains
-    template<SceneModuleType Module, SceneModuleType Last>
-    struct _RecursiveModuleIterator
-    {
-        
-        template<typename _IteratorFn>
-        static void _Perform(_IteratorFn&& fn)
-        {
-            if(fn.template Apply<Module>()) // apply must return a bool and no params. return true to keep recursion going
-                _RecursiveModuleIterator<(SceneModuleType)((U32)Module + 1), Last>::_Perform(std::forward<_IteratorFn>(fn));
-        }
-        
-    };
-    
-    // end case, do nothing and stop recursion
-    template<SceneModuleType Last>
-    struct _RecursiveModuleIterator<Last, Last>
-    {
-        
-        template<typename _IteratorFn>
-        static void _Perform(_IteratorFn&& fn)
-        {
-            fn.template Apply<Last>();
-        }
-        
-    };
-    
-    enum class ModuleRange
-    {
-        ALL,
-        PRE_RENDERABLE,
-        POST_RENDERABLE,
-    };
-    
-    // Perform using one of the structs below as the template param
-    template<typename _Fi>
-    inline void PerformRecursiveModuleOperation(ModuleRange R, _Fi&& fn)
-    {
-        if(R == ModuleRange::ALL)
-        {
-            _RecursiveModuleIterator<SceneModuleType::FIRST_PRERENDERABLE, SceneModuleType::LAST_POSTRENDERABLE>
-            ::_Perform(std::forward<_Fi>(fn));
-        }
-        else if(R == ModuleRange::PRE_RENDERABLE)
-        {
-            _RecursiveModuleIterator<SceneModuleType::FIRST_PRERENDERABLE, SceneModuleType::LAST_PRERENDERABLE>
-            ::_Perform(std::forward<_Fi>(fn));
-        }
-        else if(R == ModuleRange::POST_RENDERABLE)
-        {
-            if(SceneModuleType::LAST_PRERENDERABLE != SceneModuleType::FIRST_POSTRENDERABLE)
-            {
-                _RecursiveModuleIterator<SceneModuleType::FIRST_POSTRENDERABLE, SceneModuleType::LAST_POSTRENDERABLE>
-                ::_Perform(std::forward<_Fi>(fn));
-            }
-        }
-        else
-        {
-            TTE_ASSERT(false, "Invalid module range");
-        }
-    }
-
-    struct _CollectAgentModules
-    {
-
-        SceneModuleTypes& Modules;
-        SceneAgent& Agent;
-        Ptr<ResourceRegistry>& Registry;
-
-        template<SceneModuleType Module>
-        inline Bool Apply()
-        {
-            if (PropertySet::IsMyParent(Agent.Props, SceneModule<Module>::GetModulePropertySet(), true, Registry))
-            {
-                Modules.Set(Module, true);
-            }
-            return true;
-        }
-
-    };
-
-    struct _RenderUIModules
-    {
-
-        Scene& S;
-        SceneAgent& Agent;
-        EditorUI& Editor;
-
-        template<SceneModuleType Module>
-        inline Bool Apply()
-        {
-            if (S.HasAgentModule(Agent.NameSymbol, Module))
-            {
-                auto& module = S.GetAgentModule<Module>(Agent.NameSymbol);
-                module.RenderUI(Editor, Agent);
-            }
-            return true;
-        }
-
-    };
-    
-    // setup agents. used as recursive above
-    struct _SetupAgentSubset
-    {
-        
-        Scene& S;
-        SceneAgent& Agent;
-        
-        template<SceneModuleType Module>
-        inline Bool Apply()
-        {
-            if(S.HasAgentModule(Agent.NameSymbol, Module))
-            {
-                auto& module = S.GetAgentModule<Module>(Agent.NameSymbol);
-                module.AgentNode = Agent.AgentNode;
-                module.OnSetupAgent(&Agent);
-            }
-            return true;
-        }
-        
-    };
-
-    struct _SetupAgentModule
-    {
-
-        Scene& S;
-        Ptr<Node> AgentNode;
-        SceneModuleType ModuleType;
-
-        template<SceneModuleType Module>
-        inline Bool Apply()
-        {
-            if (ModuleType == Module)
-            {
-                if (S.HasAgentModule(AgentNode->AgentName, Module))
-                {
-                    auto& module = S.GetAgentModule<Module>(AgentNode->AgentName);
-                    module.AgentNode = AgentNode;
-                    module.OnSetupAgent(S._Agents.find(AgentNode->AgentName)->second.get());
-                }
-                return false;
-            }
-            return true;
-        }
-
-    };
-    
-    struct _AddModuleRecurser
-    {
-        
-        Scene& S;
-        SceneModuleType Desired;
-        I32& OutIndex;
-        
-        template<SceneModuleType Module>
-        inline Bool Apply()
-        {
-            if(Desired == Module)
-            {
-                auto& vec = SceneModule<Module>::GetModuleArray(S);
-                OutIndex = (I32)vec.size();
-                vec.emplace_back();
-                return false; // done
-            }
-            return true;
-        }
-        
-    };
-
-    struct _ModuleVectorMoveRecurser
-    {
-
-        Scene& From;
-        Scene& To;
-
-        template<SceneModuleType Module>
-        inline Bool Apply()
-        {
-            auto& toVec = SceneModule<Module>::GetModuleArray(To);
-            auto& fromVec = SceneModule<Module>::GetModuleArray(From);
-            toVec = std::move(fromVec);
-            return true;
-        }
-
-    };
-
-    struct _ModuleVectorCopyRecurser
-    {
-
-        const Scene& From;
-        Scene& To;
-
-        template<SceneModuleType Module>
-        inline Bool Apply()
-        {
-            auto& toVec = SceneModule<Module>::GetModuleArray(To);
-            const auto& fromVec = SceneModule<Module>::GetModuleArray(From);
-            toVec = fromVec;
-            return true;
-        }
-
-    };
-    
-    struct _RemoveModuleRecurser
-    {
-        
-        Scene& S;
-        SceneModuleType Mod;
-        I32 RemovalIndex;
-        Bool& result;
-        
-        template<SceneModuleType Module>
-        inline Bool Apply()
-        {
-            if(Mod == Module)
-            {
-                auto& vec = SceneModule<Module>::GetModuleArray(S);
-                auto it = vec.begin();
-                std::advance(it, RemovalIndex);
-                vec.erase(it);
-                result = true;
-                return false;
-            }
-            return true;
-        }
-        
-    };
-
-    struct _ModuleIDCollector
-    {
-
-        std::vector<std::pair<SceneModuleType, CString>>& OutIDs;
-
-        template<SceneModuleType Module>
-        inline Bool Apply()
-        {
-            OutIDs.push_back(std::make_pair(Module, SceneModule<Module>::ModuleID));
-            return true;
-        }
-
-    };
-
-    struct _GetModuleInfo
-    {
-
-        SceneModuleType Type;
-        String* OutID = nullptr, * OutPropName = nullptr, * OutName = nullptr;
-
-        template<SceneModuleType Module>
-        inline Bool Apply()
-        {
-            if(Module == Type)
-            {
-                if (OutID)
-                    *OutID = SceneModule<Module>::ModuleID;
-                if (OutPropName)
-                    *OutPropName = SceneModule<Module>::GetModulePropertySet();
-                if (OutName)
-                    *OutName = SceneModule<Module>::ModuleName;
-                return false;
-            }
-            return true;
-        }
-
-    };
-    
-}
 
 template<SceneModuleType Type>
 inline SceneModule<Type>& Scene::GetAgentModule(const Symbol& Agent)

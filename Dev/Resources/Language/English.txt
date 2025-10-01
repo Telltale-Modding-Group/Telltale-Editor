@@ -61,10 +61,55 @@ iv.add_module = "Add Module"
 # SCENE VIEW
 sv.title = "Scene"
 
+# MISC
+misc.drag_here = "Drag a %s file here!"
+misc.empty = "Empty"
+misc.reset_lower = "reset"
+
 # MODULES
 mod.select = "Select Module"
 mod.used = "This agent already has all supported modules!"
+
+# SCENE MODULE
+mod.scene.name = "Scene"
+mod.scene.desc = "Special agent module for the scene agent, contains all scene-wide settings."
+mod.scene.iv.walk_boxes = "Walk Boxes file for this scene to outline user movement outlines."
+mod.scene.iv.ambient_colour = "Ambient colour for the scene"
+
+# TEXT MODULE
+mod.text.name = "Text"
+mod.text.desc = "Agents with this module are used to display text in the scene, a special version of a renderable component."
+mod.text.font = "The font resource used for rendering the text."
+mod.text.iv.background_colour = "The background colour applied behind the text."
+mod.text.iv.background = "Whether a background is drawn behind the text (true/false)."
+mod.text.iv.foreground_colour = "The main colour used to render the text characters."
+mod.text.iv.string = "The actual text string to be displayed."
+mod.text.iv.extrude_x = "The extrusion (thickness offset) of the text along the X-axis."
+mod.text.iv.extrude_y = "The extrusion (thickness offset) of the text along the Y-axis."
+mod.text.iv.kerning = "The spacing adjustment between individual characters in the text."
+mod.text.iv.minimum_width = "The minimum width allowed for the rendered text."
+mod.text.iv.minimum_height = "The minimum height allowed for the rendered text."
+mod.text.iv.scale = "The scale factor applied to the size of the text."
+mod.text.iv.shadow_height = "The vertical offset of the text’s shadow."
+mod.text.iv.width = "The total width of the rendered text."
+mod.text.iv.horizontal_align = "The horizontal alignment of the text."
+mod.text.iv.vertical_align = "The vertical alignment of the text."
+
+# CAMERA MODULE
+mod.camera.desc = "This agents acts as a camera in which is seen through the user's viewport."
+mod.camera.name = "Camera"
+mod.camera.iv.fov = "The Field of View is the angle in degrees representing the 'wideness' of the camera lens."
+mod.camera.iv.near_clip = "The distance from the camera origin to the near plane. Defines the view frustrum. Everything before this plane is not visible."
+mod.camera.iv.far_clip = "The distance from the camera origin to the far plane. Defines the view frustrum. Everything after this plane is not visible."
+
+# RENDERABLE MODULE
 mod.renderable.name = "Renderable"
 mod.renderable.desc = "Renderable modules allow the agent to have mesh(es) attached and be rendered."
+mod.renderable.iv.mesh = "Mesh file in which to render for this agent"
+mod.renderable.iv.axis_scale = "The scale for each individual axis XYZ of the mesh"
+mod.renderable.iv.global_scale = "Global XYZ scale for each axis"
+
+# SKELETON MODULE
+mod.skeleton.iv.skeleton = "File to use as the skeleton for this agent"
 mod.skeleton.name = "Skeleton"
 mod.skeleton.desc = "Enables a skeleton to be attached to this agent (typically has the renderable component as well), for skeleton animation for example."

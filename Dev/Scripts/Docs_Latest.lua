@@ -2047,21 +2047,21 @@ kCommonMeshUByte4Norm = 0
 --- @type number
 kCommonMeshInt2 = 0
 
---- Animation value types
---- @type number
-kAnimationValueTypeSkeletonRootAnim = 0
-
 --- Vertex attribute formats
 --- @type number
 kCommonMeshFloat1 = 0
 
---- Module property render instructions
---- @type string
-kPropRenderVector2 = ""
-
 --- Vertex attribute formats
 --- @type number
 kCommonMeshInt1 = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderString = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderVector2 = ""
 
 --- Animation value types
 --- @type number
@@ -2181,10 +2181,6 @@ kCommonTextureFormatDXT3 = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTargetedMover = 0
-
---- Animation value types
---- @type number
 kAnimationValueTypeSkeletal = 0
 
 --- Surface formats
@@ -2215,10 +2211,6 @@ kCommonMeshAttributeTangent = 0
 --- @type number
 kCommonMeshAttributeBlendWeight = 0
 
---- Animation value types
---- @type number
-kAnimationValueTypeSkeletonPose = 0
-
 --- Vertex attributes
 --- @type number
 kCommonMeshAttributeBlendIndex = 0
@@ -2246,6 +2238,18 @@ kPropRenderVector4 = ""
 --- Module property render instructions
 --- @type string
 kPropRenderVector3 = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderBool = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderColour = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderEnum = ""
 
 --- Mesh compressed format involving unsigned normed UV values
 --- @type number
@@ -2293,10 +2297,6 @@ kCompressedQuatKeysFormatLegacy0 = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTextureMoveU = 0
-
---- Animation value types
---- @type number
 kAnimationValueTypeTime = 0
 
 --- Animation value types
@@ -2306,6 +2306,22 @@ kAnimationValueTypeMover = 0
 --- Animation value types
 --- @type number
 kAnimationValueTypeProperty = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTargetedMover = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeSkeletonPose = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeSkeletonRootAnim = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureMoveU = 0
 
 --- Animation value types
 --- @type number

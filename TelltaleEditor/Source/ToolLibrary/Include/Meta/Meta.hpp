@@ -47,6 +47,34 @@ template class TRange<Float>;
 template class TRange<U32>;
 using Rect = TRect<I32>;
 
+enum class VerticalAlignmentType
+{
+    NONE,
+    TOP,
+    MIDDLE,
+    BOTTOM,
+};
+
+enum class HorizontalAlignmentType
+{
+    NONE,
+    LEFT_JUSTIFIED,
+    CENTERED,
+    RIGHT_JUSTIFIED,
+};
+
+// Older games had the two above combined into one.
+enum class TextAlignmentType
+{
+    NONE = 0,
+    LEFT_JUSTIFIED = 1,
+    CENTERED = 2,
+    RIGHT_JUSTIFIED = 4,
+    TOP = 8,
+    MIDDLE = 16,
+    BOTTOM = 32,
+};
+
 // maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
 #define MAX_VERSION_NUMBER 10
 

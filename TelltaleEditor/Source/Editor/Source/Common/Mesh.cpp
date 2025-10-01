@@ -32,6 +32,12 @@ void SceneModule<SceneModuleType::RENDERABLE>::OnSetupAgent(SceneAgent* pAgentGe
     pAgentGettingCreated->AgentNode->AddObjDataRef("", Renderable);
 }
 
+void SceneModule<SceneModuleType::RENDERABLE>::OnModuleRemove(SceneAgent* pAttachedAgent)
+{
+    pAttachedAgent->AgentNode->RemoveObjData<decltype(Renderable)>("");
+}
+
+
 // NORMALISATION AND SPECIALISATION OF MESH INTO COMMON FORMAT AND BACK
 class MeshAPI
 {

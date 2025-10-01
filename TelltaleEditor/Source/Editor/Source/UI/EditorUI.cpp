@@ -451,8 +451,15 @@ Bool OutlineView::_RenderSceneNode(WeakPtr<Node> pNodeWk)
             BeginTooltip();
             if(Button(_EditorUI.GetApplication().GetLanguageText("ov.delete_agent").c_str()))
             {
-                del = true;
-                _EditorUI.GetActiveScene().RemoveAgent(pNode->AgentName);
+                if(pNode->AgentName == _EditorUI.GetActiveScene().GetName())
+                {
+                    PlatformMessageBoxAndWait("Cannot delete this agent!", "The scene agent cannot be deleted!");
+                }
+                else
+                {
+                    del = true;
+                    _EditorUI.GetActiveScene().RemoveAgent(pNode->AgentName);
+                }
             }
             EndTooltip();
         }
@@ -543,16 +550,6 @@ InspectorView::InspectorView(EditorUI& ui) : EditorUIComponent(ui)
 {
 }
 
-InspectorView::~InspectorView()
-{
-    _ResetModulesCache();
-}
-
-void InspectorView::_ResetModulesCache()
-{
-    _RuntimeModuleProps.clear();
-}
-
 extern TelltaleEditor* _MyContext;
 
 void InspectorView::_InitModuleCache(Meta::ClassInstance agentProps, SceneModuleType module)
@@ -601,8 +598,73 @@ void InspectorView::_InitModuleCache(Meta::ClassInstance agentProps, SceneModule
 namespace PropertyRenderFunctions
 {
 
+    void RenderEnum(const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
+    {
+
+        if(adapter.SubPaths.empty())
+        {
+            ImGui::Text("!EnumSubPathsEmpty!"); // need sub paths for member name which is an enum member (as a class isnt an enum, a MEMBER is)
+            return;
+        }
+
+        const Meta::Class* EnumClass = &Meta::GetClass(adapter.ClassID);
+        U32& EnumSelected = *((U32*)datum._GetInternal());
+
+        // Mid path members
+        for(U32 i = 0; i + 1 < adapter.SubPaths.size(); i++)
+        {
+            Bool bOk = false;
+            for(const auto& member: EnumClass->Members)
+            {
+                if(member.Name == adapter.SubPaths[i])
+                {
+                    bOk = true;
+                    EnumClass = &Meta::GetClass(member.ClassID);
+                    break;
+                }
+            }
+            if(!bOk)
+            {
+                ImGui::Text("!SubPathMemberNotFound!");
+                return;
+            }
+        }
+
+        // Final path member
+        for (const auto& member : EnumClass->Members)
+        {
+            if (member.Name == adapter.SubPaths[adapter.SubPaths.size()-1])
+            {
+                CString curSelected = "UNKNOWN_VALUE";
+                for(const auto& enumDesc: member.Descriptors)
+                {
+                    if(EnumSelected == enumDesc.Value)
+                    {
+                        curSelected = enumDesc.Name.c_str();
+                        break;
+                    }
+                }
+                if(ImGui::BeginCombo("##cmb", curSelected))
+                {
+                    for(const auto& enumDesc: member.Descriptors)
+                    {
+                        if(ImGui::Selectable(enumDesc.Name.c_str()))
+                        {
+                            EnumSelected = enumDesc.Value;
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+                return;
+            }
+        }
+
+        ImGui::Text("!SubPathMemberNotFound!");
+        return;
+    }
+
     // 2 to 4
-    Bool _DrawVectorInput(const char* label, float* valArray, U32 n)
+    Bool _DrawVectorInput(const char* label, float* valArray, U32 n, Bool bCol)
     {
         if (label)
         {
@@ -615,7 +677,14 @@ namespace PropertyRenderFunctions
         bool changed = false;
         const float item_width = 55.0f;
         const ImVec2 label_size = ImGui::CalcTextSize("X");
-        const char Txt[] = "X\0Y\0Z\0W\0";
+        char Txt[8]{ 'X', 0, 'Y', 0, 'Z', 0, 'W', 0 };
+        if(bCol)
+        {
+            Txt[0] = 'R';
+            Txt[2] = 'G';
+            Txt[4] = 'B';
+            Txt[6] = 'A';
+        }
 
         // Colors for RGB
         ImU32 colors[4] = {
@@ -697,7 +766,7 @@ struct AddModulePopup : EditorPopup
         SceneModuleUtil::PerformRecursiveModuleOperation<SceneModuleUtil::_ModuleIDCollector>(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_ModuleIDCollector{ moduleIDs });
         for (const auto& id : moduleIDs)
         {
-            if (!existingModules[id.first])
+            if (!existingModules[id.first] && id.first != SceneModuleType::SCENE)
             {
                 AvailModules.push_back(ModuleDescription{ Editor->GetLanguageText(String(String("mod.") + String(id.second) + ".name").c_str()),
                                                          Editor->GetLanguageText(String(String("mod.") + String(id.second) + ".desc").c_str()),
@@ -760,11 +829,6 @@ struct AddModulePopup : EditorPopup
             closing = true;
         }
         return closing;
-    }
-
-    void _DoHandleRender(String* handleFile, Symbol* sym)
-    {
-
     }
 
 };
@@ -890,18 +954,18 @@ static void _DoHandleRender(EditorUI& editor, String* handleFile, Symbol* sym, U
         }
     }
     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(60, 60, 60, 255));
-    const char* textShow = *handleFile == "<!!>" ? "<Unknown>" : *handleFile == "" ? "Empty" : handleFile->c_str();
+    const char* textShow = *handleFile == "<!!>" ? "<Unknown>" : *handleFile == "" ? editor.GetApplication().GetLanguageText("misc.empty").c_str() : handleFile->c_str();
     ImGui::InputText("##inpHandle", (char*)textShow, strlen(textShow)+1, ImGuiInputTextFlags_ReadOnly);
     if (ImGui::IsItemHovered())
     {
         ImGui::BeginTooltip();
-        ImGui::SetTooltip("Drag a %s file here!", c.Extension);
+        ImGui::SetTooltip(editor.GetApplication().GetLanguageText("misc.drag_here").c_str(), c.Extension.c_str());
         ImGui::EndTooltip();
     }
     ImGui::PopStyleColor();
     ImGui::PushFont(ImGui::GetFont(), 11.0f);
     ImGui::SameLine();
-    if(ImGui::Button("reset") && !handleFile->empty() && *handleFile != "<!!>")
+    if(ImGui::Button(editor.GetApplication().GetLanguageText("misc.reset_lower").c_str()) && !handleFile->empty() && *handleFile != "<!!>")
     {
         *handleFile = "";
         if(sym)
@@ -1021,16 +1085,18 @@ void InspectorView::RenderNode(Float scrollY)
     Ptr<Node> pNode = _EditorUI.InspectingNode.lock();
     Bool clicked = false;
     Bool* pclicked = IsWeakPtrUnbound(pNode->Parent) ? &clicked : nullptr;
+    if (pNode->AgentName == pNode->AttachedScene->GetName())
+        pclicked = nullptr; // cannot add to scene agent
     if (pNode && BeginModule(_EditorUI, "Node", 100.0f, IsOpen, scrollY, "Module/TransformGizmo.png", pclicked) && !clicked)
     {
         Transform orig = pNode->LocalTransform;
         Float* pos = (Float*)&pNode->LocalTransform._Trans;
         ImGui::SetCursorPosX(ImGui::GetCursorStartPos().x + 0.0f);
-        Bool bChanged = PropertyRenderFunctions::_DrawVectorInput("Position", (Float*)&pNode->LocalTransform._Trans, 3);
+        Bool bChanged = PropertyRenderFunctions::_DrawVectorInput("Position", (Float*)&pNode->LocalTransform._Trans, 3, false);
         Vector3 Euler{};
         pNode->LocalTransform._Rot.GetEuler(Euler);
         Euler *= Vector3(180.0f / 3.14159265f);
-        if (PropertyRenderFunctions::_DrawVectorInput("Rotation", (Float*)&Euler, 3))
+        if (PropertyRenderFunctions::_DrawVectorInput("Rotation", (Float*)&Euler, 3, false))
             bChanged = true;
         if (bChanged)
         {
@@ -1045,6 +1111,29 @@ void InspectorView::RenderNode(Float scrollY)
     {
         // add new agent module (ie entity component)
         GetApplication().SetCurrentPopup(TTE_NEW_PTR(AddModulePopup, MEMORY_TAG_EDITOR_UI, pNode->AttachedScene->GetAgentModules(pNode->AgentName), pNode, &_EditorUI), _EditorUI);
+    }
+}
+
+InspectorView::~InspectorView()
+{
+    _CurrentNode = {};
+    _ResetModulesCache();
+}
+
+void InspectorView::_ResetModulesCache()
+{
+    _LastPropFlush = 0;
+    _FlushProps(); // force flush if req
+    _CurrentIsAgent = false;
+    _RuntimeModuleProps.clear();
+    _CurrentNode = {};
+}
+
+void InspectorView::_FlushProps()
+{
+    if(_CurrentNode && _CurrentIsAgent && GetTimeStampDifference(_LastPropFlush, GetTimeStamp()) > 100.0f * 1e-3f) // 100ms flush (10hz)
+    {
+        PropertySet::CallAllCallbacks(_CurrentNode->AttachedScene->GetAgentProps(_CurrentNode->AgentName), _CurrentNode->AttachedScene->GetRegistry());
     }
 }
 
@@ -1078,8 +1167,13 @@ void InspectorView::Render()
             Ptr<Node> node = _EditorUI.InspectingNode.lock();
             if(node != _CurrentNode)
             {
-                _CurrentNode = node;
                 _ResetModulesCache();
+                _CurrentNode = node;
+                _CurrentIsAgent = _EditorUI.IsInspectingAgent;
+                if(_EditorUI.IsInspectingAgent)
+                {
+                    _LastPropFlush = GetTimeStamp();
+                }
             }
             if(_EditorUI.IsInspectingAgent)
             {
@@ -1110,6 +1204,13 @@ void InspectorView::Render()
                                     ImGui::Dummy(ImVec2{ 1.0f, 2.0f });
                                     ImGui::PushFont(ImGui::GetFont(), 13.0f);
                                     ImGui::TextUnformatted(prop.Specification->Name.c_str());
+                                    String lang = "mod." + ToLower(it->second.ModuleName) + ".iv." + StringToSnake(prop.Specification->Name);
+                                    if (ImGui::IsItemHovered() && GetApplication().HasLanguageText(lang.c_str()))
+                                    {
+                                        ImGui::PushTextWrapPos(150.0f);
+                                        ImGui::SetTooltip("%s", GetApplication().GetLanguageText(lang.c_str()).c_str());
+                                        ImGui::PopTextWrapPos();
+                                    }
                                     ImGui::PopFont();
                                     ImGui::Dummy(ImVec2{ 1.0f, 2.0f });
                                     if(prop.Specification->RenderInstruction)
@@ -1145,6 +1246,7 @@ void InspectorView::Render()
             {
                 TextUnformatted("im a node do me pls");
             }
+            _FlushProps();
         }
     }
     End();
@@ -1177,11 +1279,15 @@ void SceneView::_UpdateViewNoActiveScene(Ptr<Scene> pEditorScene, SceneViewData&
     if(pEditorScene->GetViewStack().empty())
     {
         // Ensure default camera
-        Camera editorCam{};
+        if(!_SceneViewCamDefault)
+        {
+            _SceneViewCamDefault = TTE_NEW_PTR(Camera, MEMORY_TAG_EDITOR_UI);
+        }
+        Camera& editorCam = *_SceneViewCamDefault;
         editorCam.SetHFOV(50.0f);
         editorCam.SetNearClip(0.2f);
         editorCam.SetFarClip(1000.0f);
-        pEditorScene->GetViewStack().push_back(editorCam);
+        pEditorScene->GetViewStack().push_back(_SceneViewCamDefault);
     }
     ::RenderFrame& frame = _SceneRenderer.GetRenderer()->GetFrame(true);
     if (bWindowFocused)
@@ -1259,9 +1365,9 @@ void SceneView::_UpdateViewNoActiveScene(Ptr<Scene> pEditorScene, SceneViewData&
 
         Quaternion updatedRotation;
         updatedRotation.SetEuler(viewData.CameraRot.x, viewData.CameraRot.y, 0.0f);
-        auto& cam = pEditorScene->GetViewStack().front();
-        cam.SetWorldRotation(updatedRotation);
-        cam.SetWorldPosition(viewData.CameraPosition);
+        auto& cam = pEditorScene->GetViewStack().front().lock();
+        cam->SetWorldRotation(updatedRotation);
+        cam->SetWorldPosition(viewData.CameraPosition);
     }
     else
     {
@@ -1331,7 +1437,7 @@ void SceneView::PostRender(void* me, const SceneFrameRenderParams& params, Rende
 
     if(self->_SceneData)
     {
-        for (const auto& renderable : SceneModule<SceneModuleType::RENDERABLE>::GetModuleArray(*self->_EditorSceneCache))
+        for (const auto& renderable : self->_EditorSceneCache->GetModuleView<SceneModuleType::RENDERABLE>())
         {
             if (renderable.AgentNode == self->_EditorUI.InspectingNode.lock())
             {
@@ -1406,7 +1512,7 @@ void SceneView::Render()
             {
                 // mouse is in scene viewport. screen pos x and y are the coords in that viewport 0 0 being TL
                 U32 screenPosX = cursorX - viewportX, screenPosY = cursorY - viewportY;
-                _SceneData->HoveringAgent = _EditorSceneCache->GetAgentAtScreenPosition(_EditorSceneCache->GetViewStack().back(), screenPosX, screenPosY, false);
+                _SceneData->HoveringAgent = _EditorSceneCache->GetAgentAtScreenPosition(*_EditorSceneCache->GetViewStack().back().lock(), screenPosX, screenPosY, false);
                 if(ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
                 {
                     if(_SceneData->HoveringAgent.empty())

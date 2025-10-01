@@ -473,6 +473,25 @@ inline Bool StringContains(const String& str, const String& substr, Bool ignoreC
     return haystack.find(needle) != String::npos;
 }
 
+inline String StringToSnake(const String& input)
+{
+    String result;
+    result.reserve(input.size());
+    for (char c : input)
+    {
+        if (std::isspace(static_cast<unsigned char>(c)))
+        {
+            result.push_back('_');
+        }
+        else
+        {
+            result.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+        }
+    }
+
+    return result;
+}
+
 
 // Radius must be 2 to 36
 String StringFromInteger(I64 original_value,U32 radix, Bool is_negative); // defined in Config.cpp

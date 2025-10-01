@@ -358,6 +358,12 @@ const String& UIComponent::GetLanguageText(CString id)
     return _MyUI.GetLanguageText(id);
 }
 
+Bool ApplicationUI::HasLanguageText(CString id)
+{
+    auto it = _LanguageMap.find(Symbol(id));
+    return it != _LanguageMap.end();
+}
+
 const String& ApplicationUI::GetLanguageText(CString id)
 {
     static String _LastUnk{};

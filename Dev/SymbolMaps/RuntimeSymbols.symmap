@@ -1,8 +1,297 @@
+Ambient Color
+Shadow Color
+Active Camera
+Walk Boxes
+Footstep Walk Boxes
+Scene Render Priority
+Scene Render Layer
+Exclude From Save Games
+Scene Time Scale
+Scene Input Enabled
+Scene Audio: Listener
+Scene Audio: Player Origin
+Scene Audio: Master
+Scene Audio: Snapshot Suite
+Scene Audio: Reverb Definition
+Scene Audio Reverb
+Scene Audio Event Banks
+Scene Preloadable
+Scene Preload Shaders
+After Effects Enabled
+Generate NPR Lines
+NPR Lines Falloff
+NPR Lines Bias
+NPR Lines Alpha Falloff
+NPR Lines Alpha Bias
+Glow Clear Color
+Glow Sigma Scale
+FX anti-aliasing
+FX TAA Weight
+FX Color Enabled
+FX Color Tint
+FX Color Opacity
+FX Noise Scale
+FX Sharp Shadows Enabled
+FX Levels Enabled
+FX Levels Black Point
+FX Levels White Point
+FX Levels Intensity
+FX Levels Black Point HDR
+FX Levels White Point HDR
+FX Levels Intensity HDR
+FX Tonemap Type
+FX Tonemap Enabled
+FX Tonemap DOF Enabled
+FX Tonemap Intensity
+FX Tonemap White Point
+FX Tonemap Black Point
+FX Tonemap Filmic Pivot
+FX Tonemap Filmic Shoulder Intensity
+FX Tonemap Filmic Toe Intensity
+FX Tonemap Filmic Sign
+FX Tonemap Far White Point
+FX Tonemap Far Black Point
+FX Tonemap Far Filmic Pivot
+FX Tonemap Far Filmic Shoulder Intensity
+FX Tonemap Far Filmic Toe Intensity
+FX Tonemap Far Filmic Sign
+FX Tonemap RGB Enabled
+FX Tonemap RGB DOF Enabled
+FX Tonemap RGB Black Points
+FX Tonemap RGB White Points
+FX Tonemap RGB Pivots
+FX Tonemap RGB Shoulder Intensities
+FX Tonemap RGB Toe Intensities
+FX Tonemap RGB Signs
+FX Tonemap RGB Far Black Points
+FX Tonemap RGB Far White Points
+FX Tonemap RGB Far Pivots
+FX Tonemap RGB Far Shoulder Intensities
+FX Tonemap RGB Far Toe Intensities
+FX Tonemap RGB Far Signs
+FX Bloom Threshold
+FX Bloom Intensity
+FX Ambient Occlusion Enabled
+FX Ambient Occlusion Intensity
+FX Ambient Occlusion Falloff
+FX Ambient Occlusion Radius
+FX Ambient Occlusion Lightmap
+FX DOF Enabled
+FX DOF FOV Adjust Enabled
+FX DOF Auto Focus Enabled
+FX DOF Near
+FX DOF Far
+FX DOF Near Falloff
+FX DOF Far Falloff
+FX DOF Near Max
+FX DOF Far Max
+FX DOF Vignette Max
+FX DOF Debug
+FX DOF Coverage Boost
+FX Force Linear Depth Offset
+FX Vignette Tint Enabled
+FX Vignette DOF Enabled
+FX Vignette Tint
+FX Vignette Falloff
+FX Vignette Center
+FX Vignette Corners
+HBAO Enabled
+HBAO Debug
+HBAO Radius
+HBAO Max Radius Percent
+HBAO Hemisphere Bias
+HBAO Intensity
+HBAO Occlusion Scale
+HBAO Luminance Scale
+HBAO Max Distance
+HBAO Distance Falloff
+HBAO Blur Sharpness
+Screen Space Lines - Enabled
+Screen Space Lines - Color
+Screen Space Lines - Thickness
+Screen Space Lines - Depth Fade Near
+Screen Space Lines - Depth Fade Far
+Screen Space Lines - Depth Magnitude
+Screen Space Lines - Depth Exponent
+Screen Space Lines - Light Direction
+Screen Space Lines - Light Magnitude
+Screen Space Lines - Light Exponent
+Screen Space Lines - Debug
+Fog Enabled
+Fog Color
+Fog Alpha
+Fog Near Plane
+Fog Far Plane
+HDR - Paper White Nits
+Graphic Black Threshold
+Graphic Black Softness
+Graphic Black Alpha
+Graphic Black Near
+Graphic Black Far
+Wind Direction
+Wind Speed
+Wind Idle Strength
+Wind Idle Spacial Frequency
+Wind Gust Speed
+Wind Gust Strength
+Wind Gust Spacial Frequency
+Wind Gust Idle Strength Multiplier
+Wind Gust Separation Exponent
+LightEnv Reflection Enabled
+LightEnv Bake Enabled
+LightEnv Reflection Texture
+LightEnv Reflection Intensity
+LightEnv Reflection Tint
+LightEnv Enabled
+LightEnv Probe Data
+LightEnv Intensity
+LightEnv Reflection Intensity Shadow
+LightEnv Saturation
+LightEnv Tint
+LightEnv Background Color
+LightEnv Probe Resolution XZ
+LightEnv Probe Resolution Y
+LightEnv Shadow Moment Bias
+LightEnv Shadow Depth Bias
+LightEnv Shadow Position Offset Bias
+LightEnv Shadow Light Bleed Reduction
+LightEnv Shadow Min Distance
+LightEnv Shadow Max Distance
+LightEnv Dynamic Shadow Max Distance
+LightEnv Shadow Cascade Split Bias
+LightEnv Shadow Auto Depth Bounds
+LightEnv Shadow Max Updates
+Light Shadow Trace Max Distance
+Light Static Shadow Bounds Min
+Light Static Shadow Bounds Max
+EnvLight Shadow Gobo Texture
+FX Brush DOF Enable
+FX Brush Outline Enable
+FX Brush Outline Filter Enable
+FX Brush Outline Size
+FX Brush Outline Threshold
+FX Brush Outline Color Threshold
+FX Brush Outline Falloff
+FX Brush Near Outline Scale
+FX Brush Near Texture
+FX Brush Far Texture
+FX Brush Near Scale
+FX Brush Near Detail
+FX Brush Far Scale
+FX Brush Far Detail
+FX Brush Far Scale Boost
+FX Brush Far Plane
+FX Brush Far Plane Falloff
+FX Brush Far Plane Max Scale
+Frame Buffer Scale Override
+Frame Buffer Scale Factor
+Specular Multiplier Enabled
+Specular Color Multiplier
+Specular Intensity Multiplier
+Specular Exponent Multiplier
+HDR lightmaps Enabled
+HDR lightmaps Intensity
+Camera Cut Position Threshold
+Camera Cut Rotation Threshold
+Viewport Scissor Left
+Viewport Scissor Top
+Viewport Scissor Right
+Viewport Scissor Bottom
+Scene Physics Data
+Scene Exports to Content Scene
+Text Color
+Text Font
+Text Scale
+Non-Proportional Text Scale
+Text Kerning
+Text Leading
+Text Skew
+Text String
+Text Background
+Text Confine
+Text Alignment Horizontal
+Text Alignment Vertical
+Text Shadow Color
+Text Shadow Height
+Text Background Color
+Text Width
+Text Min Width
+Text Min Height
+Text Extrude X
+Text Extrude Y
+Text Offset
+Text Playback Speed
+Text Percent To Display
+Text Max Lines To Display
+Text Render Layer
+Text Dialog File
+Text Dialog Text Resource
+Text Dialog 2.0 File
+Text Dialog 2.0 Node Name
+Text Key Agent Name
+Text Key Name
+Text Key Format String
+Text Reference Screen Size
+Text World Space Z
+Text Alpha Multiply
+Text Background Alpha Multiply
 Skeleton Instance
 Skeleton File
 Skeleton Use Procedural Joint Corners
 Skeleton Leg Width
 Skeleton Arm Width
+Clip Plane - Far
+Clip Plane - Near
+Depth of Field Fall Off - Far
+Depth of Field Fall Off - Near
+Depth of Field - Far
+Depth of Field Max - Far
+Depth of Field Max - Near
+Depth of Field - Near
+Camera Push
+Aspect Ratio
+Field of View
+Field of View Scale
+Camera Blend Enable
+Cull Objects
+Exposure
+Exclude Agents
+Depth Of Field Enabled
+Use High Quality DOF
+Depth Of Field Type
+Depth Of Field Blur Strength
+Depth Of Field Debug
+Depth Of Field Coverage Boost
+Bokeh Pattern Texture
+Bokeh Brightness Delta Threshold
+Bokeh Brightness Threshold
+Bokeh Blur Threshold
+Bokeh Min Size
+Bokeh Max Size
+Use Bokeh
+Bokeh Falloff
+Bokeh Aberration Offsets X
+Bokeh Aberration Offsets Y
+Max Bokeh Buffer Amount
+Exclude from Auto Director
+FX Radial Blur Enabled
+FX Radial Blur Intensity
+FX Radial Blur In Radius
+FX Radial Blur Out Radius
+FX Radial Blur Tint
+FX Radial Blur Tint Intensity
+FX Radial Blur Scale
+FX Motion Blur Enabled
+FX Motion Blur Intensity
+FX Motion Blur Movement Threshold Enabled
+FX Motion Blur Movement Threshold
+FX Motion Blur Rotation Threshold Enabled
+FX Motion Blur Rotation Threshold
+FX Delay Motion Blur
+Audio Listener Override
+Audio Player Origin Override
+Audio Reverb Event Snapshot Override
+Audio Reverb Override
 Render 3D Alpha
 Render Allow NPR Lines
 Render Ambient Occlusion Lightmap
@@ -3151,14 +3440,12 @@ Scene: Attach Agent
 Scene: Attach Node
 Scene: Start Position
 Scene: Start Quaterion
-Ambient Color
 camera.prop
 light.prop
 Light Intensity
 Light Max Distance
 Light Color
 Light Type
-Field of View
 sk02_fone.prop
 Walk Animation - Idle
 sk02_phoney.prop
@@ -3182,7 +3469,6 @@ TutorialTalk
 TutorialUse
 TutorialWalk
 bMapDiscovered
-Walk Boxes
 adv_desert.wbox
 NavCam - Interesting Agents
 NavCam - Animation
@@ -3212,25 +3498,14 @@ module_null.prop
 obj_bookmobydick.prop
 obj_cigar.prop
 obj_packfoneopen.prop
-Text Render Layer
-Text Dialog Text Resource
 Alpha_Level
-Text Color
-Text Dialog File
 boneui.dlg
-Text Font
 bonefont_18.font
 obj_sun.prop
 ui_logo.prop
 empty.wbox
-Camera Push
 obj_locustgroupflatside.prop
 ui_text_selectable.prop
-Text String
-Text Kerning
-Text Scale
-Text Shadow Height
-Text Background Color
 adv_deserttile.prop
 Cursor Texture
 obj_desertrocka.prop
@@ -3415,21 +3690,13 @@ adv_thorndreamscape.prop
 sk10_thornchild.prop
 Selection Color
 ui_menu.prop
-Clip Plane - Far
-Clip Plane - Near
 ui_menubackground.prop
 Light Dimmer
-Text Leading
-Text Alignment Vertical
 obj_dreamcloud_sprite.d3dmesh
 obj_dream_sprite.d3dmesh
 obj_sprite.d3dmesh
 sk02_move_walk.anm
 sk02_idle.anm
-Scene Render Priority
-Text Background
-Text Min Height
-Text Min Width
 bonefont_12.font
 ui_inventoryitem.prop
 ui_inventorypackclosed.prop
@@ -3438,18 +3705,13 @@ ui_inventorypackopentop.prop
 ui_options.prop
 ui_exit.prop
 ui_menuitem.prop
-Text Width
-Text Alignment Horizontal
 ui_dialogselectionballoon.prop
 Disable Tutorial
 ui_dialogselectionheadhilite.prop
 ui_dialogselectiontexthilite.prop
 ui_dialogselectionhead.prop
 ui_dialogselectiontext.prop
-Non-Proportional Text Scale
 ui_scroll.prop
-Text Extrude X
-Text Extrude Y
 ui_back.prop
 ui_optionsitem.prop
 ui_optionsmeter.prop
@@ -3468,19 +3730,10 @@ ui_menuitemoption.prop
 ui_button.prop
 ui_dialogspeakingballoon.prop
 ui_dialogspeakinghead.prop
-Text Max Lines To Display
-Text Playback Speed
 _test.wbox
 cam_desert_nav.anm
-Exclude From Save Games
-Active Camera
-Scene Time Scale
 Light Bump Light
 Light Bump Intensity
-Text Confine
-Text Offset
-Text Reference Screen Size
-Cull Objects
 ui_icon.prop
 ui_inventoryitem.d3dmesh
 Render Pixel Shader

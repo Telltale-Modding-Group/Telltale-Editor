@@ -170,6 +170,11 @@ void SceneModule<SceneModuleType::SKELETON>::OnSetupAgent(SceneAgent *pAgentGett
     }
 }
 
+void SceneModule<SceneModuleType::SKELETON>::OnModuleRemove(SceneAgent* pAttachedAgent)
+{
+    pAttachedAgent->AgentNode->RemoveObjData<SkeletonInstance>("");
+}
+
 void SkeletonInstance::AddAnimatedValue(Ptr<PlaybackController> pController, Ptr<AnimationValueInterface> pAnimatedValue)
 {
     Ptr<AnimationMixerBase> pSelectedMixer{};

@@ -258,7 +258,7 @@ struct MethodLock
         {
             if(wk.expired())
             {
-                TTE_ASSERT(false, "WARNING: Method object has expired for unchecked MethodImplBase<TObj>");
+                TTE_LOG("WARNING: Method object has expired for unchecked MethodImplBase<TObj>");
             }
             else
             {
