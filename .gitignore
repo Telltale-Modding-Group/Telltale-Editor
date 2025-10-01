@@ -1,23 +1,13 @@
-<<<<<<< Updated upstream
-################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-
 .vs/*
 Bin/*
 build/*
-*.DS_Store
 CMakeFiles/*
 CMakeCache.txt
 *.ttarch2
 *.ttarch
 Dev/.vscode/tasks.json
 TelltaleEditor/3rdparty/SDL-shadercross/*
-TelltaleEditor/3rdparty/SDL3
-TelltaleEditor/3rdparty/SDL3
-TelltaleEditor/3rdparty/SDL3
 Dev/TestResources/Dbg/*
-.vs/*
 Bin/*
 .DS_Store
 *.exe
