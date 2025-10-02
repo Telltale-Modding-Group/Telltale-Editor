@@ -258,7 +258,7 @@ public:
         Vector3 v = (sphere._Center * sphere_xform._Rot) + sphere_xform._Trans;
         float threshold = sphere._Radius * -1.0f * renderScale.x;//only x needed as its a sphere
         int i = 0;
-        while ((Vector3::Dot(Vector3(f._Plane[i]._Plane), v) + f._Plane[i]._Plane.w) >= threshold) {
+        while ((Vector3::Dot(f._Plane[i]._Plane.xyz(), v) + f._Plane[i]._Plane.w) >= threshold) {
             if (++i >= 6) {
                 return true;
             }
@@ -381,7 +381,7 @@ public:
             _CachedFrustum._Plane[FRUSTUM_PLANE_ZFAR]._Plane = Vector4(Vector3::Backward, 1.0f);
             _CachedFrustum.TransformBy(viewProjection);
             for (int i = 0; i < 6; i++) {
-                Vector3 normal = Vector3(_CachedFrustum._Plane[i]._Plane);
+                Vector3 normal = _CachedFrustum._Plane[i]._Plane.xyz();
                 float mag = normal.Magnitude();
                 normal /= mag;
                 _CachedFrustum._Plane[i]._Plane = Vector4(normal, mag * _CachedFrustum._Plane[i]._Plane.w);

@@ -549,6 +549,11 @@ struct alignas(4) Vector4
             mag = 0.f;
         return mag;
     }
+
+    inline Vector3 xyz() const
+    {
+        return Vector3(x, y, z);
+    }
     
 };
 
@@ -1368,7 +1373,7 @@ struct Frustum {
     {
         for (U32 i = 0; i < 6; i++) {
             for(int j = 0; j < 8; j++){
-                if (!((Vector3::Dot(Vector3(_Plane[i]._Plane), boxCorners[j]) + _Plane[i]._Plane.w) > 0.0f))
+                if (!((Vector3::Dot(_Plane[i]._Plane.xyz(), boxCorners[j]) + _Plane[i]._Plane.w) > 0.0f))
                     return false;
             }
         }

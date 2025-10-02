@@ -953,7 +953,8 @@ Bool RenderEffectCache::_CreateProgram(const String& fxSrc, RenderEffectParams p
     {
 #ifdef PLATFORM_MAC
         // No compilation needed, MSL.
-        vert = _CreateShader(vertexParameters, RenderShaderType::VERTEX, builtName + "_VERTEX", ParamSlotsVert,                                 vertexAttribs, (const void*)fxResolvedVertex.c_str(), (U32)fxResolvedVertex.size(),
+        vert = _CreateShader(vertexParameters, RenderShaderType::VERTEX, builtName + "_VERTEX", ParamSlotsVert, 
+            vertexAttribs, (const void*)fxResolvedVertex.c_str(), (U32)fxResolvedVertex.size(),
                                     SDL_GPU_SHADERFORMAT_MSL);
         pixel = _CreateShader(pixelParameters, RenderShaderType::FRAGMENT, builtName + "_FRAG", ParamSlotsPixel,
                               {}, (const void*)fxResolvedPixel.c_str(), (U32)fxResolvedPixel.size(),
