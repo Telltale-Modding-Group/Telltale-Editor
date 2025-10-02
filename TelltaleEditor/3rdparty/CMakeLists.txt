@@ -35,6 +35,7 @@ endif()
 
 if(NOT TARGET SDL3::SDL3-static)
     set(CMAKE_FOLDER ${THIRD_PARTY_FOLDER}/SDL) # Apply FOLDER to all targets in the SDL3 folder
+    set(SDL_WAYLAND OFF CACHE BOOL "" FORCE)
     add_subdirectory(SDL EXCLUDE_FROM_ALL)
     unset(CMAKE_FOLDER) # Unset it
 endif()
