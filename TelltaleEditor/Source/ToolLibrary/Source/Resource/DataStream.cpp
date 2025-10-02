@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <deque>
+#include <cinttypes>
 
 // ===================================================================
 // SCHEMES
@@ -412,7 +413,7 @@ ResourceURL::ResourceURL(const Symbol &symbol)
     {
         _Scheme = ResourceScheme::SYMBOL;
         char tmp[32];
-        sprintf(tmp, "%llX", symbol.GetCRC64());
+        sprintf(tmp, "%" PRIx64, symbol.GetCRC64());
         _Path = tmp;
     }
 }

@@ -406,7 +406,7 @@ Bool NewAgentPopup::Render()
     }
     else
     {
-        ImGui::Text("");
+        ImGui::TextUnformatted("");
     }
     if(ImGui::Button("Create") && ok && _Input[0] != 0)
     {

@@ -1525,8 +1525,8 @@ namespace Meta {
         {
             for (const auto& mem : State.Classes[lhs.GetClassID()].Members)
             {
-                ClassInstance meminstLHS = ClassInstance(mem.ClassID, Ptr<U8>(meminstLHS._InstanceMemory, meminstLHS._GetInternal() + mem.RTOffset), meminstLHS.ObtainParentRef());
-                ClassInstance meminstRHS = ClassInstance(mem.ClassID, Ptr<U8>(meminstRHS._InstanceMemory, meminstRHS._GetInternal() + mem.RTOffset), meminstRHS.ObtainParentRef());
+                ClassInstance meminstLHS = ClassInstance(mem.ClassID, Ptr<U8>(lhs._InstanceMemory, lhs._GetInternal() + mem.RTOffset), lhs.ObtainParentRef());
+                ClassInstance meminstRHS = ClassInstance(mem.ClassID, Ptr<U8>(rhs._InstanceMemory, rhs._GetInternal() + mem.RTOffset), rhs.ObtainParentRef());
                 if (!PerformLessThan(meminstLHS, meminstRHS))
                 {
                     return false;

@@ -93,18 +93,26 @@ U64 FileSize(U64 Handle)
 
 U64 FileNull() { return 0x0000'0000'FFFF'FFFFull; }
 
+#include <unistd.h>
+#include <fcntl.h>
+
 String FileNewTemp()
 {
     char tmplt[] = "/tmp/tteditorLINUX_XXXXXX";
 
-    if (mktemp(tmplt) == NULL)
+    // mkstemp replaces the XXXXXX with a unique suffix and opens the file
+    int fd = mkstemp(tmplt);
+    if (fd == -1)
     {
-        TTE_ASSERT(false, "Call to mktemp failed");
+        TTE_ASSERT(false, "Call to mkstemp failed");
         return "";
     }
 
+    close(fd);
+
     return String(tmplt);
 }
+
 
 U64 FilePos(U64 Handle) {
     return (U64)lseek((int)Handle, 0, SEEK_CUR);

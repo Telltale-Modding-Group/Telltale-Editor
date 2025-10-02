@@ -50,9 +50,9 @@ function (ignore_warnings target is_cpp) # ignore specific warnings, but disallo
 
 	if(UNIX)
 		if(APPLE)
-			set(FINAL_WARNINGS "${FINAL_WARNINGS}-Wno-format-extra-args;-Wno-deprecated;-Werror=vla;")
+			set(FINAL_WARNINGS "${FINAL_WARNINGS}-Wno-format-extra-args;-Wno-deprecated;-Werror=vla;-Wno-deprecated-declarations;")
 		else()
-            set(FINAL_WARNINGS "${FINAL_WARNINGS}-Wno-format-extra-args;-Wno-deprecated;-Werror=vla;")
+            		set(FINAL_WARNINGS "${FINAL_WARNINGS}-Wno-format-extra-args;-Wno-deprecated;-Werror=vla;-Wno-deprecated-non-prototype;-Wno-format-truncation;")
 		endif()
 	elseif(WIN32)
 		set(FINAL_WARNINGS "${FINAL_WARNINGS}") # any msvc specific stuff in the future
