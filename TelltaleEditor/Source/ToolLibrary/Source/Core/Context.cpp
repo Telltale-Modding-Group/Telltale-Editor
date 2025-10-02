@@ -2,8 +2,10 @@
 #include <Resource/ResourceRegistry.hpp>
 #include <Meta/Meta.hpp>
 
-// ===================================================================         UTIL
-// ===================================================================
+#include <sstream>
+#include <stdio.h>
+#include <fstream>
+#include <filesystem>
 
 thread_local Bool _IsMain = false;
 
@@ -24,22 +26,6 @@ Bool IsCallingFromMain()
 {
     return _IsMain;
 }
-
-String MakeTypeName(String fullName)
-{
-    if(Meta::GetInternalState().GameIndex == -1 || Meta::GetInternalState().GetActiveGame().Caps[GameCapability::RAW_TYPE_NAMES])
-    {
-        StringReplace(fullName, "class ", "");
-        StringReplace(fullName, "struct ", "");
-        StringReplace(fullName, "enum ", "");
-        StringReplace(fullName, "std::", "");
-        StringReplace(fullName, " ", "");
-    }
-    return fullName;
-}
-
-// ===================================================================         TOOL CONTEXT
-// ===================================================================
 
 static ToolContext* GlobalContext = nullptr;
 
@@ -91,7 +77,7 @@ Ptr<ResourceRegistry> ToolContext::CreateResourceRegistry()
     
     Ptr<ResourceRegistry> registry = TTE_NEW_PTR(ResourceRegistry, MEMORY_TAG_RESOURCE_REGISTRY, GetGameLVM());
     
-    Ptr<GameDependentObject> asDependent = std::static_pointer_cast<GameDependentObject>(registry);
+    Ptr<SnapshotDependentObject> asDependent = std::static_pointer_cast<SnapshotDependentObject>(registry);
     {
         std::lock_guard<std::mutex> G{_DependentsLock};
         _SwitchDependents.push_back(asDependent);
@@ -133,6 +119,7 @@ ToolContext::~ToolContext()
     Meta::Shutdown();
     DataStreamManager::Shutdown();
     Memory::Shutdown();
+    CommonClassInfo::Shutdown();
     // Lua shuts down automatically in dtor
 }
 
@@ -184,7 +171,7 @@ void ToolContext::Release()
         U32 errors{};
         for(auto& dependent: _SwitchDependents)
         {
-            Ptr<GameDependentObject> alive = dependent.lock();
+            Ptr<SnapshotDependentObject> alive = dependent.lock();
             if(alive)
             {
                 errors++;
@@ -196,60 +183,16 @@ void ToolContext::Release()
         _SwitchDependents.clear();
         
         JobScheduler::Shutdown();
-        Meta::RelGame();
         Blowfish::Shutdown();
         GetGameSymbols().Clear();
         
+        _L[0].GC();
+        _L[1].GC();
+        _L[2].GC();
+
+        Meta::RelGame();
+
         _Setup = false;
         
     }
-}
-
-String StringFromInteger(I64 original_value,U32 radix, Bool is_negative)
-{
-    U8 Buf[64]{};
-    U8* out = Buf;
-    if (radix < 2 || radix > 36)
-    {
-        TTE_LOG("Invali radix");
-        return "";
-    }
-    
-    uint64_t value = static_cast<uint64_t>(original_value);
-    uint64_t written = 0;
-    
-    if (is_negative) {
-        *out++ = '-';
-        ++written;
-        value = static_cast<uint64_t>(-original_value);
-    }
-    
-    U8* digits_start = out;
-    
-    // Write digits in reverse order
-    do {
-        if (written >= 63)
-        {
-            TTE_LOG("Integer too large for buffer");
-            return "";
-        }
-        
-        uint64_t remainder = value % radix;
-        value /= radix;
-        *out++ = (remainder < 10) ? ('0' + remainder) : ('a' + remainder - 10);
-        ++written;
-        
-    } while (value != 0);
-    
-    *out = '\0';
-    
-    // Reverse the digits (excluding minus sign if present)
-    U8* left = digits_start;
-    U8* right = out - 1;
-    while (left < right)
-    {
-        std::swap(*left++, *right--);
-    }
-    
-    return String((CString)Buf);
 }

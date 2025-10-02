@@ -14,12 +14,27 @@ void ThreadSleep(U64 milliseconds)
 
 void SetThreadName(const String &tName) { (void)pthread_setname_np(pthread_self(), tName.c_str()); }
 
+void PlatformMessageBoxAndWait(const String& title, const String& message)
+{
+    String command = "zenity --info --title=\"" + title + "\" --text=\"" + message + "\"";
+    int result = system(command.c_str());
+
+    if (result != 0) {
+        printf("=== %s ===\n%s\nPlease press enter to continue...\n", title.c_str(), message.c_str());
+        getchar();
+    }
+}
+
 void DebugBreakpoint() { (void)raise(SIGINT); }
 
 U64 FileOpen(CString path)
 {
     int file = open(path, O_RDWR | O_CREAT, 0777);
-    TTE_ASSERT(file != -1, "Could not open %s => posix err %d", path, errno);
+    if(file == -1)
+    {
+        TTE_LOG("Could not open %s => posix err %d", path, errno);
+        return FileNull();
+    }
     return (U64)file;
 }
 
@@ -78,18 +93,26 @@ U64 FileSize(U64 Handle)
 
 U64 FileNull() { return 0x0000'0000'FFFF'FFFFull; }
 
+#include <unistd.h>
+#include <fcntl.h>
+
 String FileNewTemp()
 {
     char tmplt[] = "/tmp/tteditorLINUX_XXXXXX";
 
-    if (mktemp(tmplt) == NULL)
+    // mkstemp replaces the XXXXXX with a unique suffix and opens the file
+    int fd = mkstemp(tmplt);
+    if (fd == -1)
     {
-        TTE_ASSERT(false, "Call to mktemp failed");
+        TTE_ASSERT(false, "Call to mkstemp failed");
         return "";
     }
 
+    close(fd);
+
     return String(tmplt);
 }
+
 
 U64 FilePos(U64 Handle) {
     return (U64)lseek((int)Handle, 0, SEEK_CUR);

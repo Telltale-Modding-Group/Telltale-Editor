@@ -41,7 +41,7 @@ function NewProxyClass(name, memberName, underlyingClassTable, disableMemberBloc
     return clazz
 end
 
--- Adds an enum descriptor for a given member in a class
+-- Adds an enum descriptor for a given member in a class. Note the enum member flag must be set or this is ignored!
 function AddEnum(classTable, memberIndex, name, value)
     if classTable.Members[memberIndex].EnumInfo == nil then
         classTable.Members[memberIndex].EnumInfo = {}
@@ -49,7 +49,7 @@ function AddEnum(classTable, memberIndex, name, value)
     table.insert(classTable.Members[memberIndex].EnumInfo, { Name = name, Value = value })
 end
 
--- Adds a flag descriptor for a given member in a class
+-- Adds a flag descriptor for a given member in a class. Note the enum flags flag must be set or this is ignored!
 function AddFlag(classTable, memberIndex, name, value)
     if classTable.Members[memberIndex].FlagInfo == nil then
         classTable.Members[memberIndex].FlagInfo = {}

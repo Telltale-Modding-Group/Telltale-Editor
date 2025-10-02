@@ -10,14 +10,6 @@
 
 #include <mutex>
 
-// Used to identify a specific game release snapshot of associated game data for grouping formats
-struct GameSnapshot
-{
-    String ID; // game ID, see wiki.
-    String Platform;// game platform, see wiki.
-    String Vendor; // vendor. some games have mulitple differing releases. leave blank unless instructed.
-};
-
 class ResourceRegistry;
 
 // The tool context is used as a global context for the library when modding. Creating this and then calling initialise runs all the lua
@@ -98,9 +90,11 @@ private:
     LuaFunctionCollection _PerStateCollection; // functions to register for each worker thread lua state.
     
     std::mutex _DependentsLock;
-    std::vector<WeakPtr<GameDependentObject>> _SwitchDependents{}; // see game dependent object
+    std::vector<WeakPtr<SnapshotDependentObject>> _SwitchDependents{}; // see game dependent object
     
     friend ToolContext* CreateToolContext(LuaFunctionCollection);
+
+    friend void Meta::InitGame();
     
 };
 
@@ -116,3 +110,6 @@ ToolContext* GetToolContext();
 
 // Returns if we are calling from the main thread, ie the thread that called CreateToolContext().
 Bool IsCallingFromMain();
+
+// For prop keys. Only used by context to register to Lua VM
+std::vector<std::pair<CString, CString>>& GetPropKeyConstants();

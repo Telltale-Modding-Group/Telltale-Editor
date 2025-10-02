@@ -26,6 +26,10 @@ else()
     set(CMAKE_CXX_FLAGS_RELEASE "/O2")     # /O2 = optimize for speed
 endif()
 
+if(APPLE)
+    enable_language(OBJC)
+endif()
+
 set(TELLTALE_EDITOR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(CMAKE_INSTALL_PREFIX "${TELLTALE_EDITOR_ROOT_DIR}/BinInstall")
 set(BINARY_ROOT_DIR "${CMAKE_INSTALL_PREFIX}/")

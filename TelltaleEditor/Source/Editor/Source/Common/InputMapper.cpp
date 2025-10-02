@@ -304,6 +304,23 @@ void InputMapper::ConvertRuntimeEvents(const SDL_Event &sdlEvent, std::vector<Ru
     }
 }
 
+void RuntimeInputEventManager::ProcessEvents(const std::vector<RuntimeInputEvent>& events)
+{
+    for (auto& event : events)
+    {
+        if (event.Type == InputMapper::EventType::BEGIN)
+            _KeysDown.Set(event.Code, true);
+        else if (event.Type == InputMapper::EventType::END)
+            _KeysDown.Set(event.Code, false);
+    }
+}
+
+Bool RuntimeInputEventManager::IsKeyDown(InputCode key)
+{
+    TTE_ASSERT(InputMapper::IsCommonInputCode(key), "Invalid key code"); // ONLY ACCEPT COMMON CODES. Platform ones are mapped.
+    return _KeysDown[key];
+}
+
 // =========================== ALL ENUM DESCRIPTORS
 
 String InputMapper::GetInputCodeName(InputCode key)

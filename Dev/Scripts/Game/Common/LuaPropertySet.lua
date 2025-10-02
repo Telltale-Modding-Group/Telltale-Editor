@@ -40,11 +40,13 @@ function SerialisePropertySet0(metaStream, propInstance, isWrite)
 			local propType, propTypeVersionIndex = MetaStreamFindClass(metaStream, typeSymbol) -- read class symbol
             if propType == nil then
                 local typeNameString = SymbolTableFind(typeSymbol)
-                if string.len(typeNameString) == 0 then
-                    typeNameString = typeSymbol
+                if typeNameString == "" then
+					TTE_Log("Unregistered or unknown type in property set: " .. typeSymbol)
+					return false
+				else
+					propType = typeNameString
+					propTypeVersionIndex = 0
                 end
-                TTE_Log("Unregistered or unknown type in property set: " .. typeNameString)
-                return false
             end
 			local numOfThatType = MetaStreamReadInt(metaStream)
 			for j=1, numOfThatType do

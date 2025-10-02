@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <stdexcept>
 #include <deque>
+#include <cinttypes>
 
 // ===================================================================
 // SCHEMES
@@ -85,6 +86,16 @@ void DataStreamManager::WriteString(DataStreamRef &stream, const String &str)
     U32 sz = (U32)str.length();
     SerialiseDataU32(stream, nullptr, &sz, true);
     stream->Write((const U8*)str.c_str(), str.length());
+}
+
+
+String DataStreamManager::ReadAllAsString(DataStreamRef& str)
+{
+    U32 size = (U32)(str->GetSize() - str->GetPosition());
+    String s{};
+    s.resize(size, '0');
+    str->Read((U8*)s.c_str(), (U64)size);
+    return s;
 }
 
 String DataStreamManager::ReadString(DataStreamRef& str)
@@ -326,7 +337,7 @@ DataStreamFile::DataStreamFile(const ResourceURL &url) : DataStream(url), _Handl
     // Attempt to open the file
     String fpath = url.GetRawPath(); // Get the raw path without the scheme, and pass it to the file system to try and find the file.
     std::filesystem::path p{fpath.c_str()};
-    p = std::filesystem::absolute(p.parent_path());
+    p = std::filesystem::absolute(p).parent_path();
     if(!std::filesystem::exists(p))
         std::filesystem::create_directories(p);
     _Handle = FileOpen(fpath.c_str());
@@ -402,7 +413,7 @@ ResourceURL::ResourceURL(const Symbol &symbol)
     {
         _Scheme = ResourceScheme::SYMBOL;
         char tmp[32];
-        sprintf(tmp, "%llX", symbol.GetCRC64());
+        sprintf(tmp, "%" PRIx64, symbol.GetCRC64());
         _Path = tmp;
     }
 }
@@ -411,7 +422,7 @@ ResourceURL::ResourceURL(String path, Bool bAllowAngles)
 {
     // Split from scheme.
     size_t pos = path.find_first_of(':');
-    if (pos == std::string::npos)
+    if (pos == std::string::npos || pos == 1) // or == 1, windows drive ID
     { // no ':', default file.
         _Path = std::move(path);
         _Scheme = ResourceScheme::FILE;
@@ -430,7 +441,7 @@ void ResourceURL::_Normalise(Bool angleBrackets)
     std::replace(_Path.begin(), _Path.end(), '\\', '/');
     
     // paths cannot contain bad characters
-    std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_<> ";
+    std::string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789./-_<>: ";
     _Path.erase(std::remove_if(_Path.begin(), _Path.end(), [&validChars](char c) { return validChars.find(c) == std::string::npos; }), _Path.end());
     if(!angleBrackets)
     {

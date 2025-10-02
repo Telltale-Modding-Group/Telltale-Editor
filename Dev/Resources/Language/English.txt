@@ -1,0 +1,123 @@
+# PROJECT SELECT
+project_select.title = "Welcome to the Telltale Editor"
+project_select.subtitle = "Create a new project or open an existing project to get started..."
+project_select.recents = "Recent Projects"
+project_select.new = "New Project"
+project_select.exist = "Open Existing"
+
+# PROJECT CREATE
+project_create.invalid_file = "Invalid project file, must end with .tteproj!"
+project_create.title = "Create New Project"
+project_create.name = "Name: "
+project_create.description = "Description: "
+project_create.author = "Author(s): "
+project_create.file_name = "File Name: "
+project_create.next = "Click next to continue..."
+project_create.enter_name = "Please enter the project name"
+project_create.next_button = "Next"
+project_create.snapshot_title = "Select Game Snapshot"
+project_create.snapshot_info = "The game 'snapshot' is what we call a specific version of a release of a Telltale game. This comprises of a game, a platform the game was released on and a vendor. The vendor type helps us distinguish between different releases of the game such as by different vendors / companies."
+project_create.id_combo = "Select Game"
+project_create.platform_combo = "Select Platform"
+project_create.vendor_combo = "Select Vendor"
+project_create.back_button = "Back"
+project_create.create_button = "Create Project"
+project_create.locations_title = "Game Data Directories"
+project_create.location_info = "Please select game data mount points. These are game folders or other packaging files in which game data for the game lies inside of. Unzip any ZIP/IPA(iOS)/APK(Android) etc files into folders and use those as game data folders! Change their extension to .zip first. Add the folder (or any parent folder) in which the .EXE or executable is contained within!"
+project_create.add_archives = "Add Game Executable Folder"
+project_create.add_iso = "Add .ISO (CD-ROM)"
+project_create.add_app = "Add Apple Application"
+project_create.add_pk2 = "Add .PK2 Archive"
+project_create.remove = "Remove"
+project_create.enter_more = "Please input at least one mount point"
+project_create.was_guessed = "The following snapshot details were detected from your mount points. Please double check them as otherwise the files won't load."
+project_create.pick_location_title = "Select Project File Location"
+project_create.exists = "A file or folder already exists with the same project name"
+project_create.location_prompt = "Please enter the project location"
+project_create.select = "Select Location"
+project_create.change = "Change Location"
+project_create.cancel_button = "Cancel"
+project_create.awaiting = "Please wait while the Telltale Editor detects the game snapshot from your game data..."
+project_create.await_too_long = "Detection is taking long! Press next to skip if you are sure of the snapshot details."
+project_create.not_guessed = "We could not detect the snapshot from your mount points. If you are sure, enter manually else make sure the executable is inside the mount points or contact us for help."
+
+# FILE VIEW
+fv.title = "Resources"
+fv.back = "Previous Folder"
+fv.sidebar = "Resource View"
+fv.unsupported_file = "This file type cannot be opened yet!"
+
+# OUTLINE VIEW
+ov.title = "Scene Outline"
+ov.delete_agent = "Delete Agent"
+ov.filter = "Filter..."
+
+# INSPECTOR VIEW
+iv.select = "Please select an agent or scene node"
+iv.title_prefix = "Inspecting"
+iv.title_default = "Inspector"
+iv.add_module = "Add Module"
+
+# SCENE VIEW
+sv.title = "Scene"
+
+# MISC
+misc.drag_here = "Drag a %s file here!"
+misc.empty = "Empty"
+misc.reset_lower = "reset"
+
+# MODULES
+mod.select = "Select Module"
+mod.used = "This agent already has all supported modules!"
+
+# SCENE MODULE
+mod.scene.name = "Scene"
+mod.scene.desc = "Special agent module for the scene agent, contains all scene-wide settings."
+mod.scene.iv.walk_boxes = "Walk Boxes file for this scene to outline user movement outlines."
+mod.scene.iv.ambient_colour = "Ambient colour for the scene"
+
+# LIGHT MODULE
+mod.light.name = "Light"
+mod.light.desc = "Agents with this module represent a light in the scene which affects nearby objects."
+mod.light.iv.dimmer = "Control the light dimmer value"
+mod.light.iv.colour = "The colour which this light emits"
+mod.light.iv.intensity = "The intensity of the emitted light"
+mod.light.iv.max_distance = "The max distance which the light is emitted"
+
+# TEXT MODULE
+mod.text.name = "Text"
+mod.text.desc = "Agents with this module are used to display text in the scene, a special version of a renderable component."
+mod.text.font = "The font resource used for rendering the text."
+mod.text.iv.background_colour = "The background colour applied behind the text."
+mod.text.iv.background = "Whether a background is drawn behind the text (true/false)."
+mod.text.iv.foreground_colour = "The main colour used to render the text characters."
+mod.text.iv.string = "The actual text string to be displayed."
+mod.text.iv.extrude_x = "The extrusion (thickness offset) of the text along the X-axis."
+mod.text.iv.extrude_y = "The extrusion (thickness offset) of the text along the Y-axis."
+mod.text.iv.kerning = "The spacing adjustment between individual characters in the text."
+mod.text.iv.minimum_width = "The minimum width allowed for the rendered text."
+mod.text.iv.minimum_height = "The minimum height allowed for the rendered text."
+mod.text.iv.scale = "The scale factor applied to the size of the text."
+mod.text.iv.shadow_height = "The vertical offset of the text’s shadow."
+mod.text.iv.width = "The total width of the rendered text."
+mod.text.iv.horizontal_align = "The horizontal alignment of the text."
+mod.text.iv.vertical_align = "The vertical alignment of the text."
+
+# CAMERA MODULE
+mod.camera.desc = "This agents acts as a camera in which is seen through the user's viewport."
+mod.camera.name = "Camera"
+mod.camera.iv.fov = "The Field of View is the angle in degrees representing the 'wideness' of the camera lens."
+mod.camera.iv.near_clip = "The distance from the camera origin to the near plane. Defines the view frustrum. Everything before this plane is not visible."
+mod.camera.iv.far_clip = "The distance from the camera origin to the far plane. Defines the view frustrum. Everything after this plane is not visible."
+
+# RENDERABLE MODULE
+mod.renderable.name = "Renderable"
+mod.renderable.desc = "Renderable modules allow the agent to have mesh(es) attached and be rendered."
+mod.renderable.iv.mesh = "Mesh file in which to render for this agent"
+mod.renderable.iv.axis_scale = "The scale for each individual axis XYZ of the mesh"
+mod.renderable.iv.global_scale = "Global XYZ scale for each axis"
+
+# SKELETON MODULE
+mod.skeleton.iv.skeleton = "File to use as the skeleton for this agent"
+mod.skeleton.name = "Skeleton"
+mod.skeleton.desc = "Enables a skeleton to be attached to this agent (typically has the renderable component as well), for skeleton animation for example."
