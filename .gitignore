@@ -8,7 +8,6 @@ CMakeCache.txt
 Dev/.vscode/tasks.json
 TelltaleEditor/3rdparty/SDL-shadercross/*
 Dev/TestResources/Dbg/*
-Bin/*
 .DS_Store
 *.exe
 *.a

@@ -13,7 +13,7 @@
 #define PROJECT_KEY_AUTH "Project - Author"
 #define PROJECT_KEY_SNAP_GAMEID "Project - Snapshot Game ID"
 #define PROJECT_KEY_SNAP_PLATFORM "Project - Snapshot Platform"
-#define PROJECT_KEY_SNAP_VENDOR "Project - Snapshop Vendor"
+#define PROJECT_KEY_SNAP_VENDOR "Project - Snapshot Vendor"
 #define PROJECT_KEY_DIRS "Project - Mount Points"
 
 struct TTEProject

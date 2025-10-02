@@ -791,12 +791,12 @@ struct AddModulePopup : EditorPopup
         if (AvailModules.empty())
         {
             ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 50, 50, 255));
-            ImGui::Text(Editor->GetLanguageText("mod.used").c_str());
+            ImGui::TextUnformatted(Editor->GetLanguageText("mod.used").c_str());
             ImGui::PopStyleColor();
         }
         else
         {
-            ImGui::Text(Editor->GetLanguageText("mod.select").c_str());
+            ImGui::TextUnformatted(Editor->GetLanguageText("mod.select").c_str());
             if (ImGui::BeginCombo("##cmb", Selected.c_str()))
             {
                 for (const auto& avail : AvailModules)
@@ -813,7 +813,7 @@ struct AddModulePopup : EditorPopup
             if (!Selected.empty() && Desc)
             {
                 ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(50, 150, 50, 255));
-                ImGui::TextWrapped(Desc->c_str());
+                ImGui::TextWrapped("%s",Desc->c_str());
                 ImGui::PopStyleColor();
             }
             if (ImGui::Button("Add"))
@@ -1365,7 +1365,7 @@ void SceneView::_UpdateViewNoActiveScene(Ptr<Scene> pEditorScene, SceneViewData&
 
         Quaternion updatedRotation;
         updatedRotation.SetEuler(viewData.CameraRot.x, viewData.CameraRot.y, 0.0f);
-        auto& cam = pEditorScene->GetViewStack().front().lock();
+        auto cam = pEditorScene->GetViewStack().front().lock();
         cam->SetWorldRotation(updatedRotation);
         cam->SetWorldPosition(viewData.CameraPosition);
     }
@@ -1542,7 +1542,7 @@ void SceneView::Render()
             // render scene
             SceneFrameRenderParams params{};
             params.RenderScene = pEditorScene;
-            params.Target = RenderTargetID::RenderTargetID(RenderTargetConstantID::BACKBUFFER);
+            params.Target = RenderTargetID(RenderTargetConstantID::BACKBUFFER);
             params.Viewport = scissor;
             params.TargetWidth = (U32)tSize.x;
             params.TargetHeight = (U32)tSize.y;

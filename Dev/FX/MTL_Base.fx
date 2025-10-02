@@ -7,33 +7,31 @@ using namespace metal;
 
 struct VertexIn
 {
-
     float3 position TTE_VERTEX_ATTRIB(AttribPosition);
 
-#ifdef FEATURE_KEY_LIGHT
+TTE_SECTION_BEGIN(FEATURE_KEY_LIGHT)
     float3 normal TTE_VERTEX_ATTRIB(AttribNormal);
-#endif
+TTE_SECTION_END()
 
-#ifndef EFFECT_FLAT
+TTE_SECTION_BEGIN(!EFFECT_FLAT)
     float2 uv TTE_VERTEX_ATTRIB(AttribUVDiffuse);
-#endif
+TTE_SECTION_END()
 
-#ifdef FEATURE_DEFORMABLE
+TTE_SECTION_BEGIN(FEATURE_DEFORMABLE)
     uchar4 bone_index TTE_VERTEX_ATTRIB(AttribBlendIndex);
     float3 bone_weight TTE_VERTEX_ATTRIB(AttribBlendWeight);
-#endif
+TTE_SECTION_END()
 
 };
 
 struct VertexOut
 {
-    
     float4 position [[position]];
     float3 colour [[user(locn1)]];
 
-#ifndef EFFECT_FLAT
+TTE_SECTION_BEGIN(!EFFECT_FLAT)
     float2 uv [[user(locn2)]];
-#endif
+TTE_SECTION_END()
 
 };
 
@@ -55,26 +53,26 @@ struct UniformObject
 
 // ======================================================================= VERTEX SHADER
 
-#ifdef TTE_VERTEX
+TTE_SECTION_BEGIN(TTE_VERTEX)
 
-#ifdef FEATURE_KEY_LIGHT
+TTE_SECTION_BEGIN(FEATURE_KEY_LIGHT)
 
 // Constants for the point light (hardcoded for now)
 constant float3 lightPos = float3(10.0f, 10.0f, 10.0f); // Light position in world space
 
-#endif
+TTE_SECTION_END()
 
 vertex VertexOut VertexMain(VertexIn in [[stage_in]], 
-    constant UniformCamera& cam TTE_UNIFORM_BUFFER(BufferCamera), 
-    constant UniformObject& obj TTE_UNIFORM_BUFFER(BufferObject),
-#ifdef FEATURE_DEFORMABLE
-    constant float4x4* boneMatrix TTE_GENERIC_BUFFER(Generic0)
-#endif
-    )
+    constant UniformCamera& cam TTE_UNIFORM_BUFFER(BufferCamera),
+    constant UniformObject& obj TTE_UNIFORM_BUFFER(BufferObject)
+TTE_SECTION_BEGIN(FEATURE_DEFORMABLE)
+    , constant float4x4* boneMatrix TTE_GENERIC_BUFFER(Generic0)
+TTE_SECTION_END()
+)
 {
     VertexOut out;
 
-#ifdef FEATURE_DEFORMABLE
+TTE_SECTION_BEGIN(FEATURE_DEFORMABLE)
 
     // SKINNING
 
@@ -95,15 +93,17 @@ vertex VertexOut VertexMain(VertexIn in [[stage_in]],
     float4x4 skin2 = boneMatrix[i2];
     float4 skinnedPosition = ((skin0 * localPos) * w0) + ((skin1 * localPos) * w1) + ((skin2 * localPos) * w2);
 
-#else
+TTE_SECTION_ELSE()
+
     float4 skinnedPosition = float4(in.position, 1.0);
-#endif
+
+TTE_SECTION_END()
 
     // Apply world and view-projection transform
     out.position = cam.viewProj * obj.worldMatrix * skinnedPosition;
 
-#ifdef FEATURE_KEY_LIGHT
-    
+TTE_SECTION_BEGIN(FEATURE_KEY_LIGHT)
+
     // Calculate normal in world space (applying world matrix)
     float3 normalWorldSpace = normalize((obj.worldMatrix * float4(in.normal, 0.0f)).xyz);
     
@@ -119,39 +119,44 @@ vertex VertexOut VertexMain(VertexIn in [[stage_in]],
     float3 ambient = 0.6 * obj.diffuse;
     out.colour = (ambient + diff) * obj.diffuse;
 
-#else
+TTE_SECTION_ELSE()
 
     out.colour = obj.diffuse;
-#ifndef EFFECT_FLAT
-    out.uv = in.uv;
-#endif
 
-#endif
+TTE_SECTION_BEGIN(!EFFECT_FLAT)
+
+    out.uv = in.uv;
+
+TTE_SECTION_END()
+
+TTE_SECTION_END()
 
     return out;
 }
 
-#elif defined(TTE_PIXEL)
+TTE_SECTION_END()
 
 // ======================================================================= PIXEL SHADER
 
-#ifdef EFFECT_FLAT
+TTE_SECTION_BEGIN(TTE_PIXEL)
+
+TTE_SECTION_BEGIN(EFFECT_FLAT)
 
 fragment float4 PixelMain(VertexOut in [[stage_in]])
 {
     return float4(in.colour, 1.0);
 }
 
-#else
+TTE_SECTION_ELSE()
 
 fragment float4 PixelMain(VertexOut in [[stage_in]], 
-                              texture2d<float> texture TTE_TEXTURE(SamplerDiffuse), 
-                              sampler samplr TTE_SAMPLER(SamplerDiffuse))
+                          texture2d<float> texture TTE_TEXTURE(SamplerDiffuse), 
+                          sampler samplr TTE_SAMPLER(SamplerDiffuse))
 {
     float4 texColor = texture.sample(samplr, in.uv);
     return texColor * float4(in.colour, 1.0f);
 }
 
-#endif
+TTE_SECTION_END()
 
-#endif
+TTE_SECTION_END()

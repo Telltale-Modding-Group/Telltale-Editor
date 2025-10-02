@@ -27,6 +27,9 @@ enum class ApplicationFlag
     RUNNING = 1,
 };
 
+void ImGui_ImplSDLGPU3_RenderDrawData(ImDrawData* draw_data, SDL_GPUCommandBuffer* command_buffer,
+                                      SDL_GPURenderPass* render_pass, SDL_GPUGraphicsPipeline* pipeline, uint32_t* popup_filter);
+
 /**
  * Main Telltale Editor application, UI interface. The normal TelltaleEditor class is just the functionality which can be used without the UI.
  * Just call run with the command line arguments to run the UI.
@@ -132,7 +135,22 @@ private:
     };
 
     template<_UIRenderFilter _MyFilter, Bool _ForceNoClear>
-    void _PerformUIRenderFiltered(RenderFrame* pFrame);
+    inline void _PerformUIRenderFiltered(RenderFrame* pFrame)
+    {
+        uint32_t filter_type = _MyFilter == _UIRenderFilter::FILTER_OVERLAYS;
+        SDL_GPUColorTargetInfo target_info = {};
+        target_info.texture = _UIRenderBackBuffer;
+        target_info.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f };
+        target_info.load_op = (!_ForceNoClear && (_MyFilter == _UIRenderFilter::FILTER_NONE || _MyFilter == _UIRenderFilter::FILTER_NORMAL)) ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
+        target_info.store_op = SDL_GPU_STOREOP_STORE;
+        target_info.mip_level = 0;
+        target_info.layer_or_depth_plane = 0;
+        target_info.cycle = false;
+        SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(_UIRenderCommandBuffer, &target_info, 1, nullptr);
+        ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), _UIRenderCommandBuffer, render_pass, nullptr, _MyFilter == _UIRenderFilter::FILTER_NONE ? nullptr : &filter_type);
+        SDL_EndGPURenderPass(render_pass);
+    }
+
 
     SDL_GPUCommandBuffer* _UIRenderCommandBuffer = nullptr;
     SDL_GPUTexture* _UIRenderBackBuffer = nullptr;

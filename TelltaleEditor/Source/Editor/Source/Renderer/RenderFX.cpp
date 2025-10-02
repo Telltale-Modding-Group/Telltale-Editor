@@ -382,7 +382,7 @@ U32 RenderEffectCache::_ResolveExistingRef(RenderEffectRef ref)
 
     while (left < right)
     {
-        U32 mid = left + (right - left) >> 1;
+        U32 mid = left + ((right - left) >> 1);
         if (_Program[mid].EffectHash < ref.EffectHash)
         {
             left = mid + 1;
@@ -402,8 +402,10 @@ U32 RenderEffectCache::_ResolveExistingRef(RenderEffectRef ref)
 }
 
 // CREATE SDL SHADER
-Ptr<RenderShader> RenderEffectCache::_CreateShader(const ShaderParameterTypes& parameters, RenderShaderType shtype, const String& shaderName, 
-                                                   U8* pParameterSlots, const VertexAttributesBitset& vertexStateAttribs, const void* pShaderBinary,
+Ptr<RenderShader> RenderEffectCache::_CreateShader(const ShaderParameterTypes& parameters, RenderShaderType shtype,
+                                                   const String& shaderName, U8* pParameterSlots,
+                                                   const VertexAttributesBitset& vertexStateAttribs,
+                                                   const void* pShaderBinary,
                                                    U32 binarySize, SDL_GPUShaderFormat expectedFormat)
 {
     if((SDL_GetGPUShaderFormats(_Context->_Device) & expectedFormat) == 0)
@@ -437,6 +439,7 @@ Ptr<RenderShader> RenderEffectCache::_CreateShader(const ShaderParameterTypes& p
     if(!gpuShader)
     {
         TTE_LOG("Could not create shader %s: %s", shaderName.c_str(), SDL_GetError());
+        DebugBreakpoint();
         return nullptr;
     }
     pShader->Context = _Context;
@@ -946,9 +949,23 @@ Bool RenderEffectCache::_CreateProgram(const String& fxSrc, RenderEffectParams p
         return false;
 #endif
     }
+    else if(deviceType == RenderDeviceType::METAL)
+    {
+#ifdef PLATFORM_MAC
+        // No compilation needed, MSL.
+        vert = _CreateShader(vertexParameters, RenderShaderType::VERTEX, builtName + "_VERTEX", ParamSlotsVert,                                 vertexAttribs, (const void*)fxResolvedVertex.c_str(), (U32)fxResolvedVertex.size(),
+                                    SDL_GPU_SHADERFORMAT_MSL);
+        pixel = _CreateShader(pixelParameters, RenderShaderType::FRAGMENT, builtName + "_FRAG", ParamSlotsPixel,
+                              {}, (const void*)fxResolvedPixel.c_str(), (U32)fxResolvedPixel.size(),
+                                    SDL_GPU_SHADERFORMAT_MSL);
+#else
+        TTE_LOG("Cannot create METAL device shader on non-apple graphics device!");
+        return false;
+#endif
+    }
     else
     {
-        TTE_ASSERT(false, "Unknown or invalid GPU device type");
+        TTE_ASSERT(false, "Unknown or unsupported GPU device type!");
         return false;
     }
     return true;

@@ -433,23 +433,6 @@ void ApplicationUI::_SetLanguage(const String& language)
     }
 }
 
-template<ApplicationUI::_UIRenderFilter _MyFilter, Bool _ForceNoClear>
-void ApplicationUI::_PerformUIRenderFiltered(RenderFrame* pFrame)
-{
-    uint32_t filter_type = _MyFilter == _UIRenderFilter::FILTER_OVERLAYS;
-    SDL_GPUColorTargetInfo target_info = {};
-    target_info.texture = _UIRenderBackBuffer;
-    target_info.clear_color = SDL_FColor{ 0.0f, 0.0f, 0.0f, 1.0f };
-    target_info.load_op = (!_ForceNoClear && (_MyFilter == _UIRenderFilter::FILTER_NONE || _MyFilter == _UIRenderFilter::FILTER_NORMAL)) ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
-    target_info.store_op = SDL_GPU_STOREOP_STORE;
-    target_info.mip_level = 0;
-    target_info.layer_or_depth_plane = 0;
-    target_info.cycle = false;
-    SDL_GPURenderPass* render_pass = SDL_BeginGPURenderPass(_UIRenderCommandBuffer, &target_info, 1, nullptr);
-    ImGui_ImplSDLGPU3_RenderDrawData(ImGui::GetDrawData(), _UIRenderCommandBuffer, render_pass, nullptr, _MyFilter == _UIRenderFilter::FILTER_NONE ? nullptr : &filter_type);
-    SDL_EndGPURenderPass(render_pass);
-}
-
 I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
 {
     String userDir{};

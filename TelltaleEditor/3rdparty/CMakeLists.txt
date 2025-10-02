@@ -34,8 +34,7 @@ if(NOT TARGET nfd)
 endif()
 
 if(NOT TARGET SDL3::SDL3-static)
-    # TODO! Explore building SDL3 beforehand. That should fix the find_package issue in SDL_shadercross.
-    set(CMAKE_FOLDER ${THIRD_PARTY_FOLDER}/SDL3) # Apply FOLDER to all targets in the SDL3 folder
-    add_subdirectory(SDL3 EXCLUDE_FROM_ALL)
+    set(CMAKE_FOLDER ${THIRD_PARTY_FOLDER}/SDL) # Apply FOLDER to all targets in the SDL3 folder
+    add_subdirectory(SDL EXCLUDE_FROM_ALL)
     unset(CMAKE_FOLDER) # Unset it
 endif()

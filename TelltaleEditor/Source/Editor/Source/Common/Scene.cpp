@@ -906,7 +906,7 @@ static Bool _SceneMovePostTraverse(Ptr<Node> node, void* me)
 Scene::Scene(Scene&& rhs) noexcept : HandleableRegistered(rhs), Name(std::move(rhs.Name)), _Flags(rhs._Flags)
 {
     _Agents = std::move(rhs._Agents);
-    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_ModuleVectorMoveRecurser{ std::move(rhs), *this });
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_ModuleVectorMoveRecurser{ rhs, *this });
     for(auto& agent: _Agents)
     {
         agent.second->OwningScene = this;
