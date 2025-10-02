@@ -1,3 +1,49 @@
+Light Color
+Light Color Dark
+Light Intensity
+Light Intensity Diffuse
+Light Intensity Specular
+Light Max Distance
+Light Min Distance
+Light Shadow Max Distance
+Light Shadow Distance Falloff
+Light Shadow Cascades
+Light Shadow Bias
+Light Dimmer
+Light Color Correction
+Light Toon Priority
+Light Toon Opacity
+Light Type
+Light Key Light
+Light Groups
+Dynamic on LightMap
+Light Turned On
+Light Wrap Around
+Light Spot Inner Radius
+Light Spot Outer Radius
+Light Spot Texture
+Light Spot Alpha Mode
+Light Spot Alpha
+Light Render Layer
+Light Spot Texture Translate
+Light Spot Texture Scale
+Light Spot Texture Shear
+Light Spot Texture Shear Origin
+Light Spot Texture Rotate
+Light Spot Texture Rotate Origin
+Light Ambient Occlusion
+Light Rim Intensity
+Light Rim Wrap Around
+Light Rim Occlusion
+Cell Blend Mode
+Cell Blend Weight
+Cell 0 Color
+Cell 1 Color
+Cell 2 Color
+Cell 3 Color
+NPR Specular Intensity
+Light Static
+Cell Light Blend Mask
 Ambient Color
 Shadow Color
 Active Camera
@@ -3442,10 +3488,6 @@ Scene: Start Position
 Scene: Start Quaterion
 camera.prop
 light.prop
-Light Intensity
-Light Max Distance
-Light Color
-Light Type
 sk02_fone.prop
 Walk Animation - Idle
 sk02_phoney.prop
@@ -3586,7 +3628,6 @@ obj_forestriverpossumshideregion.prop
 logical.prop
 obj_mailboxpossum.prop
 obj_mudpie.prop
-Light Turned On
 camera_region.prop
 Camera To Switch To
 logical_useable.prop
@@ -3645,7 +3686,6 @@ obj_forestwaterfallriverrockslarge.prop
 obj_applephoney.prop
 obj_applelogical.prop
 object_useable.prop
-Light Groups
 adv_forestwaterfall_east.wbox
 navcam_forestwaterfall3.chore
 obj_forestwaterfallriverrock.prop
@@ -3691,7 +3731,6 @@ sk10_thornchild.prop
 Selection Color
 ui_menu.prop
 ui_menubackground.prop
-Light Dimmer
 obj_dreamcloud_sprite.d3dmesh
 obj_dream_sprite.d3dmesh
 obj_sprite.d3dmesh

@@ -772,6 +772,2086 @@ end
 function PropertyKeys(propertySet)
 end
 
+--- Telltale Property Keys
+--- @type string
+kLightWrapAround = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightKeyLight = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehAberrationOffsetsY = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightIntensityDiffuse = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehBrightnessThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kEmptySymbol = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightColour = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFogNearPlane = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightIntensitySpecular = ""
+
+--- Telltale Property Keys
+--- @type string
+kCellBlendMode = ""
+
+--- Telltale Property Keys
+--- @type string
+kAnimationConstraintsPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAlphaAntialiasing = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightColourDark = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightMaxDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightMinDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGlowSigmaScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kDynamicOnLightMap = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapDOFEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightShadowMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextLeading = ""
+
+--- Telltale Property Keys
+--- @type string
+kCellBlendWeight = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldFallOffFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightTurnedOn = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightShadowDistanceFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAmbientColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindDirection = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightShadowCascades = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyNPRLineFalloffBiasOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneRenderLayer = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextSkew = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightShadowBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kNprSpecularIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteTintEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBloomIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureShearOrigin = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXNoiseScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightDimmer = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFogColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneShadowColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvBakeEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kMoviePlayerPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextMaxLinesToDisplay = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOHemisphereBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightColorCorrection = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneVignettePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightToonPriority = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightToonOpacity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFogFarPlane = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFootstepWalkBoxes = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightType = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldFallOffNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightGroups = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindGustSeparationExponent = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFFOVAdjustEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFDebug = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotInnerRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesThickness = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneTimeScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFNearMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotOuterRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvReflectionIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioReverbDefinition = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kCellLightBlendMask = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarPlaneMaxScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotAlphaMode = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvSaturation = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOMaxRadiusPercent = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightRenderLayer = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureTranslate = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneRenderPriority = ""
+
+--- Telltale Property Keys
+--- @type string
+kCell0Colour = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesDepthMagnitude = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureShear = ""
+
+--- Telltale Property Keys
+--- @type string
+kUIDialogPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldMaxNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureRotate = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRenderAfterAntiAliasing = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXColorOpacity = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureRotateOrigin = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarPivots = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightAmbientOcclusion = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaterialParticlePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightRimWrapAround = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAODebug = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightRimIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextDialogFile = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextPercentToDisplay = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightRimOcclusion = ""
+
+--- Telltale Property Keys
+--- @type string
+kCell1Colour = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBrushNearDetailBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kCell2Colour = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextReferenceScreenSize = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioPlayerOrigin = ""
+
+--- Telltale Property Keys
+--- @type string
+kCell3Colour = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFFarFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightStatic = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneActiveCamera = ""
+
+--- Telltale Property Keys
+--- @type string
+kAudioReverbOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioReverb = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneExcludeFromSaveGames = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFilmicPivot = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWalkBoxes = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextWidth = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneInputEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioListener = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioMaster = ""
+
+--- Telltale Property Keys
+--- @type string
+kSelectablePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenAdaptiveProbeVolumePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxDelayMotionBlur = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXLevelsBlackPoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioSnapshotSuite = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSceneExportsToContentScene = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioEventBanks = ""
+
+--- Telltale Property Keys
+--- @type string
+kScenePreloadable = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundSnapshotPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kScenePreloadShaders = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAfterEffectsEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGenerateNPRLines = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneNPRLinesFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneBrushPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFXColorEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneNPRLinesBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneNPRLinesAlphaFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarFilmicShoulderIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneNPRLinesAlphaBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGlowClearColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRenderAfterPostEffects = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBrushScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAntiAliasing = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextKeyFormatString = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTAAWeight = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXColorEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneViewportPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXColorTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXSharpShadowsEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsBlackPoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushDOFEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsIntensityHDR = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsWhitePoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAllowNPRLines = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsBlackPointHDR = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFFarMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsWhitePointHDR = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyConstantAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapType = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurInRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapWhitePoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnvironmentPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kDecalPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyColorCorrection = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapBlackPoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFilmicShoulderIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFilmicToeIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFilmicSign = ""
+
+--- Telltale Property Keys
+--- @type string
+kCullObjects = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarWhitePoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarBlackPoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarFilmicPivot = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyD3DMesh = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarFilmicToeIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarFilmicSign = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyOverrideToonOutlineColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDisableLightBake = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBDOFEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvReflectionTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBBlackPoints = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyGlobalScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushNearTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBWhitePoints = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBPivots = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowLightBleedReduction = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindGustSpeed = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBShoulderIntensities = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBToeIntensities = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBSigns = ""
+
+--- Telltale Property Keys
+--- @type string
+kExcludeAgents = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowAutoDepthBounds = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarBlackPoints = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarScaleBoost = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarWhitePoints = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarShoulderIntensities = ""
+
+--- Telltale Property Keys
+--- @type string
+kLogicGroupLogicItemDlgNodePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarToeIntensities = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLODBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvGroup = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarSigns = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBloomThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextOffset = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAmbientOcclusionEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAmbientOcclusionIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAmbientOcclusionFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAmbientOcclusionRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAmbientOcclusionLightmap = ""
+
+--- Telltale Property Keys
+--- @type string
+kUseBokeh = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFAutoFocusEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFogFarPlane = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFNearFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kFootsteps2PropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFVignetteMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kPathToPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFCoverageBoost = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXForceLinearDepthOffset = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteDOFEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kAudioPlayerOriginOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteCenter = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyCastShadowsAsStatic = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteCorners = ""
+
+--- Telltale Property Keys
+--- @type string
+kIKAttachPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAORadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneViewportScissorTop = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOOcclusionScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOLuminanceScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOMaxDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAODistanceFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyColorWrite = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHDRLightmapsIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOBlurSharpness = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurMovementThresholdEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyShadowUseLowLOD = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRecieveShadows = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesDepthFadeNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesDepthFadeFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesDepthExponent = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAlphaMultiply = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesLightDirection = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesLightMagnitude = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesLightExponent = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesDebug = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFogEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushNearOutlineScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowCascadeSplitBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFogAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFogNearPlane = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonArmWidth = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindSpeed = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHDRPaperWhiteNits = ""
+
+--- Telltale Property Keys
+--- @type string
+kHLSPlayerPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGraphicBlackThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGraphicBlackSoftness = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGraphicBlackAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGraphicBlackNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGraphicBlackFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindIdleStrength = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonInstanceNodeName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindIdleSpacialFrequency = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindGustStrength = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindGustSpacialFrequency = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindGustIdleStrengthMultiplier = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAmbientOcclusionLightmap = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvReflectionEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXColourEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvReflectionIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonLegWidth = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvReflectionTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvReflectionIntensityShadow = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldDebug = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvProbeData = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kIKPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvBackgroundColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenCubemapTextureEnvPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvProbeResolutionXZ = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvProbeResolutionY = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowMomentBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowDepthBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowPositionOffsetBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowMinDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowMaxDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kText2PropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvDynamicShadowMaxDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowMaxUpdates = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightShadowTraceMaxDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenSystemPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightStaticShadowBoundsMin = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightStaticShadowBoundsMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneEnvLightShadowGoboTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kClipPlaneFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextKerning = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineFilterEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineSize = ""
+
+--- Telltale Property Keys
+--- @type string
+kPostMaterialScenePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineColorThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextBackgroundColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushNearScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnvironmentLightPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushNearDetail = ""
+
+--- Telltale Property Keys
+--- @type string
+kAudioReverbEventSnapshotOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarDetail = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarPlane = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarPlaneFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnvironmentTilePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDepthTestFunc = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFrameBufferScaleOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFrameBufferScaleFactor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSpecularMultiplierEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextBackground = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSpecularColorMultiplier = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSpecularIntensityMultiplier = ""
+
+--- Telltale Property Keys
+--- @type string
+kVfxGroupPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSpecularExponentMultiplier = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyD3DMeshList = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHDRLightmapsEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kCameraPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneCameraCutPositionThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneCameraCutRotationThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneViewportScissorLeft = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneViewportScissorRight = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyMaskWrite = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldMaxFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLODScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneViewportScissorBottom = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScenePhysicsData = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextFont = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextNonProportionalScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextString = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextConfine = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldBlurStrength = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextDialogTextResource = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextAlignmentHorizontal = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextAlignmentVertical = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextShadowColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightmapScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextShadowHeight = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehBrightnessDeltaThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextMinWidth = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextMinHeight = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextExtrudeX = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundEventEmitterPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kAnimationAbsoluteNode = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextExtrudeY = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextPlaybackSpeed = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenProbeVolumePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextRenderLayer = ""
+
+--- Telltale Property Keys
+--- @type string
+kCinematicLightRigPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextDialog2File = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextDialog2NodeName = ""
+
+--- Telltale Property Keys
+--- @type string
+kCursorPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextKeyAgentName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRenderLayer = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextKeyName = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldCoverageBoost = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextWorldSpaceZ = ""
+
+--- Telltale Property Keys
+--- @type string
+kFootstepsPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextAlphaMultiply = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextBackgroundAlphaMultiply = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonFile = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehBlurThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonUseProceduralJointCorners = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyForceLinearDepthWrite = ""
+
+--- Telltale Property Keys
+--- @type string
+kClipPlaneNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kCameraPush = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightmapUVGenerationType = ""
+
+--- Telltale Property Keys
+--- @type string
+kAspectRatio = ""
+
+--- Telltale Property Keys
+--- @type string
+kFieldOfView = ""
+
+--- Telltale Property Keys
+--- @type string
+kFieldOfViewScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kCameraBlendEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kExposure = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDepthTest = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kUseHighQualityDOF = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldType = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehPatternTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kContextMenuPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehMinSize = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRenderCull = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehMaxSize = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenCubemapPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehAberrationOffsetsX = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaxBokehBufferAmount = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFogEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kExcludeFromAutoDirector = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyNPRLineBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXColourTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXColourOpacity = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXLevelsEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXLevelsWhitePoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kDialogPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeySceneLightmapData = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXLevelsIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeySceneEnlightenData = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurOutRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurTintIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurMovementThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurRotationThresholdEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kWalkAnimatorPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurRotationThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kAudioListenerOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKey3DAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAutoFocusEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAxisScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBakeAsStatic = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBrushFarDetailBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBrushForceEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBrushScaleByVertex = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyCameraFacing = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightCinematicRig = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyCameraFacingType = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyCastShadow = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeySSLineEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyCubeBakeEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDepthWrite = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyShadowReceiveGroup = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDepthWriteAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDiffuseColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDoMotionBlur = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundAmbientInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyEmissionColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kLookAtBlockingPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFogColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFogOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyVisibleThresholdScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyForceAsAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvNode = ""
+
+--- Telltale Property Keys
+--- @type string
+kCinematicLightPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvReflectionEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvShadowCastEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvShadowCastGroups = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightingGroups = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyMaskTest = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyMaterialTime = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyNPRLineFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRecieveShadowsDecal = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRecieveShadowsDoublesided = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRecieveShadowsIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRenderToonOutline = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRimBumpScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyShadowCastGroup = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyShadowVisibleThresholdScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyStatic = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyTextureOverrides = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyToonOutlineColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kAnimationRelativeNode = ""
+
+--- Telltale Property Keys
+--- @type string
+kScenePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaterialLegacyPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kAnimationPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+k3dSoundPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightProbePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kAgentStatePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kViewportPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneTonemapPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kChorecorderPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kCinematicLightBlockingPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenAutoProbeVolumePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnvironmentLightGroupPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundReverbInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLipSyncPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kParticleAffectorPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kParticleEmitterBasePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kParticleEmitterMaterialPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kParticleEmitterPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kPhysicsObjectPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRolloverPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAutofocusPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneBrushOutlinePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kStyleIdleTransitionsPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneDOFPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundEventPreloadInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvAdvancedPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSSLinesPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneTonemapRGBPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundListenerInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundMusicInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundSfxInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kStylePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTriggerPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kVoiceSpeakerPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kProceduralLookAtPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaterialDecalPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaterialPostPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaterialPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kParticleIKPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSound3dParametersPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundDataPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRuntimeVisibilityKey = ""
+
 --- Returns if currently being called from a worker thread.
 --- @return bool
 function IsIsolated()

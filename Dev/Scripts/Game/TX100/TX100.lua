@@ -12,6 +12,7 @@ require("ToolLibrary/Game/Common/Audio.lua")
 require("ToolLibrary/Game/Common/Animation.lua")
 require("ToolLibrary/Game/Common/Chore.lua")
 require("ToolLibrary/Game/Common/InputMapper.lua")
+require("ToolLibrary/Game/Common/WalkBoxes.lua")
 
 function TX100_RegisterModuleUI()
 
@@ -383,6 +384,9 @@ function RegisterTX100(vendor)
 	font.Members[4] = NewMember("mTexturePages", arrayTex)
 	MetaRegisterClass(font)
 	MetaAssociateFolderExtension("TX100", "*.font", "Fonts/")
+
+	local wbox = RegisterWalkBoxes0(MetaFlags, MetaVec3, RegisterTXCollection)
+	MetaAssociateFolderExtension("TX100", "*.wbox", "WalkBoxes/")
 
 	return true
 end

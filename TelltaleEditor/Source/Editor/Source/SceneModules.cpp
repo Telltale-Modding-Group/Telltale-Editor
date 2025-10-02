@@ -431,3 +431,150 @@ void SceneModule<SceneModuleType::SCENE>::OnSetupAgent(SceneAgent* pAgentGetting
         PropertySet::CallAllCallbacks(pAgentGettingCreated->Props, pAgentGettingCreated->OwningScene->GetRegistry());
     }
 }
+
+// ============================================== MODULE IMPLEMENTATION ==============================================
+// =================================================== LIGHT MODULE ==================================================
+// ============================================== MODULE IMPLEMENTATION ==============================================
+
+// Colors
+void LightInstance::SetLightColour(Colour c) { _Data._LightColour = c; }
+void LightInstance::SetLightColourDark(Colour c) { _Data._LightColourDark = c; }
+void LightInstance::SetCell0Color(Colour c) { _Data._Cell0Color = c; }
+void LightInstance::SetCell1Color(Colour c) { _Data._Cell1Color = c; }
+void LightInstance::SetCell2Color(Colour c) { _Data._Cell2Color = c; }
+void LightInstance::SetCell3Color(Colour c) { _Data._Cell3Color = c; }
+
+// Intensity
+void LightInstance::SetLightIntensity(Float f) { _Data._LightIntensity = f; }
+void LightInstance::SetLightIntensityDiffuse(Float f) { _Data._LightIntensityDiffuse = f; }
+void LightInstance::SetLightIntensitySpecular(Float f) { _Data._LightIntensitySpecular = f; }
+void LightInstance::SetNPRSpecularIntensity(Float f) { _Data._NPRSpecularIntensity = f; }
+
+// Distance
+void LightInstance::SetLightMaxDistance(Float f) { _Data._LightMaxDistance = f; }
+void LightInstance::SetLightMinDistance(Float f) { _Data._LightMinDistance = f; }
+
+// Shadows
+void LightInstance::SetLightShadowMax(Float f) { _Data._LightShadowMax = f; }
+void LightInstance::SetLightShadowDistanceFalloff(Float f) { _Data._LightShadowDistanceFalloff = f; }
+void LightInstance::SetLightShadowCascades(I32 i) { _Data._LightShadowCascades = i; }
+void LightInstance::SetLightShadowBias(Float f) { _Data._LightShadowBias = f; }
+
+// General properties
+void LightInstance::SetLightDimmer(Float f) { _Data._LightDimmer = f; }
+void LightInstance::SetLightColorCorrection(Float f) { _Data._LightColorCorrection = f; }
+void LightInstance::SetLightToonPriority(Float f) { _Data._LightToonPriority = f; }
+void LightInstance::SetLightToonOpacity(Float f) { _Data._LightToonOpacity = f; }
+void LightInstance::SetLightType(I32 i) { _Data._LightType = i; }
+void LightInstance::SetLightKeyLight(Bool b) { _Data._LightKeyLight = b; }
+void LightInstance::SetDynamicOnLightMap(Bool b) { _Data._DynamicOnLightMap = b; }
+void LightInstance::SetLightTurnedOn(Bool b) { _Data._LightTurnedOn = b; }
+void LightInstance::SetLightWrapAround(Float f) { _Data._LightWrapAround = f; }
+void LightInstance::SetLightRenderLayer(I32 i) { _Data._LightRenderLayer = i; }
+
+// Spot light properties
+void LightInstance::SetLightSpotInnerRadius(Float f) { _Data._LightSpotInnerRadius = f; }
+void LightInstance::SetLightSpotOuterRadius(Float f) { _Data._LightSpotOuterRadius = f; }
+void LightInstance::SetLightSpotTexture(Symbol s) { _Data._LightSpotTexture = s; }
+void LightInstance::SetLightSpotAlphaMode(I32 i) { _Data._LightSpotAlphaMode = i; }
+void LightInstance::SetLightSpotAlpha(Float f) { _Data._LightSpotAlpha = f; }
+void LightInstance::SetLightSpotTextureTranslate(Vector2 v) { _Data._LightSpotTextureTranslate = v; }
+void LightInstance::SetLightSpotTextureScale(Vector2 v) { _Data._LightSpotTextureScale = v; }
+void LightInstance::SetLightSpotTextureShear(Vector2 v) { _Data._LightSpotTextureShear = v; }
+void LightInstance::SetLightSpotTextureShearOrigin(Vector2 v) { _Data._LightSpotTextureShearOrigin = v; }
+void LightInstance::SetLightSpotTextureRotate(Float f) { _Data._LightSpotTextureRotate = f; }
+void LightInstance::SetLightSpotTextureRotateOrigin(Vector2 v) { _Data._LightSpotTextureRotateOrigin = v; }
+
+// Ambient and Rim
+void LightInstance::SetLightAmbientOcclusion(Float f) { _Data._LightAmbientOcclusion = f; }
+void LightInstance::SetLightRimIntensity(Float f) { _Data._LightRimIntensity = f; }
+void LightInstance::SetLightRimWrapAround(Float f) { _Data._LightRimWrapAround = f; }
+void LightInstance::SetLightRimOcclusion(Float f) { _Data._LightRimOcclusion = f; }
+
+// Cell shading
+void LightInstance::SetCellBlendMode(I32 i) { _Data._CellBlendMode = i; }
+void LightInstance::SetCellBlendWeight(Float f) { _Data._CellBlendWeight = f; }
+void LightInstance::SetCellLightBlendMask(Float f) { _Data._CellLightBlendMask = f; }
+void LightInstance::SetLightStatic(Bool b) { _Data._LightStatic = b; }
+
+
+void SceneModule<SceneModuleType::LIGHT>::OnSetupAgent(SceneAgent* pAgentGettingCreated)
+{
+    if(!LightInst)
+    {
+        LightInst = TTE_NEW_PTR(LightInstance, MEMORY_TAG_SCENE_DATA);
+
+        // Colors
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightColour, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightColour, LightInstance, Colour));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightColourDark, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightColourDark, LightInstance, Colour));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kCell0Colour, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetCell0Color, LightInstance, Colour));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kCell1Colour, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetCell1Color, LightInstance, Colour));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kCell2Colour, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetCell2Color, LightInstance, Colour));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kCell3Colour, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetCell3Color, LightInstance, Colour));
+
+        // Intensity
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightIntensity, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightIntensity, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightIntensityDiffuse, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightIntensityDiffuse, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightIntensitySpecular, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightIntensitySpecular, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kNprSpecularIntensity, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetNPRSpecularIntensity, LightInstance, Float));
+
+        // Distance
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightMaxDistance, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightMaxDistance, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightMinDistance, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightMinDistance, LightInstance, Float));
+
+        // Shadows
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightShadowMax, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightShadowMax, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightShadowDistanceFalloff, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightShadowDistanceFalloff, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightShadowCascades, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightShadowCascades, LightInstance, I32));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightShadowBias, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightShadowBias, LightInstance, Float));
+
+        // General properties
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightDimmer, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightDimmer, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightColorCorrection, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightColorCorrection, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightToonPriority, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightToonPriority, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightToonOpacity, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightToonOpacity, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightType, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightType, LightInstance, I32));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightKeyLight, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightKeyLight, LightInstance, Bool));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kDynamicOnLightMap, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetDynamicOnLightMap, LightInstance, Bool));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightTurnedOn, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightTurnedOn, LightInstance, Bool));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightWrapAround, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightWrapAround, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightRenderLayer, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightRenderLayer, LightInstance, I32));
+
+        // Spot light properties
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotInnerRadius, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotInnerRadius, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotOuterRadius, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotOuterRadius, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotTexture, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotTexture, LightInstance, Symbol));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotAlphaMode, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotAlphaMode, LightInstance, I32));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotAlpha, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotAlpha, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotTextureTranslate, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotTextureTranslate, LightInstance, Vector2));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotTextureScale, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotTextureScale, LightInstance, Vector2));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotTextureShear, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotTextureShear, LightInstance, Vector2));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotTextureShearOrigin, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotTextureShearOrigin, LightInstance, Vector2));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotTextureRotate, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotTextureRotate, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightSpotTextureRotateOrigin, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightSpotTextureRotateOrigin, LightInstance, Vector2));
+
+        // Ambient and Rim
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightAmbientOcclusion, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightAmbientOcclusion, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightRimIntensity, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightRimIntensity, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightRimWrapAround, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightRimWrapAround, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightRimOcclusion, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightRimOcclusion, LightInstance, Float));
+
+        // Cell shading
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kCellBlendMode, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetCellBlendMode, LightInstance, I32));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kCellBlendWeight, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetCellBlendWeight, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kCellLightBlendMask, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetCellLightBlendMask, LightInstance, Float));
+        PropertySet::AddCallback(pAgentGettingCreated->Props, kLightStatic, ALLOCATE_METHOD_CALLBACK_1(LightInst, SetLightStatic, LightInstance, Bool));
+
+
+        PropertySet::CallAllCallbacks(pAgentGettingCreated->Props, pAgentGettingCreated->OwningScene->GetRegistry());
+    }
+}
+
+// ============================================== MODULE IMPLEMENTATION ==============================================
+// ================================================ SELECTABLE MODULE ================================================
+// ============================================== MODULE IMPLEMENTATION ==============================================
+
+void SceneModule<SceneModuleType::SELECTABLE>::OnSetupAgent(SceneAgent* pAgentGettingCreated)
+{
+
+}

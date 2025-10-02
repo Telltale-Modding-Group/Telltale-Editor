@@ -19,6 +19,7 @@ enum class EditorFlag
 class EditorUI;
 class EditorUIComponent;
 class SceneView;
+class InspectorView;
 struct ImVec2;
 
 class EditorUI : public UIStackable
@@ -31,6 +32,7 @@ class EditorUI : public UIStackable
     std::vector<Ptr<EditorUIComponent>> _Views; // file view log view etc
     Scene _EditorScene;
     WeakPtr<SceneView> _SceneView;
+    WeakPtr<InspectorView> _InspectorView;
 
     Ptr<Scene> _AsyncInitScene;
     JobHandle _InitSceneJob;
@@ -185,7 +187,9 @@ public:
 
     virtual void Render() override;
 
-    void RenderNode(Float sY);
+    Bool RenderNode(Float sY);
+
+    void OnSceneChange(); // called just before scene change
 
 };
 

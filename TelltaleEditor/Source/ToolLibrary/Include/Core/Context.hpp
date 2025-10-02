@@ -110,3 +110,6 @@ ToolContext* GetToolContext();
 
 // Returns if we are calling from the main thread, ie the thread that called CreateToolContext().
 Bool IsCallingFromMain();
+
+// For prop keys. Only used by context to register to Lua VM
+std::vector<std::pair<CString, CString>>& GetPropKeyConstants();

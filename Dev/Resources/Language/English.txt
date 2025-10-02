@@ -76,6 +76,14 @@ mod.scene.desc = "Special agent module for the scene agent, contains all scene-w
 mod.scene.iv.walk_boxes = "Walk Boxes file for this scene to outline user movement outlines."
 mod.scene.iv.ambient_colour = "Ambient colour for the scene"
 
+# LIGHT MODULE
+mod.light.name = "Light"
+mod.light.desc = "Agents with this module represent a light in the scene which affects nearby objects."
+mod.light.iv.dimmer = "Control the light dimmer value"
+mod.light.iv.colour = "The colour which this light emits"
+mod.light.iv.intensity = "The intensity of the emitted light"
+mod.light.iv.max_distance = "The max distance which the light is emitted"
+
 # TEXT MODULE
 mod.text.name = "Text"
 mod.text.desc = "Agents with this module are used to display text in the scene, a special version of a renderable component."

@@ -15,7 +15,10 @@ EditorUI::EditorUI(ApplicationUI& app) : UIStackable(app), _MenuBar(*this), _Edi
     SDL_SetWindowResizable(GetApplication()._Window, true);
     _Views.push_back(TTE_NEW_PTR(FileView, MEMORY_TAG_EDITOR_UI, *this));
     _Views.push_back(TTE_NEW_PTR(OutlineView, MEMORY_TAG_EDITOR_UI, *this));
-    _Views.push_back(TTE_NEW_PTR(InspectorView, MEMORY_TAG_EDITOR_UI, *this));
+
+    Ptr<InspectorView> inspectorView = TTE_NEW_PTR(InspectorView, MEMORY_TAG_EDITOR_UI, *this);
+    _Views.push_back(inspectorView);
+    _InspectorView = inspectorView;
 
     Ptr<SceneView> sceneView = TTE_NEW_PTR(SceneView, MEMORY_TAG_EDITOR_UI, *this);
     _Views.push_back(sceneView);
@@ -70,6 +73,8 @@ Bool EditorUI::_TickAsyncLoadingScene()
     {
         if(JobScheduler::Instance->IsFinished(_InitSceneJob))
         {
+            _InspectorView.lock()->OnSceneChange();
+
             _EditorScene.~Scene(); // hacky :( (move constructor is annoying)
             new (&_EditorScene) Scene(std::move(*_AsyncInitScene.get()));
             _AsyncInitScene.reset();
@@ -411,7 +416,7 @@ Bool NewAgentPopup::Render()
     if(ImGui::Button("Create") && ok && _Input[0] != 0)
     {
         end = true;
-        Editor->GetActiveScene().AddAgent(_Input, {}, {}); // no props by default (maybe create defaults?)
+        Editor->GetActiveScene().AddAgent(_Input, {}, {}, {}, true); // no props by default (maybe create defaults?) this is done by scene 
         memset(_Input, 0, 48);
     }
     ImGui::SameLine();
@@ -434,7 +439,6 @@ OutlineView::OutlineView(EditorUI& ui) : EditorUIComponent(ui)
 
 Bool OutlineView::_RenderSceneNode(WeakPtr<Node> pNodeWk)
 {
-    Bool del = false;
     Node* pNode = pNodeWk.lock().get();
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None;
     if(pNode->FirstChild.expired())
@@ -446,35 +450,15 @@ Bool OutlineView::_RenderSceneNode(WeakPtr<Node> pNodeWk)
             _EditorUI.InspectingNode = pNodeWk;
             _EditorUI.IsInspectingAgent = pNode->Parent.use_count() == 0;
         }
-        else if(IsItemHovered(ImGuiHoveredFlags_None) && pNode->Parent.use_count() == 0)
+        Ptr<Node> pChild = pNode->FirstChild.lock();
+        while (pChild)
         {
-            BeginTooltip();
-            if(Button(_EditorUI.GetApplication().GetLanguageText("ov.delete_agent").c_str()))
-            {
-                if(pNode->AgentName == _EditorUI.GetActiveScene().GetName())
-                {
-                    PlatformMessageBoxAndWait("Cannot delete this agent!", "The scene agent cannot be deleted!");
-                }
-                else
-                {
-                    del = true;
-                    _EditorUI.GetActiveScene().RemoveAgent(pNode->AgentName);
-                }
-            }
-            EndTooltip();
-        }
-        if(!del)
-        {
-            Ptr<Node> pChild = pNode->FirstChild.lock();
-            while (pChild)
-            {
-                _RenderSceneNode(pChild);
-                pChild = pChild->NextSibling.lock();
-            }
+            _RenderSceneNode(pChild);
+            pChild = pChild->NextSibling.lock();
         }
         TreePop();
     }
-    return del;
+    return false;
 }
 
 void OutlineView::Render()
@@ -507,7 +491,7 @@ void OutlineView::Render()
 
             ImVec2 buttonMin{ ImVec2{2.0f, 24.0f} };
             ImVec2 buttonExtent{ 14.0f, 14.0f };
-            _EditorUI.DrawResourceTexturePixels("Misc/Add.png", buttonMin.x, buttonMin.y, buttonExtent.x, buttonExtent.y);
+            _EditorUI.DrawResourceTexturePixels("Scene/AgentNew.png", buttonMin.x, buttonMin.y, buttonExtent.x, buttonExtent.y);
             if (ImGui::IsMouseHoveringRect(GetWindowPos() + buttonMin, GetWindowPos() + buttonMin + buttonExtent, false) && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
             {
                 _EditorUI.GetApplication().SetCurrentPopup(TTE_NEW_PTR(NewAgentPopup, MEMORY_TAG_EDITOR_UI, this), _EditorUI);
@@ -551,6 +535,14 @@ InspectorView::InspectorView(EditorUI& ui) : EditorUIComponent(ui)
 }
 
 extern TelltaleEditor* _MyContext;
+
+void InspectorView::OnSceneChange()
+{
+    _CurrentIsAgent = false;
+    _CurrentNode = {};
+    _LastPropFlush = 0; // unless user clicks under 100ms an edit of a prop to clicking a new scene, this is ok lol
+    _RuntimeModuleProps.clear();
+}
 
 void InspectorView::_InitModuleCache(Meta::ClassInstance agentProps, SceneModuleType module)
 {
@@ -976,7 +968,7 @@ static void _DoHandleRender(EditorUI& editor, String* handleFile, Symbol* sym, U
     // TODO DRAG DROP
 }
 
-static Bool BeginModule(EditorUI& editor, const char* title, Float bodyHeight, Bool& isOpen, Float sY, const char* icon, Bool* pAddModule = nullptr)
+static Bool BeginModule(EditorUI& editor, const char* title, Float bodyHeight, Bool& isOpen, Float sY, const char* icon, Bool* pAddModule = nullptr, Bool* outDeleteClicked = nullptr)
 {
     ImVec2 wpos = ImGui::GetWindowPos() + ImVec2{ 0.0f, editor.InspectorViewY - sY } + ImVec2{ 1.0f, 20.0f };
     ImVec2 wsize = ImGui::GetWindowSize() + ImVec2{ -15.0f, -20.0f };
@@ -1029,9 +1021,9 @@ static Bool BeginModule(EditorUI& editor, const char* title, Float bodyHeight, B
         title
     );
 
+    ImVec2 pos{ wpos.x + wsize.x - 20.0f - ImGui::GetWindowPos().x, wpos.y + 1.0f - ImGui::GetWindowPos().y };
     if (pAddModule)
     {
-        ImVec2 pos{ wpos.x + wsize.x - 20.0f - ImGui::GetWindowPos().x, wpos.y + 1.0f - ImGui::GetWindowPos().y };
         editor.DrawResourceTexturePixels("Misc/AddModule.png", pos.x, pos.y, 18.0f, 18.0f);
         if (ImGui::IsMouseHoveringRect(ImGui::GetWindowPos() + pos, ImGui::GetWindowPos() + pos + ImVec2{ 18.0f, 18.0f }, false) && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
         {
@@ -1040,6 +1032,22 @@ static Bool BeginModule(EditorUI& editor, const char* title, Float bodyHeight, B
         else
         {
             *pAddModule = false;
+        }
+    }
+    if(outDeleteClicked)
+    {
+        if(pAddModule)
+        {
+            pos.x -= 20.0f;
+        }
+        editor.DrawResourceTexturePixels("Scene/AgentRemove.png", pos.x, pos.y, 18.0f, 18.0f);
+        if (ImGui::IsMouseHoveringRect(ImGui::GetWindowPos() + pos, ImGui::GetWindowPos() + pos + ImVec2{ 18.0f, 18.0f }, false) && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        {
+            *outDeleteClicked = true;
+        }
+        else
+        {
+            *outDeleteClicked = false;
         }
     }
 
@@ -1079,15 +1087,16 @@ static Bool BeginModule(EditorUI& editor, const char* title, Float bodyHeight, B
     return isOpen;
 }
 
-void InspectorView::RenderNode(Float scrollY)
+Bool InspectorView::RenderNode(Float scrollY)
 {
+    Bool delAgent = false;
     static Bool IsOpen = true;
     Ptr<Node> pNode = _EditorUI.InspectingNode.lock();
     Bool clicked = false;
     Bool* pclicked = IsWeakPtrUnbound(pNode->Parent) ? &clicked : nullptr;
     if (pNode->AgentName == pNode->AttachedScene->GetName())
         pclicked = nullptr; // cannot add to scene agent
-    if (pNode && BeginModule(_EditorUI, "Node", 100.0f, IsOpen, scrollY, "Module/TransformGizmo.png", pclicked) && !clicked)
+    if (pNode && BeginModule(_EditorUI, "Node", 100.0f, IsOpen, scrollY, "Module/TransformGizmo.png", pclicked, &delAgent) && !clicked)
     {
         Transform orig = pNode->LocalTransform;
         Float* pos = (Float*)&pNode->LocalTransform._Trans;
@@ -1112,6 +1121,7 @@ void InspectorView::RenderNode(Float scrollY)
         // add new agent module (ie entity component)
         GetApplication().SetCurrentPopup(TTE_NEW_PTR(AddModulePopup, MEMORY_TAG_EDITOR_UI, pNode->AttachedScene->GetAgentModules(pNode->AgentName), pNode, &_EditorUI), _EditorUI);
     }
+    return delAgent;
 }
 
 InspectorView::~InspectorView()
@@ -1164,11 +1174,10 @@ void InspectorView::Render()
         }
         else
         {
-            Ptr<Node> node = _EditorUI.InspectingNode.lock();
-            if(node != _CurrentNode)
+            if(pNode != _CurrentNode)
             {
                 _ResetModulesCache();
-                _CurrentNode = node;
+                _CurrentNode = pNode;
                 _CurrentIsAgent = _EditorUI.IsInspectingAgent;
                 if(_EditorUI.IsInspectingAgent)
                 {
@@ -1182,64 +1191,81 @@ void InspectorView::Render()
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
                 String agent = _EditorUI.InspectingNode.lock()->AgentName;
                 _EditorUI.InspectorViewY = 0.0f;
-                RenderNode(scrollY);
-                Meta::ClassInstance& props = _EditorUI.GetActiveScene()._Agents[agent]->Props;
-                U32 r = 0;
-                for(U32 i = 0; i < (U32)SceneModuleType::NUM; i++)
+                if(RenderNode(scrollY) && _EditorUI.IsInspectingAgent)
                 {
-                    if(_EditorUI.GetActiveScene()._Agents[agent]->ModuleIndices[i] != -1)
+                    if (pNode->AgentName == _EditorUI.GetActiveScene().GetName())
                     {
-                        _InitModuleCache(props, (SceneModuleType)i);
-                        auto it = _RuntimeModuleProps.find((SceneModuleType)i);
-                        Float yCur = ImGui::GetCursorPosY();
-                        if (it != _RuntimeModuleProps.end())
-                        {
-                            if (BeginModule(_EditorUI, it->second.ModuleName.c_str(),
-                                it->second.LastHeight, it->second.IsOpen, scrollY, it->second.ModuleIcon.c_str()))
-                            {
-                                for(const auto& prop: it->second.Properties)
-                                {
-                                    ImGui::PushID(r++);
-                                    ImGui::SetCursorPosX(ImGui::GetCursorStartPos().x + 0.0f);
-                                    ImGui::Dummy(ImVec2{ 1.0f, 2.0f });
-                                    ImGui::PushFont(ImGui::GetFont(), 13.0f);
-                                    ImGui::TextUnformatted(prop.Specification->Name.c_str());
-                                    String lang = "mod." + ToLower(it->second.ModuleName) + ".iv." + StringToSnake(prop.Specification->Name);
-                                    if (ImGui::IsItemHovered() && GetApplication().HasLanguageText(lang.c_str()))
-                                    {
-                                        ImGui::PushTextWrapPos(150.0f);
-                                        ImGui::SetTooltip("%s", GetApplication().GetLanguageText(lang.c_str()).c_str());
-                                        ImGui::PopTextWrapPos();
-                                    }
-                                    ImGui::PopFont();
-                                    ImGui::Dummy(ImVec2{ 1.0f, 2.0f });
-                                    if(prop.Specification->RenderInstruction)
-                                    {
-                                        prop.Specification->RenderInstruction->Render(*prop.Specification, prop.Property);
-                                    }
-                                    else if(prop.Specification->HandleClassID)
-                                    {
-                                        if (Meta::IsSymbolClass(Meta::GetClass(prop.Property.GetClassID())))
-                                        {
-                                            _DoHandleRender(_EditorUI, &prop.Specification->RuntimeCache.SymbolCache, (Symbol*)prop.Property._GetInternal(), prop.Specification->HandleClassID);
-                                        }
-                                        else if (Meta::IsStringClass(Meta::GetClass(prop.Property.GetClassID())))
-                                        {
-                                            _DoHandleRender(_EditorUI, (String*)prop.Property._GetInternal(), 0, prop.Specification->HandleClassID);
-                                        }
-                                        else
-                                        {
-                                            ImGui::Text("FIXME!Handle:%s", Meta::GetClass(prop.Property.GetClassID()).Name.c_str()); // incorrect not a handle. render error here
-                                        }
-                                    }
-                                    ImGui::PopID();
-                                }
-                            }
-                            it->second.LastHeight = MAX(40.0f, ImGui::GetCursorPosY() - yCur);
-                        }
+                        PlatformMessageBoxAndWait("Cannot delete this agent!", "The scene agent cannot be deleted!");
+                    }
+                    else
+                    {
+                        _CurrentNode = {};
+                        _CurrentIsAgent = false;
+                        _EditorUI.InspectingNode = {};
+                        _EditorUI.IsInspectingAgent = false;
+                        _EditorUI.GetActiveScene().RemoveAgent(pNode->AgentName);
                     }
                 }
-                Dummy(ImVec2(0.0f, _EditorUI.InspectorViewY - scrollY));
+                else
+                {
+                    Meta::ClassInstance& props = _EditorUI.GetActiveScene()._Agents[agent]->Props;
+                    U32 r = 0;
+                    for (U32 i = 0; i < (U32)SceneModuleType::NUM; i++)
+                    {
+                        if (_EditorUI.GetActiveScene()._Agents[agent]->ModuleIndices[i] != -1)
+                        {
+                            _InitModuleCache(props, (SceneModuleType)i);
+                            auto it = _RuntimeModuleProps.find((SceneModuleType)i);
+                            Float yCur = ImGui::GetCursorPosY();
+                            if (it != _RuntimeModuleProps.end())
+                            {
+                                if (BeginModule(_EditorUI, it->second.ModuleName.c_str(),
+                                    it->second.LastHeight, it->second.IsOpen, scrollY, it->second.ModuleIcon.c_str()))
+                                {
+                                    for (const auto& prop : it->second.Properties)
+                                    {
+                                        ImGui::PushID(r++);
+                                        ImGui::SetCursorPosX(ImGui::GetCursorStartPos().x + 0.0f);
+                                        ImGui::Dummy(ImVec2{ 1.0f, 2.0f });
+                                        ImGui::PushFont(ImGui::GetFont(), 13.0f);
+                                        ImGui::TextUnformatted(prop.Specification->Name.c_str());
+                                        String lang = "mod." + ToLower(it->second.ModuleName) + ".iv." + StringToSnake(prop.Specification->Name);
+                                        if (ImGui::IsItemHovered() && GetApplication().HasLanguageText(lang.c_str()))
+                                        {
+                                            ImGui::PushTextWrapPos(150.0f);
+                                            ImGui::SetTooltip("%s", GetApplication().GetLanguageText(lang.c_str()).c_str());
+                                            ImGui::PopTextWrapPos();
+                                        }
+                                        ImGui::PopFont();
+                                        ImGui::Dummy(ImVec2{ 1.0f, 2.0f });
+                                        if (prop.Specification->RenderInstruction)
+                                        {
+                                            prop.Specification->RenderInstruction->Render(*prop.Specification, prop.Property);
+                                        }
+                                        else if (prop.Specification->HandleClassID)
+                                        {
+                                            if (Meta::IsSymbolClass(Meta::GetClass(prop.Property.GetClassID())))
+                                            {
+                                                _DoHandleRender(_EditorUI, &prop.Specification->RuntimeCache.SymbolCache, (Symbol*)prop.Property._GetInternal(), prop.Specification->HandleClassID);
+                                            }
+                                            else if (Meta::IsStringClass(Meta::GetClass(prop.Property.GetClassID())))
+                                            {
+                                                _DoHandleRender(_EditorUI, (String*)prop.Property._GetInternal(), 0, prop.Specification->HandleClassID);
+                                            }
+                                            else
+                                            {
+                                                ImGui::Text("FIXME!Handle:%s", Meta::GetClass(prop.Property.GetClassID()).Name.c_str()); // incorrect not a handle. render error here
+                                            }
+                                        }
+                                        ImGui::PopID();
+                                    }
+                                }
+                                it->second.LastHeight = MAX(40.0f, ImGui::GetCursorPosY() - yCur);
+                            }
+                        }
+                    }
+                    Dummy(ImVec2(0.0f, _EditorUI.InspectorViewY - scrollY));
+                }
                 ImGui::PopStyleVar(3);
             }
             else
@@ -1445,8 +1471,20 @@ void SceneView::PostRender(void* me, const SceneFrameRenderParams& params, Rende
                 Matrix4 agentMat = MatrixTransformation(Scene::GetNodeWorldTransform(renderable.AgentNode));
                 for(const auto& mesh: renderable.Renderable.MeshList)
                 {
-                    Matrix4 meshMat = MatrixTransformation(Vector3(mesh->BSphere._Radius), Quaternion(), mesh->BSphere._Center);
-                    RenderUtility::DrawWireSphere(*self->_EditorUI.GetApplication().GetRenderContext(), nullptr, agentMat * meshMat, Colour(1.0f, 1.0f, 0.0f, 0.5f), outlinePass, &defRenderState);
+                    if(self->_EditorSceneCache->HasAgentModule(renderable.AgentNode->AgentName, SceneModuleType::LIGHT))
+                    {
+                        Matrix4 meshMat = MatrixTransformation(Vector3(mesh->BSphere._Radius), Quaternion(), mesh->BSphere._Center);
+                        RenderUtility::DrawWireSphere(*self->_EditorUI.GetApplication().GetRenderContext(), nullptr, 
+                            agentMat * meshMat, Colour(1.0f, 1.0f, 0.0f, 0.5f), outlinePass, &defRenderState);
+                    }
+                    else
+                    {
+                        Vector3 center = (mesh->BBox._Max + mesh->BBox._Min) * 0.5f;
+                        Vector3 halfExtents = (mesh->BBox._Max - mesh->BBox._Min) * 0.5f;
+                        Matrix4 meshMat = MatrixTransformation(halfExtents,Quaternion(),center);
+                        RenderUtility::DrawWireBox(*self->_EditorUI.GetApplication().GetRenderContext(), nullptr, 
+                            agentMat * meshMat, Colour(1.0f, 0.5f, 0.0f, 0.5f), outlinePass, &defRenderState);
+                    }
                 }
                 break;
             }

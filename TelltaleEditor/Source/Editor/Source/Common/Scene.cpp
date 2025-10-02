@@ -444,7 +444,7 @@ String Scene::GetAgentAtScreenPosition(Camera& cam, U32 screenX, U32 screenY, Bo
     return agent;
 }
 
-void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance props, Transform init)
+void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance props, Transform init, Bool doSetup)
 {
     TTE_ASSERT(!ExistsAgent(Name), "Agent %s already exists in %s", Name.c_str(), Name.c_str());
     Ptr<SceneAgent> pAgent = TTE_NEW_PTR(SceneAgent, MEMORY_TAG_SCENE_DATA, Name);
@@ -470,7 +470,7 @@ void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassIn
     {
         AddAgentModule(Name, *it);
     }
-    if(_Flags.Test(SceneFlags::RUNNING))
+    if(_Flags.Test(SceneFlags::RUNNING) || doSetup)
     {
         _SetupAgent(agentIt.first);
     }

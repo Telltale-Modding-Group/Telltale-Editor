@@ -6,6 +6,24 @@
 #include <iomanip>
 #include <cstdint>
 
+std::vector<std::pair<CString, CString>>& GetPropKeyConstants()
+{
+    static std::vector<std::pair<CString, CString>> _PropKeyConstants{};
+    return _PropKeyConstants;
+}
+
+Symbol::Symbol(CString s, Bool bRegisterSymbolMap, CString konst) : Symbol(String(s))
+{
+    if (bRegisterSymbolMap)
+    {
+        GetRuntimeSymbols().Register(s);
+        if(konst)
+        {
+            GetPropKeyConstants().push_back(std::make_pair(konst, s));
+        }
+    }
+}
+
 // Standard CRC32 and CRC64 routines and tables.
 
 U64 CRC64(const U8 *Buffer, U32 BufferLength, U64 InitialCRC64)

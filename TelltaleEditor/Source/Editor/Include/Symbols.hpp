@@ -2,7 +2,7 @@
 
 #undef GSYMBOL
 #undef _TTE_SYMBOLS_HPP
-#define GSYMBOL(_GlobalName, _SymbolStr) String _GlobalName{_SymbolStr}; Symbol _GlobalName##Symbol{_SymbolStr, true}
+#define GSYMBOL(_GlobalName, _SymbolStr) String _GlobalName{_SymbolStr}; Symbol _GlobalName##Symbol{_SymbolStr, true, #_GlobalName}
 
 #elif !defined(GSYMBOL)
 
@@ -18,6 +18,55 @@ class Symbol;
 // GSYMBOL will also register this string to its searchable at runtime by hash!
 
 GSYMBOL(kEmptySymbol, "");
+
+// ======================== SYMBOL SECTION <> LIGHT MODULE ================================
+
+GSYMBOL(kLightColour, "Light Color");
+GSYMBOL(kLightColourDark, "Light Color Dark");
+GSYMBOL(kLightIntensity, "Light Intensity");
+GSYMBOL(kLightIntensityDiffuse, "Light Intensity Diffuse");
+GSYMBOL(kLightIntensitySpecular, "Light Intensity Specular");
+GSYMBOL(kLightMaxDistance, "Light Max Distance");
+GSYMBOL(kLightMinDistance, "Light Min Distance");
+GSYMBOL(kLightShadowMax, "Light Shadow Max Distance");
+GSYMBOL(kLightShadowDistanceFalloff, "Light Shadow Distance Falloff");
+GSYMBOL(kLightShadowCascades, "Light Shadow Cascades");
+GSYMBOL(kLightShadowBias, "Light Shadow Bias");
+GSYMBOL(kLightDimmer, "Light Dimmer");
+GSYMBOL(kLightColorCorrection, "Light Color Correction");
+GSYMBOL(kLightToonPriority, "Light Toon Priority");
+GSYMBOL(kLightToonOpacity, "Light Toon Opacity");
+GSYMBOL(kLightType, "Light Type");
+GSYMBOL(kLightKeyLight, "Light Key Light");
+GSYMBOL(kLightGroups, "Light Groups");
+GSYMBOL(kDynamicOnLightMap, "Dynamic on LightMap");
+GSYMBOL(kLightTurnedOn, "Light Turned On");
+GSYMBOL(kLightWrapAround, "Light Wrap Around");
+GSYMBOL(kLightSpotInnerRadius, "Light Spot Inner Radius");
+GSYMBOL(kLightSpotOuterRadius, "Light Spot Outer Radius");
+GSYMBOL(kLightSpotTexture, "Light Spot Texture");
+GSYMBOL(kLightSpotAlphaMode, "Light Spot Alpha Mode");
+GSYMBOL(kLightSpotAlpha, "Light Spot Alpha");
+GSYMBOL(kLightRenderLayer, "Light Render Layer");
+GSYMBOL(kLightSpotTextureTranslate, "Light Spot Texture Translate");
+GSYMBOL(kLightSpotTextureScale, "Light Spot Texture Scale");
+GSYMBOL(kLightSpotTextureShear, "Light Spot Texture Shear");
+GSYMBOL(kLightSpotTextureShearOrigin, "Light Spot Texture Shear Origin");
+GSYMBOL(kLightSpotTextureRotate, "Light Spot Texture Rotate");
+GSYMBOL(kLightSpotTextureRotateOrigin, "Light Spot Texture Rotate Origin");
+GSYMBOL(kLightAmbientOcclusion, "Light Ambient Occlusion");
+GSYMBOL(kLightRimIntensity, "Light Rim Intensity");
+GSYMBOL(kLightRimWrapAround, "Light Rim Wrap Around");
+GSYMBOL(kLightRimOcclusion, "Light Rim Occlusion");
+GSYMBOL(kCellBlendMode, "Cell Blend Mode");
+GSYMBOL(kCellBlendWeight, "Cell Blend Weight");
+GSYMBOL(kCell0Colour, "Cell 0 Color");
+GSYMBOL(kCell1Colour, "Cell 1 Color");
+GSYMBOL(kCell2Colour, "Cell 2 Color");
+GSYMBOL(kCell3Colour, "Cell 3 Color");
+GSYMBOL(kNprSpecularIntensity, "NPR Specular Intensity");
+GSYMBOL(kLightStatic, "Light Static");
+GSYMBOL(kCellLightBlendMask, "Cell Light Blend Mask");
 
 // ======================== SYMBOL SECTION <> SCENE MODULE ================================
 

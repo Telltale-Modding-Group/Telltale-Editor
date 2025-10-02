@@ -33,6 +33,11 @@ TelltaleEditor::TelltaleEditor(GameSnapshot s)
     LuaFunctionCollection commonAPI = CreateScriptAPI(); // Common class API
     luaCompleteGameEngine(commonAPI); // Telltale full API
 
+    for(const auto& prop: GetPropKeyConstants())
+    {
+        PUSH_GLOBAL_S(commonAPI, prop.first, prop.second, "Telltale Property Keys");
+    }
+
     _ModdingContext = CreateToolContext(std::move(commonAPI));
 
     if(s.ID.length() > 0)

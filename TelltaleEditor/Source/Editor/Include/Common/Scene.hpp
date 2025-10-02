@@ -340,7 +340,7 @@ public:
     String GetAgentAtScreenPosition(Camera& cam, U32 screenX, U32 screenY, Bool bBySelectable);
     
     // Add a new agent. agent properties can be a nullptr, to start with default props. YOU MUST DISCARD AGENT PROPERTIES AFTER PASSING IT IN. copy it then pass if not!
-    void AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance AgentProperties, Transform initialTransform = {});
+    void AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance AgentProperties, Transform initialTransform = {}, Bool SetupAgent = false);
     
     // Adds an agent module to the given agent. This does NOT setup the agent (eg for run / edit). See how the add module popup in module ui.cpp does it, recurisvely selecting the module template and setting it up after this.
     void AddAgentModule(const String& Name, SceneModuleType module);

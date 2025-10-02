@@ -188,7 +188,7 @@ void SceneRenderer::_RenderMeshInstance(Ptr<Scene> pScene, RenderFrame& frame, c
         }
 
         // TODO fix deformable
-        if(!pMeshInstance->MeshFlags.Test(Mesh::FLAG_DEFORMABLE))
+        //if(!pMeshInstance->MeshFlags.Test(Mesh::FLAG_DEFORMABLE))
         {
 
             for (Mesh::LODInstance& LOD : pMeshInstance->LODs)

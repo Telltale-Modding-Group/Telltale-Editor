@@ -69,6 +69,12 @@ namespace CommandLine
         _DumpCollection(luaGameEngine(false), docs);
         if(!excludeLib)
         {
+            LuaFunctionCollection PropKonst{};
+            for (const auto& prop : GetPropKeyConstants())
+            {
+                PUSH_GLOBAL_S(PropKonst, prop.first, prop.second, "Telltale Property Keys");
+            }
+            _DumpCollection(PropKonst, docs);
             _DumpCollection(luaLibraryAPI(false), docs);
             _DumpCollection(CreateScriptAPI(), docs);
         }
