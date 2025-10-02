@@ -82,6 +82,7 @@ typedef struct RenderPass
 
 typedef struct CommandBufferCommonHeader
 {
+    void* D3D12GraphicsCmdList;
     SDL_GPUDevice *device;
 
     RenderPass render_pass;

@@ -1,6 +1,8 @@
-Detected development directory structure: using '/Users/lucas/Desktop/code/TelltaleEditor/Dev/Workspace/' as development workspace directory
+Detected development directory structure: using 'C:/Vunder/Telltale/Telltale-Editor/Dev/Workspace/' as development workspace directory
 Meta partially initialised with 3 games
 Loaded language English
 Meta fully initialised with snapshot of TX100: registered 127 classes
 
 ERROR: Unknown handle class extension wbox for scene
+Attempting to load scene logical://<TelltaleTexasHoldEm>/data.ttarch/default.scene with preload batch 1
+Initialising and setting up scene for editor: default.scene

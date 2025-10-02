@@ -12,3 +12,5 @@ Dev/TestResources/Dbg/*
 *.exe
 *.a
 *.obj
+Dev/Workspace/TTE_WorkspaceProperties.txt
+Dev/Workspace/TTE_LatestLog.txt

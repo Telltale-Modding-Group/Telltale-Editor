@@ -382,6 +382,8 @@ SDL_GPUGraphicsPipeline *SDL_GPU_FetchBlitPipeline(
 
     blit_pipeline_create_info.primitive_type = SDL_GPU_PRIMITIVETYPE_TRIANGLELIST;
 
+    blit_pipeline_create_info.IsSDL3Shader = true; // TTE
+
     pipeline = SDL_CreateGPUGraphicsPipeline(
         device,
         &blit_pipeline_create_info);

@@ -2335,10 +2335,11 @@ static void D3D12_INTERNAL_ReturnGPUDescriptorHeapToPool(
  *
  * The root parameter indices are created dynamically and stored in the D3D12GraphicsRootSignature struct.
  */
+// TTE MODIFIED FOR REGISTER SPACES TO BE ALL 0 IF SDL SHADER != TRUE
 static D3D12GraphicsRootSignature *D3D12_INTERNAL_CreateGraphicsRootSignature(
     D3D12Renderer *renderer,
     D3D12Shader *vertexShader,
-    D3D12Shader *fragmentShader)
+    D3D12Shader *fragmentShader, Uint32 IsSDL3Shader)
 {
     // FIXME: I think the max can be smaller...
     D3D12_ROOT_PARAMETER rootParameters[MAX_ROOT_SIGNATURE_PARAMETERS];
@@ -2450,7 +2451,7 @@ static D3D12GraphicsRootSignature *D3D12_INTERNAL_CreateGraphicsRootSignature(
     for (Uint32 i = 0; i < vertexShader->numUniformBuffers; i += 1) {
         rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
         rootParameter.Descriptor.ShaderRegister = i;
-        rootParameter.Descriptor.RegisterSpace = 1;
+        rootParameter.Descriptor.RegisterSpace = IsSDL3Shader ? 1 : 0;
         rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
         rootParameters[parameterCount] = rootParameter;
         d3d12GraphicsRootSignature->vertexUniformBufferRootIndex[i] = parameterCount;
@@ -2462,7 +2463,7 @@ static D3D12GraphicsRootSignature *D3D12_INTERNAL_CreateGraphicsRootSignature(
         descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
         descriptorRange.NumDescriptors = fragmentShader->num_samplers;
         descriptorRange.BaseShaderRegister = 0;
-        descriptorRange.RegisterSpace = 2;
+        descriptorRange.RegisterSpace = IsSDL3Shader ? 2 : 0;
         descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
         descriptorRanges[rangeCount] = descriptorRange;
 
@@ -2478,7 +2479,7 @@ static D3D12GraphicsRootSignature *D3D12_INTERNAL_CreateGraphicsRootSignature(
         descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
         descriptorRange.NumDescriptors = fragmentShader->num_samplers;
         descriptorRange.BaseShaderRegister = 0;
-        descriptorRange.RegisterSpace = 2;
+        descriptorRange.RegisterSpace = IsSDL3Shader ? 2 : 0;
         descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
         descriptorRanges[rangeCount] = descriptorRange;
 
@@ -2497,7 +2498,7 @@ static D3D12GraphicsRootSignature *D3D12_INTERNAL_CreateGraphicsRootSignature(
         descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
         descriptorRange.NumDescriptors = fragmentShader->numStorageTextures;
         descriptorRange.BaseShaderRegister = fragmentShader->num_samplers;
-        descriptorRange.RegisterSpace = 2;
+        descriptorRange.RegisterSpace = IsSDL3Shader ? 2 : 0;
         descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
         descriptorRanges[rangeCount] = descriptorRange;
 
@@ -2516,7 +2517,7 @@ static D3D12GraphicsRootSignature *D3D12_INTERNAL_CreateGraphicsRootSignature(
         descriptorRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
         descriptorRange.NumDescriptors = fragmentShader->numStorageBuffers;
         descriptorRange.BaseShaderRegister = fragmentShader->num_samplers + fragmentShader->numStorageTextures;
-        descriptorRange.RegisterSpace = 2;
+        descriptorRange.RegisterSpace = IsSDL3Shader ? 2 : 0;
         descriptorRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
         descriptorRanges[rangeCount] = descriptorRange;
 
@@ -2534,7 +2535,7 @@ static D3D12GraphicsRootSignature *D3D12_INTERNAL_CreateGraphicsRootSignature(
     for (Uint32 i = 0; i < fragmentShader->numUniformBuffers; i += 1) {
         rootParameter.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
         rootParameter.Descriptor.ShaderRegister = i;
-        rootParameter.Descriptor.RegisterSpace = 3;
+        rootParameter.Descriptor.RegisterSpace = IsSDL3Shader ? 3 : 0;
         rootParameter.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
         rootParameters[parameterCount] = rootParameter;
         d3d12GraphicsRootSignature->fragmentUniformBufferRootIndex[i] = parameterCount;
@@ -3139,7 +3140,7 @@ static SDL_GPUGraphicsPipeline *D3D12_CreateGraphicsPipeline(
     D3D12GraphicsRootSignature *rootSignature = D3D12_INTERNAL_CreateGraphicsRootSignature(
         renderer,
         vertShader,
-        fragShader);
+        fragShader, createinfo->IsSDL3Shader);
 
     if (rootSignature == NULL) {
         D3D12_INTERNAL_DestroyGraphicsPipeline(pipeline);
@@ -4305,6 +4306,18 @@ static void D3D12_BeginRenderPass(
 
     D3D12_CPU_DESCRIPTOR_HANDLE rtvs[MAX_COLOR_TARGET_BINDINGS];
 
+    // TTE added
+    D3D12_RECT ClearRect;
+    SDL_zero(ClearRect);
+    int DoClear = colorTargetInfos ? colorTargetInfos->BeginPassClearRect : 0;
+    if (DoClear)
+    {
+        ClearRect.left = (LONG)colorTargetInfos->BeginPassClearX;
+        ClearRect.right = (LONG)(colorTargetInfos->BeginPassClearX + colorTargetInfos->BeginPassClearW);
+        ClearRect.top = (LONG)colorTargetInfos->BeginPassClearY;
+        ClearRect.bottom = (LONG)(colorTargetInfos->BeginPassClearY + colorTargetInfos->BeginPassClearH);
+    }
+
     for (Uint32 i = 0; i < numColorTargets; i += 1) {
         D3D12TextureContainer *container = (D3D12TextureContainer *)colorTargetInfos[i].texture;
         D3D12TextureSubresource *subresource = D3D12_INTERNAL_PrepareTextureSubresourceForWrite(
@@ -4329,8 +4342,8 @@ static void D3D12_BeginRenderPass(
                 d3d12CommandBuffer->graphicsCommandList,
                 rtv,
                 clearColor,
-                0,
-                NULL);
+                DoClear == 1,
+                DoClear == 1 ? &ClearRect : NULL);
         }
 
         rtvs[i] = rtv;
@@ -7314,6 +7327,9 @@ static bool D3D12_INTERNAL_AllocateCommandBuffer(
 
     renderer->availableCommandBuffers[renderer->availableCommandBufferCount] = commandBuffer;
     renderer->availableCommandBufferCount += 1;
+
+    // TTE
+    commandBuffer->common.D3D12GraphicsCmdList = commandList;
 
     return true;
 }
