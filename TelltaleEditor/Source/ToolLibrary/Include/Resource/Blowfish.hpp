@@ -39,13 +39,13 @@ public:
         
     };
     
+    Blowfish(Bool modified, const U8* key, U32 keylen); // pub ctor for user custom non game key
+    
 private:
     
     Bool _Modified; // use modified version of the encryption. endian swap on index 118 and some other changes. (newer games)
     U32 _KeyLength; // length in bytes of encryption key
     U8 _Key[56];
-    
-    Blowfish(Bool modified, const U8* key, U32 keylen);
     
     static Blowfish* Instance;
     

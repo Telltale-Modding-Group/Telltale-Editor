@@ -98,6 +98,7 @@ class UIProjectCreate : public UIStackable
 
     struct SnapshotGuessState : std::enable_shared_from_this<SnapshotGuessState>
     {
+        String PackageKey; // for PKG files
         std::vector<String> Mounts;
         GameSnapshot ResolvedSnapshot;
         std::atomic_bool* OnExecute = nullptr;
@@ -109,6 +110,7 @@ class UIProjectCreate : public UIStackable
     String _SelectedPlatform = "";
     String _SelectedVendor = "";
     String _ProjectLocation = "";
+    String _PlaystationPackageKey = "";
     U64 _GuessStart = 0;
     JobHandle _GuessJob = {};
     std::vector<String> _MountPoints;

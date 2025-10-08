@@ -576,5 +576,5 @@ void SceneModule<SceneModuleType::LIGHT>::OnSetupAgent(SceneAgent* pAgentGetting
 
 void SceneModule<SceneModuleType::SELECTABLE>::OnSetupAgent(SceneAgent* pAgentGettingCreated)
 {
-
+    
 }

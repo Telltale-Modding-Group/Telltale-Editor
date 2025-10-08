@@ -11,6 +11,7 @@
 #define PROJECT_KEY_NAME "Project - Name"
 #define PROJECT_KEY_DESC "Project - Description"
 #define PROJECT_KEY_AUTH "Project - Author"
+#define PROJECT_KEY_PSK "Project - PS Key"
 #define PROJECT_KEY_SNAP_GAMEID "Project - Snapshot Game ID"
 #define PROJECT_KEY_SNAP_PLATFORM "Project - Snapshot Platform"
 #define PROJECT_KEY_SNAP_VENDOR "Project - Snapshot Vendor"
@@ -22,6 +23,7 @@ struct TTEProject
     String ProjectName;
     String ProjectAuthor;
     String ProjectDescription;
+    String ProjectPlaystationPackageKey;
     std::filesystem::path ProjectFile;
     GameSnapshot ProjectSnapshot;
     std::vector<std::filesystem::path> MountDirectories; // game-specific mounted data (files)

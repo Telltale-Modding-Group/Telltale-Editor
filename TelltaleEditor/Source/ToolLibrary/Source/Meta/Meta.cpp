@@ -929,7 +929,8 @@ namespace Meta {
             {
                 const PropertySet::InternalData* srcMem = (const PropertySet::InternalData*)(pSrc + _ClassPropertyCallbacksArrayOff(*pClass));
                 PropertySet::InternalData* dstMem = (PropertySet::InternalData*)(pMemory + _ClassPropertyCallbacksArrayOff(*pClass));
-                new(dstMem) PropertySet::InternalData(*srcMem); // shallow copy, ok just callbacks.
+                new(dstMem) PropertySet::InternalData();
+                srcMem->Clone(*dstMem);
             }
             // If the whole class has a copy constructor, call it (eg String)
             if(pClass->CopyConstruct)
@@ -978,7 +979,8 @@ namespace Meta {
             {
                 PropertySet::InternalData* srcMem = (PropertySet::InternalData*)(pSrc + _ClassPropertyCallbacksArrayOff(*pClass));
                 PropertySet::InternalData* dstMem = (PropertySet::InternalData*)(pMemory + _ClassPropertyCallbacksArrayOff(*pClass));
-                new(dstMem) PropertySet::InternalData(std::move(*srcMem));
+                new(dstMem) PropertySet::InternalData();
+                srcMem->Move(*dstMem);
             }
             // If the whole class has a move constructor, call it (eg String)
             if(pClass->MoveConstruct)

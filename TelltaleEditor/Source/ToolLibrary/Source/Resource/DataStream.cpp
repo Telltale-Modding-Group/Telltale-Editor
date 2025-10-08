@@ -3,6 +3,7 @@
 #include <Resource/Blowfish.hpp>
 #include <Meta/Meta.hpp>
 #include <Core/Context.hpp>
+#include <Resource/AES128.hpp>
 
 #include <algorithm>
 #include <stdexcept>
@@ -42,6 +43,185 @@ ResourceScheme StringToScheme(const String &scheme)
     {
         TTE_LOG("Scheme is invalid: %s", scheme.c_str());
         return ResourceScheme::INVALID; // Default
+    }
+}
+
+// ===================================================================
+// ENCRYPTION DATA STREAM
+// ===================================================================
+
+DataStreamEncryptionStream::DataStreamEncryptionStream(const ResourceURL& url,
+    DataStreamRef base, Encryption encryption, const U8* k, U32 klen, U64 boff, Bool mode, U32 mx, U32 ctr) : DataStream(url)
+{
+    memset(_EncryptionCache, 0, 65536);
+    memset(_EncryptionKey, 0, 56);
+    _EncryptionType = encryption;
+    _MaxReadLen = mode ? mx : 0;
+    _EncryptionMode = mode ? 1 : 0; // 1 for dec 0 for enc
+    _BaseOffset = boff;
+    _CTRInitialBlock = ctr;
+    _Base = std::move(base);
+    if(encryption == Encryption::AES128_CTR && klen != 32)
+    {
+        TTE_ASSERT(false, "Key invalid for AES128");
+    }
+    TTE_ASSERT(klen <= 56, "Key is too long");
+    memcpy(_EncryptionKey, k, MIN(56, klen));
+}
+
+void DataStreamEncryptionStream::_SaturateCache(U64 alignedoff)
+{
+    _EncryptionCacheReadAvail = _EncryptionCachePointer = 0;
+    _EncryptionFootprint = alignedoff;
+    TTE_ASSERT((alignedoff & 0xF) == 0, "Offset is not 16 byte aligned");
+    if((alignedoff + _BaseOffset > _Base->GetSize()) || alignedoff > _MaxReadLen)
+    {
+        TTE_ASSERT(false, "ERROR: In decrypting stream - offset too large!");
+        return;
+    }
+    _EncryptionCacheReadAvail = (U32)MIN(MIN(65536, _Base->GetSize() - _BaseOffset - alignedoff), _MaxReadLen - alignedoff);
+    if(_EncryptionCacheReadAvail)
+    {
+        _Base->SetPosition(_BaseOffset + alignedoff);
+        _Base->Read(_EncryptionCache, _EncryptionCacheReadAvail);
+        if(_EncryptionType == Encryption::AES128_CTR)
+        {
+            AES128::CryptCTR(_EncryptionCache, _EncryptionCacheReadAvail,
+                             _EncryptionKey, _EncryptionKey + 16, (U32)alignedoff + _CTRInitialBlock);
+        }
+        else if(_EncryptionType == Encryption::BLOWFISH || _EncryptionType == Encryption::BLOWFISH_NEW)
+        {
+            Bool bNew = _EncryptionType == Encryption::BLOWFISH_NEW;
+            Blowfish BF(bNew, _EncryptionKey, _EncryptionKeyLength);
+            BF.Decrypt(_EncryptionCache, _EncryptionCacheReadAvail);
+        }
+    }
+}
+
+Bool DataStreamEncryptionStream::Read(U8 *OutputBuffer, U64 Nbytes)
+{
+    if(!Nbytes)
+        return true;
+    if(!OutputBuffer || _EncryptionMode != 1)
+        return false;
+    
+    while(Nbytes)
+    {
+        U32 read = (U32)MIN(Nbytes, _EncryptionCacheReadAvail - _EncryptionCachePointer);
+        if(read)
+        {
+            memcpy(OutputBuffer, _EncryptionCache + _EncryptionCachePointer, read);
+            OutputBuffer += read;
+            Nbytes -= read;
+            _EncryptionCachePointer += read;
+        }
+        else
+        {
+            // increment block
+            SetPosition(_EncryptionFootprint + _EncryptionCacheReadAvail);
+            if(_EncryptionCacheReadAvail < Nbytes && Nbytes < 65536)
+            {
+                TTE_LOG("ERROR: Cannot read from decrypting stream as there are not enough bytes in the stream at this time!");
+                return false;
+            }
+            if(_EncryptionCacheReadAvail == 0)
+            {
+                TTE_LOG("ERROR: Cannot read from decrypting stream as no bytes could be read from base stream!");
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+Bool DataStreamEncryptionStream::Write(const U8 *InputBuffer, U64 Nbytes)
+{
+    if(!Nbytes)
+        return true;
+    if(!InputBuffer || _EncryptionMode != 0)
+        return false;
+    
+    U64 nremain = MIN(Nbytes, 65536 - _EncryptionCachePointer);
+    if(nremain)
+    {
+        memcpy(_EncryptionCache + _EncryptionCachePointer, InputBuffer, nremain);
+        _EncryptionCachePointer += nremain;
+        _Flush();
+        Nbytes -= nremain;
+        InputBuffer += nremain;
+    }
+    
+    while(Nbytes >= 65536)
+    {
+        memcpy(_EncryptionCache, InputBuffer, 65536);
+        InputBuffer += 65536;
+        Nbytes -= 65536;
+        _EncryptionCachePointer = 65536;
+        _Flush();
+    }
+    
+    if(Nbytes)
+    {
+        memcpy(_EncryptionCache, InputBuffer, Nbytes);
+        _EncryptionCachePointer = (U32)Nbytes;
+    }
+    
+    return true;
+}
+
+U64 DataStreamEncryptionStream::GetPosition()
+{
+    return _EncryptionFootprint + _EncryptionCachePointer;
+}
+
+U64 DataStreamEncryptionStream::GetSize()
+{
+    return _EncryptionMode ? _Base->GetSize() - _BaseOffset : _EncryptionFootprint;
+}
+
+void DataStreamEncryptionStream::SetPosition(U64 newPosition)
+{
+    if(_EncryptionMode == 0)
+    {
+        _Flush();
+    }
+    else
+    {
+        // read, update cache
+        _SaturateCache(newPosition & ~0xFull);
+        _EncryptionCachePointer = newPosition & 0xFull;
+    }
+    _EncryptionFootprint = newPosition;
+}
+
+DataStreamEncryptionStream::~DataStreamEncryptionStream()
+{
+    _Flush();
+}
+
+void DataStreamEncryptionStream::_Flush()
+{
+    if(_EncryptionMode == 0 && _EncryptionCachePointer)
+    {
+        // encrypt
+        if(_EncryptionType == Encryption::AES128_CTR)
+        {
+            AES128::CryptCTR(_EncryptionCache, _EncryptionCachePointer,
+                             _EncryptionKey, _EncryptionKey + 16, (U32)_EncryptionFootprint + _CTRInitialBlock);
+        }
+        else if(_EncryptionType == Encryption::BLOWFISH || _EncryptionType == Encryption::BLOWFISH_NEW)
+        {
+            Bool bNew = _EncryptionType == Encryption::BLOWFISH_NEW;
+            Blowfish BF(bNew, _EncryptionKey, _EncryptionKeyLength);
+            BF.Encrypt(_EncryptionCache, _EncryptionCachePointer);
+        }
+        // else ...
+        
+        _Base->SetPosition(_BaseOffset + _EncryptionFootprint);
+        _Base->Write(_EncryptionCache, _EncryptionCachePointer);
+        _EncryptionFootprint += _EncryptionCachePointer;
+        _EncryptionCachePointer = 0;
     }
 }
 
@@ -222,6 +402,47 @@ DataStreamRef DataStreamManager::Copy(DataStreamRef src, U64 srcOff, U64 n)
     src->SetPosition(srcOff);
     Transfer(src, mem, n);
     return mem;
+}
+
+DataStreamRef DataStreamManager::CreateBlowfishEncryptingStream(DataStreamRef& dest, U64 destOffset,
+           const U8* key, U32 keyLen, Bool bModifiedBlowfish)
+{
+    DataStreamEncryptionStream* ds = TTE_NEW(DataStreamEncryptionStream, MEMORY_TAG_DATASTREAM, ResourceURL(),
+        dest, bModifiedBlowfish ? DataStreamEncryptionStream::Encryption::BLOWFISH_NEW :
+        DataStreamEncryptionStream::Encryption::BLOWFISH, key, keyLen, destOffset, false, 0, 0);
+    return DataStreamRef(ds, &DataStreamDeleter);
+}
+
+DataStreamRef DataStreamManager::CreateBlowfishDecryptingStream(DataStreamRef& src, U64 srcOffset,
+           const U8* key, U32 keyLen, Bool bModifiedBlowfish, U32 encryptedBlockLength)
+{
+    DataStreamEncryptionStream* ds = TTE_NEW(DataStreamEncryptionStream, MEMORY_TAG_DATASTREAM, ResourceURL(),
+        src, bModifiedBlowfish ? DataStreamEncryptionStream::Encryption::BLOWFISH_NEW :
+        DataStreamEncryptionStream::Encryption::BLOWFISH, key, keyLen, srcOffset, true, encryptedBlockLength, 0);
+    return DataStreamRef(ds, &DataStreamDeleter);
+}
+
+DataStreamRef DataStreamManager::CreateAES128CTREncryptingStream(DataStreamRef& dest, U64 destOffset,
+           const U8* key, const U8* IV, U32 ctrInitialCounter)
+{
+    U8 kiv[32];
+    memcpy(kiv, key, 16);
+    memcpy(kiv + 16, IV, 16);
+    DataStreamEncryptionStream* ds = TTE_NEW(DataStreamEncryptionStream, MEMORY_TAG_DATASTREAM, ResourceURL(),
+        dest, DataStreamEncryptionStream::Encryption::AES128_CTR, kiv, 32, destOffset, false, 0, ctrInitialCounter);
+    return DataStreamRef(ds, &DataStreamDeleter);
+}
+
+DataStreamRef DataStreamManager::CreateAES128CTRDecryptingStream(DataStreamRef& src, U64 srcOffset,
+           const U8* key, const U8* IV, U32 encryptedBlockLength, U32 ctrInitialCounter)
+{
+    U8 kiv[32];
+    memcpy(kiv, key, 16);
+    memcpy(kiv + 16, IV, 16);
+    DataStreamEncryptionStream* ds = TTE_NEW(DataStreamEncryptionStream, MEMORY_TAG_DATASTREAM, ResourceURL(),
+        src, DataStreamEncryptionStream::Encryption::AES128_CTR, kiv, 32, srcOffset,
+        true, encryptedBlockLength, ctrInitialCounter);
+    return DataStreamRef(ds, &DataStreamDeleter);
 }
 
 DataStreamRef DataStreamManager::CreateNullStream()

@@ -27,3 +27,4 @@ elseif (UNIX)
 endif()
 
 target_include_directories(nfd PUBLIC  ${nfd_SOURCE_DIR}/include)
+ignore_warnings(nfd 0)

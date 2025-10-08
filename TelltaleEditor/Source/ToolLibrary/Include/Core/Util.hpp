@@ -604,6 +604,10 @@ dstVar |= dstVar >> 4; dstVar |= dstVar >> 8; dstVar |= dstVar >> 16; dstVar++; 
 
 #define MACRO_COMMA ,
 
+#define NULLABLE
+
+#define NONNULL
+
 struct WeakPtrHash
 {
 
@@ -644,4 +648,103 @@ private:
     I32 _Threshold;
     I32 _Ticks;
 
+};
+
+// ================================================ WEAK REF SLOTS ================================================
+
+// fun test! find where a hidden sequence here is from. hint: crack 180 software. good luck. bits 5 & 37 used for signal state.
+#define WEAK_SIGNAL_SANITY 0xEDFD425C'CB42FDCD
+#define WEAK_SIGNAL_SANITY_NSTATE_MASK 0xFFFFFFDF'FFFFFDFF
+#define WEAK_SIGNAL_SANITY_SSTATE_MASK 0x00000020'00000020
+
+// must be alive until all weak refs expire & master expire!!
+// fast listenable signal if master expires. can be shared by masters/weaks
+class WeakSlotSignal
+{
+    
+    friend class ToolContext;
+    
+    U64 _Stat = 0; // 2bits is the stat, rest are sanity bits to ensure it doesnt change (corruption checks).
+    
+    inline WeakSlotSignal() {}
+    inline WeakSlotSignal(WeakSlotSignal&&) : _Stat(0) {}
+    inline WeakSlotSignal(const WeakSlotSignal&) : _Stat(0) {}
+    WeakSlotSignal& operator=(WeakSlotSignal&&) { _Stat = 0; }
+    WeakSlotSignal& operator=(const WeakSlotSignal&) { _Stat = 0; }
+    
+public:
+    
+    inline Bool Expired() const
+    {
+        return _Stat != 0 && ((_Stat & WEAK_SIGNAL_SANITY_SSTATE_MASK) == WEAK_SIGNAL_SANITY_SSTATE_MASK);
+    }
+    
+    // reset signal to unset, allowing you to check if another master with this signal has expired
+    inline void Unset()
+    {
+        _Stat &= WEAK_SIGNAL_SANITY_NSTATE_MASK;
+    }
+    
+    // ensures status is 0 or sanity bit-and'ed with the initial sanity above.
+    ~WeakSlotSignal();
+    
+};
+
+// master holder to the weak slot. unique ptr, not shared. weak is sharable.
+class WeakSlotMaster
+{
+    // can copy but wont copy ref, ie x = y, x will be detached and will be empty.
+    
+    friend class ToolContext;
+    friend class WeakSlotRef;
+    
+    ToolContext* _Context = 0;
+    WeakSlotSignal* _Signal = 0;
+    U32 _WeakSlot = 0;
+    
+    WeakSlotMaster(WeakSlotMaster&&) = default;
+    WeakSlotMaster& operator=(WeakSlotMaster&&) = default;
+    
+    WeakSlotMaster& operator=(const WeakSlotMaster&);
+    
+    inline WeakSlotMaster(const WeakSlotMaster&) : _WeakSlot(0)
+    {
+    }
+    
+    ~WeakSlotMaster();
+    
+public:
+    
+    inline WeakSlotMaster() {}
+    
+};
+
+// weak reference to slot. up to 32767 wk refs
+class WeakSlotRef
+{
+    
+    friend class WeakSlotMaster;
+    friend class ToolContext;
+    
+    ToolContext* _Context = 0;
+    U32 _WeakSlot = 0;
+    
+    WeakSlotRef(WeakSlotRef&&) = default;
+    WeakSlotRef& operator=(WeakSlotRef&&) = default;
+    
+    WeakSlotRef& operator=(const WeakSlotRef& rhs);
+    
+    inline WeakSlotRef(const WeakSlotMaster& rhs)
+    {
+        *this = rhs;
+    }
+    
+    ~WeakSlotRef();
+    
+    inline WeakSlotRef(U32 s, ToolContext* c) : _WeakSlot(s), _Context(c) {}
+    
+public:
+    
+    inline WeakSlotRef() {}
+    
 };

@@ -93,16 +93,15 @@ static GameSnapshot _ProcessPlaystation_1_2_Config(ISO9660& iso, U8*& Buffer, U3
     return {};
 }
 
-static GameSnapshot _ProcessPlaystation_3_4(ISO9660& iso, U8*& Buffer, U32& BufferSize)
+template<typename ContainerT>
+static GameSnapshot _ProcessPlaystation_3_4(const std::set<String>& files, U8*& Buffer, U32& BufferSize, ContainerT& pk)
 {
-    String _{};
-    std::set<String> files{};
-    iso.GetFiles(files);
     for(const auto& file: files)
     {
         if(CompareCaseInsensitive(FileGetFilename(file), "EBOOT.BIN"))
         {
-            DataStreamRef exec = iso.Find(file, _);
+            String _{};
+            DataStreamRef exec = pk.Find(file, _);
             GameSnapshot ss = {};
             if (exec)
                 ss = _AsyncDoGuess(exec, Buffer, BufferSize);
@@ -169,7 +168,7 @@ Bool UIProjectCreate::AsyncSnapshotGuess(const JobThread& thread, void* pArg1, v
     {
         if(is_regular_file(path(mp)))
         {
-            if(StringEndsWith(mp, ".iso", true))
+            if(StringEndsWith(mp, ISO9660::Extension, true))
             {
                 ISO9660 iso{};
                 DataStreamRef ref = DataStreamManager::GetInstance()->CreateFileStream(absolute(path(mp)).string());
@@ -183,22 +182,42 @@ Bool UIProjectCreate::AsyncSnapshotGuess(const JobThread& thread, void* pArg1, v
                         guessState->ResolvedSnapshot = ss;
                         break;
                     }
-                    ss = _ProcessPlaystation_3_4(iso, Buffer, BufferSize);
+                    std::set<String> files{};
+                    iso.GetFiles(files);
+                    ss = _ProcessPlaystation_3_4<ISO9660>(files, Buffer, BufferSize, iso);
                     if (!ss.ID.empty())
                     {
                         Result = true;
                         guessState->ResolvedSnapshot = ss;
                         break;
                     }
-                    // try other console locators... TODO
+                    // try other console locators... ?
                 }
             }
         }
-        else if(StringEndsWith(mp, ".pk2"))
+        else if(StringEndsWith(mp, GamePack2::Extension))
         {
             guessState->ResolvedSnapshot = {"CSI3","PS2",""}; // one exception for this file!
             Result = true;
             break;
+        }
+        else if(StringEndsWith(mp, PlaystationPKG::Extension, true))
+        {
+            PlaystationPKG pkg{};
+            DataStreamRef ref = DataStreamManager::GetInstance()->CreateFileStream(absolute(path(mp)).string());
+            if(pkg.SerialiseIn(ref, guessState->PackageKey))
+            {
+                GameSnapshot ss{};
+                std::set<String> files{};
+                pkg.GetFiles(files);
+                ss = _ProcessPlaystation_3_4<PlaystationPKG>(files, Buffer, BufferSize, pkg);
+                if (!ss.ID.empty())
+                {
+                    Result = true;
+                    guessState->ResolvedSnapshot = ss;
+                    break;
+                }
+            }
         }
         else if(is_directory(path(mp)))
         {
@@ -216,7 +235,8 @@ Bool UIProjectCreate::AsyncSnapshotGuess(const JobThread& thread, void* pArg1, v
                     String fileName = entry.path().filename().string();
                     String ext = ToLower(FileGetExtension(fileName));
                     if (CompareCaseInsensitive(fileName, "EBOOT.BIN") || CompareCaseInsensitive(ext, "xex") ||
-                        CompareCaseInsensitive(ext, "exe") || CompareCaseInsensitive(ext, "so") || CompareCaseInsensitive(ext, "mll") ||
+                        CompareCaseInsensitive(ext, "exe") || CompareCaseInsensitive(ext, "so") || 
+                        CompareCaseInsensitive(ext, "mll") ||
                        (ext.empty() && StringContains(fileName, "GameApp", true)))
                     {
                         GameSnapshot ss = _AsyncDoGuess(DataStreamManager::GetInstance()->CreateFileStream(absolute(entry.path()).string()), Buffer, BufferSize);
@@ -377,7 +397,7 @@ void UIProjectCreate::Render()
     Float topPadding = winSize.y * 0.05f;
     Float labelSpacing = 5.0f;
     Float itemSpacingY = 8.0f;
-    Float contentX = winPos.x + sidePadding;
+    Float contentX = winPos.x + sidePadding - 5.0f;
     Float contentWidth = winSize.x - sidePadding * 2.0f;
     Float cursorY = winPos.y + topPadding;
 
@@ -644,7 +664,7 @@ void UIProjectCreate::Render()
         PushStyleColor(ImGuiCol_Text, ImVec4{ 0.5f, 0.5f, 0.5f, 1.0f });
         PushTextWrapPos(winSize.x - sidePadding);
         TextUnformatted(GetApplication().GetLanguageText("project_create.location_info").c_str());
-        cursorY += GetTextLineHeightWithSpacing() * 4.0f + itemSpacingY;
+        cursorY += GetTextLineHeightWithSpacing() * 4.5f + itemSpacingY;
         PopStyleColor(1);
         PopTextWrapPos();
 
@@ -715,6 +735,35 @@ void UIProjectCreate::Render()
             }
         }
         cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
+        
+        // ADD PKG
+        SetCursorScreenPos(ImVec2(contentX, cursorY));
+        if (Button(GetApplication().GetLanguageText("project_create.add_pkg").c_str()))
+        {
+            nfdchar_t* outp{};
+            if (NFD_OpenDialog("pkg", NULL, &outp) == NFD_OKAY)
+            {
+                String path = outp;
+                Bool exist = false;
+                std::filesystem::path absp = std::filesystem::absolute(std::filesystem::path(path));
+                for (const auto& ep : _MountPoints)
+                {
+                    if (CompareCaseInsensitive(ep, absp.string()))
+                    {
+                        exist = true;
+                        break;
+                    }
+                }
+                if (!exist)
+                {
+                    if(_PlaystationPackageKey.empty())
+                        _PlaystationPackageKey = "pending";
+                    _MountPoints.push_back(absp.string());
+                }
+                free(outp);
+            }
+        }
+        cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
 
         // ADD APP
         SetCursorScreenPos(ImVec2(contentX, cursorY));
@@ -731,8 +780,10 @@ void UIProjectCreate::Render()
         cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
         
         I32 mpIndex = 0;
+        Bool noPk = true;
         for (auto it = _MountPoints.begin(); it != _MountPoints.end(); )
         {
+            Bool haspk = StringEndsWith(*it, PlaystationPKG::Extension, true);
             PushID(mpIndex);
             SetCursorScreenPos(ImVec2(contentX, cursorY));
 
@@ -749,14 +800,43 @@ void UIProjectCreate::Render()
             if (Button(GetApplication().GetLanguageText("project_create.remove").c_str()))
             {
                 it = _MountPoints.erase(it);
+                haspk = false;
             }
             else
             {
                 ++it;
             }
+            if(haspk)
+                noPk = false;
             cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
             PopID();
             mpIndex++;
+        }
+        if(noPk)
+            _PlaystationPackageKey.clear();
+        
+        Bool bAllowNext = !_MountPoints.empty();
+        if(!_PlaystationPackageKey.empty())
+        {
+            PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 0.3f, 0.3f, 1.0f));
+            SetCursorScreenPos(ImVec2(contentX, cursorY));
+            TextUnformatted(GetApplication().GetLanguageText("project_create.want_package_key").c_str());
+            cursorY += GetTextLineHeightWithSpacing();
+            PopStyleColor();
+            SetCursorScreenPos(ImVec2(contentX, cursorY));
+            if(BeginCombo("##pkkey", _PlaystationPackageKey == "pending" ? "Select..." : _PlaystationPackageKey.c_str()))
+            {
+                for(const auto& key: PlaystationPKG::GetAvailableKeys())
+                {
+                    if(Selectable(key))
+                    {
+                        _PlaystationPackageKey = key;
+                    }
+                }
+                EndCombo();
+            }
+            bAllowNext = _PlaystationPackageKey != "pending";
+            cursorY += GetTextLineHeightWithSpacing() + itemSpacingY;
         }
 
         Float buttonWidth = 120.0f;
@@ -766,7 +846,8 @@ void UIProjectCreate::Render()
         Float totalButtonsWidth = (2.0f * buttonWidth) + (1.0f * spacing);
         Float startX = contentX + (contentWidth - totalButtonsWidth) * 0.5f;
 
-        if (!_MountPoints.empty())
+        cursorY += GetTextLineHeightWithSpacing() * 0.5f;
+        if (!bAllowNext)
         {
             SetCursorScreenPos(ImVec2(contentX, cursorY));
             PushStyleColor(ImGuiCol_Text, ImVec4(0.3f, 1.0f, 0.3f, 1.0f));
@@ -779,7 +860,7 @@ void UIProjectCreate::Render()
             SetCursorScreenPos(ImVec2(contentX, cursorY));
             PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));
             TextUnformatted(GetApplication().GetLanguageText("project_create.enter_more").c_str());
-            cursorY += GetTextLineHeightWithSpacing();
+            cursorY += GetTextLineHeightWithSpacing()*1.0f;
             PopStyleColor();
         }
 
@@ -789,7 +870,7 @@ void UIProjectCreate::Render()
             _Page = ProjectCreationPage::INFO;
         }
         SetCursorScreenPos({ startX + (buttonWidth + spacing) * 1.0f, cursorY + 10.0f });
-        if (Button(GetApplication().GetLanguageText("project_create.next_button").c_str(), buttonSize) && !_MountPoints.empty())
+        if (Button(GetApplication().GetLanguageText("project_create.next_button").c_str(), buttonSize) && bAllowNext)
         {
             _Page = ProjectCreationPage::PROJECT_FOLDER_PICK;
             _ReleaseJob(); 
@@ -798,6 +879,7 @@ void UIProjectCreate::Render()
             _AsyncGuessState->ResolvedSnapshot = {};
             _AsyncGuessState->Mounts = _MountPoints; // copy
             _AsyncGuessState->OnExecute = &executed;
+            _AsyncGuessState->PackageKey = _PlaystationPackageKey;
             JobDescriptor desc{};
             desc.AsyncFunction = &AsyncSnapshotGuess;
             desc.Priority = JOB_PRIORITY_NORMAL;
@@ -963,6 +1045,7 @@ void UIProjectCreate::Render()
             proj.ProjectFile = std::filesystem::path(_ProjectLocation) / _FileName;
             proj.ProjectDescription = _Description;
             proj.ProjectAuthor = _Author;
+            proj.ProjectPlaystationPackageKey = _PlaystationPackageKey;
             for(const auto& game: Meta::GetInternalState().Games)
             {
                 if(CompareCaseInsensitive(game.Name, _SelectedGame))
@@ -995,6 +1078,6 @@ void UIProjectCreate::Render()
 
 void UIProjectCreate::GetWindowSize(U32& w, U32& h)
 {
-    w = (1280 / 5) << 1;
-    h = (900 / 5) << 1; // 2/5
+    w = (1350 / 5) << 1;
+    h = (1050 / 5) << 1; // 2/5
 }

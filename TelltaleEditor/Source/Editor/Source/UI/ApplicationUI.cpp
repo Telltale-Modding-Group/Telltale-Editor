@@ -348,7 +348,23 @@ void ApplicationUI::_OnProjectLoad()
 
     for(const auto& mp: _ProjectMgr.GetHeadProject()->MountDirectories)
     {
-        _EditorResourceReg->MountSystem("<" + FileGetName(mp.string()) + ">/", mp.string(), true); // force legacy needed here?
+        String id = "<" + FileGetName(mp.string()) + ">/";
+        if(std::filesystem::is_regular_file(mp))
+        {
+            if(StringEndsWith(mp.string(), PlaystationPKG::Extension, true))
+            {
+                _EditorResourceReg->MountPlaystationPackage(id, mp.string(),
+                    _ProjectMgr.GetHeadProject()->ProjectPlaystationPackageKey);
+            }
+            else
+            {
+                _EditorResourceReg->MountArchive(id, mp.string());
+            }
+        }
+        else
+        {
+            _EditorResourceReg->MountSystem(id, mp.string(), true); // force legacy needed here?
+        }
     }
 
 }

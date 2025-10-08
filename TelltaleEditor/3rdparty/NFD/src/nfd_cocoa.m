@@ -51,10 +51,11 @@ static void AddFilterListToDialog( NSSavePanel *dialog, const char *filterList )
         return;
 
     NSArray *allowedFileTypes = BuildAllowedFileTypes( filterList );
-    if ( [allowedFileTypes count] != 0 )
+    if ( [allowedFileTypes count] == 0 )
     {
-        [dialog setAllowedFileTypes:allowedFileTypes];
+        return;
     }
+    dialog.allowedFileTypes = allowedFileTypes;
 }
 
 static void SetDefaultPath( NSSavePanel *dialog, const nfdchar_t *defaultPath )

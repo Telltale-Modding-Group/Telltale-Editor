@@ -11,6 +11,24 @@
 
 #define MEMORY_STREAM_DEFAULT_PAGESIZE 0x1000
 
+#define FLIP_ENDIAN32(val) \
+(((val) >> 24) & 0x000000FF) | \
+(((val) >> 8) & 0x0000FF00) | \
+(((val) << 8) & 0x00FF0000) | \
+(((val) << 24) & 0xFF000000)
+
+inline U64 EndianSwap64(U64 val)
+{
+    return ((val >> 56) & 0x00000000000000FFull) |
+           ((val >> 40) & 0x000000000000FF00ull) |
+           ((val >> 24) & 0x0000000000FF0000ull) |
+           ((val >> 8 ) & 0x00000000FF000000ull) |
+           ((val << 8 ) & 0x000000FF00000000ull) |
+           ((val << 24) & 0x0000FF0000000000ull) |
+           ((val << 40) & 0x00FF000000000000ull) |
+           ((val << 56) & 0xFF00000000000000ull);
+}
+
 // DATA STREAM AND URL MANAGEMENT. See DataStream class and URL class comments.
 
 // Valid resource schemes for use in the ResourceURL class below.
@@ -346,6 +364,55 @@ protected:
     friend class DataStreamManager;
 };
 
+class DataStreamEncryptionStream : public DataStream
+{
+public:
+    
+    enum class Encryption
+    {
+        AES128_CTR = 1,
+        BLOWFISH = 2,
+        BLOWFISH_NEW = 3,
+    };
+    
+    virtual Bool Read(U8 *OutputBuffer, U64 Nbytes) override;
+    virtual Bool Write(const U8 *InputBuffer, U64 Nbytes) override;
+
+    virtual U64 GetPosition() override;
+    virtual void SetPosition(U64 newPosition) override;
+    virtual U64 GetSize() override;
+        
+    virtual ~DataStreamEncryptionStream();
+
+protected:
+    
+    friend class DataStreamManager;
+    
+    void _Flush();
+    void _SaturateCache(U64 alignedSubOffset); // 16 byte aligned
+    
+    // in AES key MUST be 32 bytes: first 16 is key, second 16 is the IV. bDecrypt for decryption READING, false of enc WRITING
+    DataStreamEncryptionStream(const ResourceURL& url, DataStreamRef base, 
+                               Encryption encryption, const U8* k, U32 klen, U64 baseOffset,
+                               Bool bDecrypt, U32 maxReadLen, U32 ctrInitialCounter);
+    
+    U8 _EncryptionKey[56]{};
+    U32 _EncryptionMode = 0;
+    U32 _EncryptionKeyLength = 0;
+    Encryption _EncryptionType;
+    U32 _MaxReadLen = 0;
+    U32 _CTRInitialBlock = 0;
+    
+    U64 _BaseOffset;
+    DataStreamRef _Base;
+    
+    U8 _EncryptionCache[65536]{};
+    U32 _EncryptionCachePointer = 0; // point inside cache
+    U32 _EncryptionCacheReadAvail = 0;
+    U64 _EncryptionFootprint = 0; // number of bytes written / offset of cache block from base offset
+    
+};
+
 // Null stream. Writes and reads succeed but do nothing (albeit they will warn). Used in actual engine too
 class DataStreamNull : public DataStream
 {
@@ -361,9 +428,9 @@ public:
         return true;
     }
     
-    virtual U64 GetPosition() override { return 0; }
+    inline virtual U64 GetPosition() override { return 0; }
     
-    virtual void SetPosition(U64 newPosition) override {}
+    inline virtual void SetPosition(U64 newPosition) override {}
     
     inline virtual U64 GetSize() override { return 0; }
     
@@ -514,6 +581,18 @@ public:
     // It is publicly accessible after this call not just by the returned value. If a cached file at the path exists, it is replaced -
     // any subsequent calls to FindCache returns this new returned stream.
     Ptr<DataStreamMemory> CreatePublicCache(const String &path, U32 pageSize = MEMORY_STREAM_DEFAULT_PAGESIZE);
+    
+    DataStreamRef CreateBlowfishEncryptingStream(DataStreamRef& dest, U64 destOffset,
+               const U8* key, U32 keyLen, Bool bModifiedBlowfish);
+    
+    DataStreamRef CreateBlowfishDecryptingStream(DataStreamRef& src, U64 srcOffset,
+               const U8* key, U32 keyLen, Bool bModifiedBlowfish, U32 encryptedBlockLength);
+    
+    DataStreamRef CreateAES128CTREncryptingStream(DataStreamRef& dest, U64 destOffset,
+               const U8* key, const U8* IV, U32 ctrInitialCounter);
+    
+    DataStreamRef CreateAES128CTRDecryptingStream(DataStreamRef& src, U64 srcOffset,
+               const U8* key, const U8* IV, U32 encryptedBlockLength, U32 ctrInitialCounter);
     
     // Writes and fully flushes a data stream from the source stream, reading Nbytes, into the output destination stream, with parameters.
     // Passes out the JOB HANDLE. This runs asynchronously this can take a lot of time for large game data. Returns false if invalid inputs.

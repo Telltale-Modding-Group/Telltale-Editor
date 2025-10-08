@@ -28,6 +28,8 @@ endif()
 
 if(APPLE)
     enable_language(OBJC)
+    # ventura minimum at least
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.7" CACHE STRING "Minimum OS X deployment version" FORCE)
 endif()
 
 set(TELLTALE_EDITOR_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")

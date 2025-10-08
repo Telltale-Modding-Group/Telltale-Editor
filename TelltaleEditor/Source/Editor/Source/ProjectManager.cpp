@@ -5,6 +5,7 @@ void ProjectManager::_SaveProject(TTEProperties& toProperties, const TTEProject&
     toProperties.SetString(PROJECT_KEY_NAME, project.ProjectName);
     toProperties.SetString(PROJECT_KEY_DESC, project.ProjectDescription);
     toProperties.SetString(PROJECT_KEY_AUTH, project.ProjectAuthor);
+    toProperties.SetString(PROJECT_KEY_PSK, project.ProjectPlaystationPackageKey);
     toProperties.SetString(PROJECT_KEY_SNAP_GAMEID, project.ProjectSnapshot.ID);
     toProperties.SetString(PROJECT_KEY_SNAP_PLATFORM, project.ProjectSnapshot.Platform);
     toProperties.SetString(PROJECT_KEY_SNAP_VENDOR, project.ProjectSnapshot.Vendor);
@@ -22,6 +23,7 @@ TTEProject ProjectManager::_LoadProject(TTEProperties& projectProps, std::filesy
     projectInfo.ProjectName = projectProps.GetString(PROJECT_KEY_NAME, "");
     projectInfo.ProjectDescription = projectProps.GetString(PROJECT_KEY_DESC, "");
     projectInfo.ProjectAuthor = projectProps.GetString(PROJECT_KEY_AUTH, "");
+    projectInfo.ProjectPlaystationPackageKey = projectProps.GetString(PROJECT_KEY_PSK, "");
     projectInfo.ProjectSnapshot.ID = projectProps.GetString(PROJECT_KEY_SNAP_GAMEID, "");
     projectInfo.ProjectSnapshot.Platform = projectProps.GetString(PROJECT_KEY_SNAP_PLATFORM, "");
     projectInfo.ProjectSnapshot.Vendor = projectProps.GetString(PROJECT_KEY_SNAP_VENDOR, "");

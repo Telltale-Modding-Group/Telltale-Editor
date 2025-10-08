@@ -9,6 +9,7 @@
 #include <Resource/TTArchive.hpp>
 #include <Resource/ISO9660.hpp>
 #include <Resource/TTArchive2.hpp>
+#include <Resource/PSPKG.hpp>
 #include <Resource/Pack2.hpp>
 #include <Scripting/ScriptManager.hpp>
 #include <Meta/Meta.hpp>
@@ -660,6 +661,46 @@ public:
     
 };
 
+/**
+ Legacy console telltale games pack file
+ */
+class RegistryDirectory_PlaystationPKG : public RegistryDirectory
+{
+    
+    friend class ResourceRegistry;
+    
+    String _LastLocatedResource;
+    Bool _LastLocatedResourceStatus = false; // true if it existed
+    String _PackageKey;
+    PlaystationPKG _PKG;
+    
+public:
+    
+    inline RegistryDirectory_PlaystationPKG(const String& path, const String& pkKey, PlaystationPKG&& arc)
+            : RegistryDirectory(path), _LastLocatedResource(), _PKG(std::move(arc)), _PackageKey(pkKey) {}
+    
+    virtual Bool GetResourceNames(std::set<String>& resources, const StringMask* optionalMask); // get file names
+    virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
+                              Ptr<ResourceLocation>& self, const StringMask* optionalMask);
+    virtual Bool GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names
+    virtual Bool GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // empty return here
+    virtual Bool HasResource(const Symbol& resourceName, const String* actualName /*optional*/); // pass in actual name if you know it to speed up.
+    virtual String GetResourceName(const Symbol& resource); // to string resource name (quicker than symbol table
+    virtual Bool DeleteResource(const Symbol& resource); // delete it if we can
+    virtual Bool RenameResource(const Symbol& resource, const String& newName); // rename it
+    virtual DataStreamRef CreateResource(const String& name); // create resource and open writing stream
+    virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr); // copy resource to dest
+    virtual DataStreamRef OpenResource(const Symbol& resourceName,String* outName); // open resource
+    virtual void RefreshResources(); // refresh
+    
+    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck); // update from resource sys
+    
+    virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // although its not flat, treat as it is. do nothing here.
+    
+    virtual ~RegistryDirectory_PlaystationPKG() = default;
+    
+};
+
 // TODO other directory types: encrypted stuff, STFS saves..
 
 // ================================================== RESOURCE HIGH LEVEL LOCATIONS ==================================================
@@ -872,6 +913,11 @@ public:
     void MountArchive(const String& id, const String& fspath);
     
     /**
+     See MountArchive and MountSystem. This version of mount archive does the same but for a PSP/PS3/etc PKG file. Pass in the package key name (see keys lua script).
+     */
+    void MountPlaystationPackage(const String& id, const String& fsPath, const String& packageKey);
+    
+    /**
      Creates a logical location in the resource system. In URLs, if they start with this name (it must start and end with <>'s), it will look into this location for the rest of the URL.
      You can later map other locations into this one. This is done in resource set scripts automagically.
      All resource searches search from the master location, "<>".
@@ -1078,6 +1124,8 @@ public:
     
 private:
     
+    // ========== INTERNAL STATE
+    
     LuaManager& _LVM; // local LVM used for this registry. Must be alive and acts as a parent!
     
     std::vector<ResourceSet> _ResourceSets; // available high level resource groups
@@ -1102,6 +1150,8 @@ private:
     
     String _DefaultLocation = "<>";
     
+    // ========== INTERNAL FUNCTIONALITY
+    
     Ptr<ResourceLocation> _Locate(const String& logicalName); // locate internal no lock
     
     void _ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::recursive_mutex>& lck);
@@ -1111,6 +1161,8 @@ private:
     void _CheckLogical(const String& name); // checks asserts its OK.
     
     void _CheckConcrete(const String& name); // checks asserts its OK.
+    
+    void _ApplyMountArchive(const String& id, const String& fspath, const String& packageKey);
     
     // searches and loads any resource sets (_resdesc_).
     void _ApplyMountDirectory(RegistryDirectory* pMountPoint, std::unique_lock<std::recursive_mutex>& lck);
@@ -1141,7 +1193,8 @@ private:
     void _LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
                            const String& folderID, const String& physicalPath, std::unique_lock<std::recursive_mutex>& lck); // open .ttarch, legacy resource system
     
-    Bool _ImportArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
+    Bool _ImportArchivePack(const String& resourceName, const String& archiveID, 
+                            const String& archivePhysicalPath, const String& packageKey,
                             DataStreamRef& archiveStream, std::unique_lock<std::recursive_mutex>& lck); // import ttarch/ttarch2/pk2 into parent as sub
     
     Bool _ImportAllocateArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,

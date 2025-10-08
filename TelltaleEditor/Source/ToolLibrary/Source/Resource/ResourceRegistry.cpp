@@ -668,6 +668,123 @@ void RegistryDirectory_GamePack2::RefreshResources()
     _LastLocatedResourceStatus = false;
 }
 
+// ===== PKG
+
+Ptr<RegistryDirectory> RegistryDirectory_PlaystationPKG::OpenDirectory(const String &name)
+{
+    return {};
+}
+
+Bool RegistryDirectory_PlaystationPKG::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck)
+{
+    TTE_ASSERT(StringEndsWith(resourceName, PlaystationPKG::Extension),
+               "Resource is not a valid PKG filename: %s", resourceName.c_str());
+    _PKG.Reset();
+    DataStreamRef newStream = location->LocateResource(resourceName, nullptr);
+    TTE_ASSERT(false, "Failed retrieve stream for PKG %s!", resourceName.c_str());
+    lck.unlock();
+    Bool result = _PKG.SerialiseIn(newStream, _PackageKey);
+    lck.lock();
+    return result;
+}
+
+Bool RegistryDirectory_PlaystationPKG::GetResourceNames(std::set<String>& resources, const StringMask* optionalMask)
+{
+    _PKG.GetFiles(resources);
+    if (optionalMask)
+    {
+        for (auto it = resources.begin(); it != resources.end(); )
+        {
+            if (*optionalMask != *it)
+            {
+                it = resources.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+    
+    return true;
+}
+
+Bool RegistryDirectory_PlaystationPKG::GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask)
+{
+    return true;
+}
+
+Bool RegistryDirectory_PlaystationPKG::GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask)
+{
+    return true;
+}
+
+Bool RegistryDirectory_PlaystationPKG::HasResource(const Symbol& resourceName, const String* o)
+{
+    _LastLocatedResource.clear();
+    _LastLocatedResourceStatus = false;
+    
+    _PKG.Find(resourceName, _LastLocatedResource);
+    _LastLocatedResourceStatus = _LastLocatedResource.length() != 0;
+    
+    return _LastLocatedResourceStatus;
+}
+
+String RegistryDirectory_PlaystationPKG::GetResourceName(const Symbol& resource)
+{
+    return HasResource(resource, nullptr) ? _LastLocatedResource : "";
+}
+
+Bool RegistryDirectory_PlaystationPKG::DeleteResource(const Symbol& resource)
+{
+    TTE_LOG("Cannot delete files from playstation packages!");
+    return false;
+}
+
+Bool RegistryDirectory_PlaystationPKG::RenameResource(const Symbol& resource, const String& newName)
+{
+    TTE_LOG("Cannot rename files from inside playstation packages!");
+    return false;
+}
+
+DataStreamRef RegistryDirectory_PlaystationPKG::CreateResource(const String& name)
+{
+    TTE_LOG("Cannot create %s as playstation packages are not editable", name.c_str());
+    return {};
+}
+
+Bool RegistryDirectory_PlaystationPKG::CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr)
+{
+    TTE_LOG("Cannot copy files inside playstation packages!");
+    return false;
+}
+
+DataStreamRef RegistryDirectory_PlaystationPKG::OpenResource(const Symbol& resourceName, String* outName)
+{
+    String out{};
+    return _PKG.Find(resourceName, outName ? *outName : out);
+}
+
+void RegistryDirectory_PlaystationPKG::RefreshResources()
+{
+    _LastLocatedResource.clear();
+    _LastLocatedResourceStatus = false;
+}
+
+Bool RegistryDirectory_PlaystationPKG::GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
+                                               Ptr<ResourceLocation>& self, const StringMask* optionalMask)
+{
+    std::set<String> files{};
+    _PKG.GetFiles(files);
+    
+    for(auto& f: files)
+        resources.push_back(std::make_pair(Symbol(f), self));
+    
+    return true;
+}
+
+// ISO
+
 Ptr<RegistryDirectory> RegistryDirectory_ISO9660::OpenDirectory(const String& name)
 {
     return {};
@@ -1624,7 +1741,18 @@ void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDi
     }
 }
 
+void ResourceRegistry::MountPlaystationPackage(const String& id, const String& fsPath, const String& packageKey)
+{
+    _ApplyMountArchive(id, fsPath, packageKey);
+}
+
 void ResourceRegistry::MountArchive(const String &_id, const String &fspath)
+{
+    String p{};
+    _ApplyMountArchive(_id, fspath, p);
+}
+
+void ResourceRegistry::_ApplyMountArchive(const String &_id, const String &fspath, const String& pk)
 {
     StringMask mask = _ArchivesMask(UsingLegacyCompat());
     TTE_ASSERT(mask == fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
@@ -1643,7 +1771,7 @@ void ResourceRegistry::MountArchive(const String &_id, const String &fspath)
         TTE_LOG("WARNING: Could not open stream %s when mounting archive to resource registry!", fspath.c_str());
         return;
     }
-    if(_ImportArchivePack(fs::path(fspath).filename().string(), id, fspath, is, lck))
+    if(_ImportArchivePack(fs::path(fspath).filename().string(), id, fspath, pk, is, lck))
     {
         Ptr<ResourceLocation> pLocation = _Locations.back(); // last newly processed
         ResourceLogicalLocation* pLogicalMaster = dynamic_cast<ResourceLogicalLocation*>(_Locate("<>").get());
@@ -1671,7 +1799,7 @@ void ResourceRegistry::MountArchive(const String &_id, const String &fspath)
                 continue; // already exists
             
             DataStreamRef is = pLocation->LocateResource(arc, nullptr);
-            if(is && _ImportArchivePack(arc, archiveID, fspath + "/" + arc, is, lck))
+            if(is && _ImportArchivePack(arc, archiveID, fspath + "/" + arc, pk, is, lck))
             {
                 // Map archive location to master
                 {
@@ -1866,11 +1994,13 @@ Bool ResourceRegistry::_ImportAllocateArchivePack(const String& resourceName, co
                                                   const String& archivePhysicalPath, Ptr<ResourceLocation>& parent, std::unique_lock<std::recursive_mutex>& lck)
 {
     DataStreamRef archiveStream = parent->LocateResource(resourceName, nullptr);
-    return archiveStream ? _ImportArchivePack(resourceName, archiveID, archivePhysicalPath, archiveStream, lck) : false;
+    return archiveStream ? _ImportArchivePack(resourceName, archiveID,
+                                              archivePhysicalPath, "", archiveStream, lck) : false;
 }
 
 Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const String& archiveID,
-                                          const String& archivePhysicalPath, DataStreamRef& archiveStream, std::unique_lock<std::recursive_mutex>& lck)
+                                          const String& archivePhysicalPath, const String& pkKey,
+                                          DataStreamRef& archiveStream, std::unique_lock<std::recursive_mutex>& lck)
 {
     // create archive location
     StringMask maskTTArch1 = "*.ttarch;*.tta";
@@ -1893,7 +2023,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive2>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
         _Locations.push_back(std::move(pLoc));
     }
-    else if(StringEndsWith(resourceName, ".iso", false))
+    else if(StringEndsWith(resourceName, ISO9660::Extension, false))
     {
         ISO9660 iso{};
         lck.unlock(); // may take time, dont keep everyone waiting!
@@ -1903,10 +2033,11 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
             return false;
         }
         lck.lock();
-        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_ISO9660>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(iso));
+        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_ISO9660>, 
+                                MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(iso));
         _Locations.push_back(std::move(pLoc));
     }
-    else if(StringEndsWith(resourceName, ".pk2", false))
+    else if(StringEndsWith(resourceName, GamePack2::Extension, false))
     {
         GamePack2 pk2{};
         lck.unlock(); // may take time, dont keep everyone waiting!
@@ -1916,7 +2047,22 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
             return false;
         }
         lck.lock();
-        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_GamePack2>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(pk2));
+        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_GamePack2>, 
+                                MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(pk2));
+        _Locations.push_back(std::move(pLoc));
+    }
+    else if(StringEndsWith(resourceName, PlaystationPKG::Extension, false))
+    {
+        PlaystationPKG pkg{};
+        lck.unlock(); // may take time, dont keep everyone waiting!
+        if(!pkg.SerialiseIn(archiveStream, pkKey))
+        {
+            TTE_LOG("Failed to import playstation package (PKG) %s!", resourceName.c_str());
+            return false;
+        }
+        lck.lock();
+        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_PlaystationPKG>,
+                                MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, pkKey, std::move(pkg));
         _Locations.push_back(std::move(pLoc));
     }
     else

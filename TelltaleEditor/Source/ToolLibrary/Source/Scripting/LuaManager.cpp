@@ -254,7 +254,8 @@ void LuaManager::SetTableRaw(I32 index, I32 arrayIndex)
     _Adapter->SetTableRaw(index, arrayIndex);
 }
 
-I32 LuaManager::UpvalueIndex(I32 index){
+I32 LuaManager::UpvalueIndex(I32 index)
+{
     return _Adapter->UpvalueIndex(index);
 }
 
@@ -263,11 +264,13 @@ void LuaManager::GetTableRaw(I32 index, I32 arrayIndex)
     _Adapter->GetTableRaw(index, arrayIndex);
 }
 
-Bool LuaManager::LoadChunk(const String& nm, const U8* c, U32 s, LoadChunkMode cm){
+Bool LuaManager::LoadChunk(const String& nm, const U8* c, U32 s, LoadChunkMode cm)
+{
     return _Adapter->LoadChunk(nm, c, s, cm);
 }
 
-void LuaManager::PushFn(LuaCFunction f){
+void LuaManager::PushFn(LuaCFunction f)
+{
     _Adapter->Push(LuaType::FUNCTION, (void*)f);
 }
 

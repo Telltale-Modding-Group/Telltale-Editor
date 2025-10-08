@@ -6,12 +6,6 @@
 #define ADVANCE_DESC(X) in->SetPosition(0x8000 + (0x800 * X))
 #define ADVANCE_LOCATOR(X) in->SetPosition((0x800 * X))
 
-#define FLIP_ENDIAN(val) \
-(((val) >> 24) & 0x000000FF) | \
-(((val) >> 8) & 0x0000FF00) | \
-(((val) << 8) & 0x00FF0000) | \
-(((val) << 24) & 0xFF000000)
-
 template<I32 L> // L= max length
 inline String _ReadString(DataStreamRef& stream, U32 lenOverride = 0)
 {
@@ -229,10 +223,10 @@ Bool ISO9660::PrimaryVolumeDesc::SerialisePrimaryIn(DataStreamRef& in)
     TTE_ASSERT(in->Read((U8*)&_LPathTableAdditionalLocator, 4), "ISO9660: Could not read bytes"); // little endian, no big one stored
     
     TTE_ASSERT(in->Read((U8*)&_MPathTableLocator, 4), "ISO9660: Could not read bytes");
-    _MPathTableLocator = FLIP_ENDIAN(_MPathTableLocator);
+    _MPathTableLocator = FLIP_ENDIAN32(_MPathTableLocator);
     
     TTE_ASSERT(in->Read((U8*)&_MPathTableAdditionalLocator, 4), "ISO9660: Could not read bytes"); // big endian for M
-    _MPathTableAdditionalLocator = FLIP_ENDIAN(_MPathTableAdditionalLocator);
+    _MPathTableAdditionalLocator = FLIP_ENDIAN32(_MPathTableAdditionalLocator);
     
     if(!_ReadDir(in, _Root))
         return false;
@@ -338,10 +332,10 @@ Bool ISO9660::SupplementaryVolumeDesc::SerialiseIn(DataStreamRef &in)
     TTE_ASSERT(in->Read((U8*)&_LPathTableAdditionalLocator, 4), "ISO9660: Could not read bytes"); // little endian, no big one stored
     
     TTE_ASSERT(in->Read((U8*)&_MPathTableLocator, 4), "ISO9660: Could not read bytes");
-    _MPathTableLocator = FLIP_ENDIAN(_MPathTableLocator);
+    _MPathTableLocator = FLIP_ENDIAN32(_MPathTableLocator);
     
     TTE_ASSERT(in->Read((U8*)&_MPathTableAdditionalLocator, 4), "ISO9660: Could not read bytes"); // big endian for M
-    _MPathTableAdditionalLocator = FLIP_ENDIAN(_MPathTableAdditionalLocator);
+    _MPathTableAdditionalLocator = FLIP_ENDIAN32(_MPathTableAdditionalLocator);
     
     if(!_ReadDir(in, _Root))
         return false;

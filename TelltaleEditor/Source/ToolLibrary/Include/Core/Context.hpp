@@ -11,16 +11,15 @@
 #include <mutex>
 
 class ResourceRegistry;
+class WeakSlotSignal;
+class WeakSlotMaster;
+class WeakSlotRef;
 
 // The tool context is used as a global context for the library when modding. Creating this and then calling initialise runs all the lua
 // code to setup the library for modding the given game snapshot. ONLY ONE INSTANCE can be alive for one executable using this library.
 class ToolContext
 {
-    
-    friend class LuaManager;
-    
 public:
-    
     // Releases the library. Switch can be re-called after this.
     void Release();
     
@@ -67,19 +66,27 @@ public:
     String LoadLibraryStringResource(String name);
     
     // Returns if a game is setup such that we can use the library
-    inline Bool IsSetup() {
+    inline Bool IsSetup() 
+    {
         return _Setup;
     }
     
     // Returns the number of script calls we are currently in. If zero, this function is called directly by the C++ source. If > 0, then
     // this call is from a lua script (indirectly).
-    inline U32 GetLockDepth() {
+    inline U32 GetLockDepth() 
+    {
         return _LockedCallDepth;
     }
     
     // Creates a resource registry for the given game. Only use in the current game! Must be destroyed before a switch.
     // This binds itself to the library LVM!
     Ptr<ResourceRegistry> CreateResourceRegistry();
+    
+    // see below. creates a weak lot with an optional signal to check master is alive
+    void CreateMasterWeakSlot(WeakSlotMaster& master, NULLABLE WeakSlotSignal* signal);
+    
+    // creates a weak refernce to a non expired master slot
+    WeakSlotRef CreateWeakSlotReference(const WeakSlotMaster& master);
     
 private:
     
@@ -92,9 +99,23 @@ private:
     std::mutex _DependentsLock;
     std::vector<WeakPtr<SnapshotDependentObject>> _SwitchDependents{}; // see game dependent object
     
+    // WEAK POINTER
+    std::mutex _WkLock;
+    U64 _WkPtrSlots[128 * 1024]; // must be a multiple of 4 u16's (so u64 cast and all ones check)
+    void _ReleaseRequiredSlotUnlocked(U32 grp, U32 sgrp, U32 nwref);
+    void _DetachWeakSlotMaster(U32 slot, WeakSlotSignal* sig);
+    void _DetachWeakSlotRef(U32 slot);
+    void _IncrWeakRef(U32 slot);
+    static void _AssertWeakSlot(U64 state);
+    
     friend ToolContext* CreateToolContext(LuaFunctionCollection);
 
     friend void Meta::InitGame();
+    
+    friend class LuaManager;
+    friend class WeakSlotSignal;
+    friend class WeakSlotMaster;
+    friend class WeakSlotRef;
     
 };
 

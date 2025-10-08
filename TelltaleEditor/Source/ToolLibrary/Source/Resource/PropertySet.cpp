@@ -597,7 +597,7 @@ void PropertySet::RemoveCallback(Meta::ClassInstance prop, Symbol key, Ptr<Funct
         bRemoved = false;
         for(auto it = data.KeyCallbacks.begin(); it != data.KeyCallbacks.end(); it++)
         {
-            const Ptr<FunctionBase>& pCallback = *it;
+            const Ptr<FunctionBase>& pCallback = it->MyCallback;
             if((key.GetCRC64() == 0 || pCallback->Tag == key) && (!pMatchingCallback || pCallback->Equals(*pMatchingCallback)))
             {
                 data.KeyCallbacks.erase(it);
@@ -767,13 +767,13 @@ void PropertySet::AddCallback(Meta::ClassInstance prop, Symbol key, Ptr<Function
     if(pCallback)
     {
         pCallback->Tag = key;
-        auto it = callbacks.find(pCallback);
+        auto it = callbacks.find(KeyCallbackTracked{pCallback});
         if(it != callbacks.end())
         {
-            pCallback->Next = std::move(*it);
+            pCallback->Next = std::move(it->MyCallback);
             callbacks.erase(it);
         }
-        callbacks.insert(std::move(pCallback));
+        callbacks.insert(KeyCallbackTracked{std::move(pCallback)});
     }
 }
 
@@ -835,11 +835,11 @@ void PropertySet::MarkModified(Meta::ClassInstance prop, Symbol Key, Ptr<Resourc
     FunctionDummy D{};
     Ptr<FunctionBase> dummy = TTE_PROXY_PTR(&D, FunctionDummy);
     dummy->Tag = Key;
-    auto it = callbacks.find(dummy);
+    auto it = callbacks.find(KeyCallbackTracked{dummy});
     if(it != callbacks.end())
     {
         Meta::ClassInstance value = Get(prop, Key, true, pRegistry);
-        FunctionBase* callback = it->get();
+        FunctionBase* callback = it->MyCallback.get();
         while(callback)
         {
             callback->CallMeta(value, {}, {}, {});
@@ -944,10 +944,10 @@ void PropertySet::CallAllCallbacks(Meta::ClassInstance prop, Ptr<ResourceRegistr
     auto& callbacks = ((InternalData*)prop._GetInternalPropertySetData())->KeyCallbacks;
     for(const auto& cb: callbacks)
     {
-        Meta::ClassInstance value = Get(prop, cb->Tag, true, pRegistry);
+        Meta::ClassInstance value = Get(prop, cb.MyCallback->Tag, true, pRegistry);
         if(value) // Important! The callback can exist before or even without the key existing.
         {
-            FunctionBase* pFunction = cb.get();
+            FunctionBase* pFunction = cb.MyCallback.get();
             while (pFunction)
             {
                 pFunction->CallMeta(value, {}, {}, {});
@@ -1100,4 +1100,16 @@ void PropertySet::PostLoad(Meta::ClassInstance prop, Ptr<ResourceRegistry> pRegi
             }
         }
     }
+}
+
+void PropertySet::InternalData::Move(InternalData &dest)
+{
+    dest.Children = std::move(Children);
+    KeyCallbacks.clear(); // cant move callbacks they can contain specific stuff to that scene
+}
+
+void PropertySet::InternalData::Clone(InternalData &dest) const
+{
+    dest.Children = Children;
+    dest.KeyCallbacks.clear();
 }

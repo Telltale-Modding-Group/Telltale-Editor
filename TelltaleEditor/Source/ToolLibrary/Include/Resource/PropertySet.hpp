@@ -58,21 +58,35 @@ class PropertySet
 {
 public:
     
+    static constexpr CString ClassHandle = "Handle<PropertySet>";
+    
+    struct KeyCallbackTracked
+    {
+        Ptr<FunctionBase> MyCallback;
+        // WeakSlotRef TrackingReference;
+    };
+    
     struct KeyCallbackComparator
     {
-        inline Bool operator()(const Ptr<FunctionBase>& lhs, const Ptr<FunctionBase>& rhs) const
+        
+        inline Bool operator()(const KeyCallbackTracked& lhs, const KeyCallbackTracked& rhs) const
         {
-            return lhs->Tag < rhs->Tag;
+            return lhs.MyCallback->Tag < rhs.MyCallback->Tag;
         }
+        
     };
     
     struct InternalData
     {
-        std::set<Ptr<FunctionBase>, KeyCallbackComparator> KeyCallbacks;
+        
+        std::set<KeyCallbackTracked, KeyCallbackComparator> KeyCallbacks;
         std::vector<HandlePropertySet> Children;
+        // WeakSlotSignal CallbacksSignal;
+        
+        void Move(InternalData& dest);
+        void Clone(InternalData& dest) const; // clones a copy into the dest.
+        
     };
-    
-    static constexpr CString ClassHandle = "Handle<PropertySet>";
     
     enum Flag
     {

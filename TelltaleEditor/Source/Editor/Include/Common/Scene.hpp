@@ -315,7 +315,7 @@ class Scene : public HandleableRegistered<Scene>
     Scene(const Scene& rhs);
 
 public:
-
+    
     using AgentMap = std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>;
     
     static constexpr CString ClassHandle = "Handle<Scene>";
