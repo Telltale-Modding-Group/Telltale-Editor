@@ -182,7 +182,7 @@ nfdresult_t NFD_OpenDialog( const char *filterList,
                             nfdchar_t **outPath )
 {    
     int commandLen = 100;
-    char* command[commandLen];
+    char* command[100];
     memset(command, 0, commandLen * sizeof(char*));
 
     command[0] = strdup("zenity");
@@ -214,7 +214,7 @@ nfdresult_t NFD_OpenDialogMultiple( const nfdchar_t *filterList,
                                     nfdpathset_t *outPaths )
 {
     int commandLen = 100;
-    char* command[commandLen];
+    char* command[100];
     memset(command, 0, commandLen * sizeof(char*));
 
     command[0] = strdup("zenity");
@@ -248,7 +248,7 @@ nfdresult_t NFD_SaveDialog( const nfdchar_t *filterList,
                             nfdchar_t **outPath )
 {
     int commandLen = 100;
-    char* command[commandLen];
+    char* command[100];
     memset(command, 0, commandLen * sizeof(char*));
 
     command[0] = strdup("zenity");
@@ -279,7 +279,7 @@ nfdresult_t NFD_PickFolder(const nfdchar_t *defaultPath,
     nfdchar_t **outPath, nfdchar_t _unused_)
 {
     int commandLen = 100;
-    char* command[commandLen];
+    char* command[100];
     memset(command, 0, commandLen * sizeof(char*));
 
     command[0] = strdup("zenity");

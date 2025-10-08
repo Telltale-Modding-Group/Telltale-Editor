@@ -47,7 +47,7 @@ int runCommandArray(char** stdOut, int* stdOutByteCount, int* returnCode, int in
     // adapted from: https://stackoverflow.com/a/479103
 
     int bufferSize = 256;
-    char buffer[bufferSize + 1];
+    char buffer[257];
 
     int dataReadFromChildDefaultSize = bufferSize * 5;
     int dataReadFromChildSize = dataReadFromChildDefaultSize;
