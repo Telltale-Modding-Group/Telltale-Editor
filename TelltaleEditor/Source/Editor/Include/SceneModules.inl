@@ -33,6 +33,7 @@ enum class SceneModuleType : I32
     // === POST RENDERABLE MODULES
 
     TEXT            , // Must stay 1st here.
+    ROLLOVER        ,
 
     // ===
 
@@ -765,6 +766,32 @@ template<> struct SceneModule<SceneModuleType::SELECTABLE> : SceneModuleBase
 
     BoundingBox BBox; // in which a click counts towards this selectable
     Bool GameSelectable = false; // currently on?
+
+    // in modules.cpp
+    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
+
+    inline void OnModuleRemove(SceneAgent* pAttachedAgent) {}
+
+};
+
+// for when an agent is hovered over, show some mesh + text
+template<> struct SceneModule<SceneModuleType::ROLLOVER> : SceneModuleBase
+{
+
+    static constexpr SceneModuleType ModuleType = SceneModuleType::ROLLOVER;
+    static constexpr CString ModuleID = "rollover";
+    static constexpr CString ModuleName = "Rollover";
+
+    static inline String GetModulePropertySet()
+    {
+        return kRolloverPropName;
+    }
+
+    HandlePropertySet CursorProps;
+    Handle<Mesh::MeshInstance> Mesh;
+    String Text;
+    Colour TextBackground;
+    Colour TextForeground;
 
     // in modules.cpp
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
