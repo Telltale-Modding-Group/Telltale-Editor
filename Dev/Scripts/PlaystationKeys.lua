@@ -1,0 +1,19 @@
+-- Registers PSP/PS3/PSVita/IDU encryption AES128 keys for game data
+function RegisterPlaystationPKGKeys()
+
+    local keys = {}
+
+    keys["PS3"] = "2E7B71D7C9C9A14EA3221F188828B8F8"
+    keys["PS3-IDU"] = "5DB911E6B7E50A7D321538FD7C66F17B"
+
+    keys["PSP"] = "07F2C68290B50D2C33818D709B60E62B"
+    keys["PSP-IDU"] = "7547EE76CA8C55AC1BA8D22535E05593"
+
+    keys["PSVita"] = "E31A70C9CE1DD72BF3C0622963F2ECCB"
+    keys["PSVita-GUI"] = "423ACA3A2BD5649F9686ABAD6FD8801F"
+
+    keys["PSMobile"] = "AF07FD59652527BAF13389668B17D9EA"
+
+    return keys
+
+end

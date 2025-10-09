@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <dxcapi.h>
+
 // Windows workaround for set thread name. See below link =========================================================
 // https://learn.microsoft.com/en-gb/previous-versions/visualstudio/visual-studio-2015/debugger/how-to-set-a-thread-name-in-native-code?view=vs-2015&redirectedfrom=MSDN
 
@@ -39,6 +41,11 @@ void SetThreadName(const String &tName)
 #pragma warning(pop)
 }
 
+void PlatformMessageBoxAndWait(const String& title, const String& message)
+{
+    MessageBoxA(nullptr, message.c_str(), title.c_str(), MB_OK | MB_ICONINFORMATION);
+}
+
 void ThreadSleep(U64 milliseconds) { ::Sleep(milliseconds); }
 
 void DebugBreakpoint() { __debugbreak(); }
@@ -53,7 +60,11 @@ U64 FileOpen(CString path)
 
     HANDLE file = CreateFileW(wpath.data(), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 
-    TTE_ASSERT(file != INVALID_HANDLE_VALUE, "Could not open %s => Windows err %d", path, GetLastError());
+    if(file == INVALID_HANDLE_VALUE)
+    {
+        TTE_LOG("Could not open %s => Windows err %d", path, GetLastError());
+        return FileNull();
+    }
 
     return (U64)file;
 }

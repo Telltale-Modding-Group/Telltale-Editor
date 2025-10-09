@@ -820,7 +820,7 @@ Bool Frustum::Visible(const BoundingBox& box, bool* pbStraddlesNearPlane) {
         if (InternalVisibleTest(c)) {
             bool straddles = false;
             for (int i = 0; i < 8; i++) {
-                if ((Vector3::Dot(Vector3(_Plane[0]._Plane), c[i]) + _Plane[0]._Plane.w) <= 0.0f) {
+                if ((Vector3::Dot(_Plane[0]._Plane.xyz(), c[i]) + _Plane[0]._Plane.w) <= 0.0f) {
                     straddles = true;
                     break;
                 }

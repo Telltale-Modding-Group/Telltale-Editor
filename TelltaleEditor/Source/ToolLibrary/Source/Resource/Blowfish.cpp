@@ -4,7 +4,8 @@
 
 Blowfish* Blowfish::Instance = nullptr;
 
-namespace {
+namespace 
+{
     extern U32 bfp[18];
     extern U32 ks0[256];
     extern U32 ks1[256];

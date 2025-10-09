@@ -25,7 +25,7 @@ public:
     inline Symbol(const String &value) { _Hash = CRC64LowerCase((const U8 *)value.c_str(), (U32)value.length()); }
     
     // Constructs with C string
-    inline Symbol(CString s, Bool bRegisterSymbolMap = false);
+    Symbol(CString s, Bool bRegisterSymbolMap = false, CString constantName = 0);
     
     // Constructs from a hash
     inline Symbol(U64 hash) : _Hash(hash) {}
@@ -134,12 +134,4 @@ inline SymbolTable& GetGameSymbols() // game-specific runtime symbols
 {
     static SymbolTable symbols{};
     return symbols;
-}
-
-inline Symbol::Symbol(CString s, Bool bRegisterSymbolMap) : Symbol(String(s))
-{
-    if(bRegisterSymbolMap)
-    {
-        GetRuntimeSymbols().Register(s);
-    }
 }

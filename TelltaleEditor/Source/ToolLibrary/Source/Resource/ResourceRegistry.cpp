@@ -668,6 +668,123 @@ void RegistryDirectory_GamePack2::RefreshResources()
     _LastLocatedResourceStatus = false;
 }
 
+// ===== PKG
+
+Ptr<RegistryDirectory> RegistryDirectory_PlaystationPKG::OpenDirectory(const String &name)
+{
+    return {};
+}
+
+Bool RegistryDirectory_PlaystationPKG::UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck)
+{
+    TTE_ASSERT(StringEndsWith(resourceName, PlaystationPKG::Extension),
+               "Resource is not a valid PKG filename: %s", resourceName.c_str());
+    _PKG.Reset();
+    DataStreamRef newStream = location->LocateResource(resourceName, nullptr);
+    TTE_ASSERT(false, "Failed retrieve stream for PKG %s!", resourceName.c_str());
+    lck.unlock();
+    Bool result = _PKG.SerialiseIn(newStream, _PackageKey);
+    lck.lock();
+    return result;
+}
+
+Bool RegistryDirectory_PlaystationPKG::GetResourceNames(std::set<String>& resources, const StringMask* optionalMask)
+{
+    _PKG.GetFiles(resources);
+    if (optionalMask)
+    {
+        for (auto it = resources.begin(); it != resources.end(); )
+        {
+            if (*optionalMask != *it)
+            {
+                it = resources.erase(it);
+            }
+            else
+            {
+                ++it;
+            }
+        }
+    }
+    
+    return true;
+}
+
+Bool RegistryDirectory_PlaystationPKG::GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask)
+{
+    return true;
+}
+
+Bool RegistryDirectory_PlaystationPKG::GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask)
+{
+    return true;
+}
+
+Bool RegistryDirectory_PlaystationPKG::HasResource(const Symbol& resourceName, const String* o)
+{
+    _LastLocatedResource.clear();
+    _LastLocatedResourceStatus = false;
+    
+    _PKG.Find(resourceName, _LastLocatedResource);
+    _LastLocatedResourceStatus = _LastLocatedResource.length() != 0;
+    
+    return _LastLocatedResourceStatus;
+}
+
+String RegistryDirectory_PlaystationPKG::GetResourceName(const Symbol& resource)
+{
+    return HasResource(resource, nullptr) ? _LastLocatedResource : "";
+}
+
+Bool RegistryDirectory_PlaystationPKG::DeleteResource(const Symbol& resource)
+{
+    TTE_LOG("Cannot delete files from playstation packages!");
+    return false;
+}
+
+Bool RegistryDirectory_PlaystationPKG::RenameResource(const Symbol& resource, const String& newName)
+{
+    TTE_LOG("Cannot rename files from inside playstation packages!");
+    return false;
+}
+
+DataStreamRef RegistryDirectory_PlaystationPKG::CreateResource(const String& name)
+{
+    TTE_LOG("Cannot create %s as playstation packages are not editable", name.c_str());
+    return {};
+}
+
+Bool RegistryDirectory_PlaystationPKG::CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr)
+{
+    TTE_LOG("Cannot copy files inside playstation packages!");
+    return false;
+}
+
+DataStreamRef RegistryDirectory_PlaystationPKG::OpenResource(const Symbol& resourceName, String* outName)
+{
+    String out{};
+    return _PKG.Find(resourceName, outName ? *outName : out);
+}
+
+void RegistryDirectory_PlaystationPKG::RefreshResources()
+{
+    _LastLocatedResource.clear();
+    _LastLocatedResourceStatus = false;
+}
+
+Bool RegistryDirectory_PlaystationPKG::GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
+                                               Ptr<ResourceLocation>& self, const StringMask* optionalMask)
+{
+    std::set<String> files{};
+    _PKG.GetFiles(files);
+    
+    for(auto& f: files)
+        resources.push_back(std::make_pair(Symbol(f), self));
+    
+    return true;
+}
+
+// ISO
+
 Ptr<RegistryDirectory> RegistryDirectory_ISO9660::OpenDirectory(const String& name)
 {
     return {};
@@ -992,7 +1109,10 @@ DataStreamRef ResourceLogicalLocation::LocateResource(const Symbol& name, String
         {
             DataStreamRef resolved = set.Resolved->LocateResource(name, outName);
             if(resolved)
+            {
+                resolved->SetPosition(0);
                 return resolved;
+            }
         }
     }
     return {};
@@ -1205,8 +1325,7 @@ ResourceAddress ResourceRegistry::CreateResolvedAddress(const String& resourceNa
     return addr;
 }
 
-
-ResourceAddress ResourceRegistry::CreateResolvedAddress(const Symbol &resourceName)
+ResourceAddress ResourceRegistry::CreateResolvedAddressFromSymbol(const Symbol &resourceName)
 {
     // Locator
     ResourceAddress addr{};
@@ -1243,6 +1362,31 @@ Bool ResourceRegistry::RevertResource(const Symbol &resourceName)
     return false;
 }
 
+DataStreamRef ResourceRegistry::OpenDataStream(const String& locator, const String& filename)
+{
+    SCOPE_LOCK();
+    Ptr<ResourceLocation> pDestLocation{};
+    if (locator.length() == 0)
+    {
+        pDestLocation = _Locate("<>");
+    }
+    else
+    {
+        pDestLocation = _Locate(locator);
+    }
+    if(pDestLocation->HasResource(filename))
+    {
+        return pDestLocation->LocateResource(filename, nullptr);
+    }
+    else if(!pDestLocation->GetConcreteDirectory())
+    {
+        TTE_ASSERT(false, "At ResourceRegistry::OpenDataStream() => the location %s does not contain the file %s, but is not concrete, so please"
+        " specify the concrete location first.", locator.length() == 0 ? "<>" : locator.c_str(), filename.c_str());
+        return {};
+    }
+    return pDestLocation->GetConcreteDirectory()->CreateResource(filename);
+}
+
 Bool ResourceRegistry::SaveResource(const Symbol &resourceName, const String& locator)
 {
     SCOPE_LOCK();
@@ -1273,7 +1417,7 @@ Bool ResourceRegistry::SaveResource(const Symbol &resourceName, const String& lo
                     name.c_str());
             return false;
         }
-        U32 clz = Meta::FindClassByExtension(FileGetExtension(name), 0);
+        U32 clz = Meta::_Impl::_ResolveCommonClassID(FileGetExtension(name));
         if(!clz)
         {
             TTE_LOG("Cannot save resource %s: the file extension is not supported or is not a meta class for saving / common instance.", name.c_str());
@@ -1309,7 +1453,7 @@ Bool ResourceRegistry::CreateResource(const ResourceAddress& address)
     SCOPE_LOCK();
     if(!address)
         return false;
-    U32 clz = Meta::FindClassByExtension(FileGetExtension(address.Name), 0);
+    U32 clz = Meta::_Impl::_ResolveCommonClassID(FileGetExtension(address.Name));
     if(!clz)
     {
         TTE_LOG("Cannot create resource %s: the file extension is invalid or does not map to a valid meta class. Only meta described classes "
@@ -1344,7 +1488,7 @@ Bool ResourceRegistry::CreateResource(const ResourceAddress& address)
         }
         else
         {
-            CommonInstanceAllocator* allocator = Meta::GetCommonAllocator(clz);
+            CommonClassAllocator* allocator = Meta::GetCommonAllocator(clz);
             if(!allocator)
             {
                 TTE_LOG("Cannot create resource %s: the common class was not registered for coersion. This means that it is "
@@ -1403,7 +1547,7 @@ void ResourceRegistry::BindLuaManager(LuaManager& man)
     ScriptManager::SetGlobal(man, "__ResourceRegistry", false);
 }
 
-ResourceRegistry::ResourceRegistry(LuaManager& man) : GameDependentObject("ResourceRegistry"), _LVM(man)
+ResourceRegistry::ResourceRegistry(LuaManager& man) : SnapshotDependentObject("ResourceRegistry"), _LVM(man), _PreloadOffset(0), _PreloadSize(0)
 {
     TTE_ASSERT(Meta::GetInternalState().GameIndex != -1, "Resource registries can only be when a game is set!");
     TTE_ASSERT(man.GetVersion() == Meta::GetInternalState().Games[Meta::GetInternalState().GameIndex].LVersion,
@@ -1597,7 +1741,18 @@ void ResourceRegistry::_LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDi
     }
 }
 
+void ResourceRegistry::MountPlaystationPackage(const String& id, const String& fsPath, const String& packageKey)
+{
+    _ApplyMountArchive(id, fsPath, packageKey);
+}
+
 void ResourceRegistry::MountArchive(const String &_id, const String &fspath)
+{
+    String p{};
+    _ApplyMountArchive(_id, fspath, p);
+}
+
+void ResourceRegistry::_ApplyMountArchive(const String &_id, const String &fspath, const String& pk)
 {
     StringMask mask = _ArchivesMask(UsingLegacyCompat());
     TTE_ASSERT(mask == fspath, "Archive files cannot be mounted this way. Prefer to use MountArchive(...)");
@@ -1616,7 +1771,7 @@ void ResourceRegistry::MountArchive(const String &_id, const String &fspath)
         TTE_LOG("WARNING: Could not open stream %s when mounting archive to resource registry!", fspath.c_str());
         return;
     }
-    if(_ImportArchivePack(fs::path(fspath).filename().string(), id, fspath, is, lck))
+    if(_ImportArchivePack(fs::path(fspath).filename().string(), id, fspath, pk, is, lck))
     {
         Ptr<ResourceLocation> pLocation = _Locations.back(); // last newly processed
         ResourceLogicalLocation* pLogicalMaster = dynamic_cast<ResourceLogicalLocation*>(_Locate("<>").get());
@@ -1644,7 +1799,7 @@ void ResourceRegistry::MountArchive(const String &_id, const String &fspath)
                 continue; // already exists
             
             DataStreamRef is = pLocation->LocateResource(arc, nullptr);
-            if(is && _ImportArchivePack(arc, archiveID, fspath + "/" + arc, is, lck))
+            if(is && _ImportArchivePack(arc, archiveID, fspath + "/" + arc, pk, is, lck))
             {
                 // Map archive location to master
                 {
@@ -1839,18 +1994,20 @@ Bool ResourceRegistry::_ImportAllocateArchivePack(const String& resourceName, co
                                                   const String& archivePhysicalPath, Ptr<ResourceLocation>& parent, std::unique_lock<std::recursive_mutex>& lck)
 {
     DataStreamRef archiveStream = parent->LocateResource(resourceName, nullptr);
-    return archiveStream ? _ImportArchivePack(resourceName, archiveID, archivePhysicalPath, archiveStream, lck) : false;
+    return archiveStream ? _ImportArchivePack(resourceName, archiveID,
+                                              archivePhysicalPath, "", archiveStream, lck) : false;
 }
 
 Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const String& archiveID,
-                                          const String& archivePhysicalPath, DataStreamRef& archiveStream, std::unique_lock<std::recursive_mutex>& lck)
+                                          const String& archivePhysicalPath, const String& pkKey,
+                                          DataStreamRef& archiveStream, std::unique_lock<std::recursive_mutex>& lck)
 {
     // create archive location
     StringMask maskTTArch1 = "*.ttarch;*.tta";
     StringMask maskTTArch2 = "*.ttarch2";
     if(resourceName == maskTTArch1)
     {
-        TTArchive arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
+        TTArchive arc{ GetToolContext()->GetActiveGame()->GetArchiveVersion(GetToolContext()->GetSnapshot()) };
         lck.unlock(); // may take time, dont keep everyone waiting!
         TTE_ASSERT(arc.SerialiseIn(archiveStream), "TTArchive serialise/read fail!");
         lck.lock();
@@ -1859,14 +2016,14 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
     }
     else if(resourceName == maskTTArch2)
     {
-        TTArchive2 arc{Meta::GetInternalState().GetActiveGame().ArchiveVersion};
+        TTArchive2 arc{ GetToolContext()->GetActiveGame()->GetArchiveVersion(GetToolContext()->GetSnapshot()) };
         lck.unlock(); // may take time, dont keep everyone waiting!
         TTE_ASSERT(arc.SerialiseIn(archiveStream), "TTArchive2 serialise/read fail!");
         lck.lock();
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive2>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
         _Locations.push_back(std::move(pLoc));
     }
-    else if(StringEndsWith(resourceName, ".iso", false))
+    else if(StringEndsWith(resourceName, ISO9660::Extension, false))
     {
         ISO9660 iso{};
         lck.unlock(); // may take time, dont keep everyone waiting!
@@ -1876,10 +2033,11 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
             return false;
         }
         lck.lock();
-        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_ISO9660>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(iso));
+        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_ISO9660>, 
+                                MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(iso));
         _Locations.push_back(std::move(pLoc));
     }
-    else if(StringEndsWith(resourceName, ".pk2", false))
+    else if(StringEndsWith(resourceName, GamePack2::Extension, false))
     {
         GamePack2 pk2{};
         lck.unlock(); // may take time, dont keep everyone waiting!
@@ -1889,7 +2047,22 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
             return false;
         }
         lck.lock();
-        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_GamePack2>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(pk2));
+        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_GamePack2>, 
+                                MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(pk2));
+        _Locations.push_back(std::move(pLoc));
+    }
+    else if(StringEndsWith(resourceName, PlaystationPKG::Extension, false))
+    {
+        PlaystationPKG pkg{};
+        lck.unlock(); // may take time, dont keep everyone waiting!
+        if(!pkg.SerialiseIn(archiveStream, pkKey))
+        {
+            TTE_LOG("Failed to import playstation package (PKG) %s!", resourceName.c_str());
+            return false;
+        }
+        lck.lock();
+        auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_PlaystationPKG>,
+                                MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, pkKey, std::move(pkg));
         _Locations.push_back(std::move(pLoc));
     }
     else
@@ -2095,7 +2268,7 @@ static Bool _PerformHandleNormalise(HandleObjectInfo& handle, Ptr<ResourceRegist
     {
         if(!handle._Handle)
         {
-            CommonInstanceAllocator* pAllocator = Meta::GetCommonAllocator(handle._Instance.GetClassID());
+            CommonClassAllocator* pAllocator = Meta::GetCommonAllocator(handle._Instance.GetClassID());
             if(pAllocator)
             {
                 handle._Handle = pAllocator(pRegistry);
@@ -2616,6 +2789,7 @@ U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles, Bool bO
 Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
 {
     AsyncResourcePreloadBatchJob* job = (AsyncResourcePreloadBatchJob*)j;
+    job->Registry->BindLuaManager(thread.L); // ensure bound!
     
     U32 nFailed = 0;
     std::stringstream ss{};
@@ -2645,8 +2819,16 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
             if(job->HOI[i]._Instance)
             {
                 // Normalise
-                job->HOI[i]._Handle = job->Allocators[i](job->Registry);
-                bFail = !_PerformHandleNormalise(job->HOI[i], job->Registry);
+                CommonClassAllocator* pAllocator = Meta::GetCommonAllocator(job->HOI[i]._Instance.GetClassID());
+                if(pAllocator)
+                {
+                    job->HOI[i]._Handle = pAllocator(job->Registry);
+                    bFail = !_PerformHandleNormalise(job->HOI[i], job->Registry);
+                }
+                else
+                {
+                    bFail = true;
+                }
                 job->HOI[i]._Instance = {}; // ignore instance, not needed
             }
         }else bFail = true;
@@ -2801,6 +2983,22 @@ void ResourceRegistry::_LocateResourceInternal(Symbol name, String* outName, Dat
         *outStream = std::move(resStream);
 }
 
+DataStreamRef ResourceRegistry::FindResourceFrom(const String& resourceLocation, const Symbol& name)
+{
+    SCOPE_LOCK();
+    Ptr<ResourceLocation> loc = _Locate(resourceLocation);
+    if (loc)
+    {
+        DataStreamRef fileStream = loc->LocateResource(name, nullptr);
+        if(fileStream)
+        {
+            // The resource needs to be thread safe. Before unlocking, lets create a copy of this resource (the complete bytes) so that its not going to interfere.
+            return DataStreamManager::GetInstance()->CreateCachedStream(fileStream);
+        }
+    }
+    return {};
+}
+
 DataStreamRef ResourceRegistry::FindResource(const Symbol& name)
 {
     SCOPE_LOCK();
@@ -2849,6 +3047,11 @@ void Handleable::Unlock(const HandleLockOwner& owner)
     U32 expected = owner._LockOwnerID;
     _LockTimeStamp.store(0, std::memory_order_relaxed); // should defintely be locked anyway (Will assert). if not, terminate as should NOT happen
     TTE_ASSERT(_LockKey.compare_exchange_strong(expected, 0), "Cannot unlock handle as the key was wrong!");
+}
+
+HandleObjectInfo::~HandleObjectInfo()
+{
+
 }
 
 HandleLockOwner::HandleLockOwner() : _LockOwnerID((U32)rand() | 0x100) {}

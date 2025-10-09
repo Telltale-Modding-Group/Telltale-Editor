@@ -18,13 +18,24 @@ void ThreadSleep(U64 milliseconds)
 
 void SetThreadName(const String &tName) { (void)pthread_setname_np(tName.c_str()); }
 
+void PlatformMessageBoxAndWait(const String& title, const String& message)
+{
+    String command = "osascript -e 'display dialog \"" + message + "\" with title \"" + title + "\" buttons {\"OK\"}'";
+    system(command.c_str());
+}
+
 void DebugBreakpoint() { (void)raise(SIGINT); }
 
 // FILE STREAMS
 
-U64 FileOpen(CString path){
+U64 FileOpen(CString path)
+{
     int file = open(path, O_RDWR | O_CREAT, 0777);
-    TTE_ASSERT(file != -1, "Could not open %s => posix err %d", path, errno);
+    if(file == -1)
+    {
+        TTE_LOG("Could not open %s => posix err %d", path, errno);
+        return FileNull();
+    }
     return (U64)file;
 }
 

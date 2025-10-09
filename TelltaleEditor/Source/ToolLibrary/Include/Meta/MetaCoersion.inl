@@ -30,7 +30,7 @@ namespace Meta // Implementation detail for coersion of c++ => meta, meta => c++
             LuaToMetaFn* LuaToMeta = nullptr;
             
             // FOR COMMON CLASSES
-            CommonInstanceAllocator* Allocator = nullptr;
+            CommonClassAllocator* Allocator = nullptr;
             
             CString ClassName = nullptr;
         };
@@ -143,7 +143,7 @@ namespace Meta // Implementation detail for coersion of c++ => meta, meta => c++
             
             static constexpr Bool IsCommon = false;
             
-            static inline CommonInstanceAllocator* _SelectAl()
+            static inline CommonClassAllocator* _SelectAl()
             {
                 return nullptr;
             }
@@ -156,7 +156,7 @@ namespace Meta // Implementation detail for coersion of c++ => meta, meta => c++
             
             static constexpr Bool IsCommon = true;
             
-            static inline CommonInstanceAllocator* _SelectAl()
+            static inline CommonClassAllocator* _SelectAl()
             {
                 return &AllocateCommon<T>;
             }
@@ -301,6 +301,9 @@ static inline void Import(const _T& src, ClassInstance& inst)   { COERCE(inst._G
         _COERCABLE_HELPER(U64,"uint64;unsigned __int64;unsigned long long")
         _COERCABLE_HELPER(Symbol,"Symbol")
         _COERCABLE_HELPER(Float, "float")
+        _COERCABLE_HELPER(TextAlignmentType, "class TextAlignmentType;TextAlignmentType")
+        _COERCABLE_HELPER(HorizontalAlignmentType, "class EnumHTextAlignmentType;EnumHTextAlignmentType")
+        _COERCABLE_HELPER(VerticalAlignmentType, "class EnumVTextAlignmentType;EnumVTextAlignmentType")
         //_COERCABLE_HELPER(double) Disable doubles. Not used in the engine, prefer floats.
         
 #undef _COERCABLE_HELPER

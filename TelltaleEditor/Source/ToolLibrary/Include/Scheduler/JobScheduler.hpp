@@ -338,6 +338,13 @@ public:
     /// Gets the result of the given job. Returns RESULT_NONE if the job is invalid or hasn't finished yet. RESULT_RUNNING if running or is scheduled to run.
     /// </summary>
     JobResult GetResult(const JobHandle &);
+
+    /// Returns if the given job is finished regardless of the result.
+    inline Bool IsFinished(const JobHandle& handle)
+    {
+        JobResult result = GetResult(handle);
+        return result == JOB_RESULT_OK || result == JOB_RESULT_FAIL || result == JOB_RESULT_CANCELLED;
+    }
     
     /// <summary>
     /// Shutdown all jobs and cancel any future jobs.
