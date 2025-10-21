@@ -68,7 +68,13 @@ LuaManager& ToolContext::GetGameLVM()
     return _L[(U32)Meta::GetInternalState().GetActiveGame().LVersion];
 }
 
-Ptr<ResourceRegistry> ToolContext::CreateResourceRegistry()
+static Bool _AsyncAttachRegistry(const JobThread& thread, void* A, void* B)
+{
+    ((ResourceRegistry*)A)->BindLuaManager(thread.L);
+    return true;
+}
+
+Ptr<ResourceRegistry> ToolContext::CreateResourceRegistry(Bool bAttachAll)
 {
     if(GetActiveGame() == nullptr)
     {
@@ -84,6 +90,18 @@ Ptr<ResourceRegistry> ToolContext::CreateResourceRegistry()
         _SwitchDependents.push_back(asDependent);
     }
     
+    if(bAttachAll)
+    {
+        JobHandle Handles[NUM_SCHEDULER_THREADS];
+        JobDescriptor desc{};
+        desc.AsyncFunction = &_AsyncAttachRegistry;
+        desc.UserArgA = registry.get();
+        desc.Priority = JOB_PRIORITY_HIGHEST;
+        for(I32 i = 0; i < NUM_SCHEDULER_THREADS; i++)
+        {
+            Handles[i] = JobScheduler::Instance->Post(desc, i);
+        }
+    }
     registry->BindLuaManager(GetLibraryLVM());
     
     return registry;

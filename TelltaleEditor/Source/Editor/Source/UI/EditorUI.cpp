@@ -315,6 +315,7 @@ void FileView::Render()
         const String* pDesc = nullptr;
         for(const auto& mp: _Group[_CurGroup].Entries)
         {
+            ImGui::PushID(index);
             if(x + 110.0f >= size.x)
             {
                 x = 150.0f;
@@ -338,7 +339,13 @@ void FileView::Render()
                     if(ico.empty())
                         ico = "FileView/UnknownFile.png";
                 }
-                DrawResourceTexturePixels(ico, x, localY, Icon, Icon);
+                DrawResourceTexturePixels(ico, x, localY, Icon, Icon, 0xFFFFFFFFu, mp.c_str());
+                if(ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+                {
+                    ImGui::SetDragDropPayload("TT_ASSET", mp.c_str(), mp.length() + 1);
+                    ImGui::TextUnformatted(mp.c_str());
+                    ImGui::EndDragDropSource();
+                }
             }
             else
             {
@@ -372,10 +379,12 @@ void FileView::Render()
                 if (_CurGroup != FILES)
                     bResetScroll = true;
                 _Update(pRegistry, index);
+                ImGui::PopID();
                 break; // continue next
             }
             x += Spacing;
             index++;
+            ImGui::PopID();
         }
         SetCursorScreenPos(winPos);
         Dummy(ImVec2(150.0f, y - scrollY + Spacing));
@@ -769,7 +778,7 @@ struct AddModulePopup : EditorPopup
 
     ImVec2 GetPopupSize() override
     {
-        return { 500.0f, 200.f };
+        return { 350.0f, 130.f };
     }
 
     Bool Render() override
@@ -948,6 +957,26 @@ static void _DoHandleRender(EditorUI& editor, String* handleFile, Symbol* sym, U
     ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(60, 60, 60, 255));
     const char* textShow = *handleFile == "<!!>" ? "<Unknown>" : *handleFile == "" ? editor.GetApplication().GetLanguageText("misc.empty").c_str() : handleFile->c_str();
     ImGui::InputText("##inpHandle", (char*)textShow, strlen(textShow)+1, ImGuiInputTextFlags_ReadOnly);
+    if(ImGui::BeginDragDropTarget())
+    {
+        const ImGuiPayload* pl = ImGui::AcceptDragDropPayload("TT_ASSET");
+        if(pl)
+        {
+            String nHandle = (CString)pl->Data;
+            if(StringEndsWith(nHandle, c.Extension))
+            {
+                handleFile->assign(nHandle);
+                if(sym)
+                    *sym = Symbol(nHandle);
+                // on change
+            }
+            else
+            {
+                PlatformMessageBoxAndWait("Invalid file type", "Only " + c.Extension + " files can be used in this file handle!");
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
     if (ImGui::IsItemHovered())
     {
         ImGui::BeginTooltip();
@@ -965,7 +994,6 @@ static void _DoHandleRender(EditorUI& editor, String* handleFile, Symbol* sym, U
         // on change
     }
     ImGui::PopFont();
-    // TODO DRAG DROP
 }
 
 static Bool BeginModule(EditorUI& editor, const char* title, Float bodyHeight, Bool& isOpen, Float sY, const char* icon, Bool* pAddModule = nullptr, Bool* outDeleteClicked = nullptr)
@@ -1224,12 +1252,14 @@ void InspectorView::Render()
                                 {
                                     for (const auto& prop : it->second.Properties)
                                     {
+                                        if(!prop.Property)
+                                            continue;
                                         ImGui::PushID(r++);
                                         ImGui::SetCursorPosX(ImGui::GetCursorStartPos().x + 0.0f);
                                         ImGui::Dummy(ImVec2{ 1.0f, 2.0f });
                                         ImGui::PushFont(ImGui::GetFont(), 13.0f);
                                         ImGui::TextUnformatted(prop.Specification->Name.c_str());
-                                        String lang = "mod." + ToLower(it->second.ModuleName) + ".iv." + StringToSnake(prop.Specification->Name);
+                                        String lang = StringToSnake("mod." + ToLower(it->second.ModuleName) + ".iv." + prop.Specification->Name);
                                         if (ImGui::IsItemHovered() && GetApplication().HasLanguageText(lang.c_str()))
                                         {
                                             ImGui::PushTextWrapPos(150.0f);

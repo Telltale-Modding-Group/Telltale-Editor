@@ -907,7 +907,10 @@ static NSCursor *Cocoa_GetDesiredCursor(void)
     inFullscreenTransition = YES;
 
     // you need to be FullScreenPrimary, or toggleFullScreen doesn't work. Unset it again in windowDidExitFullScreen.
-    [nswindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+    [nswindow setCollectionBehavior:
+        NSWindowCollectionBehaviorMoveToActiveSpace |
+        NSWindowCollectionBehaviorManaged];
+    [[nswindow standardWindowButton:NSWindowZoomButton] setEnabled:NO];
     [nswindow performSelectorOnMainThread:@selector(toggleFullScreen:) withObject:nswindow waitUntilDone:NO];
     return YES;
 }
@@ -1516,13 +1519,17 @@ static NSCursor *Cocoa_GetDesiredCursor(void)
         [self addPendingWindowOperation:PENDING_OPERATION_ENTER_FULLSCREEN];
         [nswindow miniaturize:nil];
     } else {
+        [[nswindow standardWindowButton:NSWindowZoomButton] setEnabled:NO];
         // Adjust the fullscreen toggle button and readd menu now that we're here.
         if (window->flags & SDL_WINDOW_RESIZABLE) {
             // resizable windows are Spaces-friendly: they get the "go fullscreen" toggle button on their titlebar.
-            [nswindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+            [nswindow setCollectionBehavior:
+                NSWindowCollectionBehaviorMoveToActiveSpace |
+                NSWindowCollectionBehaviorManaged];
         } else {
             [nswindow setCollectionBehavior:NSWindowCollectionBehaviorManaged];
         }
+        [[nswindow standardWindowButton:NSWindowZoomButton] setEnabled:NO];
         [NSMenu setMenuBarVisible:YES];
 
         // Toggle zoom, if changed while fullscreen.
@@ -2419,9 +2426,12 @@ bool Cocoa_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Properti
                 // we put fullscreen desktop windows in their own Space, without a toggle button or menubar, later
                 if (window->flags & SDL_WINDOW_RESIZABLE) {
                     // resizable windows are Spaces-friendly: they get the "go fullscreen" toggle button on their titlebar.
-                    [nswindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
+                    [nswindow setCollectionBehavior:
+                        NSWindowCollectionBehaviorMoveToActiveSpace |
+                        NSWindowCollectionBehaviorManaged];
                 }
             }
+            [[nswindow standardWindowButton:NSWindowZoomButton] setEnabled:NO];
 
             // Create a default view for this window
             rect = [nswindow contentRectForFrameRect:[nswindow frame]];
@@ -2467,6 +2477,11 @@ bool Cocoa_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Properti
 #endif // SDL_VIDEO_OPENGL_EGL
 #endif // SDL_VIDEO_OPENGL_ES2
         [nswindow setContentView:nsview];
+        
+        NSWindowCollectionBehavior behavior = [nswindow collectionBehavior];
+        behavior &= ~NSWindowCollectionBehaviorFullScreenPrimary;
+        [nswindow setCollectionBehavior:behavior];
+        [[nswindow standardWindowButton:NSWindowZoomButton] setEnabled:NO];
 
         if (!SetupWindowData(_this, window, nswindow, nsview)) {
             return false;
@@ -2885,14 +2900,6 @@ void Cocoa_SetWindowResizable(SDL_VideoDevice *_this, SDL_Window *window, bool r
         SDL_CocoaVideoData *videodata = data.videodata;
         if (![listener isInFullscreenSpace] && ![listener isInFullscreenSpaceTransition]) {
             SetWindowStyle(window, GetWindowStyle(window));
-        }
-        if (videodata.allow_spaces) {
-            if (resizable) {
-                // resizable windows are Spaces-friendly: they get the "go fullscreen" toggle button on their titlebar.
-                [nswindow setCollectionBehavior:NSWindowCollectionBehaviorFullScreenPrimary];
-            } else {
-                [nswindow setCollectionBehavior:NSWindowCollectionBehaviorManaged];
-            }
         }
     }
 }

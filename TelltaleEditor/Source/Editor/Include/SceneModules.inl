@@ -29,6 +29,10 @@ enum class SceneModuleType : I32
     SCENE           ,
     LIGHT           ,
     SELECTABLE      ,
+    DIALOG_CHOICE   ,
+    DIALOG          ,
+    WALK_ANIMATOR   ,
+    TRIGGER         ,
 
     // === POST RENDERABLE MODULES
 
@@ -123,7 +127,7 @@ template<> struct SceneModule<SceneModuleType::CAMERA> : SceneModuleBase
     // in modules.cpp
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
 
-    inline void OnModuleRemove(SceneAgent* pAttachedAgent) {}
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
 
 };
 
@@ -143,7 +147,7 @@ template<> struct SceneModule<SceneModuleType::TEXT> : SceneModuleBase
     // in modules.cpp
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
 
-    inline void OnModuleRemove(SceneAgent* pAttachedAgent) {}
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
 
     Ptr<RenderText> Text;
 
@@ -594,7 +598,7 @@ template<> struct SceneModule<SceneModuleType::SCENE> : SceneModuleBase
 
     Ptr<SceneInstData> SceneData; // runtime scene data
 
-    inline void OnModuleRemove(SceneAgent* pAttachedAgent) {}
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
 
 };
 
@@ -748,7 +752,7 @@ template<> struct SceneModule<SceneModuleType::LIGHT> : SceneModuleBase
     // in modules.cpp
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
 
-    inline void OnModuleRemove(SceneAgent* pAttachedAgent) {}
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
 
 };
 
@@ -766,11 +770,15 @@ template<> struct SceneModule<SceneModuleType::SELECTABLE> : SceneModuleBase
 
     BoundingBox BBox; // in which a click counts towards this selectable
     Bool GameSelectable = false; // currently on?
+    
+    void SetExtentsMin(Vector3 vec);
+    void SetExtentsMax(Vector3 vec);
+    void SetGameSelectable(Bool onOff);
 
     // in modules.cpp
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
 
-    inline void OnModuleRemove(SceneAgent* pAttachedAgent) {}
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
 
 };
 
@@ -787,16 +795,121 @@ template<> struct SceneModule<SceneModuleType::ROLLOVER> : SceneModuleBase
         return kRolloverPropName;
     }
 
-    HandlePropertySet CursorProps;
-    Handle<Mesh::MeshInstance> Mesh;
+    Symbol CursorPropHandle;
+    Symbol MeshHandle;
     String Text;
     Colour TextBackground;
     Colour TextForeground;
+    
+    void SetCursorProps(Symbol v);
+    void SetCursorMesh(Symbol v);
+    void SetText(String v);
+    void SetTextBackground(Colour c);
+    void SetTextColour(Colour c);
 
     // in modules.cpp
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
 
-    inline void OnModuleRemove(SceneAgent* pAttachedAgent) {}
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
+
+};
+
+// derives from text and selectable. so if this module is present, it will contain those too (the module prop should have those parents!)
+template<> struct SceneModule<SceneModuleType::DIALOG_CHOICE> : SceneModuleBase
+{
+
+    static constexpr SceneModuleType ModuleType = SceneModuleType::DIALOG_CHOICE;
+    static constexpr CString ModuleID = "dlgChoice";
+    static constexpr CString ModuleName = "Dialog Choice";
+
+    static inline String GetModulePropertySet()
+    {
+        return kDialogChoicePropName;
+    }
+
+    String Choice;
+    
+    void SetChoice(String ch);
+
+    // in modules.cpp
+    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
+
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
+
+};
+
+template<> struct SceneModule<SceneModuleType::DIALOG> : SceneModuleBase
+{
+
+    static constexpr SceneModuleType ModuleType = SceneModuleType::DIALOG;
+    static constexpr CString ModuleID = "dialog";
+    static constexpr CString ModuleName = "Dialog";
+
+    static inline String GetModulePropertySet()
+    {
+        return kDialogPropName;
+    }
+
+    String Name;
+    Symbol Resource;
+    
+    void SetName(String v);
+    void SetResource(Symbol v);
+
+    // in modules.cpp
+    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
+
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
+
+};
+
+template<> struct SceneModule<SceneModuleType::WALK_ANIMATOR> : SceneModuleBase
+{
+
+    static constexpr SceneModuleType ModuleType = SceneModuleType::WALK_ANIMATOR;
+    static constexpr CString ModuleID = "walkAnimator";
+    static constexpr CString ModuleName = "Walk Animator";
+
+    static inline String GetModulePropertySet()
+    {
+        return kWalkAnimatorPropName;
+    }
+
+    Symbol ForwardAnim, IdleAnim;
+    
+    void SetIdleAnim(Symbol v);
+    void SetForwardAnim(Symbol v);
+
+    // in modules.cpp
+    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
+
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
+
+};
+
+template<> struct SceneModule<SceneModuleType::TRIGGER> : SceneModuleBase
+{
+
+    static constexpr SceneModuleType ModuleType = SceneModuleType::TRIGGER;
+    static constexpr CString ModuleID = "trigger";
+    static constexpr CString ModuleName = "Trigger";
+
+    static inline String GetModulePropertySet()
+    {
+        return kTriggerPropName;
+    }
+
+    String EnterCallback, ExitCallback;
+    Bool Enabled = false;
+    
+    void SetEnterCallback(String v);
+    void SetExitCallback(String v);
+    void SetOnOff(Bool v);
+
+    // in modules.cpp
+    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
+
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
 
 };
 

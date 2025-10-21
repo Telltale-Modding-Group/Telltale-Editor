@@ -134,7 +134,7 @@ namespace CommandLine
         {
             TelltaleEditor* editor = CreateEditorContext(game);
             
-            Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry();
+            Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry(false);
             registry->MountSystem("<Data>/", mount, true);
             
             std::set<String> all{};
@@ -180,7 +180,7 @@ namespace CommandLine
             return 1;
         {
             TelltaleEditor* editor = CreateEditorContext(game);
-            Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry();
+            Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry(false);
             if(std::filesystem::is_regular_file(mount))
                 registry->MountArchive("<Data>/", mount);
             else if(std::filesystem::is_directory(mount))
@@ -304,7 +304,7 @@ namespace CommandLine
             return 1;
         TelltaleEditor* editor = CreateEditorContext(game);
         {
-            Ptr<ResourceRegistry> userReg = editor->CreateResourceRegistry();
+            Ptr<ResourceRegistry> userReg = editor->CreateResourceRegistry(true);
             DataStreamRef file = DataStreamManager::GetInstance()->CreateFileStream(exec);
             if(!file->GetSize())
             {

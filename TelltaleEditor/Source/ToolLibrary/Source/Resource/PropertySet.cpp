@@ -761,7 +761,30 @@ void PropertySet::GetParents(Meta::ClassInstance prop, std::set<HandlePropertySe
     }
 }
 
-void PropertySet::AddCallback(Meta::ClassInstance prop, Symbol key, Ptr<FunctionBase> pCallback)
+void PropertySet::ClearCallbacks(Meta::ClassInstance prop, U32 ref)
+{
+    auto& callbacks = ((InternalData*)prop._GetInternalPropertySetData())->KeyCallbacks;
+    if(ref == 0)
+    {
+        callbacks.clear();
+    }
+    else
+    {
+        for(auto it = callbacks.begin(); it != callbacks.end();)
+        {
+            if(it->TrackingRefID == ref)
+            {
+                it = callbacks.erase(it);
+            }
+            else
+            {
+                it++;
+            }
+        }
+    }
+}
+
+void PropertySet::AddCallback(Meta::ClassInstance prop, Symbol key, Ptr<FunctionBase> pCallback, U32 trackRef)
 {
     auto& callbacks = ((InternalData*)prop._GetInternalPropertySetData())->KeyCallbacks;
     if(pCallback)
@@ -773,7 +796,7 @@ void PropertySet::AddCallback(Meta::ClassInstance prop, Symbol key, Ptr<Function
             pCallback->Next = std::move(it->MyCallback);
             callbacks.erase(it);
         }
-        callbacks.insert(KeyCallbackTracked{std::move(pCallback)});
+        callbacks.insert(KeyCallbackTracked{std::move(pCallback), trackRef});
     }
 }
 

@@ -6,10 +6,9 @@ class EditorUI;
 
 class MenuBar : public UIComponent
 {
-
-    EditorUI& _Editor;
-
 public:
+    
+    EditorUI& _Editor;
 
     MenuBar(EditorUI& ui);
 

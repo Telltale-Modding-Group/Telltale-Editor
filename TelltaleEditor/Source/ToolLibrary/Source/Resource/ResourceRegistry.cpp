@@ -3030,6 +3030,44 @@ void ResourceRegistry::GetResourceNames(std::set<String>& outNames, const String
     masterLocation->GetResourceNames(outNames, optionalMask);
 }
 
+static Bool _AsyncDetachRegistry(const JobThread& thread, void* A, void*)
+{
+    ScriptManager::GetGlobal(thread.L, "__ResourceRegistry", false);
+    if(thread.L.Type(-1) == LuaType::LIGHT_OPAQUE && thread.L.ToPointer(-1) == A)
+    {
+        thread.L.Pop(1);
+        thread.L.PushOpaque(0);
+        ScriptManager::SetGlobal(thread.L, "__ResourceRegistry", false);
+    }
+    return true;
+}
+
+ResourceRegistry::~ResourceRegistry()
+{
+    if(JobScheduler::Instance)
+    {
+        JobHandle Handles[NUM_SCHEDULER_THREADS];
+        JobDescriptor desc{};
+        desc.AsyncFunction = &_AsyncDetachRegistry;
+        desc.UserArgA = this;
+        desc.Priority = JOB_PRIORITY_HIGHEST;
+        for(I32 i = 0; i < NUM_SCHEDULER_THREADS; i++)
+        {
+            Handles[i] = JobScheduler::Instance->Post(desc, i);
+        }
+        // should we wait?
+    }
+}
+
+void ResourceRegistry::GetResourceLocationNames(std::vector<String>& names)
+{
+    SCOPE_LOCK();
+    for(const auto& loc: _Locations)
+    {
+        names.push_back(loc->Name);
+    }
+}
+
 // HANDLEABLE BASE
 
 Bool Handleable::Lock(const HandleLockOwner& owner)

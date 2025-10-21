@@ -39,13 +39,15 @@ U64 FileOpen(CString path)
     return (U64)file;
 }
 
-void FileClose(U64 Handle, U64 truncateOffset){
+void FileClose(U64 Handle, U64 truncateOffset)
+{
     if(truncateOffset > 0)
 	    ftruncate((int)Handle, truncateOffset);
     close((int)Handle);
 }
 
-Bool FileWrite(U64 Handle, const U8* Buffer, U64 Nbytes){
+Bool FileWrite(U64 Handle, const U8* Buffer, U64 Nbytes)
+{
     int fd = (int)Handle;
     
     ssize_t bytes_written = write(fd, Buffer, (size_t)Nbytes);
@@ -58,7 +60,8 @@ Bool FileWrite(U64 Handle, const U8* Buffer, U64 Nbytes){
     return bytes_written == (ssize_t)Nbytes;
 }
 
-Bool FileRead(U64 Handle, U8* Buffer, U64 Nbytes){
+Bool FileRead(U64 Handle, U8* Buffer, U64 Nbytes)
+{
     int fd = (int)Handle;
     
     ssize_t bytes_read = read(fd, Buffer, (size_t)Nbytes);
@@ -72,7 +75,8 @@ Bool FileRead(U64 Handle, U8* Buffer, U64 Nbytes){
     return bytes_read == (ssize_t)Nbytes;
 }
 
-U64 FileSize(U64 Handle){
+U64 FileSize(U64 Handle)
+{
     int f = (int)Handle;
     
     off_t cur = lseek(f, 0, SEEK_CUR);
@@ -86,11 +90,13 @@ U64 FileSize(U64 Handle){
     return (U64)size;
 }
 
-U64 FileNull() {
+U64 FileNull()
+{
     return 0x0000'0000'FFFF'FFFFull;
 }
 
-String FileNewTemp(){
+String FileNewTemp()
+{
     char tmplt[] = "/tmp/tteditorMACOS_XXXXXX";
     
     if (mkstemp(tmplt) == 0) {
@@ -101,11 +107,13 @@ String FileNewTemp(){
     return String(tmplt);
 }
 
-U64 FilePos(U64 Handle) {
+U64 FilePos(U64 Handle)
+{
     return (U64)lseek((int)Handle, 0, SEEK_CUR);
 }
 
-void FileSeek(U64 Handle, U64 Offset){
+void FileSeek(U64 Handle, U64 Offset)
+{
     lseek((int)Handle, (off_t)Offset, SEEK_SET);
 }
 

@@ -80,7 +80,7 @@ public:
     
     // Creates a resource registry for the given game. Only use in the current game! Must be destroyed before a switch.
     // This binds itself to the library LVM!
-    Ptr<ResourceRegistry> CreateResourceRegistry();
+    Ptr<ResourceRegistry> CreateResourceRegistry(Bool bAttachToAllThreads);
     
     // see below. creates a weak lot with an optional signal to check master is alive
     void CreateMasterWeakSlot(WeakSlotMaster& master, NULLABLE WeakSlotSignal* signal);

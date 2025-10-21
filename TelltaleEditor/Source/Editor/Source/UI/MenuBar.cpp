@@ -1,10 +1,42 @@
 #include <UI/ApplicationUI.hpp>
-
+#include <nfd.h>
 #include <imgui.h>
 
 DECL_VEC_ADDITION();
 
 MenuBar::MenuBar(EditorUI& ui) : UIComponent(ui.GetApplication()), _Editor(ui) {}
+
+static constexpr Float MENU_ITEM_HEIGHT = 24.0f;
+static constexpr Float MENU_ITEM_SPACING = 4.0f;
+
+static Bool _RenderMenuItem(MenuBar* mb, const String& langID, CString iconTex, Float& xBack, Float wSizeX, Float wSizeY)
+{
+    xBack -= (MENU_ITEM_HEIGHT + MENU_ITEM_SPACING);
+    mb->DrawResourceTexture(iconTex, xBack / wSizeX, 9.f / wSizeY, MENU_ITEM_HEIGHT / wSizeX, MENU_ITEM_HEIGHT / wSizeY);
+    Bool hov = ImGui::IsMouseHoveringRect(ImVec2(xBack, 9.0f), ImVec2(xBack + MENU_ITEM_HEIGHT, 9.0f + MENU_ITEM_HEIGHT));
+    Bool cl = false;
+    if(hov)
+    {
+        cl = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+        ImGui::SetTooltip("%s", mb->_MyUI.GetLanguageText(langID.c_str()).c_str());
+    }
+    return cl;
+}
+
+static Bool _AsyncScriptExec(const JobThread& thread, void* userA, void* userB)
+{
+    String src = std::move(*((String*)userA));
+    String name = std::move(*((String*)userB));
+    TTE_FREE((String*)userA); TTE_FREE((String*)userB); // free input arg
+    Bool bResult = false;
+    
+    if((bResult = ScriptManager::LoadChunk(thread.L, name, src)))
+    {
+        thread.L.CallFunction(0, 0, true);
+    }
+    
+    return bResult;
+}
 
 void MenuBar::Render()
 {
@@ -22,10 +54,16 @@ void MenuBar::Render()
 
     // BACKGROUND
     ImVec2 size = ImGui::GetWindowSize();
-    ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImGui::GetWindowViewport()->Pos, ImGui::GetWindowViewport()->Pos + size,
+    //ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImGui::GetWindowViewport()->Pos, ImGui::GetWindowViewport()->Pos + size,
+    //                                                    IM_COL32(120, 14, 57,255), 0xff000000u, 0xff000000u, IM_COL32(120, 14, 57, 255));
+    ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImGui::GetWindowViewport()->Pos, ImGui::GetWindowViewport()->Pos + ImVec2(size.x * 0.5f, size.y),
                                                         IM_COL32(120, 14, 57,255), 0xff000000u, 0xff000000u, IM_COL32(120, 14, 57, 255));
+    ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImGui::GetWindowViewport()->Pos + ImVec2(size.x * 0.5f, 0.0f),
+                                                        ImGui::GetWindowViewport()->Pos + size,
+                                                        0xff000000u, IM_COL32(120, 14, 57,255), IM_COL32(120, 14, 57, 255), 0xff000000u);
 
     // LOGO AND TITLE BAR
+    Float xBack = size.x - 4.0f;
     DrawResourceTexture("LogoSquare.png", 2.f / size.x, 2.f / size.y, 36.f / size.x, 36.f / size.y);
     const String title = "Telltale Editor";
     ImGui::PushFont(GetApplication().GetEditorFont(), 20.0f);
@@ -50,6 +88,32 @@ void MenuBar::Render()
     ImGui::SetCursorPos({ size.x * 0.5f - 0.5f * projNameSize.x, size.y * 0.5f - projNameSize.y * 0.5f });
     ImGui::TextUnformatted(proj.c_str());
     ImGui::PopFont();
+    
+    if(_RenderMenuItem(this, "menu.run_script", "Misc/RunScript.png", xBack, size.x, size.y))
+    {
+        nfdchar_t* outp{};
+        if (NFD_OpenDialog("lua", NULL, &outp) == NFD_OKAY)
+        {
+            DataStreamRef source = DataStreamManager::GetInstance()->CreateFileStream(String(outp));
+            if(source)
+            {
+                String* src = TTE_NEW(String, MEMORY_TAG_TEMPORARY_ASYNC);
+                String* nm = TTE_NEW(String, MEMORY_TAG_TEMPORARY_ASYNC);
+                *src = DataStreamManager::GetInstance()->ReadAllAsString(source);
+                *nm = FileGetName(String(outp));
+                JobDescriptor desc{};
+                desc.AsyncFunction = &_AsyncScriptExec;
+                desc.UserArgA = src;
+                desc.UserArgB = nm;
+                JobScheduler::Instance->Post(desc);
+            }
+            else
+            {
+                TTE_LOG("Cannot open %s: open failed", outp);
+            }
+            free(outp);
+        }
+    }
 
     // END
     ImGui::End();

@@ -19,6 +19,42 @@ class Symbol;
 
 GSYMBOL(kEmptySymbol, "");
 
+// ======================== SYMBOL SECTION <> TRIGGER MODULE ================================
+
+GSYMBOL(kTriggerEnterCallback, "Trigger Entered Callback");
+GSYMBOL(kTriggerExitCallback, "Trigger Exited Callback");
+GSYMBOL(kTriggerEnabled, "Trigger Enabled");
+
+// ======================== SYMBOL SECTION <> WALK ANIMATOR MODULE ================================
+
+GSYMBOL(kWalkAnimatorForwardAnimation, "Walk Animation - Forward");
+GSYMBOL(kWalkAnimatorIdleAnimation, "Walk Animation - Idle");
+
+// ======================== SYMBOL SECTION <> DIALOG MODULE ================================
+
+GSYMBOL(kDialogResource, "Dialog Resource");
+GSYMBOL(kDialogName, "Dialog Name");
+
+// ======================== SYMBOL SECTION <> DLG CHOICE MODULE ================================
+
+GSYMBOL(kDialogChoicePropName, "module_dialog_choice.prop");
+GSYMBOL(kDialogChoiceChoice, "Dialog Choice");
+
+// ======================== SYMBOL SECTION <> ROLLOVER MODULE ================================
+
+GSYMBOL(kRolloverCursorProps, "Rollover Cursor Props");
+GSYMBOL(kRolloverTexture, "Cursor Texture");
+GSYMBOL(kRolloverText, "Rollover Text");
+GSYMBOL(kRolloverTextColour, "Rollover Text Color");
+GSYMBOL(kRolloverTextBackgroundColour, "Rollover Text Background Color");
+GSYMBOL(kRolloverMesh, "Rollover Mesh");
+
+// ======================== SYMBOL SECTION <> SELECTABLE MODULE ================================
+
+GSYMBOL(kSelectableExtentsMin, "Extents Min");
+GSYMBOL(kSelectableExtentsMax, "Extents Max");
+GSYMBOL(kSelectableOnOff, "Game Selectable");
+
 // ======================== SYMBOL SECTION <> LIGHT MODULE ================================
 
 GSYMBOL(kLightColour, "Light Color");

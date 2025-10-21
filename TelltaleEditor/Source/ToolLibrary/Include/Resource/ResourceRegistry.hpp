@@ -1114,13 +1114,9 @@ public:
         return hHandle;
     }
 
-    inline void GetResourceLocationNames(std::vector<String>& names)
-    {
-        for(const auto& loc: _Locations)
-        {
-            names.push_back(loc->Name);
-        }
-    }
+    void GetResourceLocationNames(std::vector<String>& names);
+    
+    ~ResourceRegistry();
     
 private:
     

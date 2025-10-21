@@ -235,6 +235,7 @@ typename std::vector<T>::iterator VectorInsertSorted(std::vector<T> & vec, T&& i
 template <typename T> class hacked_priority_queue : public std::priority_queue<T>
 { // Not applying library convention, see this as an 'extension' to std::
 public:
+    
     std::vector<T> &get_container() { return this->c; }
     
     const std::vector<T> &get_container() const { return this->c; }

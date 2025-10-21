@@ -1,3 +1,21 @@
+Trigger Entered Callback
+Trigger Exited Callback
+Trigger Enabled
+Walk Animation - Forward
+Walk Animation - Idle
+Dialog Resource
+Dialog Name
+module_dialog_choice.prop
+Dialog Choice
+Rollover Cursor Props
+Cursor Texture
+Rollover Text
+Rollover Text Color
+Rollover Text Background Color
+Rollover Mesh
+Extents Min
+Extents Max
+Game Selectable
 Light Color
 Light Color Dark
 Light Intensity
@@ -463,7 +481,6 @@ module_style.prop
 module_text.prop
 module_text2.prop
 module_trigger.prop
-module_dialog_choice.prop
 module_vfx_group.prop
 module_viewport.prop
 module_voicespeaker.prop
@@ -3489,7 +3506,6 @@ Scene: Start Quaterion
 camera.prop
 light.prop
 sk02_fone.prop
-Walk Animation - Idle
 sk02_phoney.prop
 sk02_smiley.prop
 sk04_granmaben.prop
@@ -3499,7 +3515,6 @@ obj_banjo.prop
 adv_caveprophecy.prop
 adv_caveprophecy_meshesa.prop
 goldnewlines_light_idle.chore
-Game Selectable
 adv_desert.prop
 TutorialDialog
 TutorialHelp
@@ -3520,8 +3535,6 @@ NavCam - Trigger Horizontal Percentage
 NavCam - Trigger Vertical Percentage
 phoney_desert_idle.chore
 Walk Radius
-Extents Max
-Extents Min
 Use Direction
 obj_desertrocksmalla.prop
 obj_desertrocksmallb.prop
@@ -3549,7 +3562,6 @@ empty.wbox
 obj_locustgroupflatside.prop
 ui_text_selectable.prop
 adv_deserttile.prop
-Cursor Texture
 obj_desertrocka.prop
 obj_desertrockf.prop
 obj_desertrockd.prop
@@ -3574,12 +3586,9 @@ adv_dragonsstair05.wbox
 NavCam - Target Agent Node
 navcam_dragonstair1.chore
 NavCam - Target Offset
-Walk Animation - Forward
 sk02_move_walk_with_torch.chore
 sk02_move_idle_with_torch.chore
 obj_dragonsstair_trigger.prop
-Trigger Entered Callback
-Trigger Exited Callback
 obj_dragonsstair_jump.prop
 NavCam - Target Agent
 dragonstair_rock.prop
@@ -3587,7 +3596,6 @@ NavCam - Reset on Activate
 NavCam - Dampen
 NavCam - Home Position
 trigger.prop
-Trigger Enabled
 sk05_ratcreature.prop
 sk09_reddragon.prop
 obj_cigarbutt.prop
@@ -3776,11 +3784,6 @@ Light Bump Intensity
 ui_icon.prop
 ui_inventoryitem.d3dmesh
 Render Pixel Shader
-Rollover Text
-Rollover Cursor Props
-Rollover Mesh
-Rollover Text Background Color
-Rollover Text Color
 ui_inventorypackclosed.d3dmesh
 ui_inventorypackopenbot.d3dmesh
 ui_inventorypackopentop.d3dmesh
@@ -4145,8 +4148,6 @@ useable.prop
 cursor_type.prop
 Cursor Color
 Dialog Branch
-Dialog Name
-Dialog Resource
 Footsteps - Use Walk Animator
 Footsteps - Max Height
 Footsteps - Min Height

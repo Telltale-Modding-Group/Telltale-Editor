@@ -141,7 +141,7 @@ public:
      Creates a resource registry which can be used to manage telltale games resources. These cannot be used between game switches. Must be destroyed before this object or a switch!
      See ToolContext:CreateResourceRegistry().
      */
-    Ptr<ResourceRegistry> CreateResourceRegistry();
+    Ptr<ResourceRegistry> CreateResourceRegistry(Bool bAttachToAllThreads);
     
     // See ToolContext version. Delegates and thread safe.
     inline DataStreamRef LoadLibraryResource(String name)

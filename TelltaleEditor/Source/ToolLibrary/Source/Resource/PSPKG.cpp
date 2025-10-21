@@ -81,7 +81,7 @@ void PlaystationPKG::_RegisterKeys(ToolContext* context)
 
 Bool PlaystationPKG::SerialiseIn(DataStreamRef &in, const String& kn)
 {
-    CString EncKey = "\x2E\x7B\x71\xD7\xC9\xC9\xA1\x4E\xA3\x22\x1F\x18\x88\x28\xB8\xF8"; // temp FOR PS3
+    CString EncKey = nullptr;
     for(const auto& pk: _PkgKeys)
     {
         if(pk.Name.c_str() == kn.c_str())

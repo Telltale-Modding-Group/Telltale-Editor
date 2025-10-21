@@ -63,6 +63,9 @@ iv.add_module = "Add Module"
 # SCENE VIEW
 sv.title = "Scene"
 
+# MENU
+menu.run_script = "Run Lua Script"
+
 # MISC
 misc.drag_here = "Drag a %s file here!"
 misc.empty = "Empty"
@@ -71,6 +74,47 @@ misc.reset_lower = "reset"
 # MODULES
 mod.select = "Select Module"
 mod.used = "This agent already has all supported modules!"
+
+# WALK ANIM
+mod.walkAnimator.name = "Walk Animator"
+mod.walkAnimator.desc = "Sets agent walk and idle animations"
+mod.walkAnimator.iv.forward_animation = "Animation file to use for the forward walk animation"
+mod.walkAnimator.iv.idle_animation = "Animation file to use for the idling animation"
+
+# TRIGGER
+mod.trigger.name = "Trigger"
+mod.trigger.desc = "Inherits from selectable and text. Has an enter and exit Lua callback which are called when triggered."
+mod.trigger.iv.enter_callback = "Script callback to execute on enter"
+mod.trigger.iv.exit_callback = "Script callback to execute on exit"
+mod.trigger.iv.enabled = "If the script callbacks are enabled currently"
+
+# DIALOG CHOICE
+mod.dlgChoice.name = "Dialog Choice"
+mod.dlgChoice.desc = "Agent is used to represent a choice in a dialog"
+mod.dlgChoice.iv.choice = "The choice name"
+
+# DIALOG
+mod.dialog.name = "Dialog"
+mod.dialog.desc = "Agent is the dialog agent for the scene (NEED CLARIFICATION)"
+mod.dialog.iv.dialog_name = "Dialog Name"
+mod.dialog.iv.dialog_resource = "Dialog File to use"
+
+# SELECTABLE MODULE
+mod.selectable.name = "Selectable"
+mod.selectable.desc = "Causes the agent to be selectable in game with a bounding box."
+mod.selectable.iv.extents_min = "The minimum point of the selectable extents box"
+mod.selectable.iv.extents_max = "The maximum point of the selectable extents box"
+mod.selectable.iv.on_off = "If its currently selectable"
+
+# ROLLOVER MODULE
+mod.rollover.name = "Rollover"
+mod.rollover.desc = "Makes this agent have a rendered texture / mesh and/or text at runtime when hovered over (ie 'rolled')"
+mod.rollover.iv.text = "Text to display on hover"
+mod.rollover.iv.cursor_properties = "Properties file for the cursor"
+mod.rollover.iv.text_colour = "Foreground colour for the text displayed if enabled"
+mod.rollover.iv.text_background_colour = "Background colour for the text displayed if enabled"
+mod.rollover.iv.cursor_mesh = "Mesh to display when hovered at cursor"
+mod.rollover.iv.texture = "Legacy property. The texture shown at the cursor on hover."
 
 # SCENE MODULE
 mod.scene.name = "Scene"

@@ -141,13 +141,13 @@ String UIComponent::TruncateText(const String& src, Float truncWidth)
     return ELLIPSIS + src.substr(visible_start);
 }
 
-void UIComponent::DrawResourceTexturePixels(const String& name, Float xPos, Float yPos, Float xSize, Float ySize, U32 colorScale)
+void UIComponent::DrawResourceTexturePixels(const String& name, Float xPos, Float yPos, Float xSize, Float ySize, U32 colorScale, CString customID)
 {
     ImVec2 w = ImGui::GetWindowSize();
-    DrawResourceTexture(name, xPos / w.x, yPos / w.y, xSize / w.x, ySize / w.y, colorScale);
+    DrawResourceTexture(name, xPos / w.x, yPos / w.y, xSize / w.x, ySize / w.y, colorScale, customID);
 }
 
-void UIComponent::DrawResourceTexture(const String& name, Float xPosFrac, Float yPosFrac, Float xSizeFrac, Float ySizeFrac, U32 sc)
+void UIComponent::DrawResourceTexture(const String& name, Float xPosFrac, Float yPosFrac, Float xSizeFrac, Float ySizeFrac, U32 sc, CString customID)
 {
     auto it = _MyUI._ResourceTextures.find(name);
     if(it == _MyUI._ResourceTextures.end())
@@ -248,8 +248,12 @@ void UIComponent::DrawResourceTexture(const String& name, Float xPosFrac, Float 
         ImTextureID id = (ImTextureID)it->second.DrawBind;
         ImVec2 winSize = ImGui::GetWindowSize();
         ImVec2 tl = ImGui::GetWindowPos(); //()->WorkPos;
+        ImVec2 cpos = ImGui::GetCursorScreenPos();
+        ImGui::SetCursorScreenPos(ImVec2{tl.x + xPosFrac * winSize.x, tl.y + yPosFrac * winSize.y});
+        ImGui::InvisibleButton(customID ? customID : ("##_Img" + name).c_str(), ImVec2{xSizeFrac * winSize.x, ySizeFrac * winSize.y});
         ImGui::GetWindowDrawList()->AddImage(id, ImVec2{ tl.x + xPosFrac * winSize.x, tl.y + yPosFrac * winSize.y },
             ImVec2{ tl.x + winSize.x * (xPosFrac + xSizeFrac), tl.y + winSize.y * (yPosFrac + ySizeFrac) }, ImVec2{ 0,0 }, ImVec2{ 1.f,1.f }, sc);
+        ImGui::SetCursorScreenPos(cpos);
     }
 }
 
@@ -343,7 +347,7 @@ void ApplicationUI::_OnProjectLoad()
     _Editor->Switch(snapshot);
 
     // LOAD REG + CONTEXT
-    _EditorResourceReg = _Editor->CreateResourceRegistry();
+    _EditorResourceReg = _Editor->CreateResourceRegistry(true);
     _EditorRenderContext = RenderContext::CreateShared(_Device, true, _Window, _EditorResourceReg);
 
     for(const auto& mp: _ProjectMgr.GetHeadProject()->MountDirectories)

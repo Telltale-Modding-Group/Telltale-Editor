@@ -2717,6 +2717,26 @@ namespace TTE
         }
         return true;
     }
+
+    static U32 luaGetMountPoints(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 0, "Invalid use of TTE_GetMountPoints");
+        auto reg = ResourceRegistry::GetBoundRegistry(man);
+        man.PushTable();
+        if(reg)
+        {
+            std::vector<String> names{};
+            reg->GetResourceLocationNames(names);
+            I32 i = 0;
+            for(const auto& name: names)
+            {
+                man.PushInteger(++i);
+                man.PushLString(name);
+                man.SetTable(-3);
+            }
+        }
+        return 1;
+    }
     
     static U32 luaSwitch(LuaManager& man)
     {
@@ -2740,7 +2760,7 @@ namespace TTE
             Context->Switch(snap);
             if(hasReg)
             {
-                Context->CreateResourceRegistry()->BindLuaManager(man); // cached in dependents. keeps alive
+                Context->CreateResourceRegistry(false); // cached in dependents. keeps alive
             }
         }
         return 0;
@@ -3328,6 +3348,9 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     Col.Functions.push_back({"TTE_Log", &TTE::luaLog, "nil TTE_Log(valueStr)", "Logs to the editor logger, the string argument."});
     Col.Functions.push_back({"TTE_GetPlatform", &TTE::luaGetPlatform, "string TTE_GetPlatform()", "Gets the platform name which the Telltale Editor"
         " is running on. This will return strings 'Windows' or 'MacOS', 'Linux' and etc for others in the future."
+    });
+    Col.Functions.push_back({"TTE_GetMountPoints", &TTE::luaGetMountPoints, "table TTE_GetMountPoints()", "Returns a N indexed array of all the mount"
+        " points in the resource system. These are the resource location names. You can use there to find resources."
     });
     
     // REGISTER META API

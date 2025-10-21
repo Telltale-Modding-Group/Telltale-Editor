@@ -63,7 +63,7 @@ public:
     struct KeyCallbackTracked
     {
         Ptr<FunctionBase> MyCallback;
-        // WeakSlotRef TrackingReference;
+        U32 TrackingRefID = 0; // for removing all callbacks with this ID etc.
     };
     
     struct KeyCallbackComparator
@@ -81,7 +81,6 @@ public:
         
         std::set<KeyCallbackTracked, KeyCallbackComparator> KeyCallbacks;
         std::vector<HandlePropertySet> Children;
-        // WeakSlotSignal CallbacksSignal;
         
         void Move(InternalData& dest);
         void Clone(InternalData& dest) const; // clones a copy into the dest.
@@ -112,11 +111,17 @@ public:
      Sets a property in the property set prop. Use the intrinsic template version to skip having to create the instance. Last argument is the set mode. See the enum above.
      */
     static void Set(Meta::ClassInstance prop, Symbol key, Meta::ClassInstance value,  Ptr<ResourceRegistry> pRegistry, SetPropertyMode mode = SetPropertyMode::COPY);
+    
+    /**
+     Clears all the callbacks for the given property set. Give the optional tracking reference to clear IDs matching that, or 0 to clear all.
+     */
+    static void ClearCallbacks(Meta::ClassInstance prop, U32 withTrackingRef = 0);
 
     /**
      Adds a callback which will be called with the property given changes.  The property does not have to exist yet.
+     Optional tracking reference to delete all callbacks with that reference. Tracking reference 0 is untrackable (ie clear callbacks with 0 will clear all, not just ones with the ref = 0)
      */
-    static void AddCallback(Meta::ClassInstance prop, Symbol property, Ptr<FunctionBase> pCallback);
+    static void AddCallback(Meta::ClassInstance prop, Symbol property, Ptr<FunctionBase> pCallback, U32 trackingRef = 0);
     
     /**
      Returns if the given property key exists in the property set. Optionally state wether to search all parent properties too.

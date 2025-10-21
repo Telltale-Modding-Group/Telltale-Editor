@@ -151,10 +151,10 @@ Bool TelltaleEditor::QueryTask(U32 task)
     return _ProbeTasks(false, task);
 }
 
-Ptr<ResourceRegistry> TelltaleEditor::CreateResourceRegistry()
+Ptr<ResourceRegistry> TelltaleEditor::CreateResourceRegistry(Bool batt)
 {
     TTE_ASSERT(IsCallingFromMain(), "Can only be called from the main thread! Resource registies can only be created and mounted with resource sets on the main thread.");
-    return _ModdingContext->CreateResourceRegistry();
+    return _ModdingContext->CreateResourceRegistry(batt);
 }
 
 U32 TelltaleEditor::EnqueueArchive2ExtractTask(TTArchive2* pArchive, std::set<String>&& files, String outputFolder)

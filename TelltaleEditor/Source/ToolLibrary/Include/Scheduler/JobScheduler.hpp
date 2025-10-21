@@ -32,7 +32,7 @@
 ///
 /// </summary>
 class JobScheduler;
-
+class ResourceRegistry;
 struct JobThread;
 
 // Job Priorities
@@ -85,6 +85,7 @@ struct Job
     void *UserArgA, *UserArgB;
     JobPriority Priority;
     U32 JobID;
+    I32 AffinityOverride = -1; // to select which thread.
     
     // Default Constructor
     inline Job() : RunnableFunction(0), UserArgA(0), UserArgB(0), Priority(JobPriority::JOB_PRIORITY_NORMAL), JobID(0) {}
@@ -292,8 +293,9 @@ public:
     /// <summary>
     /// Posts a job to the job scheduler. The job will be run eventually and the return value can be used with other functions in this
     /// class.
+    /// Optionally pass an affinity override to select the thread index this job must run on.
     /// </summary>
-    JobHandle Post(JobDescriptor descriptor);
+    JobHandle Post(JobDescriptor descriptor, I32 affinityOverride = -1);
     
     /// <summary>
     /// See Post(). This version an array of them, with no ordering constraints on their execution. If return true, the out handles array will contain Num waitable handles.
@@ -344,6 +346,11 @@ public:
     {
         JobResult result = GetResult(handle);
         return result == JOB_RESULT_OK || result == JOB_RESULT_FAIL || result == JOB_RESULT_CANCELLED;
+    }
+    
+    inline U32 GetNumWorkerThreads() const
+    {
+        return NUM_SCHEDULER_THREADS;
     }
     
     /// <summary>
@@ -447,12 +454,12 @@ private:
     /// If the parent job is not found (ie finished), these are executed ASAP like normal jobs - assuming the previous already finished between
     /// it being posted and you queuing the jobs.
     /// </summary>
-    void _RegisterJobs(U32 nJobs, JobDescriptor *pJobDescriptors, JobHandle *pOutHandles, U32 parent = (U32)-1);
+    void _RegisterJobs(U32 nJobs, JobDescriptor *pJobDescriptors, JobHandle *pOutHandles, U32 parent = (U32)-1, I32 affinityOverride = -1);
     
     /// <summary>
     /// Makes a job from a given descriptor. Pass in the newly allocated job ID
     /// </summary>
-    void _MakeJob(U32 jobID, Job &job, JobDescriptor &descriptor);
+    void _MakeJob(U32 jobID, Job &job, JobDescriptor &descriptor, I32 affinityOverride = -1);
     
     /// <summary>
     /// Interally used by Wait. Checks the return value of the job (result). First argument is used for assertions.

@@ -17,9 +17,6 @@ class ApplicationUI;
 
 class UIComponent
 {
-
-    ApplicationUI& _MyUI;
-
 public:
 
     UIComponent(ApplicationUI& appUI);
@@ -28,9 +25,11 @@ public:
     void SetNextWindowViewportPixels(Float posX, Float posY, Float SizeX, Float SizeY);
 
     // Pass in WINDOW fractional coordinates (inside Begin/End call window region)
-    void DrawResourceTexture(const String& name, Float xPosFrac, Float yPosFrac, Float xSizeFrac, Float ySizeFrac, U32 colorScale = 0xFFFFFFFFu);
+    void DrawResourceTexture(const String& name, Float xPosFrac, Float yPosFrac, Float xSizeFrac, 
+                             Float ySizeFrac, U32 colorScale = 0xFFFFFFFFu, CString customID = nullptr);
 
-    void DrawResourceTexturePixels(const String& name, Float xPos, Float yPos, Float xSize, Float ySize, U32 colorScale = 0xFFFFFFFFu);
+    void DrawResourceTexturePixels(const String& name, Float xPos, Float yPos, Float xSize, Float ySize, 
+                                   U32 colorScale = 0xFFFFFFFFu, CString customID = nullptr);
 
     String TruncateText(const String& src, Float truncWidth);
 
@@ -41,6 +40,8 @@ public:
     ApplicationUI& GetApplication();
 
     const String& GetLanguageText(CString id);
+    
+    ApplicationUI& _MyUI;
 
 };
 

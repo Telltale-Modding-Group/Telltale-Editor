@@ -8,8 +8,6 @@ I32 CommandLine::Executor_Editor(const std::vector<TaskArgument>& args)
     return App.Run(args);
 }
 
-#include <Resource/PSPKG.hpp>
-
 int main(int argc, char** argv)
 {
     int exit = CommandLine::GuardedMain(argc, argv);
