@@ -2479,7 +2479,12 @@ Bool ResourceRegistry::_SetupHandleResourceLoad(HandleObjectInfo &hoi, std::uniq
             String name = SymbolTable::Find(hoi._ResourceName);
             if(name.length() == 0)
                 name = SymbolToHexString(hoi._ResourceName);
-            TTE_LOG("WARNING: The resource %s was not found in the resource registry so cannot be loaded! Empty placeholder will be used.", name.c_str());
+            if(_ErrorFiles.find(name) == _ErrorFiles.end())
+            {
+                TTE_LOG("WARNING: The resource %s was not found in the "
+                        "resource registry so cannot be loaded! Empty placeholder will be used.", name.c_str());
+                _ErrorFiles.insert(name);
+            }
             return false;
         }
     }
@@ -2738,6 +2743,8 @@ void ResourceRegistry::_ReconfigureSets(const std::set<ResourceSet*>& turnOff, c
             _DoApplyResourceSet(set, patches);
         patches.clear(); // keep memory but clear
     }
+    
+    _ErrorFiles.clear();
 }
 
 U32 ResourceRegistry::GetPreloadOffset()
@@ -2816,7 +2823,7 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
         if(Streams[i].get() != nullptr)
         {
             job->HOI[i]._Instance = Meta::ReadMetaStream(SymbolTable::FindOrHashString(job->HOI[i]._ResourceName), Streams[i]);
-            if(job->HOI[i]._Instance)
+            if(job->HOI[i]._Instance && ((Meta::GetClass(job->HOI[i]._Instance.GetClassID()).Flags & Meta::_CLASS_PROP) == 0))
             {
                 // Normalise
                 CommonClassAllocator* pAllocator = Meta::GetCommonAllocator(job->HOI[i]._Instance.GetClassID());

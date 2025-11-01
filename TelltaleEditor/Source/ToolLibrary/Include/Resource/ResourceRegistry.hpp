@@ -133,6 +133,11 @@ public:
         return SymbolTable::Find(_ResourceName);
     }
     
+    inline Ptr<Handleable> GetBlindObject(Ptr<ResourceRegistry>& registry)
+    {
+        return _GetObject(registry, nullptr);
+    }
+    
 };
 
 // Handle to a common resource. This is basically a templated version of HandleBase, but caches the loaded handle to the common resource.
@@ -1145,6 +1150,8 @@ private:
     std::vector<PreloadBatchJobRef> _PreloadJobs;
     
     String _DefaultLocation = "<>";
+    
+    std::set<String> _ErrorFiles; // reduce multi-log
     
     // ========== INTERNAL FUNCTIONALITY
     

@@ -1,5 +1,6 @@
 #include <UI/EditorUI.hpp>
 #include <UI/ApplicationUI.hpp>
+#include <UI/UIEditors.hpp>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -23,6 +24,20 @@ EditorUI::EditorUI(ApplicationUI& app) : UIStackable(app), _MenuBar(*this), _Edi
     Ptr<SceneView> sceneView = TTE_NEW_PTR(SceneView, MEMORY_TAG_EDITOR_UI, *this);
     _Views.push_back(sceneView);
     _SceneView = sceneView;
+}
+
+void EditorUI::_DispatchEditor(String viewTitle, String rloc, std::function<Ptr<UIResourceEditorBase>(const LoadInfo&, EditorUI&, Ptr<ResourceRegistry>)> callback)
+{
+    LoadInfo load{};
+    load.ViewTitle = std::move(viewTitle);
+    load.Callback = std::move(callback);
+    load.Resource = FileGetFilename(rloc);
+    HandleBase hFile{};
+    hFile.SetObject(GetApplication().GetRegistry()->CreateResolvedAddress(rloc, false).GetName());
+    std::vector<HandleBase> handles{};
+    handles.push_back(std::move(hFile));
+    load.PreloadBatch = GetApplication().GetRegistry()->Preload(std::move(handles), true);
+    _AwaitingLoads.push_back(std::move(load));
 }
 
 void EditorUI::OnFileClick(const String& resourceLocation)
@@ -52,6 +67,16 @@ void EditorUI::OnFileClick(const String& resourceLocation)
             InspectingNode.reset();
             IsInspectingAgent = false;
             TTE_LOG("Attempting to load scene %s with preload batch %u", resourceLocation.c_str(), _LoadingScenePreload);
+        }
+        else if(ext == "prop")
+        {
+            String viewTitle = GetApplication().GetLanguageText("misc.inspecting") + " " + FileGetFilename(resourceLocation);
+            _DispatchEditor(viewTitle, resourceLocation, [](const LoadInfo& info, EditorUI& ui, Ptr<ResourceRegistry> r)
+            {
+                Handle<Placeholder> hProp{};
+                hProp.SetObject(info.Resource);
+                return TTE_NEW_PTR(UIPropertySet, MEMORY_TAG_EDITOR_UI, ui, info.ViewTitle, hProp.GetObject(r, true));
+            });
         }
         else
         {
@@ -124,8 +149,47 @@ void EditorUI::Render()
     }
 
     _MenuBar.Render();
-    for(auto& c: _Views)
-        c->Render();
+    auto viewsCopy = _Views;
+    for(auto it = viewsCopy.begin(); it != viewsCopy.end(); it++)
+    {
+        Ptr<EditorUIComponent>& component = *it;
+        component->Render();
+    }
+    
+    // check finished loads
+    U32 preloadOffset = GetApplication().GetRegistry()->GetPreloadOffset();
+    for(auto it = _AwaitingLoads.begin(); it != _AwaitingLoads.end();)
+    {
+        if(preloadOffset >= it->PreloadBatch)
+        {
+            Ptr<UIResourceEditorBase> ui = it->Callback(*it, *this, GetApplication().GetRegistry());
+            if(ui)
+            {
+                _TransientViews.push_back(std::move(ui));
+            }
+            _AwaitingLoads.erase(it);
+        }
+        else
+        {
+            it++;
+        }
+    }
+    
+    I32 id = 9999888;
+    for(auto it = _TransientViews.begin(); it != _TransientViews.end();)
+    {
+        ImGui::PushID(id++);
+        (*it)->Render();
+        ImGui::PopID();
+        if((*it)->IsAlive())
+        {
+            it++;
+        }
+        else
+        {
+            _TransientViews.erase(it);
+        }
+    }
 }
 
 U32 EditorUIComponent::GetUICondition()
@@ -599,7 +663,7 @@ void InspectorView::_InitModuleCache(Meta::ClassInstance agentProps, SceneModule
 namespace PropertyRenderFunctions
 {
 
-    void RenderEnum(const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
+    void RenderEnum(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
 
         if(adapter.SubPaths.empty())
@@ -609,7 +673,7 @@ namespace PropertyRenderFunctions
         }
 
         const Meta::Class* EnumClass = &Meta::GetClass(adapter.ClassID);
-        U32& EnumSelected = *((U32*)datum._GetInternal());
+        U32* pEnumSelected = ((U32*)datum._GetInternal());
 
         // Mid path members
         for(U32 i = 0; i + 1 < adapter.SubPaths.size(); i++)
@@ -620,6 +684,7 @@ namespace PropertyRenderFunctions
                 if(member.Name == adapter.SubPaths[i])
                 {
                     bOk = true;
+                    pEnumSelected += member.RTOffset;
                     EnumClass = &Meta::GetClass(member.ClassID);
                     break;
                 }
@@ -636,10 +701,11 @@ namespace PropertyRenderFunctions
         {
             if (member.Name == adapter.SubPaths[adapter.SubPaths.size()-1])
             {
+                pEnumSelected += member.RTOffset;
                 CString curSelected = "UNKNOWN_VALUE";
                 for(const auto& enumDesc: member.Descriptors)
                 {
-                    if(EnumSelected == enumDesc.Value)
+                    if(*pEnumSelected == enumDesc.Value)
                     {
                         curSelected = enumDesc.Name.c_str();
                         break;
@@ -651,7 +717,7 @@ namespace PropertyRenderFunctions
                     {
                         if(ImGui::Selectable(enumDesc.Name.c_str()))
                         {
-                            EnumSelected = enumDesc.Value;
+                            *pEnumSelected = enumDesc.Value;
                         }
                     }
                     ImGui::EndCombo();
@@ -662,6 +728,49 @@ namespace PropertyRenderFunctions
 
         ImGui::Text("!SubPathMemberNotFound!");
         return;
+    }
+
+    void RenderPolar(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
+    {
+        ImGui::SetCursorPos(ImVec2(8.0f, ImGui::GetCursorPosY()));
+        
+        const CString labels[3] {"Misc/Radius.png", "Misc/Theta.png", "Misc/Phi.png"};
+        const CString members[3] {"mR", "mTheta", "mPhi"};
+        const float item_width = 55.0f;
+        
+        Float offsets[3] {0.0f, 0.0f, 0.0f};
+        const ImVec2 label_size = ImGui::CalcTextSize("R");
+        
+        for(I32 i = 0; i < 3; i++)
+        {
+            ImVec2 pos = ImGui::GetCursorPos();
+            Meta::ClassInstance mem = Meta::GetMember(*(Meta::ClassInstance*)(&datum), members[i], false);
+            if(!mem)
+                continue;
+            Float* dataValue = (Float*)mem._GetInternal();
+
+            ImVec2 rect_size = ImVec2(label_size.x + 5, label_size.y + 4);
+
+            // Convert pos to screen pos for drawing rect/text
+            ImVec2 screen_pos = ImGui::GetCursorScreenPos();
+            
+            ui.DrawResourceTexturePixels(labels[i], screen_pos.x - ImGui::GetWindowPos().x - 2.0f,
+                                         screen_pos.y - ImGui::GetWindowPos().y - 2.0f, label_size.x + 4.0f, label_size.y + 4.0f);
+
+            // Move cursor right after colored box (relative)
+            ImGui::SetCursorPosX(pos.x + rect_size.x);
+
+            ImGui::PushItemWidth(item_width);
+
+            ImGui::InputFloat((String("##") + (char)('X' + i)).c_str(), dataValue, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_CharsDecimal);
+            ImGui::PopItemWidth();
+
+            if (i < 2)
+            {
+                ImGui::SameLine();
+                ImGui::SetCursorPosX(ImGui::GetCursorPosX() + 2.0f);
+            }
+        }
     }
 
     // 2 to 4
@@ -721,7 +830,7 @@ namespace PropertyRenderFunctions
             ImGui::PushItemWidth(item_width);
 
             if (ImGui::InputFloat(
-                (std::string("##") + (label ? label : "") + (char)('X' + i)).c_str(),
+                (String("##") + (label ? label : "") + (char)('X' + i)).c_str(),
                 &valArray[i],
                 0.0f, 0.0f, "%.3f",
                 ImGuiInputTextFlags_CharsDecimal))
@@ -1270,7 +1379,7 @@ void InspectorView::Render()
                                         ImGui::Dummy(ImVec2{ 1.0f, 2.0f });
                                         if (prop.Specification->RenderInstruction)
                                         {
-                                            prop.Specification->RenderInstruction->Render(*prop.Specification, prop.Property);
+                                            prop.Specification->RenderInstruction->Render(_EditorUI, *prop.Specification, prop.Property);
                                         }
                                         else if (prop.Specification->HandleClassID)
                                         {

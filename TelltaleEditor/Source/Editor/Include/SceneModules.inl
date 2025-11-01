@@ -33,6 +33,8 @@ enum class SceneModuleType : I32
     DIALOG          ,
     WALK_ANIMATOR   ,
     TRIGGER         ,
+    NAV_CAM         ,
+    PATH_TO         ,
 
     // === POST RENDERABLE MODULES
 
@@ -911,6 +913,80 @@ template<> struct SceneModule<SceneModuleType::TRIGGER> : SceneModuleBase
 
     void OnModuleRemove(SceneAgent* pAttachedAgent);
 
+};
+
+enum class NavCamMode
+{
+    NONE = 1,
+    LOOK_AT = 2,
+    ORBIT = 3,
+    ANIMATION_TRACK = 4,
+    ANIMATION_TIME = 5,
+};
+
+DEFINE_ENUM_STRUCT(NavCamMode, "struct NavCam::EnumMode;class Enum<enum NavCam::Mode,1,2>");
+
+template<> struct SceneModule<SceneModuleType::NAV_CAM> : SceneModuleBase
+{
+
+    static constexpr SceneModuleType ModuleType = SceneModuleType::NAV_CAM;
+    static constexpr CString ModuleID = "navCam";
+    static constexpr CString ModuleName = "Navigation Camera";
+
+    static inline String GetModulePropertySet()
+    {
+        return kNavCamPropName;
+    }
+    
+    NavCamMode NavMode = NavCamMode::NONE;
+    Symbol AnimationFile;
+    Float AnimationTime = 0.0f;
+    Float Dampen = 0.0f;
+    Float TriggerHPercent = 0.0f, TriggerVPercent = 0.0f;
+    String TargetAgent;
+    Vector3 TargetOffset;
+    Polar OrbitMin, OrbitMax, OrbitOffset;
+    
+    void SetMode(Enum<NavCamMode> mode); // ENUM: so we use the Enum struct type wrapper which has traits and meta conversion.
+    void SetAnimationFile(Symbol file);
+    void SetAnimationTime(Float time);
+    void SetDampen(Float v);
+    void SetTriggerHPercent(Float v);
+    void SetTriggerVPercent(Float v);
+    void SetTargetAgent(String v);
+    void SetTargetOffset(Vector3 v);
+    void SetOrbitMin(Polar v);
+    void SetOrbitMax(Polar v);
+    void SetOrbitOffset(Polar v);
+    
+    // in modules.cpp
+    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
+
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
+
+};
+
+template<> struct SceneModule<SceneModuleType::PATH_TO> : SceneModuleBase
+{
+    
+    static constexpr SceneModuleType ModuleType = SceneModuleType::PATH_TO;
+    static constexpr CString ModuleID = "pathTo";
+    static constexpr CString ModuleName = "Pathing To";
+    
+    static inline String GetModulePropertySet()
+    {
+        return kPathToPropName;
+    }
+    
+    Float WalkRadius = 0.0f;
+    
+    void SetWalkRadius(Float v);
+    
+    // in modules.cpp
+    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
+
+    void OnModuleRemove(SceneAgent* pAttachedAgent);
+    
 };
 
 // ========================================= DATA-DRIVEN CONTAINERS =========================================

@@ -13,39 +13,43 @@ struct PropertyRenderFunctionCache
     String SymbolCache; // for handle etc
 };
 
+class ApplicationUI;
+
 struct PropertyVisualAdapter;
 
-using PropertyRenderFn = void(const PropertyVisualAdapter& adapter, const Meta::ClassInstance&);
+using PropertyRenderFn = void(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance&);
 
 namespace PropertyRenderFunctions
 {
 
     Bool _DrawVectorInput(const char* label, float* valArray, U32 n, Bool bColor4); // editor ui cpp
 
-    inline void RenderFloat(const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
+    inline void RenderFloat(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
         ImGui::InputFloat("##Float", (float*)datum._GetInternal());
     }
 
-    inline void RenderBool(const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
+    inline void RenderBool(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
         ImGui::Checkbox("##Bool", (bool*)datum._GetInternal());
     }
 
-    inline void RenderString(const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
+    inline void RenderString(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
         ImGui::InputText("##Str", (String*)datum._GetInternal());
     }
 
-    inline void RenderColour(const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
+    inline void RenderColour(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
         _DrawVectorInput(0, (float*)datum._GetInternal(), 4, true);
     }
 
-    void RenderEnum(const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum);
+    void RenderEnum(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum);
+
+    void RenderPolar(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum);
 
     template<U32 N>
-    inline void RenderFloatN(const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
+    inline void RenderFloatN(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
         _DrawVectorInput(0, (float*)datum._GetInternal(), N, false); // assuming this is all packed tight. from impl, it should. if not we will see it break lol.
     }
@@ -70,10 +74,11 @@ PropertyRenderInstructions[] =
     { "Colour", "kPropRenderColour",&PropertyRenderFunctions::RenderColour },
     { "String", "kPropRenderString",&PropertyRenderFunctions::RenderString },
     { "Enum", "kPropRenderEnum",&PropertyRenderFunctions::RenderEnum },
+    { "Polar", "kPropRenderPolar", &PropertyRenderFunctions::RenderPolar },
     { 0, 0, 0 }, // null term
 };
 
-// A specific property renderer instruction for agent modules.
+// A specific property renderer instruction for agent modules, prop files, etc.
 struct PropertyVisualAdapter
 {
 

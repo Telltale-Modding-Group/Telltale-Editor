@@ -1,3 +1,15 @@
+Walk Radius
+NavCam - Mode
+NavCam - Trigger Horizontal Percentage
+NavCam - Trigger Vertical Percentage
+NavCam - Target Agent
+NavCam - Target Offset
+NavCam - Orbit Offset
+NavCam - Orbit Min
+NavCam - Orbit Max
+NavCam - Animation
+NavCam - Animation Time
+NavCam - Dampen
 Trigger Entered Callback
 Trigger Exited Callback
 Trigger Enabled
@@ -3528,13 +3540,8 @@ TutorialWalk
 bMapDiscovered
 adv_desert.wbox
 NavCam - Interesting Agents
-NavCam - Animation
 nav_desert.chore
-NavCam - Animation Time
-NavCam - Trigger Horizontal Percentage
-NavCam - Trigger Vertical Percentage
 phoney_desert_idle.chore
-Walk Radius
 Use Direction
 obj_desertrocksmalla.prop
 obj_desertrocksmallb.prop
@@ -3585,15 +3592,12 @@ adv_dragonsstair.prop
 adv_dragonsstair05.wbox
 NavCam - Target Agent Node
 navcam_dragonstair1.chore
-NavCam - Target Offset
 sk02_move_walk_with_torch.chore
 sk02_move_idle_with_torch.chore
 obj_dragonsstair_trigger.prop
 obj_dragonsstair_jump.prop
-NavCam - Target Agent
 dragonstair_rock.prop
 NavCam - Reset on Activate
-NavCam - Dampen
 NavCam - Home Position
 trigger.prop
 sk05_ratcreature.prop
@@ -3689,7 +3693,6 @@ fs_log_03.aud
 fs_log_04.aud
 obj_forestwaterfallappletree.prop
 character.prop
-NavCam - Mode
 obj_forestwaterfallriverrockslarge.prop
 obj_applephoney.prop
 obj_applelogical.prop
@@ -4155,9 +4158,6 @@ NavCam - Always Active
 NavCam - Orbit Relative
 NavCam - Dynamic Conversation Reference Agent
 NavCam - Dynamic Conversation Distance
-NavCam - Orbit Max
-NavCam - Orbit Min
-NavCam - Orbit Offset
 Max Path Length
 Style Idles On
 Actor Name
@@ -8313,3 +8313,24 @@ poker_announcer.prop
 ui_cardCommunity.d3dmesh
 ui_dealerButton.d3dmesh
 ui_dealerButton.d3dtx
+prefs_camera_mgr.prop
+prefs_console.prop
+prefs_debugger.prop
+prefs_gamewindow.prop
+prefs_menu.prop
+prefs_outliner.prop
+prefs_tracker.prop
+prefs_dialog_editor.prop
+prefs_dialog_script_editor.prop
+prefs_dialog_tree_editor.prop
+prefs_input_tracker.prop
+prefs_stats.prop
+Reference Code
+Decks Unlocked
+Enable Dialog
+Enable Help
+Full Screen
+Query Help
+Console Verbosity - Script Message
+Fullscreen anti-aliasing
+Most Recent Input Mapper

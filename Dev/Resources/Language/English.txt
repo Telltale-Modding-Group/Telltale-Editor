@@ -70,10 +70,32 @@ menu.run_script = "Run Lua Script"
 misc.drag_here = "Drag a %s file here!"
 misc.empty = "Empty"
 misc.reset_lower = "reset"
+misc.inspecting = "Inspecting"
+misc.locals = "Local Properties"
 
 # MODULES
 mod.select = "Select Module"
 mod.used = "This agent already has all supported modules!"
+
+# PATH TO
+mod.pathTo.name = "Pathing To"
+mod.pathTo.desc = "TBD"
+mod.pathTo.iv.walk_radius = "TBD"
+
+# NAV CAMERA
+mod.navCam.name = "Nav Cam"
+mod.navCam.desc = "A navigation camera allows orbital camera animations around a target agent."
+mod.navCam.iv.animation = "The animation in which the camera will follow"
+mod.navCam.iv.animation_time = "The time the animation should go on for"
+mod.navCam.iv.dampen = "TBD"
+mod.navCam.iv.orbit_min = "Minimum orbit polar coordinate around the agent"
+mod.navCam.iv.orbit_max = "Maximum orbit polar coordinate around the agent"
+mod.navCam.iv.orbit_offset = "Orbital offset in polar coordinates to offset the camera animation"
+mod.navCam.iv.mode = "The mode of the navigation camera, eg orbital, animated, look at."
+mod.navCam.iv.target_agent = "Target agent to navigate"
+mod.navCam.iv.target_offset = "Offset from the agent to navigate around"
+mod.navCam.iv.trigger_horizontal_% = "TBD"
+mod.navCam.iv.trigger_vertical_% = "TBD"
 
 # WALK ANIM
 mod.walkAnimator.name = "Walk Animator"

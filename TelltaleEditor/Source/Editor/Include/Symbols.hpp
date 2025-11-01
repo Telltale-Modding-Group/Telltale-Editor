@@ -19,6 +19,24 @@ class Symbol;
 
 GSYMBOL(kEmptySymbol, "");
 
+// ======================== SYMBOL SECTION <> PATHING TO ================================
+
+GSYMBOL(kPathToWalkRadius, "Walk Radius");
+
+// ======================== SYMBOL SECTION <> NAV CAMERA ================================
+
+GSYMBOL(kNavCamMode, "NavCam - Mode");
+GSYMBOL(kNavCamTriggerHPercent, "NavCam - Trigger Horizontal Percentage");
+GSYMBOL(kNavCamTriggerVPercent, "NavCam - Trigger Vertical Percentage");
+GSYMBOL(kNavCamTargetAgent, "NavCam - Target Agent");
+GSYMBOL(kNavCamTargetOffset, "NavCam - Target Offset");
+GSYMBOL(kNavCamOrbitOffset, "NavCam - Orbit Offset");
+GSYMBOL(kNavCamOrbitMin, "NavCam - Orbit Min");
+GSYMBOL(kNavCamOrbitMax, "NavCam - Orbit Max");
+GSYMBOL(kNavCamAnimation,  "NavCam - Animation");
+GSYMBOL(kNavCamAnimationTime, "NavCam - Animation Time");
+GSYMBOL(kNavCamDampen, "NavCam - Dampen");
+
 // ======================== SYMBOL SECTION <> TRIGGER MODULE ================================
 
 GSYMBOL(kTriggerEnterCallback, "Trigger Entered Callback");

@@ -626,6 +626,7 @@ void SceneModule<SceneModuleType::SELECTABLE>::OnSetupAgent(SceneAgent* pAgentGe
         SceneModule<SceneModuleType::SELECTABLE>, Vector3), TRACKING_REF_SELECTABLE);
     PropertySet::AddCallback(pAgentGettingCreated->Props, kSelectableOnOff, ALLOCATE_METHOD_CALLBACK_1(this, SetGameSelectable,
         SceneModule<SceneModuleType::SELECTABLE>, Bool), TRACKING_REF_SELECTABLE);
+    PropertySet::CallAllCallbacks(pAgentGettingCreated->Props, pAgentGettingCreated->OwningScene->GetRegistry());
 }
 
 void SceneModule<SceneModuleType::SELECTABLE>::OnModuleRemove(SceneAgent *pAttachedAgent)
@@ -676,6 +677,7 @@ void SceneModule<SceneModuleType::ROLLOVER>::OnSetupAgent(SceneAgent* pAgentGett
         SetTextBackground, SceneModule<SceneModuleType::ROLLOVER>, Colour), TRACKING_REF_ROLLOVER);
     PropertySet::AddCallback(pAgentGettingCreated->Props, kRolloverMesh, ALLOCATE_METHOD_CALLBACK_1(this,
         SetCursorMesh, SceneModule<SceneModuleType::ROLLOVER>, Symbol), TRACKING_REF_ROLLOVER);
+    PropertySet::CallAllCallbacks(pAgentGettingCreated->Props, pAgentGettingCreated->OwningScene->GetRegistry());
 }
 
 void SceneModule<SceneModuleType::ROLLOVER>::OnModuleRemove(SceneAgent *pAttachedAgent)
@@ -703,6 +705,7 @@ void SceneModule<SceneModuleType::DIALOG_CHOICE>::OnSetupAgent(SceneAgent *pAgen
 {
     PropertySet::AddCallback(pAgentGettingCreated->Props, kDialogChoiceChoice, ALLOCATE_METHOD_CALLBACK_1(this, SetChoice,
         SceneModule<SceneModuleType::DIALOG_CHOICE>, String), TRACKING_REF_DLG_CHOICE);
+    PropertySet::CallAllCallbacks(pAgentGettingCreated->Props, pAgentGettingCreated->OwningScene->GetRegistry());
 }
 
 // ============================================== MODULE IMPLEMENTATION ==============================================
@@ -732,6 +735,7 @@ void SceneModule<SceneModuleType::DIALOG>::OnSetupAgent(SceneAgent *pAgentGettin
         SceneModule<SceneModuleType::DIALOG>, String), TRACKING_REF_DLG);
     PropertySet::AddCallback(pAgentGettingCreated->Props, kDialogResource, ALLOCATE_METHOD_CALLBACK_1(this, SetResource,
         SceneModule<SceneModuleType::DIALOG>, Symbol), TRACKING_REF_DLG);
+    PropertySet::CallAllCallbacks(pAgentGettingCreated->Props, pAgentGettingCreated->OwningScene->GetRegistry());
 }
 
 // ============================================== MODULE IMPLEMENTATION ==============================================
@@ -761,6 +765,7 @@ void SceneModule<SceneModuleType::WALK_ANIMATOR>::OnSetupAgent(SceneAgent *pAgen
         SceneModule<SceneModuleType::WALK_ANIMATOR>, Symbol), TRACKING_REF_WANIM);
     PropertySet::AddCallback(pAgentGettingCreated->Props, kWalkAnimatorForwardAnimation, ALLOCATE_METHOD_CALLBACK_1(this, SetForwardAnim,
         SceneModule<SceneModuleType::WALK_ANIMATOR>, Symbol), TRACKING_REF_WANIM);
+    PropertySet::CallAllCallbacks(pAgentGettingCreated->Props, pAgentGettingCreated->OwningScene->GetRegistry());
 }
 
 // ============================================== MODULE IMPLEMENTATION ==============================================
@@ -797,5 +802,121 @@ void SceneModule<SceneModuleType::TRIGGER>::OnSetupAgent(SceneAgent *pAgentGetti
         SceneModule<SceneModuleType::TRIGGER>, String), TRACKING_REF_TRIGGER);
     PropertySet::AddCallback(pAgentGettingCreated->Props, kTriggerExitCallback, ALLOCATE_METHOD_CALLBACK_1(this, SetExitCallback,
         SceneModule<SceneModuleType::TRIGGER>, String), TRACKING_REF_TRIGGER);
+    PropertySet::CallAllCallbacks(pAgentGettingCreated->Props, pAgentGettingCreated->OwningScene->GetRegistry());
 }
 
+// ============================================== MODULE IMPLEMENTATION ==============================================
+// ================================================== NAV CAM MODULE =================================================
+// ============================================== MODULE IMPLEMENTATION ==============================================
+
+#define TRACKING_REF_NAV_CAM 0xFACEBEEF
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetAnimationFile(Symbol file)
+{
+    AnimationFile = file;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetAnimationTime(Float time)
+{
+    AnimationTime = time;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetDampen(Float v)
+{
+    Dampen = v;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetTriggerHPercent(Float v)
+{
+    TriggerHPercent = v;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetTriggerVPercent(Float v)
+{
+    TriggerVPercent = v;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetTargetAgent(String v)
+{
+    TargetAgent = v;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetTargetOffset(Vector3 v)
+{
+    TargetOffset = v;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetOrbitMin(Polar v)
+{
+    OrbitMin = v;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetOrbitMax(Polar v)
+{
+    OrbitMax = v;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetOrbitOffset(Polar v)
+{
+    OrbitOffset = v;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::SetMode(Enum<NavCamMode> v)
+{
+    NavMode = v.Value;
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::OnModuleRemove(SceneAgent *pAttachedAgent)
+{
+    PropertySet::ClearCallbacks(pAttachedAgent->Props, TRACKING_REF_NAV_CAM);
+}
+
+void SceneModule<SceneModuleType::NAV_CAM>::OnSetupAgent(SceneAgent *pAgentGettingCreated)
+{
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamOrbitMin, ALLOCATE_METHOD_CALLBACK_1(this, SetOrbitMin,
+        SceneModule<SceneModuleType::NAV_CAM>, Polar), TRACKING_REF_NAV_CAM);
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamOrbitMax, ALLOCATE_METHOD_CALLBACK_1(this, SetOrbitOffset,
+        SceneModule<SceneModuleType::NAV_CAM>, Polar), TRACKING_REF_NAV_CAM);
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamOrbitOffset, ALLOCATE_METHOD_CALLBACK_1(this, SetOrbitMax,
+        SceneModule<SceneModuleType::NAV_CAM>, Polar), TRACKING_REF_NAV_CAM);
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamTargetAgent, ALLOCATE_METHOD_CALLBACK_1(this, SetTargetAgent,
+        SceneModule<SceneModuleType::NAV_CAM>, String), TRACKING_REF_NAV_CAM);
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamTargetOffset, ALLOCATE_METHOD_CALLBACK_1(this, SetTargetOffset,
+        SceneModule<SceneModuleType::NAV_CAM>, Vector3), TRACKING_REF_NAV_CAM);
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamAnimation, ALLOCATE_METHOD_CALLBACK_1(this, SetAnimationFile,
+        SceneModule<SceneModuleType::NAV_CAM>, Symbol), TRACKING_REF_NAV_CAM);
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamAnimationTime, ALLOCATE_METHOD_CALLBACK_1(this, SetAnimationTime,
+        SceneModule<SceneModuleType::NAV_CAM>, Float), TRACKING_REF_NAV_CAM);
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamDampen, ALLOCATE_METHOD_CALLBACK_1(this, SetDampen,
+        SceneModule<SceneModuleType::NAV_CAM>, Float), TRACKING_REF_NAV_CAM);
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamTriggerHPercent, ALLOCATE_METHOD_CALLBACK_1(this, SetTriggerHPercent,
+        SceneModule<SceneModuleType::NAV_CAM>, Float), TRACKING_REF_NAV_CAM);
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamTriggerVPercent, ALLOCATE_METHOD_CALLBACK_1(this, SetTriggerVPercent,
+        SceneModule<SceneModuleType::NAV_CAM>, Float), TRACKING_REF_NAV_CAM);
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kNavCamMode, ALLOCATE_METHOD_CALLBACK_1(this, SetMode,
+        SceneModule<SceneModuleType::NAV_CAM>, Enum<NavCamMode>), TRACKING_REF_NAV_CAM);
+    PropertySet::CallAllCallbacks(pAgentGettingCreated->Props, pAgentGettingCreated->OwningScene->GetRegistry());
+}
+
+// ============================================== MODULE IMPLEMENTATION ==============================================
+// ================================================== PATH TO MODULE =================================================
+// ============================================== MODULE IMPLEMENTATION ==============================================
+
+#define TRACKING_REF_PATHTO 0xABADBEEA
+
+void SceneModule<SceneModuleType::PATH_TO>::SetWalkRadius(Float h)
+{
+    WalkRadius = h;
+}
+
+void SceneModule<SceneModuleType::PATH_TO>::OnModuleRemove(SceneAgent *pAttachedAgent)
+{
+    PropertySet::ClearCallbacks(pAttachedAgent->Props, TRACKING_REF_PATHTO);
+}
+
+void SceneModule<SceneModuleType::PATH_TO>::OnSetupAgent(SceneAgent *pAgentGettingCreated)
+{
+    PropertySet::AddCallback(pAgentGettingCreated->Props, kPathToWalkRadius, ALLOCATE_METHOD_CALLBACK_1(this,
+            SetWalkRadius, SceneModule<SceneModuleType::PATH_TO>, Float), TRACKING_REF_PATHTO);
+    PropertySet::CallAllCallbacks(pAgentGettingCreated->Props, pAgentGettingCreated->OwningScene->GetRegistry());
+}

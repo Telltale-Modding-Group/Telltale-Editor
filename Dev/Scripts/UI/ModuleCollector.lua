@@ -10,10 +10,11 @@ require("ToolLibrary/UI/ModuleDialog.lua")
 require("ToolLibrary/UI/ModuleDialogChoice.lua")
 require("ToolLibrary/UI/ModuleTrigger.lua")
 require("ToolLibrary/UI/ModuleWalkAnimator.lua")
+require("ToolLibrary/UI/ModuleNavCam.lua")
+require("ToolLibrary/UI/ModulePathingTo.lua")
 
 function ModuleCollector_RegisterUI(Ver)
 
-	ModuleRenderable_RegisterUI(Ver)
 	ModuleRenderable_RegisterUI(Ver)
 	ModuleSkeleton_RegisterUI(Ver)
 	ModuleCamera_RegisterUI(Ver)
@@ -26,5 +27,7 @@ function ModuleCollector_RegisterUI(Ver)
 	ModuleDialogChoice_RegisterUI(Ver)
 	ModuleTrigger_RegisterUI(Ver)
 	ModuleWalkAnimator_RegisterUI(Ver)
+	ModuleNavCam_RegisterUI(Ver)
+	ModulePathingTo_RegisterUI(Ver)
 
 end

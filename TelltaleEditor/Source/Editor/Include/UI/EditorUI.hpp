@@ -8,6 +8,7 @@
 
 #include <unordered_set>
 #include <unordered_map>
+#include <functional>
 
 #define DEFAULT_WINDOW_SIZE 1280, 720
 
@@ -17,6 +18,7 @@ enum class EditorFlag
 };
 
 class EditorUI;
+class UIResourceEditorBase;
 class EditorUIComponent;
 class SceneView;
 class InspectorView;
@@ -24,12 +26,22 @@ struct ImVec2;
 
 class EditorUI : public UIStackable
 {
+    
+    struct LoadInfo
+    {
+        String ViewTitle;
+        String Resource;
+        U32 PreloadBatch;
+        std::function<Ptr<UIResourceEditorBase>(const LoadInfo&, EditorUI&, Ptr<ResourceRegistry>)> Callback;
+    };
 
     template<SceneModuleType>
     friend struct SceneModule;
 
     MenuBar _MenuBar;
     std::vector<Ptr<EditorUIComponent>> _Views; // file view log view etc
+    std::vector<Ptr<UIResourceEditorBase>> _TransientViews; // specific file windows
+    std::vector<LoadInfo> _AwaitingLoads;
     Scene _EditorScene;
     WeakPtr<SceneView> _SceneView;
     WeakPtr<InspectorView> _InspectorView;
@@ -43,6 +55,8 @@ class EditorUI : public UIStackable
     static Bool _SceneInitialiseJob(const JobThread& thread, void* uA, void* uB);
 
     Bool _TickAsyncLoadingScene(); // return if currently loading
+    
+    void _DispatchEditor(String viewTitle, String rloc, std::function<Ptr<UIResourceEditorBase>(const LoadInfo&, EditorUI&, Ptr<ResourceRegistry>)> callback);
 
 public:
 

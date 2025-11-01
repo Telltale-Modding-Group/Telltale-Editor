@@ -42,6 +42,22 @@ struct AnimOrChore
     String HandleChore;
 };
 
+#define DEFINE_ENUM_STRUCT(_Et, _En) template struct Enum<_Et>; template<> struct EnumTraits<_Et> { static constexpr CString ClassName = _En; }
+
+template<typename Enum>
+struct EnumTraits
+{
+    static constexpr CString ClassName = "";
+};
+
+template<typename EnumT>
+struct Enum
+{
+    
+    EnumT Value;
+    
+};
+
 template class TRect<Float>;
 template class TRange<Float>;
 template class TRange<U32>;
@@ -74,6 +90,8 @@ enum class TextAlignmentType
     MIDDLE = 16,
     BOTTOM = 32,
 };
+
+DEFINE_ENUM_STRUCT(TextAlignmentType, "class TextAlignmentType");
 
 // maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
 #define MAX_VERSION_NUMBER 10

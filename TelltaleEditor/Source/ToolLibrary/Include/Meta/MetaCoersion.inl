@@ -840,6 +840,42 @@ template<typename T> struct _Coersion<TemplateType<T>> : _CoerceBase<>, _Coersio
             static void ExtractLua(AnimOrChore& out, LuaManager& man, I32 stackIndex);
             
         };
+    
+        DECL_COERSION_TP(Enum, T::ClassName)
+        {
+            static inline void Extract(Enum<T>& out, ClassInstance& inst)
+            {
+                ClassInstance cur = inst;
+                ClassInstance mem{};
+                while((mem = Meta::GetMember(cur, "mVal", false)), mem)
+                {
+                    cur = mem;
+                }
+                out.Value = COERCE(cur._GetInternal(), T);
+            }
+            
+            static inline void Import(const Enum<T>& in, ClassInstance& inst)
+            {
+                ClassInstance cur = inst;
+                ClassInstance mem{};
+                while((mem = Meta::GetMember(cur, "mVal", false)), mem)
+                {
+                    cur = mem;
+                }
+                COERCE(cur._GetInternal(), T) = in.Value;
+            }
+            
+            static inline void ImportLua(const Enum<T>& in, LuaManager& man)
+            {
+                man.PushInteger((I32)in.Value);
+            }
+            
+            static inline void ExtractLua(Enum<T>& out, LuaManager& man, I32 stackIndex)
+            {
+                out.Value = (T)man.ToInteger(stackIndex);
+            }
+
+        };
         
     }
     
