@@ -173,7 +173,7 @@ void LuaManager::CallFunction(U32 Nargs, U32 Nresults, Bool bBlock)
         GetToolContext()->_LockedCallDepth++;
     }
     _Adapter->CallFunction(Nargs, Nresults);
-    if(bBlock)
+    if(bBlock && !JobScheduler::IsRunningFromWorker())
     {
         GetToolContext()->_LockedCallDepth--;
     }

@@ -167,7 +167,7 @@ void EditorUI::Render()
             {
                 _TransientViews.push_back(std::move(ui));
             }
-            _AwaitingLoads.erase(it);
+            it = _AwaitingLoads.erase(it);
         }
         else
         {
@@ -187,7 +187,7 @@ void EditorUI::Render()
         }
         else
         {
-            _TransientViews.erase(it);
+            it = _TransientViews.erase(it);
         }
     }
 }
@@ -203,12 +203,43 @@ U32 EditorUIComponent::GetUICondition()
 
 // ===================================================== FILE VIEW
 
+extern TelltaleEditor* _MyContext;
+
 FileView::FileView(EditorUI& app) : EditorUIComponent(app)
 {
-    _IconMap["*.dlg"] = { "FileView/Dialog_DLG_DLOG.png", "StoryBoard Dialog File" };
-    _IconMap["*.dlog"] = { "FileView/Dialog_DLG_DLOG.png", "StoryBoard Dialog File" };
-    _IconMap["*.anm"] = { "FileView/Animation_ANM.png", "Animation File" };
-    _IconMap["*.scene"] = { "FileView/Scene_SCENE.png", "Scene File" };
+    LuaManager& man = GetThreadLVM();
+    man.SetTop(0);
+    if(ScriptManager::LoadChunk(man, "FileView.lua", _MyContext->LoadLibraryStringResource("Scripts/UI/FileView.lua")))
+    {
+        man.CallFunction(0, 0, true);
+        ScriptManager::GetGlobal(man, "FileViewUI_GetIcons", false);
+        man.CallFunction(0, 1, true);
+        if(man.Type(-1) == LuaType::TABLE)
+        {
+            ITERATE_TABLE(it, 1)
+            {
+                String mask = man.ToString(it.KeyIndex());
+                man.PushLString("InfoLang");
+                man.GetTable(it.ValueIndex());
+                String langID = ScriptManager::PopString(man);
+                man.PushLString("Icon");
+                man.GetTable(it.ValueIndex());
+                String icon = ScriptManager::PopString(man);
+                _IconMap[mask] = { "FileView/" + icon, app.GetLanguageText(langID.c_str()) };
+            }
+            man.PushNil();
+            ScriptManager::SetGlobal(man, "FileViewUI_GetIcons", false);
+        }
+        else
+        {
+            TTE_LOG("Could not file view icons, not function: %s", man.Typename(man.Type(-1)));
+            man.Pop(1);
+        }
+    }
+    else
+    {
+        TTE_LOG("Could not load file view UI script, no icons will be present!");
+    }
 }
 
 void FileView::_Gather(Ptr<ResourceRegistry> pRegistry, std::vector<String>& entries, FolderGroup group, String parent)
@@ -403,7 +434,7 @@ void FileView::Render()
                     if(ico.empty())
                         ico = "FileView/UnknownFile.png";
                 }
-                DrawResourceTexturePixels(ico, x, localY, Icon, Icon, 0xFFFFFFFFu, mp.c_str());
+                DrawResourceTexturePixels(ico, x + 10.0f, localY + 10.0f, Icon - 20.0f, Icon - 20.0f, 0xFFFFFFFFu, mp.c_str());
                 if(ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
                 {
                     ImGui::SetDragDropPayload("TT_ASSET", mp.c_str(), mp.length() + 1);
@@ -415,7 +446,7 @@ void FileView::Render()
             {
                 //localDesc = "Virtual Folder";
                 //pDesc = &localDesc;
-                DrawResourceTexturePixels("FileView/Folder.png", x, localY, Icon, Icon);
+                DrawResourceTexturePixels("FileView/Folder.png", x + 10.0f, localY + 10.0f, Icon - 20.0f, Icon - 20.0f);
             }
             ImVec2 center = winPos + ImVec2{ x + Icon * 0.5f, localY + Icon };
             DrawCenteredWrappedText(mp.length() > 25 ? "..." + mp.substr(mp.length() - 25, 25) : mp, Icon * 0.95f, center.x, center.y, 2, 10.f);
@@ -732,7 +763,8 @@ namespace PropertyRenderFunctions
 
     void RenderPolar(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
-        ImGui::SetCursorPos(ImVec2(8.0f, ImGui::GetCursorPosY()));
+        if((adapter.Flags & PropertyVisualAdapter::NO_REPOSITION) == 0)
+            ImGui::SetCursorPos(ImVec2(8.0f, ImGui::GetCursorPosY()));
         
         const CString labels[3] {"Misc/Radius.png", "Misc/Theta.png", "Misc/Phi.png"};
         const CString members[3] {"mR", "mTheta", "mPhi"};
@@ -755,7 +787,7 @@ namespace PropertyRenderFunctions
             ImVec2 screen_pos = ImGui::GetCursorScreenPos();
             
             ui.DrawResourceTexturePixels(labels[i], screen_pos.x - ImGui::GetWindowPos().x - 2.0f,
-                                         screen_pos.y - ImGui::GetWindowPos().y - 2.0f, label_size.x + 4.0f, label_size.y + 4.0f);
+                                         screen_pos.y - ImGui::GetWindowPos().y - 0.0f, label_size.x + 4.0f, label_size.y + 4.0f);
 
             // Move cursor right after colored box (relative)
             ImGui::SetCursorPosX(pos.x + rect_size.x);
@@ -774,7 +806,7 @@ namespace PropertyRenderFunctions
     }
 
     // 2 to 4
-    Bool _DrawVectorInput(const char* label, float* valArray, U32 n, Bool bCol)
+    Bool _DrawVectorInput(const char* label, float* valArray, U32 n, Bool bCol, const PropertyVisualAdapter& adapter)
     {
         if (label)
         {
@@ -804,7 +836,8 @@ namespace PropertyRenderFunctions
             IM_COL32(130, 130, 130, 255),   // grey background
         };
 
-        ImGui::SetCursorPos(ImVec2(8.0f, ImGui::GetCursorPosY())); // start x=8, keep y
+        if ((adapter.Flags & PropertyVisualAdapter::NO_REPOSITION) == 0)
+            ImGui::SetCursorPos(ImVec2(8.0f, ImGui::GetCursorPosY())); // start x=8, keep y
 
         for (int i = 0; i < n; i++)
         {
@@ -1238,11 +1271,12 @@ Bool InspectorView::RenderNode(Float scrollY)
         Transform orig = pNode->LocalTransform;
         Float* pos = (Float*)&pNode->LocalTransform._Trans;
         ImGui::SetCursorPosX(ImGui::GetCursorStartPos().x + 0.0f);
-        Bool bChanged = PropertyRenderFunctions::_DrawVectorInput("Position", (Float*)&pNode->LocalTransform._Trans, 3, false);
+        PropertyVisualAdapter _{}; // not needed
+        Bool bChanged = PropertyRenderFunctions::_DrawVectorInput("Position", (Float*)&pNode->LocalTransform._Trans, 3, false, _);
         Vector3 Euler{};
         pNode->LocalTransform._Rot.GetEuler(Euler);
         Euler *= Vector3(180.0f / 3.14159265f);
-        if (PropertyRenderFunctions::_DrawVectorInput("Rotation", (Float*)&Euler, 3, false))
+        if (PropertyRenderFunctions::_DrawVectorInput("Rotation", (Float*)&Euler, 3, false, _))
             bChanged = true;
         if (bChanged)
         {
@@ -1562,6 +1596,8 @@ void SceneView::_FreeSceneData()
     }
 }
 
+#include <AnimationManager.hpp>
+
 void SceneView::_OnSceneLoad(Ptr<Scene> pEditorScene)
 {
     _FreeSceneData();
@@ -1647,7 +1683,7 @@ void SceneView::Render()
             U32 targetX = 0, targetY = 0, _ = 0;
             RenderNDCScissorRect scissor{};
             ImVec2 mnView = GetMainViewport()->Size;
-            Float winTopLeftX = 0.2f + 2.0f / mnView.x;
+            Float winTopLeftX = 0.2f;// +2.0f / mnView.x;
             Float winTopLeftY = yOff + GetCurrentWindowRead()->TitleBarHeight / mnView.y;
             Float winBottomRightX = 0.2f + winSize.x / mnView.x;
             Float winBottomRightY = yOff + GetCurrentWindowRead()->TitleBarHeight / mnView.y + winSize.y / mnView.y;

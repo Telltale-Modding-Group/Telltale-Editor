@@ -22,7 +22,7 @@ using PropertyRenderFn = void(EditorUI& ui, const PropertyVisualAdapter& adapter
 namespace PropertyRenderFunctions
 {
 
-    Bool _DrawVectorInput(const char* label, float* valArray, U32 n, Bool bColor4); // editor ui cpp
+    Bool _DrawVectorInput(const char* label, float* valArray, U32 n, Bool bColor4, const PropertyVisualAdapter& adapter); // editor ui cpp
 
     inline void RenderFloat(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
@@ -41,7 +41,7 @@ namespace PropertyRenderFunctions
 
     inline void RenderColour(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
-        _DrawVectorInput(0, (float*)datum._GetInternal(), 4, true);
+        _DrawVectorInput(0, (float*)datum._GetInternal(), 4, true, adapter);
     }
 
     void RenderEnum(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum);
@@ -51,7 +51,7 @@ namespace PropertyRenderFunctions
     template<U32 N>
     inline void RenderFloatN(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
-        _DrawVectorInput(0, (float*)datum._GetInternal(), N, false); // assuming this is all packed tight. from impl, it should. if not we will see it break lol.
+        _DrawVectorInput(0, (float*)datum._GetInternal(), N, false, adapter); // assuming this is all packed tight. from impl, it should. if not we will see it break lol.
     }
 
 }
@@ -82,8 +82,14 @@ PropertyRenderInstructions[] =
 struct PropertyVisualAdapter
 {
 
+    enum FlagVals
+    {
+        NO_REPOSITION = 1,
+    };
+
     String Name;
     U32 ClassID;
+    U32 Flags;
     Symbol Key;
 
     std::vector<String> SubPaths;

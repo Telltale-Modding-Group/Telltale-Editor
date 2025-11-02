@@ -13,6 +13,10 @@
 				"command": "../Bin/Debug/TelltaleEditor mkdocs -o Scripts/Docs_Latest.lua",
 			},
 			{
+				"name": "Run Telltale Editor",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor run -project D:/Games/TelltaleTexasHoldEm/Texas.tteproj",
+			},
+			{
 				"name": "Run TX100/PC mod.lua",
 				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/Tests/mod.lua -game TX100 -platform PC",
 			},

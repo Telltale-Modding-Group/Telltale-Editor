@@ -48,6 +48,10 @@ fv.title = "Resources"
 fv.back = "Previous Folder"
 fv.sidebar = "Resource View"
 fv.unsupported_file = "This file type cannot be opened yet!"
+fv.prop = "Properties File"
+fv.scene = "Scene File"
+fv.dialog = "Storyboard File"
+fv.anim = "Animation File"
 
 # OUTLINE VIEW
 ov.title = "Scene Outline"

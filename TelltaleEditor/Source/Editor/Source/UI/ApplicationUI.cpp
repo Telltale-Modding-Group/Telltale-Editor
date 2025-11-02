@@ -456,6 +456,7 @@ void ApplicationUI::_SetLanguage(const String& language)
 I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
 {
     String userDir{};
+    String projPath{};
 
     // LOGGER SETUP
     _OnExitHelper onExit(userDir);
@@ -463,6 +464,7 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
 
     // USER DIR
     userDir = CommandLine::GetStringArgumentOrDefault(args, "-userdir", "./");
+    projPath = CommandLine::GetStringArgumentOrDefault(args, "-project", "");
     if (!StringEndsWith(userDir, "/") && !StringEndsWith(userDir, "\\"))
         userDir += "/";
     if (userDir == "./")
@@ -497,19 +499,17 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     // INIT EMPTY CONTEXT
     _Editor = CreateEditorContext({});
 
-    // INIT IMGUI & MAIN WINDOW
-    U32 wW = 0, wH = 0;
-    Ptr<UIProjectSelect> pSelect = TTE_NEW_PTR(UIProjectSelect, MEMORY_TAG_EDITOR_UI, *this);
-    pSelect->GetWindowSize(wW, wH);
     CString titleBar = "Telltale Editor v" TTE_VERSION;
 #ifdef DEBUG
     titleBar = "Telltale Editor [Debug] v" TTE_VERSION;
 #endif
-    _Window = SDL_CreateWindow(titleBar, wW, wH, SDL_WINDOW_HIDDEN); // TODO make this inside workspace settings
-    SDL_SetWindowPosition(_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
-    SDL_SetWindowMinimumSize(_Window, 340, 250);
-    SDL_ShowWindow(_Window);
-    PushUI(std::move(pSelect));
+
+    // CREATE DEVICE
+    Bool bDebug = false;
+#ifdef DEBUG
+    bDebug = true;
+#endif
+    _Device = SDL_CreateGPUDevice(RENDER_CONTEXT_SHADER_FORMAT, bDebug, nullptr);
 
     // APP ICON
     I32 iW = 0, iH = 0;
@@ -518,15 +518,43 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     memcpy(_AppIcon->pixels, rgba, iW * iH * 4);
     stbi_image_free(rgba);
     rgba = nullptr;
-    SDL_SetWindowIcon(_Window, _AppIcon);
 
-    // CREATE DEVICE
-    Bool bDebug = false;
-#ifdef DEBUG
-    bDebug = true;
-#endif
-    _Device = SDL_CreateGPUDevice(RENDER_CONTEXT_SHADER_FORMAT, bDebug, nullptr);
+    // TEST STARTUP PROJECT
+    if (!projPath.empty() && _ProjectMgr.SetProjectDisk(projPath))
+    {
+        _Window = SDL_CreateWindow(titleBar, DEFAULT_WINDOW_SIZE, 0);
+        SDL_SetWindowPosition(_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        SDL_ShowWindow(_Window);
+        TTE_LOG("Launching project at %s", projPath.c_str());
+        _OnProjectLoad();
+    }
+    else
+    {
+        // INIT IMGUI & MAIN WINDOW
+        U32 wW = 0, wH = 0;
+        Ptr<UIProjectSelect> pSelect = TTE_NEW_PTR(UIProjectSelect, MEMORY_TAG_EDITOR_UI, *this);
+        pSelect->GetWindowSize(wW, wH);
+        _Window = SDL_CreateWindow(titleBar, wW, wH, SDL_WINDOW_HIDDEN);
+        SDL_SetWindowPosition(_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+        SDL_SetWindowMinimumSize(_Window, 340, 250);
+        SDL_ShowWindow(_Window);
+        PushUI(std::move(pSelect));
+    }
+    SDL_SetWindowIcon(_Window, _AppIcon);
     SDL_ClaimWindowForGPUDevice(_Device, _Window);
+
+    // INIT LANGUAGE
+    String languages = _Editor->LoadLibraryStringResource("Resources/Language/Languages.txt");
+    String line;
+    std::istringstream langstream{ languages };
+    while (std::getline(langstream, line))
+    {
+        if (StringEndsWith(line, ".txt"))
+            line = line.substr(0, line.length() - 4);
+        _AvailLanguages.push_back(line);
+    }
+    _CurrentLanguage = "";
+    _SetLanguage(_WorkspaceProps.GetString(WORKSPACE_KEY_LANG, "English"));
 
     // CREATE IMGUI CONTEXT
     IMGUI_CHECKVERSION();
@@ -572,19 +600,6 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
         TTE_LOG("Could not load editor font! Using default font");
         _EditorFont = _FallbackFont = ImGui::GetIO().FontDefault;
     }
-
-    // INIT LANGUAGE
-    String languages = _Editor->LoadLibraryStringResource("Resources/Language/Languages.txt");
-    String line;
-    std::istringstream langstream{languages};
-    while(std::getline(langstream, line))
-    {
-        if(StringEndsWith(line,".txt"))
-            line = line.substr(0, line.length() - 4);
-        _AvailLanguages.push_back(line);
-    }
-    _CurrentLanguage = "";
-    _SetLanguage(_WorkspaceProps.GetString(WORKSPACE_KEY_LANG, "English"));
 
     // IM GUI STYLE (CHANGE AS WE GO ON!) // 0.47 0.05 0.23
 

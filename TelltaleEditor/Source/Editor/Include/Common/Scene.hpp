@@ -402,6 +402,9 @@ public:
     {
         return _Modules.GetModuleArray<M>();
     }
+
+    // Does not PLAY it! You must call Play on the returned controller.
+    Ptr<PlaybackController> PlayAnimation(const Symbol& agent, Ptr<Animation> pAnim);
     
 private:
     
@@ -458,9 +461,6 @@ private:
     static void UnAttachAllChildren(Ptr<Node> node, Bool bAttachChildrenToParent);
     
     // ===== GENERAL FUNCTIONALITY PRIVATE AND USE BY SCRIPTING ETC.
-    
-    // Does not PLAY it! You must call Play on the returned controller.
-    Ptr<PlaybackController> PlayAnimation(const Symbol& agent, Ptr<Animation> pAnim);
     
     // =====
     

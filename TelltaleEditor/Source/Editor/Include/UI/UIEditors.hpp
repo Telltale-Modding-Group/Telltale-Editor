@@ -1,5 +1,7 @@
 #include <UI/EditorUI.hpp>
 
+#include <set>
+
 class UIResourceEditorBase : public EditorUIComponent
 {
 public:
@@ -89,6 +91,7 @@ public:
 protected:
     
     I32 _RowNum = 0;
+    std::set<Symbol> _OpenDrops;
     
     void _RenderProp(Float& currentY, Float indentX, CString name, Meta::ClassInstance prop);
     
