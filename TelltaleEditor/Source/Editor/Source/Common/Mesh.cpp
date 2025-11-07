@@ -5,7 +5,7 @@
 
 void SceneModule<SceneModuleType::RENDERABLE>::OnSetupAgent(SceneAgent* pAgentGettingCreated)
 {
-    Meta::ClassInstance mesh = PropertySet::Get(pAgentGettingCreated->Props, kRenderablePropKeyD3DMeshSymbol, true, pAgentGettingCreated->OwningScene->GetRegistry());
+    Meta::ClassInstance mesh = PropertySet::Get(pAgentGettingCreated->OwningScene->GetAgentProps(pAgentGettingCreated->NameSymbol), kRenderablePropKeyD3DMeshSymbol, true, pAgentGettingCreated->OwningScene->GetRegistry());
     // check mesh list here before possible return
     if(mesh)
     {

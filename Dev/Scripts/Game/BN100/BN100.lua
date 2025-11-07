@@ -297,6 +297,7 @@ function RegisterBone100(vendor, platform)
 	MetaRegisterClass(lightType)
 
 	local textAlign = NewClass("class TextAlignmentType", 0)
+	-- 	textAlign.Flags = kMetaClassEnumWrapper  ? maybe
 	textAlign.Members[1] = NewMember("mAlignmentType", kMetaInt, 0)
 	MetaRegisterClass(textAlign)
 

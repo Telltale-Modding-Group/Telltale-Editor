@@ -155,12 +155,6 @@ template<> struct SceneModule<SceneModuleType::TEXT> : SceneModuleBase
 
 };
 
-enum class TonemapType
-{
-    DEFAULT = 1,
-    FILMIC = 2,
-};
-
 // Scene instance at runtime data. Yes it's a lot. Not my fault
 struct SceneInstData
 {
@@ -416,7 +410,7 @@ struct SceneInstData
     inline void SetFXLevelsBlackPointHDR(Float val) { _Data._FXLevelsBlackPointHDR = val; }
     inline void SetFXLevelsWhitePointHDR(Float val) { _Data._FXLevelsWhitePointHDR = val; }
     inline void SetFXLevelsIntensityHDR(Float val) { _Data._FXLevelsIntensityHDR = val; }
-    inline void SetFXTonemapType(TonemapType val) { _Data._FXTonemapType = val; }
+    inline void SetFXTonemapType(Enum<TonemapType> val) { _Data._FXTonemapType = val.Value; }
     inline void SetFXTonemapEnabled(Bool val) { _Data._FXTonemapEnabled = val; }
     inline void SetFXTonemapDOFEnabled(Bool val) { _Data._FXTonemapDOFEnabled = val; }
     inline void SetFXTonemapIntensity(Float val) { _Data._FXTonemapIntensity = val; }
@@ -914,17 +908,6 @@ template<> struct SceneModule<SceneModuleType::TRIGGER> : SceneModuleBase
     void OnModuleRemove(SceneAgent* pAttachedAgent);
 
 };
-
-enum class NavCamMode
-{
-    NONE = 1,
-    LOOK_AT = 2,
-    ORBIT = 3,
-    ANIMATION_TRACK = 4,
-    ANIMATION_TIME = 5,
-};
-
-DEFINE_ENUM_STRUCT(NavCamMode, "struct NavCam::EnumMode;class Enum<enum NavCam::Mode,1,2>");
 
 template<> struct SceneModule<SceneModuleType::NAV_CAM> : SceneModuleBase
 {

@@ -26,7 +26,7 @@ EditorUI::EditorUI(ApplicationUI& app) : UIStackable(app), _MenuBar(*this), _Edi
     _SceneView = sceneView;
 }
 
-void EditorUI::_DispatchEditor(String viewTitle, String rloc, std::function<Ptr<UIResourceEditorBase>(const LoadInfo&, EditorUI&, Ptr<ResourceRegistry>)> callback)
+void EditorUI::DispatchEditor(String viewTitle, String rloc, std::function<Ptr<UIResourceEditorBase>(const LoadInfo&, EditorUI&, Ptr<ResourceRegistry>)> callback)
 {
     LoadInfo load{};
     load.ViewTitle = std::move(viewTitle);
@@ -38,6 +38,19 @@ void EditorUI::_DispatchEditor(String viewTitle, String rloc, std::function<Ptr<
     handles.push_back(std::move(hFile));
     load.PreloadBatch = GetApplication().GetRegistry()->Preload(std::move(handles), true);
     _AwaitingLoads.push_back(std::move(load));
+}
+
+void EditorUI::_OnFileClickCallbackAdapter(String rl)
+{
+    OnFileClick(GetApplication().GetRegistry()->LocateConcreteResourceLocation(rl) + rl);
+}
+
+void EditorUI::UserRequestOpenFile()
+{
+    if(!GetApplication()._ActivePopup)
+    {
+        GetApplication().SetCurrentPopup(TTE_NEW_PTR(ResourcePickerPopup, MEMORY_TAG_EDITOR_UI, "Picker", "*", ALLOCATE_METHOD_CALLBACK_1(this, _OnFileClickCallbackAdapter, EditorUI, String)), *this);
+    }
 }
 
 void EditorUI::OnFileClick(const String& resourceLocation)
@@ -54,6 +67,7 @@ void EditorUI::OnFileClick(const String& resourceLocation)
             if(!_EditorScene.GetName().empty())
             {
                 TTE_LOG("Unloading scene %s", resourceLocation.c_str(), _LoadingScenePreload);
+                _EditorSceneGuard = {}; // reset guard
                 _SceneView.lock()->_OnSceneUnload(TTE_PROXY_PTR(&_EditorScene, Scene));
             }
             ResourceAddress addr = GetApplication().GetRegistry()->CreateResolvedAddress(resourceLocation, false);
@@ -71,7 +85,7 @@ void EditorUI::OnFileClick(const String& resourceLocation)
         else if(ext == "prop")
         {
             String viewTitle = GetApplication().GetLanguageText("misc.inspecting") + " " + FileGetFilename(resourceLocation);
-            _DispatchEditor(viewTitle, resourceLocation, [](const LoadInfo& info, EditorUI& ui, Ptr<ResourceRegistry> r)
+            DispatchEditor(viewTitle, resourceLocation, [](const LoadInfo& info, EditorUI& ui, Ptr<ResourceRegistry> r)
             {
                 Handle<Placeholder> hProp{};
                 hProp.SetObject(info.Resource);
@@ -108,6 +122,7 @@ Bool EditorUI::_TickAsyncLoadingScene()
 
             // ON SCENE LOAD
             _SceneView.lock()->_OnSceneLoad(TTE_PROXY_PTR(&_EditorScene, Scene));
+            _EditorSceneGuard = TTE_NEW_PTR(ReferenceObjectConcrete, MEMORY_TAG_REFERENCE_OBJECT, &_EditorScene);
 
             return false;
         }
@@ -138,6 +153,14 @@ Bool EditorUI::_TickAsyncLoadingScene()
         _LoadingScenePreload = UINT32_MAX;
     }
     return true;
+}
+
+void EditorUI::DispatchEditorImmediate(Ptr<UIResourceEditorBase> allocated)
+{
+    if(allocated)
+    {
+        _TransientViews.push_back(std::move(allocated));
+    }
 }
 
 void EditorUI::Render()
@@ -178,11 +201,11 @@ void EditorUI::Render()
     I32 id = 9999888;
     for(auto it = _TransientViews.begin(); it != _TransientViews.end();)
     {
-        ImGui::PushID(id++);
-        (*it)->Render();
-        ImGui::PopID();
         if((*it)->IsAlive())
         {
+            ImGui::PushID(id++);
+            (*it)->Render();
+            ImGui::PopID();
             it++;
         }
         else
@@ -190,6 +213,7 @@ void EditorUI::Render()
             it = _TransientViews.erase(it);
         }
     }
+
 }
 
 U32 EditorUIComponent::GetUICondition()
@@ -1114,7 +1138,7 @@ static void _DoHandleRender(EditorUI& editor, String* handleFile, Symbol* sym, U
             }
             else
             {
-                PlatformMessageBoxAndWait("Invalid file type", "Only " + c.Extension + " files can be used in this file handle!");
+                PlatformMessageBoxAndWait(editor.GetApplication().GetLanguageText("misc.invalid_type"), editor.GetApplication().GetLanguageText("misc.only_xxx") + " " + c.Extension);
             }
         }
         ImGui::EndDragDropTarget();
@@ -1360,8 +1384,16 @@ void InspectorView::Render()
                 ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
                 ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 2));
                 ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
+                ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetWindowPos() + ImVec2{ 0.0f, 20.f }, ImGui::GetWindowPos() + ImVec2{ ImGui::GetWindowSize().x, 40.0f }, IM_COL32(40, 40, 40, 255));
+                ImGui::GetWindowDrawList()->AddRect(ImGui::GetWindowPos() + ImVec2{ 0.0f, 20.f }, ImGui::GetWindowPos() + ImVec2{ ImGui::GetWindowSize().x, 40.0f }, IM_COL32(80, 80, 80, 255));
+                String btext = _EditorUI.GetApplication().GetLanguageText("misc.open_agent");
+                ImGui::SetCursorScreenPos(ImGui::GetWindowPos() + ImVec2{ (0.2f * GetMainViewport()->Size.x - ImGui::CalcTextSize(btext.c_str()).x) * 0.5f, 22.0f });
+                if(ImGui::Button(btext.c_str()))
+                {
+                    _EditorUI.DispatchEditorImmediate(TTE_NEW_PTR(UIPropertySet, MEMORY_TAG_EDITOR_UI, _EditorUI, _EditorUI.InspectingNode.lock()->AgentName, _EditorUI._EditorSceneGuard));
+                }
                 String agent = _EditorUI.InspectingNode.lock()->AgentName;
-                _EditorUI.InspectorViewY = 0.0f;
+                _EditorUI.InspectorViewY = 20.0f;
                 if(RenderNode(scrollY) && _EditorUI.IsInspectingAgent)
                 {
                     if (pNode->AgentName == _EditorUI.GetActiveScene().GetName())
@@ -1379,7 +1411,7 @@ void InspectorView::Render()
                 }
                 else
                 {
-                    Meta::ClassInstance& props = _EditorUI.GetActiveScene()._Agents[agent]->Props;
+                    Meta::ClassInstance props = _EditorUI.GetActiveScene().GetAgentProps(agent); // AGENT (SCENE) PROPS, NOT RUNTIME OR TRANSIENT. DO THAT FROM INSPECTOR WINDOW.
                     U32 r = 0;
                     for (U32 i = 0; i < (U32)SceneModuleType::NUM; i++)
                     {
@@ -1683,10 +1715,10 @@ void SceneView::Render()
             U32 targetX = 0, targetY = 0, _ = 0;
             RenderNDCScissorRect scissor{};
             ImVec2 mnView = GetMainViewport()->Size;
-            Float winTopLeftX = 0.2f;// +2.0f / mnView.x;
-            Float winTopLeftY = yOff + GetCurrentWindowRead()->TitleBarHeight / mnView.y;
+            Float winTopLeftX = 0.2f;
+            Float winTopLeftY = yOff + GetCurrentWindowRead()->TitleBarHeight / mnView.y + _EditorUI._MenuBar._ImGuiMenuHeight / mnView.y;
             Float winBottomRightX = 0.2f + winSize.x / mnView.x;
-            Float winBottomRightY = yOff + GetCurrentWindowRead()->TitleBarHeight / mnView.y + winSize.y / mnView.y;
+            Float winBottomRightY = winTopLeftY + winSize.y / mnView.y;
             scissor.SetFractional(winTopLeftX, winTopLeftY, winBottomRightX, winBottomRightY);
 
             // Input

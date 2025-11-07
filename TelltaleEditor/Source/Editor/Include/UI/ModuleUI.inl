@@ -29,6 +29,12 @@ namespace PropertyRenderFunctions
         ImGui::InputFloat("##Float", (float*)datum._GetInternal());
     }
 
+    template<ImGuiDataType T>
+    inline void RenderScalar(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
+    {
+        ImGui::InputScalar("##IntrinScalar", T, (void*)datum._GetInternal());
+    }
+
     inline void RenderBool(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
         ImGui::Checkbox("##Bool", (bool*)datum._GetInternal());
@@ -67,6 +73,25 @@ static constexpr struct PropertyRenderInstruction
 PropertyRenderInstructions[] =
 {
     { "float", "kPropRenderFloat", &PropertyRenderFunctions::RenderFloat},
+    { "int", "kPropRenderInt", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_S32>},
+    { "int32", "kPropRenderInt", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_S32>},
+    { "long", "kPropRenderInt", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_S32>},
+    { "uint32", "kPropRenderUnsignedInt", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_U32>},
+    { "uint", "kPropRenderUnsignedInt", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_U32>},
+    { "uint16", "kPropRenderUnsignedShort", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_U16>},
+    { "ushort", "kPropRenderUnsignedShort", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_U16>},
+    { "int16", "kPropRenderShort", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_S16>},
+    { "short", "kPropRenderShort", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_S16>},
+    { "int8", "kPropRenderByte", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_S8>},
+    { "char", "kPropRenderByte", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_S8>},
+    { "uint8", "kPropRenderByte", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_U8>},
+    { "uchar", "kPropRenderByte", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_U8>},
+    { "uint64", "kPropRenderUnsignedInt64", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_U64>},
+    { "unsigned __int64", "kPropRenderUnsignedInt64", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_U64>},
+    { "unsigned long long", "kPropRenderUnsignedInt64", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_U64>},
+    { "int64", "kPropRenderInt64", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_S64>},
+    { "__int64", "kPropRenderInt64", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_S64>},
+    { "long long", "kPropRenderInt64", &PropertyRenderFunctions::RenderScalar<ImGuiDataType_S64>},
     { "Vector2", "kPropRenderVector2",&PropertyRenderFunctions::RenderFloatN<2> },
     { "Vector3", "kPropRenderVector3",& PropertyRenderFunctions::RenderFloatN<3> },
     { "Vector4", "kPropRenderVector4",& PropertyRenderFunctions::RenderFloatN<4> },

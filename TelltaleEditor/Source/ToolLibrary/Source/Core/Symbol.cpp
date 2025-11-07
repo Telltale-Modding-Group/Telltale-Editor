@@ -139,7 +139,7 @@ SymbolTable::SymbolTable(Bool bPrivate)
     }
 }
 
-String SymbolTable::_Find(Symbol sym)
+String SymbolTable::FindLocal(Symbol sym)
 {
     std::lock_guard<std::mutex> _L{_Lock};
     auto it = _SortedHashed.find(sym); // BINARY SEARCH

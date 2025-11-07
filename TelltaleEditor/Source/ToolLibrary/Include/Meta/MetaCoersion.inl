@@ -301,9 +301,7 @@ static inline void Import(const _T& src, ClassInstance& inst)   { COERCE(inst._G
         _COERCABLE_HELPER(U64,"uint64;unsigned __int64;unsigned long long")
         _COERCABLE_HELPER(Symbol,"Symbol")
         _COERCABLE_HELPER(Float, "float")
-        _COERCABLE_HELPER(TextAlignmentType, "class TextAlignmentType;TextAlignmentType")
-        _COERCABLE_HELPER(HorizontalAlignmentType, "class EnumHTextAlignmentType;EnumHTextAlignmentType")
-        _COERCABLE_HELPER(VerticalAlignmentType, "class EnumVTextAlignmentType;EnumVTextAlignmentType")
+
         //_COERCABLE_HELPER(double) Disable doubles. Not used in the engine, prefer floats.
         
 #undef _COERCABLE_HELPER
@@ -336,7 +334,7 @@ template<> struct _Coersion<T> : _CoerceBase<>, _CoersionRegistrar<T>, _Coersion
         
 #define IMPL_COERSION_FN(T, Fn, Ret) Ret Meta::_Impl::_Coersion<T>::Fn
         
-        // Does not register to registrar as we dont know the T.
+        // Does not register to registrar as we dont know the T. See REGISTER_MY_COERSION for specific T.
 #define DECL_COERSION_TP(TemplateType, ClsName) \
 template<typename T> struct _CoersionClassName<TemplateType<T>> { static constexpr CString ClassName = ClsName; }; \
 template<typename T> struct _Coersion<TemplateType<T>> : _CoerceBase<>, _CoersionLuaIntrin<TemplateType<T>>
@@ -840,43 +838,55 @@ template<typename T> struct _Coersion<TemplateType<T>> : _CoerceBase<>, _Coersio
             static void ExtractLua(AnimOrChore& out, LuaManager& man, I32 stackIndex);
             
         };
+
+    }
     
-        DECL_COERSION_TP(Enum, T::ClassName)
+}
+
+#include <Meta/MetaEnums.inl>
+
+namespace Meta
+{
+
+    namespace _Impl
+    {
+
+        DECL_COERSION_TP(Enum, EnumTraits<T>::ClassName)
         {
-            static inline void Extract(Enum<T>& out, ClassInstance& inst)
+            static inline void Extract(Enum<T>&out, ClassInstance & inst)
             {
                 ClassInstance cur = inst;
                 ClassInstance mem{};
-                while((mem = Meta::GetMember(cur, "mVal", false)), mem)
+                while ((mem = Meta::GetMember(cur, "mVal", false)), mem)
                 {
                     cur = mem;
                 }
                 out.Value = COERCE(cur._GetInternal(), T);
             }
-            
-            static inline void Import(const Enum<T>& in, ClassInstance& inst)
+
+            static inline void Import(const Enum<T>&in, ClassInstance & inst)
             {
                 ClassInstance cur = inst;
                 ClassInstance mem{};
-                while((mem = Meta::GetMember(cur, "mVal", false)), mem)
+                while ((mem = Meta::GetMember(cur, "mVal", false)), mem)
                 {
                     cur = mem;
                 }
                 COERCE(cur._GetInternal(), T) = in.Value;
             }
-            
-            static inline void ImportLua(const Enum<T>& in, LuaManager& man)
+
+            static inline void ImportLua(const Enum<T>&in, LuaManager & man)
             {
                 man.PushInteger((I32)in.Value);
             }
-            
-            static inline void ExtractLua(Enum<T>& out, LuaManager& man, I32 stackIndex)
+
+            static inline void ExtractLua(Enum<T>&out, LuaManager & man, I32 stackIndex)
             {
                 out.Value = (T)man.ToInteger(stackIndex);
             }
 
         };
-        
+
     }
-    
+
 }

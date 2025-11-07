@@ -959,9 +959,11 @@ namespace Meta {
                 ClassChildMap* dstMap = (ClassChildMap*)(pMemory + _ClassChildrenArrayOff(*pClass));
                 new (dstMap) ClassChildMap();
                 // Copy children (deep). User should be careful if editing props in sub-arrays and the array is modified.
+                if ((IsWeakPtrUnbound(host) || host.expired()) && !IsWeakPtrUnbound(concrete) && !concrete.expired())
+                    host = concrete;
                 for(const auto& src: *srcMap)
                 {
-                    CopyInstance(src.second, ClassInstance(pClass->ClassID, pMemory, {}), src.first);
+                    (*dstMap)[src.first] = CopyInstance(src.second, ClassInstance{ pClass->ClassID, pMemory, host }, src.first);
                 }
             }
             else if(bTopLevel)
@@ -1008,9 +1010,11 @@ namespace Meta {
                 ClassChildMap* dstMap = (ClassChildMap*)(pMemory + _ClassChildrenArrayOff(*pClass));
                 new(dstMap) ClassChildMap();
                 // Move children (deep)
+                if ((IsWeakPtrUnbound(host) || host.expired()) && !IsWeakPtrUnbound(concrete) && !concrete.expired())
+                    host = concrete;
                 for(const auto& src: *srcMap)
                 {
-                    MoveInstance(src.second, ClassInstance(pClass->ClassID, pMemory, {}), src.first);
+                    (*dstMap)[src.first] = MoveInstance(src.second, ClassInstance(pClass->ClassID, pMemory, host), src.first);
                 }
             }
             else if(bTopLevel)
@@ -1785,6 +1789,17 @@ namespace Meta {
         State.Games.clear();
     }
     
+    std::vector<U32> GetClassIDs()
+    {
+        std::vector<U32> arr{};
+        arr.reserve(State.Classes.size());
+        for(const auto& cls: State.Classes)
+        {
+            arr.push_back(cls.first);
+        }
+        return arr;
+    }
+
     Bool WriteMetaStream(const String& name, ClassInstance instance, DataStreamRef& stream, MetaStreamParams params)
     {
         
@@ -3116,7 +3131,7 @@ namespace Meta {
         auto& reg = _Impl::_CoersionRegistry();
         for(auto& v: reg)
         {
-            if(StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
+            if(v.ClassName && *v.ClassName != 0 && StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
             {
                 v.MetaToLua(man, inst);
                 return true;

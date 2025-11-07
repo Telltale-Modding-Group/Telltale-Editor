@@ -160,7 +160,7 @@ public:
 enum class CommonClass;
 
 // All common classes which are normalised into from telltale types (eg meshes, textures, dialogs) inherit from this to be used in Handle.
-class Handleable : public std::enable_shared_from_this<Handleable>
+class Handleable : public std::enable_shared_from_this<Handleable>, public ReferenceObjectInterface
 {
     
     mutable std::atomic<U64> _LockTimeStamp;
@@ -324,6 +324,7 @@ enum MemoryTag
     MEMORY_TAG_CALLBACK, // Method impl
     MEMORY_TAG_SCENE_DATA,
     MEMORY_TAG_EDITOR_UI,
+    MEMORY_TAG_REFERENCE_OBJECT,
 };
 
 // each scriptable object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.

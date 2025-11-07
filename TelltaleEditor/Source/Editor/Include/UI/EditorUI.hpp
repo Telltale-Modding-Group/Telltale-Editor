@@ -43,6 +43,7 @@ class EditorUI : public UIStackable
     std::vector<Ptr<UIResourceEditorBase>> _TransientViews; // specific file windows
     std::vector<LoadInfo> _AwaitingLoads;
     Scene _EditorScene;
+    Ptr<ReferenceObjectInterface> _EditorSceneGuard; // replaced when editor scene changes, so we want to discard refs (its not a ptr)
     WeakPtr<SceneView> _SceneView;
     WeakPtr<InspectorView> _InspectorView;
 
@@ -55,10 +56,16 @@ class EditorUI : public UIStackable
     static Bool _SceneInitialiseJob(const JobThread& thread, void* uA, void* uB);
 
     Bool _TickAsyncLoadingScene(); // return if currently loading
-    
-    void _DispatchEditor(String viewTitle, String rloc, std::function<Ptr<UIResourceEditorBase>(const LoadInfo&, EditorUI&, Ptr<ResourceRegistry>)> callback);
+
+    void _OnFileClickCallbackAdapter(String rl);
 
 public:
+
+    void UserRequestOpenFile();
+
+    void DispatchEditor(String viewTitle, String rloc, std::function<Ptr<UIResourceEditorBase>(const LoadInfo&, EditorUI&, Ptr<ResourceRegistry>)> callback);
+
+    void DispatchEditorImmediate(Ptr<UIResourceEditorBase> allocated);
 
     inline Scene& GetActiveScene()
     {
@@ -77,6 +84,8 @@ public:
     virtual void Render() override;
 
     friend class MenuBar;
+    friend class InspectorView;
+    friend class SceneView;
 
 };
 
@@ -106,7 +115,7 @@ struct EditorPopup
     inline EditorPopup(const String& N) : Name(N) {}
     
     virtual ImVec2 GetPopupSize() = 0;
-    virtual Bool Render() = 0;
+    virtual Bool Render() = 0; // return true if closing
     
 };
 

@@ -493,6 +493,16 @@ inline String StringToSnake(const String& input)
     return result;
 }
 
+inline String StringExtractTemplateParameter(const String& typeName)
+{
+    size_t start = typeName.find('<');
+    size_t end = typeName.rfind('>');
+
+    if (start == String::npos || end == String::npos || end <= start + 1)
+        return "";
+
+    return typeName.substr(start + 1, end - start - 1);
+}
 
 // Radius must be 2 to 36
 String StringFromInteger(I64 original_value,U32 radix, Bool is_negative); // defined in Config.cpp
@@ -631,6 +641,10 @@ struct WeakPtrEqual
     }
 
 };
+
+struct ReferenceObjectInterface { virtual ~ReferenceObjectInterface() = default; }; // for weak ptr to nothing for inherit for use in normal objects 
+
+struct ReferenceObjectConcrete final : ReferenceObjectInterface { void* Data$; inline ReferenceObjectConcrete(void* _D = nullptr) : Data$(_D) {} }; // for actual weak ptr to this, containing nothing or the actual pointer
 
 class Ticker
 {

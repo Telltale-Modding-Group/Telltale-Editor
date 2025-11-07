@@ -8,6 +8,7 @@ class MenuBar : public UIComponent
 {
 public:
     
+    Float _ImGuiMenuHeight = 0.0f;
     EditorUI& _Editor;
 
     MenuBar(EditorUI& ui);

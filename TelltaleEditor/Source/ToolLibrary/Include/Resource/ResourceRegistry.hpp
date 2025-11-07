@@ -54,6 +54,7 @@ enum class HandleFlags
     NEEDS_DESTROY = 4, // needs to be destroyed
     LOADED = 8, // has been normalised into, so is loaded.
     NON_PURGABLE = 16, // flag 1 in engine
+    CACHE_ONLY = 32, // cache only, cannot be saved, is a runtime resource
     
     // other flags in future, serialise out needed, load dependent resources (eg textures in a mesh, non embeds in chore etc)
 };
@@ -215,7 +216,7 @@ public:
     
     inline operator Bool() const
     {
-        return _Cached.operator Bool();
+        return _ResourceName.GetCRC64() != 0;
     }
     
 };
@@ -285,7 +286,7 @@ public:
     
     inline operator Bool() const
     {
-        return _Cached.operator Bool();
+        return _ResourceName.GetCRC64() != 0;
     }
     
 };
@@ -1120,6 +1121,19 @@ public:
     }
 
     void GetResourceLocationNames(std::vector<String>& names);
+
+    // Creates unsavable cached resource in memory
+    inline Bool CreateCachedResource(String name, Ptr<Handleable> pObject)
+    {
+        TTE_ASSERT(pObject, "The handleable object cannot be null!");
+        return _CreateCachedResourceUnlocked(name, pObject, {});
+    }
+
+    inline Bool CreateCachedPropertySet(String name, Meta::ClassInstance propInstance)
+    {
+        TTE_ASSERT(propInstance, "The property set cannot be null!");
+        return _CreateCachedResourceUnlocked(name, {}, propInstance);
+    }
     
     ~ResourceRegistry();
     
@@ -1156,6 +1170,8 @@ private:
     // ========== INTERNAL FUNCTIONALITY
     
     Ptr<ResourceLocation> _Locate(const String& logicalName); // locate internal no lock
+
+    Bool _CreateCachedResourceUnlocked(const String& name, Ptr<Handleable> asHandleable, Meta::ClassInstance asProp);
     
     void _ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::recursive_mutex>& lck);
     

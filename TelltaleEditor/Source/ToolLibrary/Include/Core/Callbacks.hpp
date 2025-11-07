@@ -118,6 +118,8 @@ struct FunctionDummyImpl : FunctionBase
 
 using FunctionDummy = FunctionDummyImpl;
 
+#define CALLBACK_ARGUMENT_ASSERT_NOENUM(A) static_assert(!std::is_enum<A>::value, "Enums cannot be used as callback parameters. Please use Enum<E> for meta coersion support")
+
 // ===================================================================         LUA CALLBACKS (META -> LUA)
 // ===================================================================
 
@@ -399,6 +401,8 @@ protected:
 template<typename Object, Bool Checked, typename Arg1> // 1 ARG
 struct MethodImpl<Object, Checked, Arg1, Placeholder, Placeholder, Placeholder> : MethodImplBase<Object, Checked>
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
     
     using _MethodImplBase = MethodImplBase<Object, Checked>;
     
@@ -457,6 +461,9 @@ protected:
 template<typename Object, Bool Checked, typename Arg1, typename Arg2> // 2 ARGS
 struct MethodImpl<Object, Checked, Arg1, Arg2, Placeholder, Placeholder> : MethodImplBase<Object, Checked>
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
     
     using _MethodImplBase = MethodImplBase<Object, Checked>;
     
@@ -517,6 +524,10 @@ protected:
 template<typename Object, Bool Checked, typename Arg1, typename Arg2, typename Arg3> // 3 ARGS
 struct MethodImpl<Object, Checked, Arg1, Arg2, Arg3, Placeholder> : MethodImplBase<Object, Checked>
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg3);
     
     using _MethodImplBase = MethodImplBase<Object, Checked>;
     
@@ -578,6 +589,11 @@ protected:
 template<typename Object, Bool Checked, typename Arg1, typename Arg2, typename Arg3, typename Arg4> // 4 ARGS
 struct MethodImpl : MethodImplBase<Object, Checked>
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg3);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg4);
     
     using _MethodImplBase = MethodImplBase<Object, Checked>;
     
@@ -699,6 +715,8 @@ protected:
 template<typename Arg1> // 1 ARG
 struct FunctionImpl<Arg1, Placeholder, Placeholder, Placeholder> : FunctionBase
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
     
     fastdelegate::FastDelegate1<Arg1> Delegate;
     
@@ -749,6 +767,9 @@ template<typename Arg1, typename Arg2> // 2 ARGS
 struct FunctionImpl<Arg1, Arg2, Placeholder, Placeholder> : FunctionBase
 {
     
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+
     fastdelegate::FastDelegate2<Arg1, Arg2> Delegate;
     
     virtual U32 GetNumArguments() const override final { return 2; }
@@ -799,6 +820,10 @@ protected:
 template<typename Arg1, typename Arg2, typename Arg3> // 3 ARGS
 struct FunctionImpl<Arg1, Arg2, Arg3, Placeholder> : FunctionBase
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg3);
     
     fastdelegate::FastDelegate3<Arg1, Arg2, Arg3> Delegate;
     
@@ -852,6 +877,12 @@ protected:
 template<typename Arg1, typename Arg2, typename Arg3, typename Arg4> // 4 ARGS
 struct FunctionImpl : FunctionBase
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg3);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg4);
+
     fastdelegate::FastDelegate4<Arg1, Arg2, Arg3, Arg4> Delegate;
     
     virtual U32 GetNumArguments() const override final { return 4; }
@@ -907,7 +938,6 @@ protected:
 // Meta system args bound -> a C++ instance. Non-member function
 template<typename A1 = Placeholder, typename A2 = Placeholder, typename A3 = Placeholder, typename A4 = Placeholder>
 using Function = FunctionImpl<A1, A2, A3, A4>;
-
 
 // ===================================================================         UTIL
 // ===================================================================

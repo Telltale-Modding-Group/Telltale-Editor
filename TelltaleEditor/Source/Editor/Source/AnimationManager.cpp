@@ -149,7 +149,7 @@ void SceneModule<SceneModuleType::SKELETON>::OnSetupAgent(SceneAgent *pAgentGett
 {
     if(Skl.GetObject().GetCRC64() == 0)
     {
-        Meta::ClassInstance hSklInst = PropertySet::Get(pAgentGettingCreated->Props, kSkeletonFileSymbol, true, pAgentGettingCreated->OwningScene->GetRegistry()); 
+        Meta::ClassInstance hSklInst = PropertySet::Get(pAgentGettingCreated->OwningScene->GetAgentProps(pAgentGettingCreated->NameSymbol), kSkeletonFileSymbol, true, pAgentGettingCreated->OwningScene->GetRegistry());
         if(hSklInst)
         {
             Meta::ExtractCoercableInstance(Skl, hSklInst);

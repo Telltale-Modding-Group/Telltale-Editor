@@ -2,6 +2,7 @@
 #include <Renderer/RenderContext.hpp>
 #include <Core/Callbacks.hpp>
 #include <Symbols.hpp>
+#include <TelltaleEditor.hpp>
 
 #include <cfloat>
 
@@ -44,7 +45,7 @@ public:
             TTE_LOG("WARNING: When normalising scene %s the agent %s already exists! Ignoring...", pScene->Name.c_str(), agent.c_str());
             return 0;
         }
-        Meta::ClassInstance props = Meta::CopyInstance(Meta::AcquireScriptInstance(man, 3));
+        Meta::ClassInstance props = Meta::AcquireScriptInstance(man, 3);
         Transform trans{};
         if (man.GetTop() >= 4)
         {   
@@ -91,9 +92,10 @@ void Scene::_SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>:
     
     // SETUP RUNTIME PROPERTIES
     
-    if(!PropertySet::ExistsKey(pAgent->Props, kRuntimeVisibilityKey, true, GetRegistry()))
+    Meta::ClassInstance runtimeProps = GetAgentRuntimeProps(pAgent->Name);
+    if(!PropertySet::ExistsKey(runtimeProps, kRuntimeVisibilityKey, true, GetRegistry()))
     {
-        PropertySet::Set<Bool>(pAgent->Props, kRuntimeVisibilityKey, true, "bool", GetRegistry());
+        PropertySet::Set<Bool>(runtimeProps, kRuntimeVisibilityKey, true, "bool", GetRegistry());
     }
 
     // DOUBLE CHECK ALL MODULES ARE CHECKED
@@ -106,7 +108,7 @@ void Scene::_SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>:
     
     // ADD CALLBACKS
     
-    PropertySet::AddCallback(pAgent->Props, kRuntimeVisibilityKey, ALLOCATE_METHOD_CALLBACK_1(pAgent, SetVisible, SceneAgent, Bool));
+    PropertySet::AddCallback(runtimeProps, kRuntimeVisibilityKey, ALLOCATE_METHOD_CALLBACK_1(pAgent, SetVisible, SceneAgent, Bool));
     
     // 1 (Sync1) prepare non dependent mesh agents
     
@@ -160,13 +162,37 @@ void Scene::_SetupAgentsModules()
     }
 }
 
+Meta::ClassInstance Scene::GetAgentRuntimeProps(const Symbol& sym)
+{
+    for (auto& agent : _Agents)
+    {
+        if (agent.first == sym)
+        {
+            return agent.second->RuntimeProps.GetObject(GetRegistry(), true);
+        }
+    }
+    return {};
+}
+
+Meta::ClassInstance Scene::GetAgentTransientProps(const Symbol& sym)
+{
+    for (auto& agent : _Agents)
+    {
+        if (agent.first == sym)
+        {
+            return agent.second->TransientProps;
+        }
+    }
+    return {};
+}
+
 Meta::ClassInstance Scene::GetAgentProps(const Symbol & sym)
 {
     for(auto& agent: _Agents)
     {
         if(agent.first == sym)
         {
-            return agent.second->Props;
+            return agent.second->AgentProps.GetObject(GetRegistry(), true);
         }
     }
     return {};
@@ -196,21 +222,11 @@ void Scene::AddAgentModule(const String& Name, SceneModuleType module)
                     return;
                 }
                 agent.second->ModuleIndices[(U32)module] = index;
-                // add prop as parent!
-                if(!agent.second->Props)
-                {
-                    U32 clazz = Meta::_Impl::_ResolveCommonClassIDSafe(CommonClass::PROPERTY_SET);
-                    if (clazz == 0)
-                    {
-                        TTE_ASSERT(false, "Cannot resolve property set class!");
-                    }
-                    agent.second->Props = Meta::CreateInstance(clazz);
-                }
                 String propName{};
                 SceneModuleUtil::_GetModuleInfo Getter{ module };
                 Getter.OutPropName = &propName;
                 SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, std::move(Getter));
-                PropertySet::AddParent(agent.second->Props, propName, pReg);
+                PropertySet::AddParent(GetAgentProps(sym), propName, pReg);
             }
             break;
         }
@@ -444,6 +460,67 @@ String Scene::GetAgentAtScreenPosition(Camera& cam, U32 screenX, U32 screenY, Bo
     return agent;
 }
 
+extern TelltaleEditor* _MyContext;
+
+String Scene::GetAgentScenePropertiesName(const String& sceneName, const String& agentName)
+{
+    return "\"" + sceneName + ":" + agentName + "\" Agent Properties";
+}
+
+String Scene::GetAgentRuntimePropertiesName(const String& sceneName, const String& agentName)
+{
+    return "\"" + sceneName + ":" + agentName + "\" Runtime Properties";
+}
+
+void Scene::_SetupAgentProperties(Ptr<SceneAgent> pAgent, Meta::ClassInstance sceneProps)
+{
+    String ScenePropsName = GetAgentScenePropertiesName(GetName(), pAgent->Name);
+    String RuntimePropsName = GetAgentRuntimePropertiesName(GetName(), pAgent->Name);
+    GetRuntimeSymbols().Register(ScenePropsName);
+    GetRuntimeSymbols().Register(RuntimePropsName);
+    Bool bNeedCreate = true;
+    if(pAgent->AgentProps.GetObject().GetCRC64() != 0)
+    {
+        Meta::ClassInstance agentProps = pAgent->AgentProps.GetObject(GetRegistry(), true);
+        if(agentProps)
+        {
+            bNeedCreate = false;
+        }
+    }
+    pAgent->AgentProps.SetObject(ScenePropsName);
+    Meta::ClassInstance agentProps{};
+    if(bNeedCreate)
+    {
+        agentProps = Meta::CopyInstance(sceneProps); // create new prop, cant use scene props, as it needs to be unique
+        GetRegistry()->CreateCachedPropertySet(ScenePropsName, agentProps);
+    }
+    else
+    {
+        PropertySet::ImportKeysValuesAndParents(agentProps = pAgent->AgentProps.GetObject(GetRegistry(), true), sceneProps, false, true, {}, true, false, GetRegistry());
+    }
+    pAgent->RuntimeProps.SetObject(RuntimePropsName);
+    Meta::ClassInstance runtimeProps = pAgent->RuntimeProps.GetObject(GetRegistry(), true);
+    if(!runtimeProps)
+    {
+        runtimeProps = _MyContext->CreatePropertySet();
+        GetRegistry()->CreateCachedPropertySet(RuntimePropsName, runtimeProps);
+    }
+    if(PropertySet::GetNumParents(runtimeProps) != 1)
+    {
+        PropertySet::ClearParents(runtimeProps);
+        PropertySet::AddParent(runtimeProps, ScenePropsName, GetRegistry());
+    }
+    if(!pAgent->TransientProps)
+    {
+        pAgent->TransientProps = _MyContext->CreatePropertySet();
+    }
+    if(PropertySet::GetNumParents(pAgent->TransientProps) != 1)
+    {
+        PropertySet::ClearParents(pAgent->TransientProps);
+        PropertySet::AddParent(pAgent->TransientProps, RuntimePropsName, GetRegistry());
+    }
+}
+
 void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance props, Transform init, Bool doSetup)
 {
     TTE_ASSERT(!ExistsAgent(Name), "Agent %s already exists in %s", Name.c_str(), Name.c_str());
@@ -452,17 +529,7 @@ void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassIn
     auto& agentPtr = agentIt.first->second;
     agentPtr->OwningScene = this;
     agentPtr->InitialTransform = init;
-    agentPtr->Props = props;
-    if(!agentPtr->Props)
-    {
-        U32 clazz = Meta::FindClass("class PropertySet", 0);
-        TTE_ASSERT(clazz!=0, "Property set class not found!");
-        agentPtr->Props = Meta::CreateInstance(clazz);
-    }
-    else
-    {
-        TTE_ASSERT(Meta::GetClass(props.GetClassID()).Flags & Meta::_CLASS_PROP, "At Scene::AddAgent -> properties class mismatch!");
-    }
+    _SetupAgentProperties(pAgent, props);
     Ptr<ResourceRegistry> reg = GetRegistry();
     if(reg)
         SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_CollectAgentModules{modules, *pAgent.get(), reg});
@@ -475,6 +542,7 @@ void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassIn
         _SetupAgent(agentIt.first);
     }
 }
+
 // NODES
 
 Bool Scene::_ValidateNodeAttachment(Ptr<Node> node, Ptr<Node> potentialChild)
@@ -923,7 +991,9 @@ Scene::Scene(const Scene& rhs) : HandleableRegistered(rhs), Name(rhs.Name), _Fla
         Ptr<SceneAgent> pCopyAgent = TTE_NEW_PTR(SceneAgent, MEMORY_TAG_SCENE_DATA, *agent.second);
         pCopyAgent->OwningScene = this;
         // module incides OK same
-        pCopyAgent->Props = pCopyAgent->Props ? Meta::CopyInstance(pCopyAgent->Props) : Meta::ClassInstance{}; // copy agent props
+        // copy transient props (theyre transient, but doesnt matter here)
+        pCopyAgent->TransientProps = pCopyAgent->TransientProps ? Meta::CopyInstance(pCopyAgent->TransientProps) : Meta::ClassInstance{};
+        // runtime and agent props are ok they are global at runtime. transient props inherits from these (or will) already 
         pCopyAgent->AgentNode = _DeepCopyNodeTree(pCopyAgent->AgentNode, this);
         _Agents[agent.first] = std::move(pCopyAgent);
     }

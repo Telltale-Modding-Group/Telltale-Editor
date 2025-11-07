@@ -1139,7 +1139,8 @@ void ResourceRegistry::ResourceSetNonPurgable(const Symbol &resourceName, Bool b
     {
         if(it->_ResourceName == resourceName)
         {
-            it->_Flags.Set(HandleFlags::NON_PURGABLE, bOnOff);
+            if(!it->_Flags.Test(HandleFlags::CACHE_ONLY))
+                it->_Flags.Set(HandleFlags::NON_PURGABLE, bOnOff);
             return;
         }
     }
@@ -1147,7 +1148,8 @@ void ResourceRegistry::ResourceSetNonPurgable(const Symbol &resourceName, Bool b
     {
         if(loaded._ResourceName == resourceName)
         {
-            loaded._Flags.Set(HandleFlags::NON_PURGABLE, bOnOff);
+            if (!loaded._Flags.Test(HandleFlags::CACHE_ONLY))
+                loaded._Flags.Set(HandleFlags::NON_PURGABLE, bOnOff);
             return;
         }
     }
@@ -1401,6 +1403,12 @@ Bool ResourceRegistry::SaveResource(const Symbol &resourceName, const String& lo
     auto it = _AliveHandles.find(hoi);
     if(it != _AliveHandles.end())
     {
+        if (it->_Flags.Test(HandleFlags::CACHE_ONLY))
+        {
+            TTE_LOG("Cannot save resource %s: cache only",
+                name.c_str());
+            return false;
+        }
         Ptr<ResourceLocation> pDestLocation{};
         if(locator.length() == 0 || locator == "<>")
         {
@@ -1446,6 +1454,35 @@ Bool ResourceRegistry::SaveResource(const Symbol &resourceName, const String& lo
         TTE_LOG("Cannot save resource %s: not loaded", name.c_str());
     }
     return false;
+}
+
+Bool ResourceRegistry::_CreateCachedResourceUnlocked(const String& name, Ptr<Handleable> asHandleable, Meta::ClassInstance asProp)
+{
+    SCOPE_LOCK();
+    HandleObjectInfo hoi{};
+    hoi._ResourceName = name;
+    if (_AliveHandles.find(hoi) != _AliveHandles.end())
+    {
+        TTE_LOG("Cannot create cached resource %s: already exists in cache!", name.c_str());
+        return false;
+    }
+    else
+    {
+        for (const auto& dirty : _DirtyHandles)
+        {
+            if (dirty._ResourceName == hoi._ResourceName)
+            {
+                TTE_LOG("Cannot create cached resource %s: already exists in cache!", name.c_str());
+                return false;
+            }
+        }
+    }
+    hoi._Flags.Add(HandleFlags::CACHE_ONLY);
+    hoi._Flags.Add(HandleFlags::LOADED);
+    hoi._Handle = asHandleable;
+    hoi._Instance = asProp;
+    _AliveHandles.insert(std::move(hoi));
+    return true;
 }
 
 Bool ResourceRegistry::CreateResource(const ResourceAddress& address)

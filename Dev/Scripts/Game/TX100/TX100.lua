@@ -172,6 +172,7 @@ function RegisterTX100(vendor)
 	MetaRegisterClass(lightType)
 
 	local textAlign = NewClass("class TextAlignmentType", 0)
+	textAlign.Flags = kMetaClassEnumWrapper 
 	textAlign.Members[1] = NewMember("mAlignmentType", kMetaInt, kMetaMemberEnum)
 	AddEnum(textAlign, 1, "None", 0)
 	AddEnum(textAlign, 1, "Left Justified", 1)

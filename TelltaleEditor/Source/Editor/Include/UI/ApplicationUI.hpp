@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <set>
 #include <map>
+#include <queue>
 
 #include <SDL3/SDL_surface.h>
 
@@ -107,6 +108,8 @@ public:
 
     void SetCurrentPopup(Ptr<EditorPopup>, EditorUI& editor);
 
+    void QueuePopup(Ptr<EditorPopup> popup, EditorUI& editor);
+
 private:
 
     struct ResourceTexture
@@ -166,6 +169,7 @@ private:
     ProjectManager _ProjectMgr;
     I32 _NewWidth = -1, _NewHeight = -1;
     Ptr<EditorPopup> _ActivePopup;
+    std::queue<Ptr<EditorPopup>> _QueuedPopups;
 
     // RESOURCE MANAGEMENT
     SDL_Surface* _AppIcon;

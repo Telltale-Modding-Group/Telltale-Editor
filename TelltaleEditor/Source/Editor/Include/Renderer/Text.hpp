@@ -50,8 +50,8 @@ public:
     // Setters
     void SetWorldSpaceZ(bool value);
     void SetWidth(float value);
-    void SetVerticalAlignment(VerticalAlignmentType value);
-    void SetHorizontalAlignment(HorizontalAlignmentType value);
+    void SetVerticalAlignment(Enum<VerticalAlignmentType> value);
+    void SetHorizontalAlignment(Enum<HorizontalAlignmentType> value);
     void SetAlphaScale(float value);
     void SetText(String value);
     void SetSkew(float value);

@@ -40,8 +40,58 @@ static Bool _AsyncScriptExec(const JobThread& thread, void* userA, void* userB)
 
 void MenuBar::Render()
 {
+
+    if (ImGui::BeginMainMenuBar())
+    {
+        _ImGuiMenuHeight = ImGui::GetWindowSize().y;
+        if (ImGui::BeginMenu("Game"))
+        {
+            // OPEN PROJECT, RECENT, CHECK FOR UPDATES, REPORT A BUG, OUTPUT, TIMESTEP
+            // USER SETTINGS, CONVERT, LOCALIZATIONS, UPDATE PREFERENCES, PACKAGES, WIZARDS, 
+            // CREATE ARM FILES, .., SAVE GAME, LOAD GAME, QUIT
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("File"))
+        {
+            if(ImGui::MenuItem("Open","Ctrl+O"))
+            {
+                _Editor.UserRequestOpenFile();
+            }
+            // New, Open File, Open
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Editor"))
+        {
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Window"))
+        {
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Scripts"))
+        {
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("Scene"))
+        {
+            // CREATE SCENE, OPEN SCENE, ADD SCENE, CLEAN SCENE, RECENTS
+            ImGui::EndMenu();
+        }
+        // SCENE, SCRIPTS, CHOREOGRAPHY, AUDIO
+        // all most file menus just have open XXX, create XXX + recents
+        ImGui::EndMainMenuBar();
+    }
+
+    // SHORTCUTS
+    if (!ImGui::GetIO().WantCaptureKeyboard)
+    {
+        if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyReleased(ImGuiKey_O))
+        {
+            _Editor.UserRequestOpenFile();
+        }
+    }
+
     // BEGIN
-    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->WorkPos, ImGuiCond_Always);
     SetNextWindowViewport(0.0f, 0.0f, 0, 0, 1.0f, 0.04f, 0, 40, 0);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, {0.0f, 0.0f, 0.0f, 1.0f});
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, {0,0});
@@ -54,13 +104,9 @@ void MenuBar::Render()
 
     // BACKGROUND
     ImVec2 size = ImGui::GetWindowSize();
-    //ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImGui::GetWindowViewport()->Pos, ImGui::GetWindowViewport()->Pos + size,
-    //                                                    IM_COL32(120, 14, 57,255), 0xff000000u, 0xff000000u, IM_COL32(120, 14, 57, 255));
-    ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImGui::GetWindowViewport()->Pos, ImGui::GetWindowViewport()->Pos + ImVec2(size.x * 0.5f, size.y),
-                                                        IM_COL32(120, 14, 57,255), 0xff000000u, 0xff000000u, IM_COL32(120, 14, 57, 255));
-    ImGui::GetWindowDrawList()->AddRectFilledMultiColor(ImGui::GetWindowViewport()->Pos + ImVec2(size.x * 0.5f, 0.0f),
-                                                        ImGui::GetWindowViewport()->Pos + size,
-                                                        0xff000000u, IM_COL32(120, 14, 57,255), IM_COL32(120, 14, 57, 255), 0xff000000u);
+    ImVec2 pos = ImGui::GetWindowPos();
+    ImGui::GetWindowDrawList()->AddRectFilledMultiColor(pos, pos + ImVec2{ size.x * 0.5f, size.y }, IM_COL32(120, 14, 57,255), 0xff000000u, 0xff000000u, IM_COL32(120, 14, 57, 255));
+    ImGui::GetWindowDrawList()->AddRectFilledMultiColor(pos + ImVec2{ size.x, 0.0f }, pos + ImVec2{ size.x * 0.5f, size.y }, IM_COL32(120, 14, 57, 255), 0xff000000u, 0xff000000u, IM_COL32(120, 14, 57, 255));
 
     // LOGO AND TITLE BAR
     Float xBack = size.x - 4.0f;

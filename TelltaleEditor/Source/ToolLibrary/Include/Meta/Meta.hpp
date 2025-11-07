@@ -42,56 +42,10 @@ struct AnimOrChore
     String HandleChore;
 };
 
-#define DEFINE_ENUM_STRUCT(_Et, _En) template struct Enum<_Et>; template<> struct EnumTraits<_Et> { static constexpr CString ClassName = _En; }
-
-template<typename Enum>
-struct EnumTraits
-{
-    static constexpr CString ClassName = "";
-};
-
-template<typename EnumT>
-struct Enum
-{
-    
-    EnumT Value;
-    
-};
-
 template class TRect<Float>;
 template class TRange<Float>;
 template class TRange<U32>;
 using Rect = TRect<I32>;
-
-enum class VerticalAlignmentType
-{
-    NONE,
-    TOP,
-    MIDDLE,
-    BOTTOM,
-};
-
-enum class HorizontalAlignmentType
-{
-    NONE,
-    LEFT_JUSTIFIED,
-    CENTERED,
-    RIGHT_JUSTIFIED,
-};
-
-// Older games had the two above combined into one.
-enum class TextAlignmentType
-{
-    NONE = 0,
-    LEFT_JUSTIFIED = 1,
-    CENTERED = 2,
-    RIGHT_JUSTIFIED = 4,
-    TOP = 8,
-    MIDDLE = 16,
-    BOTTOM = 32,
-};
-
-DEFINE_ENUM_STRUCT(TextAlignmentType, "class TextAlignmentType");
 
 // maximum number of versions of a given typename (eg int) with different version CRCs allowed (normally theres only 1 so any more is not likely)
 #define MAX_VERSION_NUMBER 10
@@ -985,6 +939,9 @@ namespace Meta
     // Acquires a reference to the given script object on the stack. After using ClassInstance::PushScriptRef, this can be used on the pushed value
     // Thread safe between game switches.
     ClassInstance AcquireScriptInstance(LuaManager& man, I32 stackIndex);
+
+    // Gets all meta class IDs
+    std::vector<U32> GetClassIDs();
     
     // Returns if the given instance can have instances attached to it, using it passed into Create/Copy/Move Instance.
     Bool IsAttachable(ClassInstance& instance);
@@ -1204,36 +1161,42 @@ namespace InstanceTransformation
 // FOR SERIALISERS BELOW, CLAZZ CAN BE NULL, as we know the class 100%.
 
 // Serialises an unsigned byte (can be cast to signed)
-inline Bool SerialiseU8(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU8(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 1) : stream.Read((U8*)pMemory, 1);
 }
 
 // Serialises an unsigned short (can be cast to signed)
-inline Bool SerialiseU16(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU16(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     // Endianness checks in the future?
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 2) : stream.Read((U8*)pMemory, 2);
 }
 
 // Serialises an unsigned int (can be cast to signed)
-inline Bool SerialiseU32(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU32(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     // Endianness checks in the future?
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 4) : stream.Read((U8*)pMemory, 4);
 }
 
 // Serialises an unsigned longlong (can be cast to signed)
-inline Bool SerialiseU64(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU64(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     // Endianness checks in the future?
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 8) : stream.Read((U8*)pMemory, 8);
 }
 
 // Serialises an unsigned int (can be cast to signed) FROM/TO A DATA STREAM not a meta stream (used in header)
-inline Bool SerialiseDataU32(DataStreamRef& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseDataU32(DataStreamRef& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     // Endianness checks in the future?
     return IsWrite ? stream->Write(const_cast<const U8*>((U8*)pMemory), 4) : stream->Read((U8*)pMemory, 4);
 }
 
 // Serialises an unsigned longlong (can be cast to signed) FROM/TO A DATA STREAM not a meta stream (used in header)
-inline Bool SerialiseDataU64(DataStreamRef& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseDataU64(DataStreamRef& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     // Endianness checks in the future?
     return IsWrite ? stream->Write(const_cast<const U8*>((U8*)pMemory), 8) : stream->Read((U8*)pMemory, 8);
 }

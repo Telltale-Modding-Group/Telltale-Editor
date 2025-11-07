@@ -228,12 +228,16 @@ enum class NodeVisitorTraversal
 /// An agent in the scene, or game object unity terms.
 struct SceneAgent
 {
+
+    // PROP HEIRARCHY: CLASS PROPERTIES (PARENTS OF .SCENE FILE) => SCENE FILE AGENT PROPS => RUNTIME PROPS => TRANSIENT PROPS
     
     const Symbol NameSymbol; // as a symbol
     const String Name; // agent name
     
     mutable Scene* OwningScene = nullptr;
-    mutable Meta::ClassInstance Props; // agent properties
+    mutable HandlePropertySet AgentProps;
+    mutable HandlePropertySet RuntimeProps;
+    mutable Meta::ClassInstance TransientProps; // transient properties
     mutable Ptr<Node> AgentNode; // NOTNULL. Is always set only at runtime in rendering!
     mutable I32 ModuleIndices[(I32)SceneModuleType::NUM]; // points into arrays inside scene.
 
@@ -339,7 +343,7 @@ public:
     // by selectable: use selectable. only selectable module objects (like in game). else does by render meshes.
     String GetAgentAtScreenPosition(Camera& cam, U32 screenX, U32 screenY, Bool bBySelectable);
     
-    // Add a new agent. agent properties can be a nullptr, to start with default props. YOU MUST DISCARD AGENT PROPERTIES AFTER PASSING IT IN. copy it then pass if not!
+    // Add a new agent. agent properties can be a nullptr, to start with default props. Agent properties are copied, so you don't need to copy them
     void AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance AgentProperties, Transform initialTransform = {}, Bool SetupAgent = false);
     
     // Adds an agent module to the given agent. This does NOT setup the agent (eg for run / edit). See how the add module popup in module ui.cpp does it, recurisvely selecting the module template and setting it up after this.
@@ -348,7 +352,14 @@ public:
     // Removes an agent module from a given agent.
     void RemoveAgentModule(const Symbol& Name, SceneModuleType module);
     
+    // Gets the agent properties for the agent. (synonymous with scene properties) 
     Meta::ClassInstance GetAgentProps(const Symbol& Name);
+
+    // Gets the runtime properties for this agent.
+    Meta::ClassInstance GetAgentRuntimeProps(const Symbol& Name);
+
+    // Gets the transient properties for this agent
+    Meta::ClassInstance GetAgentTransientProps(const Symbol& Name);
     
     // Returns if the given agent exists
     Bool ExistsAgent(const Symbol& Name);
@@ -372,6 +383,9 @@ public:
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
     
     virtual void FinaliseNormalisationAsync() override;
+
+    static String GetAgentScenePropertiesName(const String& sceneName, const String& agentName);
+    static String GetAgentRuntimePropertiesName(const String& sceneName, const String& agentName);
     
     static void UpdateNodeWorldTransform(Ptr<Node> node, Transform world, Bool bStaticUpdateAllow); // update node *world* transform properly.
     
@@ -426,7 +440,8 @@ private:
     
     void _SetupAgentsModules(); // at created to setup agents
     void _SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>::iterator agent);
-    
+    void _SetupAgentProperties(Ptr<SceneAgent> pAgent, Meta::ClassInstance srcAgentProps);
+
     // ===== NODES
     
     static Bool _ValidateNodeAttachment(Ptr<Node> node, Ptr<Node> potentialChild);
@@ -572,7 +587,7 @@ namespace SceneModuleUtil
         template<SceneModuleType Module>
         inline Bool Apply()
         {
-            if (PropertySet::IsMyParent(Agent.Props, SceneModule<Module>::GetModulePropertySet(), true, Registry))
+            if (PropertySet::IsMyParent(Agent.OwningScene->GetAgentProps(Agent.NameSymbol), SceneModule<Module>::GetModulePropertySet(), true, Registry))
             {
                 Modules.Set(Module, true);
             }

@@ -270,6 +270,15 @@ void ApplicationUI::SetWindowSize(I32 width, I32 height)
 
 // =========================================== MAIN APPLICATION LOOP
 
+void ApplicationUI::QueuePopup(Ptr<EditorPopup> popup, EditorUI& editor)
+{
+    if(popup)
+    {
+        popup->Editor = &editor;
+        _QueuedPopups.push(std::move(popup));
+    }
+}
+
 void ApplicationUI::SetCurrentPopup(Ptr<EditorPopup> p, EditorUI& ui)
 {
     if (p && !_ActivePopup)
@@ -560,7 +569,7 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     IMGUI_CHECKVERSION();
     RenderContext::DisableDebugHUD(_Window);
     _ImContext = ImGui::CreateContext();
-   // ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+    ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::GetIO().ConfigDpiScaleFonts = true;
     ImGui::StyleColorsDark(); // TODO MAKE THIS CUSTOM FROM WORKSPACE.
@@ -788,7 +797,8 @@ void ApplicationUI::_RenderPopups()
         ImGui::PushOverrideID(9991);
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
-        if (ImGui::BeginPopupModal(_ActivePopup->Name.c_str()))
+        ImGui::PushFont(ImGui::GetFont(), 14.0f);
+        if (ImGui::BeginPopupModal(_ActivePopup->Name.c_str(), 0, ImGuiWindowFlags_NoResize))
         {
             if (_ActivePopup->Render())
             {
@@ -797,7 +807,16 @@ void ApplicationUI::_RenderPopups()
             }
             ImGui::EndPopup();
         }
+        ImGui::PopFont();
         ImGui::PopStyleVar(2);
+        ImGui::PopID();
+    }
+    if(!_ActivePopup && _QueuedPopups.size())
+    {
+        _ActivePopup = std::move(_QueuedPopups.front());
+        _QueuedPopups.pop();
+        ImGui::PushOverrideID(9991);
+        ImGui::OpenPopup(_ActivePopup->Name.c_str());
         ImGui::PopID();
     }
 }

@@ -187,6 +187,11 @@ public:
      Returns the number of keys in the property set.
      */
     static U32 GetNumKeys(Meta::ClassInstance prop, Bool bSearchParents, Ptr<ResourceRegistry> pRegistry);
+
+    /**
+     * Gets the number of parents in the given property set. Does not search any parents
+     */
+    static U32 GetNumParents(Meta::ClassInstance prop);
     
     /**
      Returns if the given property is local to the property set and not from a parent property set. Change this by making it local or setting this property.
@@ -231,7 +236,7 @@ public:
     static HandlePropertySet GetPropertySetKeyIsIntroducedFrom(Meta::ClassInstance prop, Symbol keyName , Ptr<ResourceRegistry> reg);
     
     /**
-     Returns a handle to the property set which the key is introduced from, ie highest parent containing it.
+     Returns a handle to the property set which the key is retreived from, ie the lowest in the heirarchy with an overriding value (myself, them above etc)
      */
     static HandlePropertySet GetPropertySetValueIsRetrievedFrom(Meta::ClassInstance prop, Symbol keyName , Ptr<ResourceRegistry> reg, Bool bCheckMyself);
     
