@@ -1456,10 +1456,19 @@ Bool ResourceRegistry::SaveResource(const Symbol &resourceName, const String& lo
     return false;
 }
 
+void ResourceRegistry::_InsertSymbolTable(const String& name)
+{
+    if(GetGameSymbols().FindLocal(Symbol(name)).empty())
+    {
+        GetRuntimeSymbols().Register(name); // if the file name isnt already in the game symbols table add it to runtime symbols, may be a custom file
+    }
+}
+
 Bool ResourceRegistry::_CreateCachedResourceUnlocked(const String& name, Ptr<Handleable> asHandleable, Meta::ClassInstance asProp)
 {
     SCOPE_LOCK();
     HandleObjectInfo hoi{};
+    _InsertSymbolTable(name);
     hoi._ResourceName = name;
     if (_AliveHandles.find(hoi) != _AliveHandles.end())
     {
@@ -1498,6 +1507,7 @@ Bool ResourceRegistry::CreateResource(const ResourceAddress& address)
         return false;
     }
     DataStreamRef resource{};
+    _InsertSymbolTable(address.Name);
     if(address.IsCache)
     {
         HandleObjectInfo hoi{};

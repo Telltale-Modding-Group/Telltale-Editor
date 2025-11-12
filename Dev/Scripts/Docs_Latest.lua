@@ -3746,6 +3746,10 @@ kGameCapUsesLenc = 0
 --- @type number
 kGameCapAllowTransitionMaps = 0
 
+--- Internal data stream cache class
+--- @type number
+kMetaClassInternalDataStreamCache = 0
+
 --- Intrinsic String type
 --- @type number
 kMetaString = 0
@@ -3818,6 +3822,10 @@ kMetaClassEnumWrapper = 0
 --- @type number
 kMetaInt8 = 0
 
+--- Intrinsic 32-bit floating point
+--- @type number
+kMetaFloat = 0
+
 --- Member is an enum
 --- @type number
 kMetaMemberEnum = 0
@@ -3858,29 +3866,9 @@ kMetaInt = 0
 --- @type number
 kMetaMemberSerialiseDisable = 0
 
---- Internal data stream cache class
---- @type number
-kMetaClassInternalDataStreamCache = 0
-
---- Intrinsic 32-bit floating point
---- @type number
-kMetaFloat = 0
-
 --- Member is excluded from memory
 --- @type number
 kMetaMemberMemoryDisable = 0
-
---- Alias for signed 32-bit integer
---- @type number
-kMetaInt32 = 0
-
---- Wide character (typically UTF-16)
---- @type number
-kMetaWideChar = 0
-
---- Container flag
---- @type number
-kMetaClassContainer = 0
 
 --- Game capabilities
 --- @type number
@@ -3897,6 +3885,26 @@ kGameCapUsesLocationInfo = 0
 --- Proxy class disables member blocking
 --- @type number
 kMetaClassProxy = 0
+
+--- Member is a base class
+--- @type number
+kMetaMemberBaseClass = 0
+
+--- Alias for signed 32-bit integer
+--- @type number
+kMetaInt32 = 0
+
+--- Wide character (typically UTF-16)
+--- @type number
+kMetaWideChar = 0
+
+--- This is a sorted collection (set or map). Applied automatically to keyed collections (Map)
+--- @type number
+kMetaClassSortedCollection = 0
+
+--- Container flag
+--- @type number
+kMetaClassContainer = 0
 
 --- Can be serialised asynchronously
 --- @type number
@@ -3925,10 +3933,6 @@ kMetaUnsignedShort = 0
 --- Class is abstract
 --- @type number
 kMetaClassAbstract = 0
-
---- Member is a base class
---- @type number
-kMetaMemberBaseClass = 0
 
 --- Intrinsic Symbol type with class prefix
 --- @type number
@@ -4250,6 +4254,14 @@ kAnimationValueTypeExplicitCompoundValue = 0
 
 --- Animation value types
 --- @type number
+kAnimationValueTypeAutoAct = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioLowFreqSend = 0
+
+--- Animation value types
+--- @type number
 kAnimationValueTypeAudioFMODParameter = 0
 
 --- Animation value types
@@ -4308,18 +4320,6 @@ kCommonMeshFloat4 = 0
 --- @type number
 kAnimationValueTypeSkeletal = 0
 
---- Animation value types
---- @type number
-kAnimationValueTypeAudioLowFreqSend = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAdditiveMask = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeContribution = 0
-
 --- Legacy normed quaternion compressed keys (0)
 --- @type number
 kCompressedQuatKeysFormatLegacy0 = 0
@@ -4331,6 +4331,10 @@ kCommonInputMapperTypeBeginOrEnd = 0
 --- Animation value types
 --- @type number
 kAnimationValueTypeVertexNormal = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderShort = ""
 
 --- Animation value types
 --- @type number
@@ -4359,6 +4363,10 @@ kAnimationValueTypeTextureRotate = 0
 --- Vertex attributes
 --- @type number
 kCommonMeshAttributePosition = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderUnsignedInt = ""
 
 --- Trigger on mouse move event
 --- @type number
@@ -4408,6 +4416,34 @@ kAnimationValueTypeTextureScaleOriginU = 0
 --- @type string
 kPropRenderEnum = ""
 
+--- Animation value types
+--- @type number
+kAnimationValueTypeAdditiveMask = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeContribution = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderInt64 = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderByte = ""
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioSurroundExtent = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderUnsignedShort = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderInt = ""
+
 --- Vertex attribute formats
 --- @type number
 kCommonMeshUInt3 = 0
@@ -4420,33 +4456,13 @@ kCommonMeshAttributeUnknown = 0
 --- @type string
 kPropRenderFloat = ""
 
---- Module property render instructions
---- @type string
-kPropRenderBool = ""
-
 --- Surface formats
 --- @type number
 kCommonTextureFormatRGBA8 = 0
 
---- Primitive types
---- @type number
-kCommonMeshLineList = 0
-
 --- Module property render instructions
 --- @type string
-kPropRenderVector4 = ""
-
---- Module property render instructions
---- @type string
-kPropRenderColour = ""
-
---- Legacy normed compressed vector3 keys (0).
---- @type number
-kCompressedVector3KeysFormatLegacy0 = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUByte4 = 0
+kPropRenderBool = ""
 
 --- Vertex attributes
 --- @type number
@@ -4472,10 +4488,6 @@ kCommonMeshInt3 = 0
 --- @type number
 kCommonMeshAttributeTangent = 0
 
---- Module property render instructions
---- @type string
-kPropRenderVector3 = ""
-
 --- Vertex attribute formats
 --- @type number
 kCommonMeshByte4 = 0
@@ -4483,10 +4495,6 @@ kCommonMeshByte4 = 0
 --- Surface formats
 --- @type number
 kCommonTextureFormatDXT5 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioSurroundExtent = 0
 
 --- Surface formats
 --- @type number
@@ -4499,6 +4507,10 @@ kAnimationValueTypeTextureShearOriginV = 0
 --- Animation value types
 --- @type number
 kAnimationValueTypeAudioReverbWet = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderSymbol = ""
 
 --- Surface formats
 --- @type number
@@ -4516,14 +4528,6 @@ kCommonMeshAttributeUVLightMap = 0
 --- @type number
 kCommonTextureFormatDXT1 = 0
 
---- Vertex attribute formats
---- @type number
-kCommonMeshFloat1 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioSurroundDir = 0
-
 --- Animation value types
 --- @type number
 kAnimationValueTypeAudioHighPassFilter = 0
@@ -4539,6 +4543,18 @@ kPropRenderVector2 = ""
 --- Surface formats
 --- @type number
 kCommonTextureFormatBGRA8 = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderVector4 = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderColour = ""
+
+--- Primitive types
+--- @type number
+kCommonMeshLineList = 0
 
 --- Animation value types
 --- @type number
@@ -4576,6 +4592,14 @@ kAnimationValueTypeSkeletonRootAnim = 0
 --- @type number
 kCommonMeshUInt4 = 0
 
+--- Legacy normed compressed vector3 keys (0).
+--- @type number
+kCompressedVector3KeysFormatLegacy0 = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUByte4 = 0
+
 --- Animation value types
 --- @type number
 kAnimationValueTypeTargetedMover = 0
@@ -4596,13 +4620,25 @@ kPropRenderPolar = ""
 --- @type number
 kCommonMeshInt4 = 0
 
+--- Module property render instructions
+--- @type string
+kPropRenderVector3 = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderUnsignedInt64 = ""
+
 --- Animation value types
 --- @type number
 kAnimationValueTypeTextureScaleOriginV = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeAutoAct = 0
+kAnimationValueTypeAudioSurroundDir = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshFloat1 = 0
 
 --- Vertex attribute formats
 --- @type number

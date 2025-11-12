@@ -974,7 +974,10 @@ static Bool _SceneMovePostTraverse(Ptr<Node> node, void* me)
 Scene::Scene(Scene&& rhs) noexcept : HandleableRegistered(rhs), Name(std::move(rhs.Name)), _Flags(rhs._Flags)
 {
     _Agents = std::move(rhs._Agents);
-    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_ModuleVectorMoveRecurser{ rhs, *this });
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,
+                                                     SceneModuleUtil::_ModuleVectorMoveRecurser{ rhs, *this });
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,
+                                                     SceneModuleUtil::_ModulesUpdateSceneChange{ *this });
     for(auto& agent: _Agents)
     {
         agent.second->OwningScene = this;
@@ -997,7 +1000,10 @@ Scene::Scene(const Scene& rhs) : HandleableRegistered(rhs), Name(rhs.Name), _Fla
         pCopyAgent->AgentNode = _DeepCopyNodeTree(pCopyAgent->AgentNode, this);
         _Agents[agent.first] = std::move(pCopyAgent);
     }
-    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_ModuleVectorCopyRecurser{ rhs, *this });
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,
+                                                     SceneModuleUtil::_ModuleVectorCopyRecurser{ rhs, *this });
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,
+                                                     SceneModuleUtil::_ModulesUpdateSceneChange{ *this });
 }
 
 Scene::~Scene()

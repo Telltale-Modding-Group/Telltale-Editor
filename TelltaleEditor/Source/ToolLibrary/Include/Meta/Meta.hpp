@@ -171,6 +171,7 @@ namespace Meta
         CLASS_PROXY = 64, // proxy type which is used for telltale game errors. disables all block sizes in members of this type.
         CLASS_ENUM_WRAPPER = 128, // enum class wrapper. has one member integer (normally mVal)
         _CLASS_PROP = 256, // Internal flag denoting this class is the property set class (undergoes specific treatment in resource API)
+        CLASS_COLLECTION_SORTED = 512, // collection types are map,dcarray,sarray,deque,list,set. set needs this (map is keyed, so implied)
     };
     
     // Enum / flag descriptor for a member in a class

@@ -30,7 +30,7 @@ class EditorUI : public UIStackable
     struct LoadInfo
     {
         String ViewTitle;
-        String Resource;
+        String Resource; // file name
         U32 PreloadBatch;
         std::function<Ptr<UIResourceEditorBase>(const LoadInfo&, EditorUI&, Ptr<ResourceRegistry>)> Callback;
     };

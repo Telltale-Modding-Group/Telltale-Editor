@@ -124,7 +124,13 @@ void SymbolTable::SerialiseOut(DataStreamRef& stream)
     std::ostringstream ss{};
     for(auto& str: _Table)
     {
-        ss << str << "\n";
+        if(str.length())
+        {
+            // skip runtime property names, in which there are absolutely LOADS.
+            if((StringStartsWith(str, "\"") && StringEndsWith(str, " Properties")) || StringEndsWith(str, "Mesh Properties"))
+                continue;
+            ss << str << "\n";
+        }
     }
     String str = ss.str();
     stream->Write((const U8*)str.c_str(), (U64)str.length());

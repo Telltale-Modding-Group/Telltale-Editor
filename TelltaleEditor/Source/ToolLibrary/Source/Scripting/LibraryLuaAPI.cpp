@@ -509,6 +509,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             c.RTSize = sizeof(Symbol); // should definitely be 8!
             c.ToString = &SymbolToStringOperation;
             c.Serialise = &_Impl::SerialiseSymbol;
+            c.Equals = &GenerateEquals<Symbol>;
+            c.LessThan = &GenerateLT<Symbol>;
             AddIntrinsic(man, "kMetaSymbol", "Symbol", std::move(c));
             
             // older games have class before it
@@ -517,6 +519,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             c.RTSize = sizeof(Symbol); // should definitely be 8!
             c.ToString = &SymbolToStringOperation;
             c.Serialise = &_Impl::SerialiseSymbol;
+            c.Equals = &GenerateEquals<Symbol>;
+            c.LessThan = &GenerateLT<Symbol>;
             AddIntrinsic(man, "kMetaClassSymbol", "class Symbol", std::move(c));
             
             c.Flags = CLASS_INTRINSIC;
@@ -528,6 +532,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             c.CopyConstruct = &_Impl::CopyString;
             c.MoveConstruct = &_Impl::MoveString;
             c.ToString = &StringToStringOperation;
+            c.Equals = &GenerateEquals<String>;
+            c.LessThan = &GenerateLT<String>;
             AddIntrinsic(man, "kMetaString", "String", std::move(c));
             memset(&c, 0, sizeof(Class));
             
@@ -540,6 +546,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             c.Serialise = &_Impl::SerialiseString;
             c.CopyConstruct = &_Impl::CopyString;
             c.MoveConstruct = &_Impl::MoveString;
+            c.Equals = &GenerateEquals<String>;
+            c.LessThan = &GenerateLT<String>;
             c.ToString = &StringToStringOperation;
             AddIntrinsic(man, "kMetaClassString", "class String", std::move(c));
             memset(&c, 0, sizeof(Class));
@@ -758,6 +766,11 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.SetTable(-3);
             }
             
+            if(c.Flags & Meta::CLASS_COLLECTION_SORTED)
+            {
+                c.Flags &= ~Meta::CLASS_COLLECTION_SORTED;
+            }
+            
             ScriptManager::TableGet(man, "Serialiser");
             if(man.Type(-1) == LuaType::STRING)
                 c.SerialiseScriptFn = ScriptManager::PopString(man);
@@ -868,6 +881,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.GetTable(2);
                 TTE_ASSERT(man.Type(-1) == LuaType::NUMBER, "When registering collection, key type table not registered properly");
                 c.ArrayKeyClass = (U32)ScriptManager::PopInteger(man);
+                c.Flags |= Meta::CLASS_COLLECTION_SORTED;
             }
             else if(man.Type(2) == LuaType::STRING) // defer it
             {
@@ -879,8 +893,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                     val = val.substr(0, semi);
                 }
                 def.KeyType = std::move(val);
+                c.Flags |= Meta::CLASS_COLLECTION_SORTED;
             }
-            
             
             if(man.Type(3) == LuaType::STRING) // defer it
             {
@@ -3648,6 +3662,8 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     PUSH_GLOBAL_I(Col, "kMetaClassAbstract", Meta::CLASS_ABSTRACT, "Class is abstract");
     PUSH_GLOBAL_I(Col, "kMetaClassAttachable", Meta::CLASS_ATTACHABLE, "Class is attachable");
     PUSH_GLOBAL_I(Col, "kMetaClassProxy", Meta::CLASS_PROXY, "Proxy class disables member blocking");
+    PUSH_GLOBAL_I(Col, "kMetaClassSortedCollection", Meta::CLASS_COLLECTION_SORTED, "This is a sorted collection (set or map). Applied"
+        " automatically to keyed collections (Map). Note that sorted collection cannot contain duplicates (duplicat kv pairs override previous one)");
     PUSH_GLOBAL_I(Col, "kMetaClassEnumWrapper", Meta::CLASS_ENUM_WRAPPER, "Is an enum wrapper class. Should have one member (normally mVal), as integer value.");
     
     PUSH_GLOBAL_I(Col, "kMetaMemberEnum", Meta::MEMBER_ENUM, "Member is an enum");

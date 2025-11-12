@@ -96,8 +96,14 @@ misc.global_remove_err = "Cannot remove this global because it is not directly a
 misc.remove_global = "Remove Global"
 misc.remove_global_keys = "Remove Global + Inherited Local Keys"
 misc.filter = "Filter..."
+misc.remove_element = "Remove Element"
+misc.warn_existing = "The key you have entered already exists in this collection, so will be ignored, as this collection is uniquely keyed!"
 misc.error_parent = "The selected property set is already a parent property set of the open properties!"
 misc.error_local = "This property already exists locally in this property set!"
+misc.warn_symbol = "Modifying this symbol will loose the unknown hash value. Modify again and it will be changed."
+misc.nonunique = "There is already a window inspecting this resource, or one with the same name. Please work with one at a time!"
+misc.scene_loading = "There is currently a scene loading! Please wait..."
+misc.scene_agent_delete = "The scene agent cannot be deleted!"
 
 # MODULES
 mod.select = "Select Module"

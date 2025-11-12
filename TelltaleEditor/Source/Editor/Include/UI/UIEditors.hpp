@@ -1,7 +1,9 @@
 #include <UI/EditorUI.hpp>
 #include <Core/Callbacks.hpp>
+#include <UI/ModuleUI.inl>
 #include <imgui.h>
 #include <set>
+#include <map>
 
 class AbstractListSelectionPopup : public EditorPopup
 {
@@ -43,6 +45,30 @@ class TextFieldPopup : public EditorPopup
 public:
 
     inline TextFieldPopup(String title, Ptr<FunctionBase> cb, String prompt) : EditorPopup(title), _Prompt(prompt), _InputText(""), _Callback(cb) {}
+
+    inline virtual ImVec2 GetPopupSize() override final
+    {
+        return ImVec2{ 400.0f, 130.0f };
+    }
+
+    virtual Bool Render() override final;
+
+};
+
+class MetaInstanceEditPopup : public EditorPopup
+{
+    
+    EditorUI& _UI;
+    String _Prompt;
+    Meta::ClassInstance _Value;
+    Meta::ClassInstance _ValueCollection; // passed in as second argument to callback, since this popup is used a lot for collection key insertion
+    Ptr<FunctionBase> _Callback;
+    PropertyRenderFunctionCache _Cache;
+
+public:
+
+    inline MetaInstanceEditPopup(EditorUI& ui, String title, Ptr<FunctionBase> cb, String prompt, Meta::ClassInstance val, Meta::ClassInstance cl = {}) :
+        EditorPopup(title), _Prompt(prompt), _Value(val), _Callback(cb), _UI(ui), _ValueCollection(cl) {}
 
     inline virtual ImVec2 GetPopupSize() override final
     {
@@ -104,6 +130,8 @@ protected:
 
     // returns if clicked
     Bool ImageButton(CString iconTex, Float xPos, Float yPos, Float xSizePix, Float ySizePix, U32 colScale = 0xFFFFFFFF);
+    
+    Bool ArrowButton(Float xPos, Float yPos, Float xSizePix, Float ySizePix, U32 bgCol);
 
 public:
     
@@ -112,6 +140,8 @@ public:
     virtual ~UIResourceEditorBase() = default;
     
     virtual Bool IsAlive() const = 0;
+    
+    virtual String GetUniqueComparator() const = 0; // eg open file name, inspecting agent. so no more than one window with this editor an be open.
     
 };
 
@@ -128,6 +158,7 @@ class UIResourceEditor : public UIResourceEditorBase
     };
     
     Type AggregateType;
+    String FileName;
     String Title;
     Meta::ClassInstance MetaObj;
     Meta::ParentWeakReference WeakParent;
@@ -158,24 +189,24 @@ protected:
 public:
     
     // FOR WEAK REF'ED
-    inline UIResourceEditor(EditorUI& ui, Meta::ClassInstance weakRef, Meta::ParentWeakReference p, String t)
-        : UIResourceEditorBase(ui), MetaObj(weakRef), Object{}, Title(t),
+    inline UIResourceEditor(String file, EditorUI& ui, Meta::ClassInstance weakRef, Meta::ParentWeakReference p, String t)
+        : UIResourceEditorBase(ui), MetaObj(weakRef), Object{}, Title(t), FileName(file),
                 AggregateType(Type::WEAK_META), WeakParent{p}, Alive(true) {}
     
     // FOR COMMON TYPE
-    inline UIResourceEditor(EditorUI& ui, Ptr<CommonT> pObj, String t)
-        : UIResourceEditorBase(ui), MetaObj{}, Object(pObj), Title(t),
+    inline UIResourceEditor(String file, EditorUI& ui, Ptr<CommonT> pObj, String t)
+        : UIResourceEditorBase(ui), MetaObj{}, Object(pObj), Title(t), FileName(file),
                 AggregateType(Type::COMMON), WeakParent{}, Alive(true)  {}
 
     // FOR NO DATA, ISOLATED
-    inline UIResourceEditor(EditorUI& ui, String t)
-        : UIResourceEditorBase(ui), MetaObj{}, Object{}, Title(t),
+    inline UIResourceEditor(String file, EditorUI& ui, String t)
+        : UIResourceEditorBase(ui), MetaObj{}, Object{}, Title(t), FileName(file),
         AggregateType(Type::ISOLATED), WeakParent{}, Alive(true) {
     }
 
     // FOR STRONG META INSTANCE
-    inline UIResourceEditor(EditorUI& ui, String t, Meta::ClassInstance strongRef)
-        : UIResourceEditorBase(ui), MetaObj{strongRef}, Object{}, Title(t),
+    inline UIResourceEditor(String file, EditorUI& ui, String t, Meta::ClassInstance strongRef)
+        : UIResourceEditorBase(ui), MetaObj{strongRef}, Object{}, Title(t), FileName(file),
         AggregateType(Type::STRONG_META), WeakParent{}, Alive(true) {
     }
 
@@ -193,6 +224,11 @@ public:
     virtual inline Bool IsAlive() const override
     {
         return Alive;
+    }
+    
+    virtual inline String GetUniqueComparator() const
+    {
+        return FileName;
     }
     
 };
@@ -244,9 +280,9 @@ class UIPropertySet : public UIResourceEditor<>
 public:
     
     // FOR WEAK REF PROP
-    UIPropertySet(EditorUI& ui, String title, Meta::ClassInstance prop, Meta::ParentWeakReference p);
+    UIPropertySet(String propName, EditorUI& ui, String title, Meta::ClassInstance prop, Meta::ParentWeakReference p);
     // FOR STRONG PROP
-    UIPropertySet(EditorUI& ui, String title, Meta::ClassInstance prop);
+    UIPropertySet(String propName, EditorUI& ui, String title, Meta::ClassInstance prop);
     // FOR AGENT
     UIPropertySet(EditorUI& ui, String agent, WeakPtr<ReferenceObjectInterface> scene);
 
@@ -256,6 +292,7 @@ protected:
     
     I32 _RowNum = 0;
     std::set<Symbol> _OpenDrops; // open props
+    std::map<Symbol, std::pair<U32, U32>> _CollectionViewState;
     SymbolTable _HandleTable;
     std::set<Symbol> _UnknownSymbols;
     Meta::ClassInstance _AgentProperties; // actual agent properties name, cached here only while rendering
@@ -267,19 +304,21 @@ protected:
     
     PropGlobalAction _RenderProp(Float& currentY, Float indentX, CString name, CString propName, Meta::ClassInstance prop, String stackPath, Bool bClassProp);
     
-    PropAction _RenderPropItem(Float& currentY, Float indentX, CString name, Meta::ClassInstance value, Bool red, Bool bClassProp, String stackPath, Bool bIsClassMember = false);
+    PropAction _RenderPropItem(Float& currentY, Float indentX, CString name, Meta::ClassInstance value, Bool red, Bool bClassProp, String stackPath, Bool bIsClassMember = false, Bool bIsArrayMember = false);
 
-    PropAction _RenderPropActionContext(const Meta::Class& typeName, const String& keyName, Bool bClassProp);
+    PropAction _RenderPropActionContext(const Meta::Class& typeName, const String& keyName, Bool bClassProp, Bool bCollectionval);
 
     Bool _RenderSinglePropItem(Float& currentY, Float indentX, CString name, Meta::ClassInstance value, String stackPath, Bool bDoRender);
 
-    Bool _RenderDropdownPropItem(Float& currentY, Float indentX, CString name, Meta::ClassInstance value, String stackPath, Bool bDoRender, Bool bClassProp, PropAction& actionOut);
+    Bool _RenderDropdownPropItem(Float& currentY, Float indentX, CString name, Meta::ClassInstance value, String stackPath, Bool bDoRender, Bool bClassProp, PropAction& actionOut, Bool bIsCollection);
 
-    void _RenderClassMembers(Float& currentY, Float indentX, String stackPath, const Meta::Class& cls, Meta::ClassInstance& value, CString memberName, Bool bClassProp, PropAction& actionOut);
+    void _RenderClassMembers(Float& currentY, Float indentX, String stackPath, const Meta::Class& cls, Meta::ClassInstance& value, CString memberName, Bool bClassProp, PropAction& actionOut, Bool bCollection);
 
     Bool _RenderDropdown(Float& currentY, Float indentX, CString name, String stackPath, Bool bClassProp);
     
-    virtual Bool RenderEditor();
+    void _RenderSetCursorForInlineValue(Float indentX, Float currentY);
+    
+    virtual Bool RenderEditor() override;
 
     virtual Bool IsAlive() const override;
 
@@ -288,6 +327,8 @@ protected:
     void _SelectLocalTypeCallback(String localType);
 
     void _AddLocalCallback(String localName);
+    
+    void _AddElementCallback(Meta::ClassInstance newValue, Meta::ClassInstance collection);
 
     Scene* _GetRawScene();
     

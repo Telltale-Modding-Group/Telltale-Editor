@@ -55,7 +55,11 @@ template<SceneModuleType> struct SceneModule;
 
 struct SceneModuleBase
 {
+    
     Ptr<Node> AgentNode;
+    
+    inline void OnSceneChange(Scene* newScene) {} // if any cache the scene weak ptr, change it here
+    
 };
 
 // ========================================= SCENE MODULES =========================================
@@ -130,6 +134,8 @@ template<> struct SceneModule<SceneModuleType::CAMERA> : SceneModuleBase
     void OnSetupAgent(SceneAgent* pAgentGettingCreated);
 
     void OnModuleRemove(SceneAgent* pAttachedAgent);
+    
+    void OnSceneChange(Scene* newScene);
 
 };
 

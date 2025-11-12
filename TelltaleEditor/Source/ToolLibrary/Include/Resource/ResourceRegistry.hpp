@@ -1223,6 +1223,8 @@ private:
     
     Bool _SetupHandleResourceLoad(HandleObjectInfo& hoi, std::unique_lock<std::recursive_mutex>& lck); // performs a resource load. finds and opens stream and sets serialise and normalise flags
     
+    void _InsertSymbolTable(const String& fileName);
+    
     static StringMask _ArchivesMask(Bool bLegacy);
     
     friend U32 luaResourceSetRegister(LuaManager& man); // access allowed

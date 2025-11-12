@@ -5,6 +5,58 @@
 
 DECL_VEC_ADDITION();
 
+// ============ RESOURCE EDITOR BASE
+
+Bool UIResourceEditorBase::SelectionBox(Float xPos, Float yPos, Float xSizePix, Float ySizePix, Bool state)
+{
+    ImVec2 posImage{ xPos, yPos };
+    ImVec2 szImage{ xSizePix, ySizePix };
+    Bool hov = ImGui::IsMouseHoveringRect(ImGui::GetWindowPos() + posImage, ImGui::GetWindowPos() + posImage + szImage, false);
+    if (hov && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        state = !state;
+    if (hov || state)
+    {
+        ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetWindowPos() + posImage, ImGui::GetWindowPos() + posImage + szImage, state ? IM_COL32(85, 197, 209, 100) : IM_COL32(65, 197, 209, 100));
+        ImGui::GetWindowDrawList()->AddRect(ImGui::GetWindowPos() + posImage, ImGui::GetWindowPos() + posImage + szImage, state ? IM_COL32(74, 163, 173, 200) : IM_COL32(54, 163, 173, 200));
+    }
+    return state;
+}
+
+Bool UIResourceEditorBase::ArrowButton(Float xPos, Float yPos, Float xSizePix, Float ySizePix, U32 bgCol)
+{
+    ImVec2 wpos = ImGui::GetWindowPos();
+    ImVec2 posImage{ xPos, yPos };
+    posImage = posImage + wpos;
+    ImVec2 szImage{ xSizePix, ySizePix };
+    Bool clicked = false;
+    Bool hov = ImGui::IsMouseHoveringRect(posImage, posImage + szImage, false);
+    if (hov && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+        clicked = true;
+    ImGui::GetWindowDrawList()->AddRectFilled(posImage, posImage + szImage, bgCol);
+    ImGui::GetWindowDrawList()->AddRect(posImage, posImage + szImage, IM_COL32(200, 200, 200, 255));
+    ImGui::GetWindowDrawList()->AddTriangleFilled(
+                                                  posImage + ImVec2{szImage.x * 0.3f, szImage.y * 0.3f},
+                                                  posImage + ImVec2{szImage.x * 0.5f, szImage.y * 0.6f},
+                                                  posImage + ImVec2{szImage.x * 0.6f, szImage.y * 0.3f},
+                                                  IM_COL32_BLACK);
+    return clicked;
+}
+
+Bool UIResourceEditorBase::ImageButton(CString iconTex, Float xPos, Float yPos, Float xSizePix, Float ySizePix, U32 sc)
+{
+    ImVec2 posImage{ xPos, yPos };
+    ImVec2 szImage{ xSizePix, ySizePix };
+    Bool hov = ImGui::IsMouseHoveringRect(ImGui::GetWindowPos() + posImage, ImGui::GetWindowPos() + posImage + szImage);
+    DrawResourceTexturePixels(iconTex, posImage.x, posImage.y, szImage.x, szImage.y, sc);
+    if (hov && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+    {
+        return true;
+    }
+    return false;
+}
+
+// ============ TEXT FIELD POPUP
+
 #define LINE_HEIGHT 19.0f
 
 Bool TextFieldPopup::Render()
@@ -33,6 +85,61 @@ Bool TextFieldPopup::Render()
     }
     return exit;
 }
+
+// ============ META INSTANCE POPUP
+
+Bool MetaInstanceEditPopup::Render()
+{
+    if(!_Prompt.empty())
+    {
+        ImGui::SetCursorScreenPos(ImGui::GetWindowPos() + ImVec2{ 10.0, 30.f });
+        ImGui::TextUnformatted(_Prompt.c_str());
+    }
+    ImGui::SetCursorScreenPos(ImVec2{ ImGui::GetWindowPos().x + 10.0f, ImGui::GetCursorScreenPos().y });
+    ImGui::PushItemWidth(300.0f);
+    const PropertyRenderInstruction* instruction = PropertyRenderInstructions;
+    if(_Value)
+    {
+        const Meta::Class& valClass = Meta::GetClass(_Value.GetClassID());
+        while(instruction->Name)
+        {
+            if(Symbol(instruction->Name).GetCRC64() == valClass.ToolTypeHash)
+            {
+                PropertyVisualAdapter adapter{};
+                adapter.Flags = PropertyVisualAdapter::NO_REPOSITION;
+                adapter.ClassID = _Value.GetClassID();
+                adapter.RuntimeCache = _Cache;
+                adapter.RenderInstruction = instruction;
+                instruction->Render(_UI, adapter, _Value);
+                _Cache = adapter.RuntimeCache;
+                break;
+            }
+            instruction++;
+        }
+    }
+    Bool ok = true;
+    if(!_Value || instruction->Name == nullptr)
+    {
+        ok = false;
+        ImGui::Text("<ERROR_NO_INSTRUCTION>:%s", _Value?Meta::GetClass(_Value.GetClassID()).Name.c_str():"NULL");
+    }
+    ImGui::PopItemWidth();
+    ImGui::SetCursorScreenPos(ImVec2{ ImGui::GetWindowPos().x + 10.0f, ImGui::GetCursorScreenPos().y });
+    Bool exit = false;
+    if(ok && ImGui::Button("OK"))
+    {
+        _Callback->CallErased(&_Value, 0, &_ValueCollection, 0, 0, 0, 0, 0);
+        exit = true;
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("Cancel"))
+    {
+        exit = true;
+    }
+    return exit;
+}
+
+// ============ RESOURCE PICKER POPUP
 
 void ResourcePickerPopup::_RefreshItems(std::vector<String>& items)
 {
@@ -69,6 +176,8 @@ String ResourcePickerPopup::_GetToolTipText(const String& hoveredItem)
     }
     return "";
 }
+
+// ============ META CLASS PICKER POPUP
 
 void MetaClassPickerPopup::_OnSelect(const String& selectedItem)
 {
@@ -115,6 +224,8 @@ void MetaClassPickerPopup::_RefreshItems(std::vector<String>& values)
     for (const auto& val : classes)
         values.push_back(val);
 }
+
+// ============ ABSTRACT LIST POPUP
 
 Bool AbstractListSelectionPopup::Render()
 {

@@ -10,26 +10,34 @@
 
 void Camera::PushCamera(bool onOff)
 {
-    if(_BPushed != onOff)
+    Scene* pAttach = AttachScene;
+    if(pAttach && _BPushed != onOff)
     {
         if(onOff)
         {
             // push cam to scene
-            AttachScene->_ViewStack.push_back(weak_from_this());
+            pAttach->_ViewStack.push_back(weak_from_this());
         }
         else
         {
             // remove cam
-            for(auto it = AttachScene->_ViewStack.begin(); it != AttachScene->_ViewStack.end(); it++)
+            for(auto it = pAttach->_ViewStack.begin(); it != pAttach->_ViewStack.end(); it++)
             {
                 if(it->lock().get() == this)
                 {
-                    AttachScene->_ViewStack.erase(it);
+                    pAttach->_ViewStack.erase(it);
                     break;
                 }
             }
         }
+        _BPushed = onOff;
     }
+}
+
+void SceneModule<SceneModuleType::CAMERA>::OnSceneChange(Scene* newScene)
+{
+    if(Cam)
+        Cam->AttachScene = newScene;
 }
 
 void SceneModule<SceneModuleType::CAMERA>::OnSetupAgent(SceneAgent* pAgentGettingCreated)
@@ -38,7 +46,6 @@ void SceneModule<SceneModuleType::CAMERA>::OnSetupAgent(SceneAgent* pAgentGettin
     if(!Cam)
     {
         Cam = TTE_NEW_PTR(Camera, MEMORY_TAG_SCENE_DATA);
-        Cam->AttachScene = pAgentGettingCreated->OwningScene;
 
         Meta::ClassInstance props = pAgentGettingCreated->OwningScene->GetAgentProps(pAgentGettingCreated->NameSymbol);
 
@@ -106,6 +113,7 @@ void SceneModule<SceneModuleType::CAMERA>::OnSetupAgent(SceneAgent* pAgentGettin
 
         PropertySet::CallAllCallbacks(props, pAgentGettingCreated->OwningScene->GetRegistry());
     }
+    Cam->AttachScene = pAgentGettingCreated->OwningScene;
 }
 
 void SceneModule<SceneModuleType::CAMERA>::OnModuleRemove(SceneAgent *pAttachedAgent)

@@ -18,7 +18,6 @@ function CSI3_GetGameDescriptor()
 	MetaPushGameCapability(CSI3, kGameCapRawClassNames) -- CHECK OTHER CAPS
 	MetaPushExecutableHash(CSI3, "7D4AD17841DB6DF4", "PC", "") -- T3.MLL
 	MetaPushExecutableHash(CSI3, "F46E4734C4B42DBB", "PS2", "") -- SLUS blah.55
-	MetaRegisterGame(CSI3)
 	return CSI3
 end
 

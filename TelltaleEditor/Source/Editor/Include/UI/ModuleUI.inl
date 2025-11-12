@@ -54,6 +54,8 @@ namespace PropertyRenderFunctions
 
     void RenderPolar(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum);
 
+    void RenderSymbol(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum);
+
     template<U32 N>
     inline void RenderFloatN(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
     {
@@ -100,6 +102,7 @@ PropertyRenderInstructions[] =
     { "String", "kPropRenderString",&PropertyRenderFunctions::RenderString },
     { "Enum", "kPropRenderEnum",&PropertyRenderFunctions::RenderEnum },
     { "Polar", "kPropRenderPolar", &PropertyRenderFunctions::RenderPolar },
+    { "Symbol", "kPropRenderSymbol", &PropertyRenderFunctions::RenderSymbol },
     { 0, 0, 0 }, // null term
 };
 

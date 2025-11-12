@@ -57,10 +57,15 @@ void EditorUI::OnFileClick(const String& resourceLocation)
 {
     if(_TickAsyncLoadingScene())
     {
-        PlatformMessageBoxAndWait("Scene already loading", "There is currently a scene loading! Please wait...");
+        PlatformMessageBoxAndWait("Scene already loading", GetApplication().GetLanguageText("misc.scene_loading"));
     }
     else
     {
+        String fileName = FileGetFilename(resourceLocation);
+        if(GetGameSymbols().FindLocal(fileName).empty())
+        {
+            GetRuntimeSymbols().Register(fileName); // ensure its registered if a new file
+        }
         String ext = ToLower(FileGetExtension(resourceLocation));
         if(ext == "scene")
         {
@@ -84,12 +89,12 @@ void EditorUI::OnFileClick(const String& resourceLocation)
         }
         else if(ext == "prop")
         {
-            String viewTitle = GetApplication().GetLanguageText("misc.inspecting") + " " + FileGetFilename(resourceLocation);
+            String viewTitle = GetApplication().GetLanguageText("misc.inspecting") + " " + fileName;
             DispatchEditor(viewTitle, resourceLocation, [](const LoadInfo& info, EditorUI& ui, Ptr<ResourceRegistry> r)
             {
                 Handle<Placeholder> hProp{};
                 hProp.SetObject(info.Resource);
-                return TTE_NEW_PTR(UIPropertySet, MEMORY_TAG_EDITOR_UI, ui, info.ViewTitle, hProp.GetObject(r, true));
+                return TTE_NEW_PTR(UIPropertySet, MEMORY_TAG_EDITOR_UI, info.Resource, ui, info.ViewTitle, hProp.GetObject(r, true));
             });
         }
         else
@@ -159,6 +164,18 @@ void EditorUI::DispatchEditorImmediate(Ptr<UIResourceEditorBase> allocated)
 {
     if(allocated)
     {
+        Symbol comparator = allocated->GetUniqueComparator(); // cast to symbol, in case
+        if(comparator.GetCRC64())
+        {
+            for(const auto& view: _TransientViews)
+            {
+                if(comparator == view->GetUniqueComparator())
+                {
+                    PlatformMessageBoxAndWait("Error", GetApplication().GetLanguageText("misc.nonunique"));
+                    return;
+                }
+            }
+        }
         _TransientViews.push_back(std::move(allocated));
     }
 }
@@ -186,10 +203,7 @@ void EditorUI::Render()
         if(preloadOffset >= it->PreloadBatch)
         {
             Ptr<UIResourceEditorBase> ui = it->Callback(*it, *this, GetApplication().GetRegistry());
-            if(ui)
-            {
-                _TransientViews.push_back(std::move(ui));
-            }
+            DispatchEditorImmediate(ui);
             it = _AwaitingLoads.erase(it);
         }
         else
@@ -783,6 +797,45 @@ namespace PropertyRenderFunctions
 
         ImGui::Text("!SubPathMemberNotFound!");
         return;
+    }
+
+    void RenderSymbol(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
+    {
+        if((adapter.Flags & PropertyVisualAdapter::NO_REPOSITION) == 0)
+            ImGui::SetCursorPos(ImVec2(8.0f, ImGui::GetCursorPosY()));
+        Symbol* pSymbol = (Symbol*)datum._GetInternal();
+        if(pSymbol->GetCRC64() != 0 && adapter.RuntimeCache.SymbolCache.empty())
+        {
+            adapter.RuntimeCache.SymbolCache = SymbolTable::Find(*pSymbol);
+            if(adapter.RuntimeCache.SymbolCache.empty())
+                adapter.RuntimeCache.SymbolCache = "<ERROR_SYMBOL0>";
+        }
+        if(adapter.RuntimeCache.SymbolCache == "<ERROR_SYMBOL0>" || adapter.RuntimeCache.SymbolCache == "<ERROR_SYMBOL1>")
+        {
+            String hint = SymbolToHexString(*pSymbol);
+            String hintCopy = hint;
+            ImGui::InputText("##Symbol", &hint);
+            if(hint != hintCopy)
+            {
+                if(adapter.RuntimeCache.SymbolCache == "<ERROR_SYMBOL0>")
+                {
+                    PlatformMessageBoxAndWait("Warning", ui.GetLanguageText("misc.warn_symbol"));
+                    adapter.RuntimeCache.SymbolCache = "<ERROR_SYMBOL1>";
+                }
+                else if(adapter.RuntimeCache.SymbolCache == "<ERROR_SYMBOL1>")
+                {
+                    adapter.RuntimeCache.SymbolCache = "";
+                    *pSymbol = Symbol{}; // reset symbol
+                }
+            }
+            
+        }
+        else
+        {
+            ImGui::InputText("##Symbol", &adapter.RuntimeCache.SymbolCache);
+            *pSymbol = adapter.RuntimeCache.SymbolCache;
+        }
+        *pSymbol = adapter.RuntimeCache.SymbolCache;
     }
 
     void RenderPolar(EditorUI& ui, const PropertyVisualAdapter& adapter, const Meta::ClassInstance& datum)
@@ -1398,7 +1451,7 @@ void InspectorView::Render()
                 {
                     if (pNode->AgentName == _EditorUI.GetActiveScene().GetName())
                     {
-                        PlatformMessageBoxAndWait("Cannot delete this agent!", "The scene agent cannot be deleted!");
+                        PlatformMessageBoxAndWait("Cannot delete this agent!", GetApplication().GetLanguageText("misc.scene_agent_delete"));
                     }
                     else
                     {

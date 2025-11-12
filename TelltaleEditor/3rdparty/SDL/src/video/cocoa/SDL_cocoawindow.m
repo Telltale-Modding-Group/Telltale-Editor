@@ -2476,6 +2476,14 @@ bool Cocoa_CreateWindow(SDL_VideoDevice *_this, SDL_Window *window, SDL_Properti
         }
 #endif // SDL_VIDEO_OPENGL_EGL
 #endif // SDL_VIDEO_OPENGL_ES2
+        
+        
+        //nsview.wantsLayer = YES;
+        nsview.layer.cornerRadius = 10.0;
+        nsview.layer.masksToBounds = YES;
+        nswindow.hasShadow = NO;
+        nswindow.backgroundColor = [NSColor clearColor];
+        
         [nswindow setContentView:nsview];
         
         NSWindowCollectionBehavior behavior = [nswindow collectionBehavior];

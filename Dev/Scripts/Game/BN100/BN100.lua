@@ -41,7 +41,6 @@ function Bone1_GetGameDescriptor()
 	MetaPushExecutableHash(bone1, "6D0252245BC3FBA5", "PC", "v2.0_Late")
 	MetaPushExecutableHash(bone1, "2EF5F1B1EC0818C4", "PC", "v2.0_Late")
 	MetaPushExecutableHash(bone1, "DEBD66F6A23807E0", "MacOS", "")
-	MetaRegisterGame(bone1)
 	return bone1
 end
 
@@ -207,6 +206,7 @@ function RegisterBone100(vendor, platform)
 	local setString = { VersionIndex = 0 }
 	setString.Name = "class Set<class String,struct std::less<class String> >"
 	setString.Members = {}
+	setString.Flags = kMetaClassSortedCollection
 	setString.Members[1] =
 	{
 		Name = "Baseclass_ContainerInterface",

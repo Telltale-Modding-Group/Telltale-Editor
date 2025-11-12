@@ -285,9 +285,6 @@ void ApplicationUI::SetCurrentPopup(Ptr<EditorPopup> p, EditorUI& ui)
     {
         _ActivePopup = p;
         _ActivePopup->Editor = &ui;
-        ImGui::PushOverrideID(9991);
-        ImGui::OpenPopup(p->Name.c_str());
-        ImGui::PopID();
     }
     else
     {
@@ -798,6 +795,7 @@ void ApplicationUI::_RenderPopups()
         ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 8.0f);
         ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
         ImGui::PushFont(ImGui::GetFont(), 14.0f);
+        ImGui::OpenPopup(_ActivePopup->Name.c_str());
         if (ImGui::BeginPopupModal(_ActivePopup->Name.c_str(), 0, ImGuiWindowFlags_NoResize))
         {
             if (_ActivePopup->Render())
@@ -815,8 +813,5 @@ void ApplicationUI::_RenderPopups()
     {
         _ActivePopup = std::move(_QueuedPopups.front());
         _QueuedPopups.pop();
-        ImGui::PushOverrideID(9991);
-        ImGui::OpenPopup(_ActivePopup->Name.c_str());
-        ImGui::PopID();
     }
 }

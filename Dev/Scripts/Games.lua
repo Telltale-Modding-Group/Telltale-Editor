@@ -4,9 +4,9 @@ require("ToolLibrary/Game/TX100/TX100.lua")
 require("ToolLibrary/Game/BN100/BN100.lua")
 require("ToolLibrary/Game/CSI/3DOM/CSI3.lua")
 
-TX100_GetGameDescriptor()
-Bone1_GetGameDescriptor()
-CSI3_GetGameDescriptor()
+MetaRegisterGame(TX100_GetGameDescriptor())
+MetaRegisterGame(Bone1_GetGameDescriptor())
+MetaRegisterGame(CSI3_GetGameDescriptor())
 
 -- test for ttarch2. DONT USE yet just for testing and compat.
 --[[

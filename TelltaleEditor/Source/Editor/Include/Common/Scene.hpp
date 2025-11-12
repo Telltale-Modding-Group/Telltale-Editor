@@ -745,6 +745,24 @@ namespace SceneModuleUtil
 
     };
 
+    struct _ModulesUpdateSceneChange
+    {
+
+        Scene& S;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            auto& vec = *const_cast<std::vector<SceneModule<Module>>*>(&S.GetModuleView<Module>());
+            for(auto& mod: vec)
+            {
+                mod.OnSceneChange(&S);
+            }
+            return true;
+        }
+
+    };
+
     struct _ModuleIDCollector
     {
 

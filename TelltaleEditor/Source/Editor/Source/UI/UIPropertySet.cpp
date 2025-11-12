@@ -5,51 +5,22 @@
 
 DECL_VEC_ADDITION();
 
-// BASE IMPL
+// ========= PROPERTY SET UI IMPL
 
-Bool UIResourceEditorBase::SelectionBox(Float xPos, Float yPos, Float xSizePix, Float ySizePix, Bool state)
-{
-    ImVec2 posImage{ xPos, yPos };
-    ImVec2 szImage{ xSizePix, ySizePix };
-    Bool hov = ImGui::IsMouseHoveringRect(ImGui::GetWindowPos() + posImage, ImGui::GetWindowPos() + posImage + szImage);
-    if (hov && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-        state = !state;
-    if (hov || state)
-    {
-        ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetWindowPos() + posImage, ImGui::GetWindowPos() + posImage + szImage, state ? IM_COL32(85, 197, 209, 100) : IM_COL32(65, 197, 209, 100));
-        ImGui::GetWindowDrawList()->AddRect(ImGui::GetWindowPos() + posImage, ImGui::GetWindowPos() + posImage + szImage, state ? IM_COL32(74, 163, 173, 200) : IM_COL32(54, 163, 173, 200));
-    }
-    return state;
-}
-
-Bool UIResourceEditorBase::ImageButton(CString iconTex, Float xPos, Float yPos, Float xSizePix, Float ySizePix, U32 sc)
-{
-    ImVec2 posImage{ xPos, yPos };
-    ImVec2 szImage{ xSizePix, ySizePix };
-    Bool hov = ImGui::IsMouseHoveringRect(ImGui::GetWindowPos() + posImage, ImGui::GetWindowPos() + posImage + szImage);
-    DrawResourceTexturePixels(iconTex, posImage.x, posImage.y, szImage.x, szImage.y, sc);
-    if (hov && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-    {
-        return true;
-    }
-    return false;
-}
-
-// =========
-
-UIPropertySet::UIPropertySet(EditorUI& ui, String title, Meta::ClassInstance prop) : UIResourceEditor<>(ui, title, prop), _HandleTable(true)
+UIPropertySet::UIPropertySet(String propName, EditorUI& ui, String title, Meta::ClassInstance prop) :
+    UIResourceEditor<>(propName, ui, title, prop), _HandleTable(true)
 {
 
 }
 
-UIPropertySet::UIPropertySet(EditorUI& ui, String title, Meta::ClassInstance prop, Meta::ParentWeakReference p)
-    : UIResourceEditor<>(ui, prop, p, title), _HandleTable(true)
+UIPropertySet::UIPropertySet(String propName, EditorUI& ui, String title, Meta::ClassInstance prop, Meta::ParentWeakReference p)
+    : UIResourceEditor<>(propName, ui, prop, p, title), _HandleTable(true)
 {
 
 }
 
-UIPropertySet::UIPropertySet(EditorUI& ui, String agent, WeakPtr<ReferenceObjectInterface> scene) 
-    : UIResourceEditor<>(ui, ui.GetApplication().GetLanguageText("misc.inspecting") + " " + agent), _HandleTable(true)
+UIPropertySet::UIPropertySet(EditorUI& ui, String agent, WeakPtr<ReferenceObjectInterface> scene)
+    : UIResourceEditor<>(agent, ui, ui.GetApplication().GetLanguageText("misc.inspecting") + " " + agent), _HandleTable(true)
 {
     Agent = agent;
     AgentScene = scene;
@@ -200,6 +171,7 @@ Bool UIPropertySet::_RenderSinglePropItem(Float& currentY, Float indentX, CStrin
                 adapter.Flags = PropertyVisualAdapter::NO_REPOSITION;
                 adapter.ClassID = cls.ClassID;
                 adapter.RenderInstruction = Instruction;
+                // TODO ADD CACHE
                 Instruction->Render(_EditorUI, adapter, value);
             }
             return true;
@@ -309,11 +281,11 @@ Bool UIPropertySet::_RenderSinglePropItem(Float& currentY, Float indentX, CStrin
     return false;
 }
 
-void UIPropertySet::_RenderClassMembers(Float& currentY, Float indentX, String stackPath, const Meta::Class& cls, Meta::ClassInstance& value, CString mname, Bool bClassProp, PropAction& actionOut)
+void UIPropertySet::_RenderClassMembers(Float& currentY, Float indentX, String stackPath, const Meta::Class& cls, Meta::ClassInstance& value, CString mname, Bool bClassProp, PropAction& actionOut, Bool bCollection)
 {
     if(_RenderDropdown(currentY, indentX, mname, stackPath, bClassProp))
     {
-        actionOut = _RenderPropActionContext(cls, mname, bClassProp);
+        actionOut = _RenderPropActionContext(cls, mname, bClassProp, bCollection);
         for(const auto& member: cls.Members)
         {
             Meta::ClassInstance memVal = Meta::GetMember(value, member.Name, true);
@@ -322,24 +294,278 @@ void UIPropertySet::_RenderClassMembers(Float& currentY, Float indentX, String s
     }
     else
     {
-        actionOut = _RenderPropActionContext(cls, mname, bClassProp);
+        actionOut = _RenderPropActionContext(cls, mname, bClassProp, bCollection);
     }
 }
 
-Bool UIPropertySet::_RenderDropdownPropItem(Float& currentY, Float indentX, CString name, Meta::ClassInstance value, String stackPath, Bool bDoRender, Bool bClassProp, PropAction& actionOut)
+void UIPropertySet::_AddElementCallback(Meta::ClassInstance newValue, Meta::ClassInstance collectionV)
+{
+    if(newValue && collectionV)
+    {
+        Meta::ClassInstanceCollection& collection = Meta::CastToCollection(collectionV);
+        Bool bKeyed = collection.IsKeyedCollection();
+        U8 Accel[128]{};
+        Bool bNeedCheck = bKeyed || ((Meta::GetClass(collection.GetValueClass()).Flags & Meta::CLASS_COLLECTION_SORTED) != 0);
+        Bool bNeedWarn = false;
+        if(bNeedCheck)
+        {
+            U32 nelem = collection.GetSize();
+            for(U32 i = 0; i < nelem; i++)
+            {
+                Meta::ClassInstance comparand = bKeyed ? collection.GetKey(i) : collection.GetValue(i);
+                if(Meta::PerformEquality(newValue, comparand))
+                {
+                    bNeedWarn = true;
+                    break;
+                }
+            }
+        }
+        if(bNeedWarn)
+        {
+            PlatformMessageBoxAndWait("Warning", GetApplication().GetLanguageText("misc.warn_existing").c_str());
+        }
+        else
+        {
+            if(bKeyed)
+            {
+                collection.Push(newValue, Meta::CreateTemporaryInstance(Accel, 128, collection.GetValueClass()), false, false);
+            }
+            else
+            {
+                // insert at index
+                I32 index = MIN(collection.GetSize(), *(I32*)newValue._GetInternal());
+                collection.Insert({}, Meta::CreateTemporaryInstance(Accel, 128, collection.GetValueClass()), index, false, false);
+            }
+        }
+    }
+}
+
+Bool UIPropertySet::_RenderDropdownPropItem(Float& currentY, Float indentX, CString name, Meta::ClassInstance value, String stackPath, Bool bDoRender, Bool bClassProp, PropAction& actionOut, Bool bCollection)
 {
     const Meta::Class& cls = Meta::GetClass(value.GetClassID());
     if (cls.ToolTypeHash == Symbol("Transform"))
     {
         if (bDoRender && _RenderDropdown(currentY, indentX, name, stackPath + name, bClassProp))
         {
-            actionOut = _RenderPropActionContext(cls, name, bClassProp);
+            actionOut = _RenderPropActionContext(cls, name, bClassProp, bCollection);
             _RenderPropItem(currentY, indentX + INDENT_SPACING, GetApplication().GetLanguageText("misc.trans").c_str(), Meta::GetMember(value, "mTrans", true), false, bClassProp, stackPath + "T", true);
             _RenderPropItem(currentY, indentX + INDENT_SPACING, GetApplication().GetLanguageText("misc.rot").c_str(), Meta::GetMember(value, "mRot", true), false, bClassProp, stackPath + "R", true);
         }
         else if(bDoRender)
         {
-            actionOut = _RenderPropActionContext(cls, name, bClassProp);
+            actionOut = _RenderPropActionContext(cls, name, bClassProp, bCollection);
+        }
+        return true;
+    }
+    
+    if(cls.Flags & Meta::CLASS_CONTAINER)
+    {
+        if(bDoRender)
+        {
+            String myPath = stackPath + name;
+            Bool open = _RenderDropdown(currentY, indentX, name, myPath, bClassProp);
+            actionOut = _RenderPropActionContext(cls, name, bClassProp, bCollection);
+            
+            // COLLECTION STATE
+            Meta::ClassInstanceCollection& collection = Meta::CastToCollection(value);
+            std::pair<U32, U32> myState = std::make_pair(0, MIN(5, collection.GetSize())); // start index, number of elements showing
+            if(_CollectionViewState.find(myPath) != _CollectionViewState.end())
+            {
+                myState = _CollectionViewState.find(myPath)->second;
+            }
+            if(myState.second > collection.GetSize())
+            {
+                myState.second = MIN(5, collection.GetSize());
+            }
+            if(myState.first >= collection.GetSize())
+            {
+                myState.first = 0;
+            }
+            if(myState.second == 0 && collection.GetSize() > 0)
+                myState.second = 1; // when adding items
+            
+            // COLLECTION HEADER
+            ImVec2 wpos = ImGui::GetWindowPos();
+            _RenderSetCursorForInlineValue(indentX, currentY - LINE_HEIGHT);
+            ImVec2 screenPos = ImGui::GetCursorScreenPos();
+            U32 buttonCol = !bClassProp ? IM_COL32(160, 160, 160, 255) : IM_COL32(130, 130, 130, 255);
+            ImGui::SetCursorScreenPos(screenPos);
+            if(ArrowButton(screenPos.x + 2.0f - wpos.x, screenPos.y + 2.0f - wpos.y, 11.0f, 11.0f, buttonCol))
+            {
+                ImGui::OpenPopup("Col0");
+            }
+            if(ImGui::IsPopupOpen("Col0"))
+                ImGui::SetNextWindowPos(screenPos + ImVec2{5.0f, 20.0f});
+            if(ImGui::BeginPopup("Col0", ImGuiWindowFlags_NoTitleBar))
+            {
+                // empty dropdown for now if class prop, will add more in future maybe anyway
+                if(!bClassProp && !collection.IsStaticArray() && ImGui::Button("Add Element"))
+                {
+                    Meta::ClassInstance keyValue{};
+                    
+                    // COLLECTION TYPES: MAP, ARRAY, SET, DEQUE, LIST,
+                    String title = {}, prompt{};
+                    const Meta::Class& colClass = Meta::GetClass(value.GetClassID());
+                    Bool bKeyed = collection.IsKeyedCollection();
+                    Bool bSorted = (colClass.Flags & Meta::CLASS_COLLECTION_SORTED) != 0;
+                    Bool bNeedKeyWindow = false;
+                    if(bKeyed)
+                    {
+                        bNeedKeyWindow = true;
+                        keyValue = Meta::CreateInstance(collection.GetKeyClass());
+                        title = "Map Key";
+                        prompt = "New K value for Map<K,V>";
+                        // Map.
+                    }
+                    else if(bSorted)
+                    {
+                        bNeedKeyWindow = false; // sorted, index is determined by value (when saving prop)
+                    }
+                    else
+                    {
+                        keyValue = Meta::CreateInstance(Meta::FindClass("int", 0));
+                        *(I32*)keyValue._GetInternal() = collection.GetSize();
+                        title = "Insertion Index";
+                        prompt = "Index to insert into collection";
+                        bNeedKeyWindow = true; // user can select index where to insert
+                    }
+                    
+                    if(bNeedKeyWindow)
+                    {
+                        GetApplication().SetCurrentPopup(TTE_NEW_PTR(MetaInstanceEditPopup, MEMORY_TAG_EDITOR_UI, _EditorUI, title,
+                                ALLOCATE_METHOD_CALLBACK_2(this, _AddElementCallback, UIPropertySet,
+                                        Meta::ClassInstance, Meta::ClassInstance), prompt, keyValue, value), _EditorUI);
+                    }
+                    else
+                    {
+                        U8 Accel[128]{};
+                        // add now
+                        collection.PushValue(Meta::CreateTemporaryInstance(Accel, 128, collection.GetValueClass()), false);
+                    }
+                    ImGui::CloseCurrentPopup();
+                }
+                // options
+                ImGui::EndPopup();
+            }
+            screenPos.x += 17.0f;
+            
+            // INFO TEXT
+            ImGui::SetCursorScreenPos(screenPos + ImVec2{0.0f, 4.0f});
+            ImGui::PushFont(ImGui::GetFont(), 10.0f);
+            String showText = "[" + StringFromInteger((I64)collection.GetSize(), 10, false) + (collection.GetSize() == 1 ?
+                            " element] showing " : " elements] showing ") + StringFromInteger((I64)myState.second, 10, false);
+            ImGui::TextUnformatted(showText.c_str());
+            screenPos.x += ImGui::CalcTextSize(showText.c_str()).x + 3.0f;
+            
+            // SHOWING XX
+            if(ArrowButton(screenPos.x + 2.0f - wpos.x, screenPos.y + 2.0f - wpos.y, 11.0f, 11.0f, buttonCol))
+            {
+                ImGui::OpenPopup("Col1");
+            }
+            if(ImGui::IsPopupOpen("Col1"))
+                ImGui::SetNextWindowPos(screenPos + ImVec2{5.0f, 20.0f});
+            if(ImGui::BeginPopup("Col1", ImGuiWindowFlags_NoTitleBar))
+            {
+                U32 remaining = collection.GetSize() - myState.first;
+                if(remaining != 0)
+                {
+                    for(U32 i = 0; i < remaining; i++)
+                    {
+                        String stri = std::to_string(i+1);
+                        if(ImGui::Button(stri.c_str()))
+                        {
+                            myState.second = i+1;
+                            ImGui::CloseCurrentPopup();
+                        }
+                    }
+                }
+                else
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+            screenPos.x += 15.0f;
+            
+            // STARTING AT
+            showText = "starting at: " + StringFromInteger((I64)myState.first, 10, false);
+            ImGui::SetCursorScreenPos(screenPos + ImVec2{5.0f, 4.0f});
+            ImGui::TextUnformatted(showText.c_str());
+            screenPos.x += ImGui::CalcTextSize(showText.c_str()).x + 7.0f;
+            ImGui::PopFont();
+            
+            if(ArrowButton(screenPos.x + 2.0f - wpos.x, screenPos.y + 2.0f - wpos.y, 11.0f, 11.0f, buttonCol))
+            {
+                ImGui::OpenPopup("Col2");
+            }
+            if(ImGui::IsPopupOpen("Col2"))
+                ImGui::SetNextWindowPos(screenPos + ImVec2{5.0f, 20.0f});
+            if(ImGui::BeginPopup("Col2", ImGuiWindowFlags_NoTitleBar))
+            {
+                if(collection.GetSize())
+                {
+                    for(U32 i = 0; i < collection.GetSize(); i++)
+                    {
+                        String stri = std::to_string(i);
+                        if(ImGui::Button(stri.c_str()))
+                        {
+                            ImGui::CloseCurrentPopup();
+                            myState.first = i;
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    ImGui::CloseCurrentPopup();
+                }
+                ImGui::EndPopup();
+            }
+            
+            if(open)
+            {
+                U32 removeindex = collection.GetSize();
+                if(myState.first + myState.second >= collection.GetSize())
+                {
+                    myState.second = MIN(collection.GetSize() - myState.first, 10000000);
+                    if(myState.second == 0)
+                    {
+                        myState.first = myState.second = 0;
+                    }
+                }
+                for(U32 i = myState.first; i < myState.first + myState.second; i++)
+                {
+                    String key{};
+                    if(collection.IsKeyedCollection())
+                    {
+                        Meta::ClassInstance keyi = collection.GetKey(i);
+                        key = Meta::PerformToString(keyi);
+                        if(Meta::Is(keyi, "String") || Meta::Is(keyi, "class String"))
+                        {
+                            key = "\"" + key + "\"";
+                        }
+                    }
+                    else
+                    {
+                        key = std::to_string(i);
+                    }
+                    PropAction action = _RenderPropItem(currentY, indentX + INDENT_SPACING, key.c_str(),
+                                    collection.GetValue(i), false, bClassProp, stackPath + key, false, true);
+                    if(action == PropAction::REMOVE)
+                    {
+                        removeindex = i;
+                    }
+                }
+                if(removeindex != collection.GetSize() && !collection.IsStaticArray())
+                {
+                    Meta::ClassInstance _{};
+                    collection.Pop(removeindex, _, _);
+                }
+            }
+            
+            // save state
+            _CollectionViewState[myPath] = myState;
+            
         }
         return true;
     }
@@ -351,7 +577,7 @@ Bool UIPropertySet::_RenderDropdownPropItem(Float& currentY, Float indentX, CStr
     {
         if(bDoRender)
         {
-            _RenderClassMembers(currentY, indentX, stackPath + name, cls, value, name, bClassProp, actionOut);
+            _RenderClassMembers(currentY, indentX, stackPath + name, cls, value, name, bClassProp, actionOut, bCollection);
         }
         return true;
     }
@@ -360,37 +586,53 @@ Bool UIPropertySet::_RenderDropdownPropItem(Float& currentY, Float indentX, CStr
 
 extern ImGuiContext* GImGui;
 
-PropAction UIPropertySet::_RenderPropActionContext(const Meta::Class& cls, const String& keyName, Bool bClassProp)
+PropAction UIPropertySet::_RenderPropActionContext(const Meta::Class& cls, const String& keyName, Bool bClassProp, Bool bCollectionVal)
 {
     PropAction action = PropAction::NONE;
+    if(bClassProp && bCollectionVal)
+        return action;
     Bool dis = GImGui->DisabledStackSize > 0;
     if (dis)
         ImGui::EndDisabled();
     if(ImGui::BeginPopupContextItem("##propitem", 1, ImGuiHoveredFlags_AllowWhenDisabled))
-    { 
-        String keyFrom = GetApplication().GetLanguageText("misc.keyfrom") +  " " +
-            SymbolTable::Find(PropertySet::GetPropertySetKeyIsIntroducedFrom(_AgentProperties, keyName, GetApplication().GetRegistry()).GetObject());
-        String valueFrom = GetApplication().GetLanguageText("misc.valfrom") + " " +
-            SymbolTable::Find(PropertySet::GetPropertySetValueIsRetrievedFrom(_AgentProperties, keyName, GetApplication().GetRegistry(), true).GetObject());
-        ImGui::TextUnformatted(keyName.c_str());
-        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(150, 150, 150, 255));
-        ImGui::TextUnformatted(cls.Name.c_str());
-        ImGui::PopStyleColor();
-        ImGui::TextUnformatted(keyFrom.c_str());
-        ImGui::TextUnformatted(valueFrom.c_str());
-        ImGui::Separator();
-        if(bClassProp)
+    {
+        if(bCollectionVal)
         {
-            if (ImGui::MenuItem(GetApplication().GetLanguageText("misc.make_local").c_str()))
+            if (ImGui::MenuItem(GetApplication().GetLanguageText("misc.remove_element").c_str()))
             {
-                action = PropAction::MAKE_LOCAL;
+                action = PropAction::REMOVE;
             }
         }
         else
         {
-            if (ImGui::MenuItem(GetApplication().GetLanguageText("misc.remove_local").c_str()))
+            String keyFrom = GetApplication().GetLanguageText("misc.keyfrom") +  " " +
+                SymbolTable::Find(PropertySet::GetPropertySetKeyIsIntroducedFrom(_AgentProperties, keyName, GetApplication().GetRegistry()).GetObject());
+            String valueFrom = GetApplication().GetLanguageText("misc.valfrom") + " " +
+                SymbolTable::Find(PropertySet::GetPropertySetValueIsRetrievedFrom(_AgentProperties, keyName, GetApplication().GetRegistry(), true).GetObject());
+            ImGui::TextUnformatted(keyName.c_str());
+            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(150, 150, 150, 255));
+            ImGui::TextUnformatted(cls.Name.c_str());
+            ImGui::PopStyleColor();
+            ImGui::TextUnformatted(keyFrom.c_str());
+            ImGui::TextUnformatted(valueFrom.c_str());
+            ImGui::Separator();
+            if(bClassProp)
             {
-                action = PropAction::REMOVE;
+                Meta::ClassInstance actualProp = GetMetaObject();
+                if(!actualProp)
+                    actualProp = _GetRawScene()->GetAgentProps(Agent);
+                
+                if (!PropertySet::IsKeyLocal(actualProp, keyName, GetApplication().GetRegistry()) && ImGui::MenuItem(GetApplication().GetLanguageText("misc.make_local").c_str()))
+                {
+                    action = PropAction::MAKE_LOCAL;
+                }
+            }
+            else
+            {
+                if (ImGui::MenuItem(GetApplication().GetLanguageText("misc.remove_local").c_str()))
+                {
+                    action = PropAction::REMOVE;
+                }
             }
         }
         ImGui::EndPopup();
@@ -400,7 +642,12 @@ PropAction UIPropertySet::_RenderPropActionContext(const Meta::Class& cls, const
     return action;
 }
 
-PropAction UIPropertySet::_RenderPropItem(Float& currentY, Float indentX, CString name, Meta::ClassInstance value, Bool red, Bool bClassProp, String stackPath, Bool bIsClassMember)
+void UIPropertySet::_RenderSetCursorForInlineValue(Float indentX, Float currentY)
+{
+    ImGui::SetCursorPos(ImVec2{ MAX(indentX + 10.0f, VALUE_START_X), currentY + 1.0f });
+}
+
+PropAction UIPropertySet::_RenderPropItem(Float& currentY, Float indentX, CString name, Meta::ClassInstance value, Bool red, Bool bClassProp, String stackPath, Bool bIsClassMember, Bool bIsCollectionMem)
 {
     ImVec2 posBase = ImGui::GetWindowPos() + ImVec2{0.0f, currentY - ImGui::GetScrollY()};
     if((_RowNum++) & 1)
@@ -419,7 +666,13 @@ PropAction UIPropertySet::_RenderPropItem(Float& currentY, Float indentX, CStrin
     if (bClassProp)
         ImGui::BeginDisabled();
     PropAction action{};
-    if(bSingle || !(value && _RenderDropdownPropItem(currentY, indentX, name, value, stackPath, true, bClassProp, action)))
+    Bool bHandledByDropdown = !bSingle && value;
+    if(bHandledByDropdown)
+    {
+        _RowNum--;
+        bHandledByDropdown = _RenderDropdownPropItem(currentY, indentX, name, value, stackPath, true, bClassProp, action, false);
+    }
+    if(bSingle || !bHandledByDropdown)
     {
         if (bClassProp)
             ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(50, 200, 20, 255));
@@ -432,8 +685,8 @@ PropAction UIPropertySet::_RenderPropItem(Float& currentY, Float indentX, CStrin
             if (bSingle)
             {
                 if(!bIsClassMember)
-                    action = _RenderPropActionContext(Meta::GetClass(value.GetClassID()), name, bClassProp);
-                ImGui::SetCursorPos(ImVec2{ MAX(indentX + 10.0f, VALUE_START_X), currentY + 1.0f });
+                    action = _RenderPropActionContext(Meta::GetClass(value.GetClassID()), name, bClassProp, bIsCollectionMem);
+                _RenderSetCursorForInlineValue(indentX, currentY);
                 _RenderSinglePropItem(currentY, indentX, name, value, stackPath, true);
             }
             else
@@ -488,7 +741,7 @@ void UIPropertySet::_AddLocalCallback(String localName)
             Meta::ClassInstance value = Meta::CreateInstance(Meta::FindClass(_NewLocalType, 0, false));
             if(value)
             {
-                GetGameSymbols().Register(_NewLocalType);
+                GetRuntimeSymbols().Register(localName);
                 PropertySet::Set(prop, localName, value, GetApplication().GetRegistry(), PropertySet::SetPropertyMode::MOVE); // i think direct isnt needed...
             }
             else
@@ -668,7 +921,7 @@ Bool UIPropertySet::RenderEditor()
             ImVec2 tsize = ImGui::CalcTextSize(text.c_str());
             ImGui::SetCursorScreenPos(ImGui::GetWindowPos() + ImVec2{ 5.0f, currentY + (selHeight - tsize.y) * 0.5f });
             ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 255, 255, 255));
-            ImGui::Text(text.c_str());
+            ImGui::TextUnformatted(text.c_str());
             ImGui::PopStyleColor();
             currentY += selHeight;
         }
