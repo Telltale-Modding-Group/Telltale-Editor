@@ -55,11 +55,11 @@ class LinearHeap
     
     struct Context {
         
-        ObjWrapperBase* _FirstObject, * _LastObject;
-        Page* _Page;
-        U32 _PagePos;
-        U32 _ObjCount;
-        Context* _Next;
+        ObjWrapperBase* _FirstObject = nullptr, * _LastObject = nullptr;
+        Page* _Page = nullptr;;
+        U32 _PagePos = 0;
+        U32 _ObjCount = 0;
+        Context* _Next = nullptr;
         
     };
     

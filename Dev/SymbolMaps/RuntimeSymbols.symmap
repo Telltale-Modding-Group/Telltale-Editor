@@ -1,3 +1,515 @@
+Walk Radius
+NavCam - Mode
+NavCam - Trigger Horizontal Percentage
+NavCam - Trigger Vertical Percentage
+NavCam - Target Agent
+NavCam - Target Offset
+NavCam - Orbit Offset
+NavCam - Orbit Min
+NavCam - Orbit Max
+NavCam - Animation
+NavCam - Animation Time
+NavCam - Dampen
+Trigger Entered Callback
+Trigger Exited Callback
+Trigger Enabled
+Walk Animation - Forward
+Walk Animation - Idle
+Dialog Resource
+Dialog Name
+module_dialog_choice.prop
+Dialog Choice
+Rollover Cursor Props
+Cursor Texture
+Rollover Text
+Rollover Text Color
+Rollover Text Background Color
+Rollover Mesh
+Extents Min
+Extents Max
+Game Selectable
+Light Color
+Light Color Dark
+Light Intensity
+Light Intensity Diffuse
+Light Intensity Specular
+Light Max Distance
+Light Min Distance
+Light Shadow Max Distance
+Light Shadow Distance Falloff
+Light Shadow Cascades
+Light Shadow Bias
+Light Dimmer
+Light Color Correction
+Light Toon Priority
+Light Toon Opacity
+Light Type
+Light Key Light
+Light Groups
+Dynamic on LightMap
+Light Turned On
+Light Wrap Around
+Light Spot Inner Radius
+Light Spot Outer Radius
+Light Spot Texture
+Light Spot Alpha Mode
+Light Spot Alpha
+Light Render Layer
+Light Spot Texture Translate
+Light Spot Texture Scale
+Light Spot Texture Shear
+Light Spot Texture Shear Origin
+Light Spot Texture Rotate
+Light Spot Texture Rotate Origin
+Light Ambient Occlusion
+Light Rim Intensity
+Light Rim Wrap Around
+Light Rim Occlusion
+Cell Blend Mode
+Cell Blend Weight
+Cell 0 Color
+Cell 1 Color
+Cell 2 Color
+Cell 3 Color
+NPR Specular Intensity
+Light Static
+Cell Light Blend Mask
+Ambient Color
+Shadow Color
+Active Camera
+Walk Boxes
+Footstep Walk Boxes
+Scene Render Priority
+Scene Render Layer
+Exclude From Save Games
+Scene Time Scale
+Scene Input Enabled
+Scene Audio: Listener
+Scene Audio: Player Origin
+Scene Audio: Master
+Scene Audio: Snapshot Suite
+Scene Audio: Reverb Definition
+Scene Audio Reverb
+Scene Audio Event Banks
+Scene Preloadable
+Scene Preload Shaders
+After Effects Enabled
+Generate NPR Lines
+NPR Lines Falloff
+NPR Lines Bias
+NPR Lines Alpha Falloff
+NPR Lines Alpha Bias
+Glow Clear Color
+Glow Sigma Scale
+FX anti-aliasing
+FX TAA Weight
+FX Color Enabled
+FX Color Tint
+FX Color Opacity
+FX Noise Scale
+FX Sharp Shadows Enabled
+FX Levels Enabled
+FX Levels Black Point
+FX Levels White Point
+FX Levels Intensity
+FX Levels Black Point HDR
+FX Levels White Point HDR
+FX Levels Intensity HDR
+FX Tonemap Type
+FX Tonemap Enabled
+FX Tonemap DOF Enabled
+FX Tonemap Intensity
+FX Tonemap White Point
+FX Tonemap Black Point
+FX Tonemap Filmic Pivot
+FX Tonemap Filmic Shoulder Intensity
+FX Tonemap Filmic Toe Intensity
+FX Tonemap Filmic Sign
+FX Tonemap Far White Point
+FX Tonemap Far Black Point
+FX Tonemap Far Filmic Pivot
+FX Tonemap Far Filmic Shoulder Intensity
+FX Tonemap Far Filmic Toe Intensity
+FX Tonemap Far Filmic Sign
+FX Tonemap RGB Enabled
+FX Tonemap RGB DOF Enabled
+FX Tonemap RGB Black Points
+FX Tonemap RGB White Points
+FX Tonemap RGB Pivots
+FX Tonemap RGB Shoulder Intensities
+FX Tonemap RGB Toe Intensities
+FX Tonemap RGB Signs
+FX Tonemap RGB Far Black Points
+FX Tonemap RGB Far White Points
+FX Tonemap RGB Far Pivots
+FX Tonemap RGB Far Shoulder Intensities
+FX Tonemap RGB Far Toe Intensities
+FX Tonemap RGB Far Signs
+FX Bloom Threshold
+FX Bloom Intensity
+FX Ambient Occlusion Enabled
+FX Ambient Occlusion Intensity
+FX Ambient Occlusion Falloff
+FX Ambient Occlusion Radius
+FX Ambient Occlusion Lightmap
+FX DOF Enabled
+FX DOF FOV Adjust Enabled
+FX DOF Auto Focus Enabled
+FX DOF Near
+FX DOF Far
+FX DOF Near Falloff
+FX DOF Far Falloff
+FX DOF Near Max
+FX DOF Far Max
+FX DOF Vignette Max
+FX DOF Debug
+FX DOF Coverage Boost
+FX Force Linear Depth Offset
+FX Vignette Tint Enabled
+FX Vignette DOF Enabled
+FX Vignette Tint
+FX Vignette Falloff
+FX Vignette Center
+FX Vignette Corners
+HBAO Enabled
+HBAO Debug
+HBAO Radius
+HBAO Max Radius Percent
+HBAO Hemisphere Bias
+HBAO Intensity
+HBAO Occlusion Scale
+HBAO Luminance Scale
+HBAO Max Distance
+HBAO Distance Falloff
+HBAO Blur Sharpness
+Screen Space Lines - Enabled
+Screen Space Lines - Color
+Screen Space Lines - Thickness
+Screen Space Lines - Depth Fade Near
+Screen Space Lines - Depth Fade Far
+Screen Space Lines - Depth Magnitude
+Screen Space Lines - Depth Exponent
+Screen Space Lines - Light Direction
+Screen Space Lines - Light Magnitude
+Screen Space Lines - Light Exponent
+Screen Space Lines - Debug
+Fog Enabled
+Fog Color
+Fog Alpha
+Fog Near Plane
+Fog Far Plane
+HDR - Paper White Nits
+Graphic Black Threshold
+Graphic Black Softness
+Graphic Black Alpha
+Graphic Black Near
+Graphic Black Far
+Wind Direction
+Wind Speed
+Wind Idle Strength
+Wind Idle Spacial Frequency
+Wind Gust Speed
+Wind Gust Strength
+Wind Gust Spacial Frequency
+Wind Gust Idle Strength Multiplier
+Wind Gust Separation Exponent
+LightEnv Reflection Enabled
+LightEnv Bake Enabled
+LightEnv Reflection Texture
+LightEnv Reflection Intensity
+LightEnv Reflection Tint
+LightEnv Enabled
+LightEnv Probe Data
+LightEnv Intensity
+LightEnv Reflection Intensity Shadow
+LightEnv Saturation
+LightEnv Tint
+LightEnv Background Color
+LightEnv Probe Resolution XZ
+LightEnv Probe Resolution Y
+LightEnv Shadow Moment Bias
+LightEnv Shadow Depth Bias
+LightEnv Shadow Position Offset Bias
+LightEnv Shadow Light Bleed Reduction
+LightEnv Shadow Min Distance
+LightEnv Shadow Max Distance
+LightEnv Dynamic Shadow Max Distance
+LightEnv Shadow Cascade Split Bias
+LightEnv Shadow Auto Depth Bounds
+LightEnv Shadow Max Updates
+Light Shadow Trace Max Distance
+Light Static Shadow Bounds Min
+Light Static Shadow Bounds Max
+EnvLight Shadow Gobo Texture
+FX Brush DOF Enable
+FX Brush Outline Enable
+FX Brush Outline Filter Enable
+FX Brush Outline Size
+FX Brush Outline Threshold
+FX Brush Outline Color Threshold
+FX Brush Outline Falloff
+FX Brush Near Outline Scale
+FX Brush Near Texture
+FX Brush Far Texture
+FX Brush Near Scale
+FX Brush Near Detail
+FX Brush Far Scale
+FX Brush Far Detail
+FX Brush Far Scale Boost
+FX Brush Far Plane
+FX Brush Far Plane Falloff
+FX Brush Far Plane Max Scale
+Frame Buffer Scale Override
+Frame Buffer Scale Factor
+Specular Multiplier Enabled
+Specular Color Multiplier
+Specular Intensity Multiplier
+Specular Exponent Multiplier
+HDR lightmaps Enabled
+HDR lightmaps Intensity
+Camera Cut Position Threshold
+Camera Cut Rotation Threshold
+Viewport Scissor Left
+Viewport Scissor Top
+Viewport Scissor Right
+Viewport Scissor Bottom
+Scene Physics Data
+Scene Exports to Content Scene
+Text Color
+Text Font
+Text Scale
+Non-Proportional Text Scale
+Text Kerning
+Text Leading
+Text Skew
+Text String
+Text Background
+Text Confine
+Text Alignment Horizontal
+Text Alignment Vertical
+Text Shadow Color
+Text Shadow Height
+Text Background Color
+Text Width
+Text Min Width
+Text Min Height
+Text Extrude X
+Text Extrude Y
+Text Offset
+Text Playback Speed
+Text Percent To Display
+Text Max Lines To Display
+Text Render Layer
+Text Dialog File
+Text Dialog Text Resource
+Text Dialog 2.0 File
+Text Dialog 2.0 Node Name
+Text Key Agent Name
+Text Key Name
+Text Key Format String
+Text Reference Screen Size
+Text World Space Z
+Text Alpha Multiply
+Text Background Alpha Multiply
+Skeleton Instance
+Skeleton File
+Skeleton Use Procedural Joint Corners
+Skeleton Leg Width
+Skeleton Arm Width
+Clip Plane - Far
+Clip Plane - Near
+Depth of Field Fall Off - Far
+Depth of Field Fall Off - Near
+Depth of Field - Far
+Depth of Field Max - Far
+Depth of Field Max - Near
+Depth of Field - Near
+Camera Push
+Aspect Ratio
+Field of View
+Field of View Scale
+Camera Blend Enable
+Cull Objects
+Exposure
+Exclude Agents
+Depth Of Field Enabled
+Use High Quality DOF
+Depth Of Field Type
+Depth Of Field Blur Strength
+Depth Of Field Debug
+Depth Of Field Coverage Boost
+Bokeh Pattern Texture
+Bokeh Brightness Delta Threshold
+Bokeh Brightness Threshold
+Bokeh Blur Threshold
+Bokeh Min Size
+Bokeh Max Size
+Use Bokeh
+Bokeh Falloff
+Bokeh Aberration Offsets X
+Bokeh Aberration Offsets Y
+Max Bokeh Buffer Amount
+Exclude from Auto Director
+FX Radial Blur Enabled
+FX Radial Blur Intensity
+FX Radial Blur In Radius
+FX Radial Blur Out Radius
+FX Radial Blur Tint
+FX Radial Blur Tint Intensity
+FX Radial Blur Scale
+FX Motion Blur Enabled
+FX Motion Blur Intensity
+FX Motion Blur Movement Threshold Enabled
+FX Motion Blur Movement Threshold
+FX Motion Blur Rotation Threshold Enabled
+FX Motion Blur Rotation Threshold
+FX Delay Motion Blur
+Audio Listener Override
+Audio Player Origin Override
+Audio Reverb Event Snapshot Override
+Audio Reverb Override
+Render 3D Alpha
+Render Allow NPR Lines
+Render Ambient Occlusion Lightmap
+Render Auto Focus Enable
+Render Axis Scale
+Render Brush Far Detail Bias
+Render Brush Force Enable
+Render Brush Near Detail Bias
+Render Brush Scale
+Render Brush Scale By Vertex
+Camera Facing
+Camera Facing Type
+Cast Shadow
+Cast Shadow As Static
+Render Color Correction
+Render Color Write
+Render Constant Alpha
+D3D Mesh
+D3D Mesh List
+Render Depth Test
+Render Depth Test Function
+Render Depth Write
+Render Depth Write Alpha
+Render Diffuse Color
+Render Disable Light Bake
+Render Emission Color
+Render Force As Alpha
+Render Global Scale
+Render Lighting Groups
+Render Lightmap Scale
+Render LOD Bias
+Render LOD Scale
+Render Mask Test
+Render Mask Write
+Render Material Time
+Render NPR Line Bias
+Render NPR Line Falloff
+Receive Shadows
+Receive Shadows Decal
+Receive Shadows Doublesided
+Render Cull
+Render Layer
+Render Toon Outline
+Render Rim Bump Scale
+Render Scene Enlighten Data
+Render Scene Lightmap Data
+Render Shadow Cast Group
+Render Shadow Receive Group
+Render SS Line Enable
+Render Static
+Render Texture Overrides
+Toon Outline Color
+Render Visible Threshold Scale
+absoluteNode
+relativeNode
+module_scene.prop
+module_animation.prop
+module_logicGroup_logicItem_dlgNode.prop
+module_sound_3d.prop
+module_agent_state.prop
+module_animation_constraints.prop
+module_camera.prop
+module_chorecorder.prop
+module_cin_rigLightRotation.prop
+module_cin_light.prop
+module_cin_lightrig.prop
+module_context_menu.prop
+module_cursor.prop
+module_decal.prop
+module_dialog.prop
+module_enlightenadaptiveprobevolume.prop
+module_enlightenautoprobevolume.prop
+module_enlightencubemap.prop
+module_cubemaptextureenv.prop
+module_enlightenprobevolume.prop
+module_enlighten.prop
+module_enlightensystem.prop
+module_env_lightgroup.prop
+module_env_light.prop
+module_environment.prop
+module_env_tile.prop
+module_footsteps.prop
+module_footsteps2.prop
+module_hls.prop
+module_lightprobe.prop
+module_light.prop
+module_lipsync.prop
+module_lookat_blocking.prop
+module_movieplayer.prop
+module_nav_cam.prop
+module_particleaffector.prop
+module_base_particleemitter.prop
+module_material_particleemitter.prop
+module_particleemitter.prop
+module_path_to.prop
+module_physicsobject.prop
+module_post_effect.prop
+module_renderable.prop
+module_rollover.prop
+module_scene_autofocus.prop
+module_scene_brush.prop
+module_scene_brushoutline.prop
+module_scene_dof.prop
+module_scene_hbao.prop
+module_scene_lightnv.prop
+module_scene_lightenv_advanced.prop
+module_scene_sslines.prop
+module_scene_tonemap.prop
+module_scene_tonemap_rgb.prop
+module_scene_viewport.prop
+module_scene_vignette.prop
+module_selectable.prop
+module_skeleton.prop
+module_sound_ambient_interface.prop
+module_soundevent_emitter.prop
+module_sound_event_preload_interface.prop
+module_sound_listener_interface.prop
+module_sound_music_interface.prop
+module_sound_reverb_interface.prop
+module_sound_sfx_interface.prop
+module_soundsnapshot.prop
+module_style.prop
+module_text.prop
+module_text2.prop
+module_trigger.prop
+module_vfx_group.prop
+module_viewport.prop
+module_voicespeaker.prop
+module_walk_animator.prop
+module_procedural_look_at.prop
+module_style_idle_transitions.prop
+module_inversekinematicsattach.prop
+module_inversekinematics.prop
+module_legacy_material.prop
+module_decal_material.prop
+module_post_material.prop
+module_particle_material.prop
+module_material.prop
+module_particleinversekinematics.prop
+module_sound_3d_params.prop
+module_sound_data.prop
+Runtime: Visible
 Skeleton Instance
 Skeleton File
 Skeleton Use Procedural Joint Corners
@@ -2764,3 +3276,5064 @@ NavCam - Orbit Offset
 NavCam - Mode
 logical://<Data>/prefs_menu.prop
 Prop - Some Value
+uint32
+int
+uint
+int32
+uint64
+int64
+unsigned __int64
+long
+float
+double
+bool
+int8
+uint8
+int16
+uint16
+signed char
+char
+long double
+unsigned char
+unsigned int
+unsigned long
+unsigned short
+short
+wchar_t
+long long
+unsigned long long
+__int64
+Symbol
+class Symbol
+String
+pŒ¥cQ
+ÄK3¡Î
+0MsZ±
+@Ô -Ñ
+†÷•f
+‡Mw∆
+Pfëça
+7]ˇh
+@{◊àß
+P%µ
+class String
+__INTERNAL_BINARY_BUFFER__
+__INTERNAL_DATASTREAM_CACHE__
+class Vector2
+class Vector3
+class Polar
+class Color
+class Rect
+class TRect<float>
+class Quaternion
+class Flags
+class Transform
+class ContainerInterface *
+class Handle<class Animation>
+class Handle<class Chore>
+class Handle<class D3DMesh>
+class Handle<class D3DTexture>
+class Handle<class DialogResource>
+class Handle<class PropertySet>
+class Handle<class AudioData
+class Handle<class Scene>
+class Handle<class Skeleton>
+class Handle<class StyleGuide>
+class Handle<class VoiceData>
+class Handle<class WalkBoxes>
+class Handle<class Font>
+class Handle<class AnimOrChore>
+class List<class Handle<class PropertySet> >
+class PropertySet
+class ActorAgentMapper
+class AnimOrChore
+class BoundingBox
+enum NavCam::Mode
+class Enum<enum NavCam::Mode,1,2>
+struct NavCam::EnumMode
+enum InputCode
+enum InputMapper::EventType
+class InputMapper::EventMapping
+class DCArray<class InputMapper::EventMapping>
+class InputMapper
+class LightType
+class TextAlignmentType
+ScriptEnum:Chore
+ScriptEnum:Cursors
+ScriptEnum:Evidence Comparison
+ScriptEnum:Evidence State
+ScriptEnum:Evidence
+ScriptEnum:EvidenceUpdate
+ScriptEnum:FactLog
+ScriptEnum:Lab Equipment Type
+ScriptEnum:Location
+ScriptEnum:Reconstructions
+ScriptEnum:Suspect
+ScriptEnum:Topics
+ScriptEnum:Trinity Evidence
+ScriptEnum:Trinity Suspect
+ScriptEnum:Victim
+ScriptEnum:View
+ScriptEnum:Warrant
+ScriptEnum:Warrent
+class TRange<float>
+class DCArray<class Handle<class Chore> >
+class DCArray<class Handle<class Animation> >
+class DCArray<class Handle<class AnimOrChore> >
+class DCArray<class AnimOrChore>
+class DCArray<class String>
+enum ActingPalette::ActiveDuring
+struct ActingPalette::EnumActiveDuring
+class ActingPalette
+class DCArray<class ActingPalette>
+class ActingPaletteClass
+struct AudioData::Streamed
+class AudioData
+class AnimationValueInterfaceBase
+class AnimatedValueInterface<bool>
+class AnimatedValueInterface<class Color>
+class AnimatedValueInterface<float>
+class AnimatedValueInterface<class Quaternion>
+class AnimatedValueInterface<class String>
+class AnimatedValueInterface<class Vector3>
+class KeyframedValue<bool>::Sample
+class DCArray<class KeyframedValue<bool>::Sample>
+class AnimatedValueInterface<bool> *
+class KeyframedValue<bool>
+class KeyframedValue<class Color>::Sample
+class DCArray<class KeyframedValue<class Color>::Sample>
+class AnimatedValueInterface<class Color> *
+class KeyframedValue<class Color>
+class KeyframedValue<float>::Sample
+class DCArray<class KeyframedValue<float>::Sample>
+class AnimatedValueInterface<float> *
+class KeyframedValue<float>
+class KeyframedValue<class Quaternion>::Sample
+class DCArray<class KeyframedValue<class Quaternion>::Sample>
+class AnimatedValueInterface<class Quaternion> *
+class KeyframedValue<class Quaternion>
+class KeyframedValue<class String>::Sample
+class DCArray<class KeyframedValue<class String>::Sample>
+class AnimatedValueInterface<class String> *
+class KeyframedValue<class String>
+class KeyframedValue<class Vector3>::Sample
+class DCArray<class KeyframedValue<class Vector3>::Sample>
+class AnimatedValueInterface<class Vector3> *
+class KeyframedValue<class Vector3>
+class Animation
+class Procedural_LookAt_Value
+class Animation *
+class Procedural_LookAt
+class CompressedQuaternionKeys
+class CompressedVector3Keys
+class LanguageResource
+class LanguageResourceProxy
+class Map<int,class LanguageResource,struct std::less<int> >
+class LanguageDatabase
+struct Rule::AgentInfo
+__ArrayRuleAgents
+class Rule
+__ArrayRules
+class Set<class String,struct std::less<class String> >
+class Rules
+class SaveGame::AgentInfo
+class DCArray<class SaveGame::AgentInfo>
+class SaveGame
+class Scene::AgentInfo
+class DCArray<class Scene::AgentInfo>
+class Scene
+class Map<class String,float,struct std::less<class String> >
+class Skeleton::Entry
+class DCArray<class Skeleton::Entry>
+class Skeleton
+class DCArray<class ActingPaletteClass>
+class StyleGuide
+class DArray<bool>
+class DArray<int>
+class DCArray<int>
+class StyleGuideRef
+class DCArray<class StyleGuideRef>
+class VoiceData
+class WalkBoxes::Edge
+class SArray<int,3>
+class SArray<int,4>
+class SArray<float,3>
+class SArray<class WalkBoxes::Edge,3>
+class WalkBoxes::Tri
+class WalkBoxes::Vert
+class WalkBoxes::Quad
+class DCArray<class Vector3>
+class DCArray<class WalkBoxes::Quad>
+class DCArray<class WalkBoxes::Vert>
+class DCArray<class WalkBoxes::Tri>
+class WalkBoxes
+class ChoreAgent::Attachment
+class ChoreAgent
+class ChoreResource::Block
+class DCArray<class ChoreResource::Block>
+enum ChoreResource::AAStatus
+class ChoreResource
+class DCArray<class ChoreAgent>
+class DCArray<class ChoreResource>
+class Chore
+class D3DIndexBuffer
+class D3DMesh::TriangleSet
+class DCArray<class D3DMesh::TriangleSet>
+struct D3DMesh::PaletteEntry
+class DCArray<struct D3DMesh::PaletteEntry>
+class DCArray<class DCArray<struct D3DMesh::PaletteEntry> >
+class D3DVertexBuffer
+class D3DMesh
+class D3DTexture
+struct Font::GlyphInfo
+class DCArray<struct Font::GlyphInfo>
+class DCArray<class D3DTexture>
+class Font
+enum DialogUtils::DialogElemT
+class DialogBase
+class DialogBranch
+class DialogDialog
+class DialogExchange
+class DialogItem
+class DialogLine
+class DialogText
+__DialogDialogArray
+__DialogBranchArray
+__DialogItemArray
+__DialogTextArray
+__DialogExchangeArray
+__DialogLineArray
+class DialogResource
+class DCArray<class Handle<class AudioData> >
+class Map<class String,class String,struct std::less<class String> >
+class DCArray<class HandleLock<class Scene> >
+adv_barrelhavenentrance.prop
+Scene: Attached
+Scene: Start Visibility
+Scene: Transient
+Scene: Attach Agent
+Scene: Attach Node
+Scene: Start Position
+Scene: Start Quaterion
+camera.prop
+light.prop
+sk02_fone.prop
+sk02_phoney.prop
+sk02_smiley.prop
+sk04_granmaben.prop
+sk03_thorn.prop
+sk04_hoodedone.prop
+obj_banjo.prop
+adv_caveprophecy.prop
+adv_caveprophecy_meshesa.prop
+goldnewlines_light_idle.chore
+adv_desert.prop
+TutorialDialog
+TutorialHelp
+TutorialInventory
+TutorialInventoryItem
+TutorialLook
+TutorialMultiDialog
+TutorialTalk
+TutorialUse
+TutorialWalk
+bMapDiscovered
+adv_desert.wbox
+NavCam - Interesting Agents
+nav_desert.chore
+phoney_desert_idle.chore
+Use Direction
+obj_desertrocksmalla.prop
+obj_desertrocksmallb.prop
+obj_mapvalley.prop
+sk13_scorpion.prop
+obj_desertrockbig.prop
+obj_mapvalleyrolled.prop
+obj_cslocustswarmflat.prop
+obj_desertbackground.prop
+obj_canteen.prop
+obj_desertrock.prop
+lookable.prop
+Dialog Item - LookAt
+obj_dollarboneville.prop
+module_null.prop
+obj_bookmobydick.prop
+obj_cigar.prop
+obj_packfoneopen.prop
+Alpha_Level
+boneui.dlg
+bonefont_18.font
+obj_sun.prop
+ui_logo.prop
+empty.wbox
+obj_locustgroupflatside.prop
+ui_text_selectable.prop
+adv_deserttile.prop
+obj_desertrocka.prop
+obj_desertrockf.prop
+obj_desertrockd.prop
+obj_desertrockc.prop
+obj_desertrockb.prop
+obj_desertrockg.prop
+obj_desertrockh.prop
+obj_desertrocki.prop
+obj_desertrocke.prop
+obj_desertrockj.prop
+obj_deserttilec.prop
+obj_deserttileb.prop
+obj_deserttiled.prop
+obj_deserttilea.prop
+obj_torch_glow.prop
+obj_cigarbutt_glow.prop
+obj_torchratcreature.prop
+obj_lighthalo.prop
+Render Vertex Shader
+adv_dragonsstair.prop
+adv_dragonsstair05.wbox
+NavCam - Target Agent Node
+navcam_dragonstair1.chore
+sk02_move_walk_with_torch.chore
+sk02_move_idle_with_torch.chore
+obj_dragonsstair_trigger.prop
+obj_dragonsstair_jump.prop
+dragonstair_rock.prop
+NavCam - Reset on Activate
+NavCam - Home Position
+trigger.prop
+sk05_ratcreature.prop
+sk09_reddragon.prop
+obj_cigarbutt.prop
+obj_dragonsstairbackgroundday.prop
+obj_dragonsstairbackgroundnight.prop
+obj_dragonsstairvalleyvista.prop
+Trigger Target Name
+fx_torchflame.prop
+adv_foresthotsprings.prop
+adv_foresthotsprings.wbox
+cam_foresthotsprings_nav.anm
+obj_turnip.prop
+sk07_ted.prop
+sk03_idle_sit.anm
+obj_spade.prop
+obj_heart.prop
+logical_lookable.prop
+logical_walk_target.prop
+Cursor Type
+obj_lightshaftfronta.prop
+obj_lightshaftfrontb.prop
+obj_lightshaftfrontc.prop
+obj_lightshaftfrontd.prop
+obj_lightshaftmid.prop
+obj_firedragon.prop
+adv_forestriverbank.prop
+TutorialNewScene
+adv_forestriverbank.wbox
+cam_forestriverbank_nav.anm
+sk09_idle_riverbank.anm
+adv_forestriverpossums.prop
+adv_forestriverpossums.wbox
+cam_forestriverpossums_nav.anm
+sk11_possumkid1.prop
+sk11_possumkid2.prop
+sk11_possumkid3.prop
+obj_forestriverpossumshideregion.prop
+logical.prop
+obj_mailboxpossum.prop
+obj_mudpie.prop
+camera_region.prop
+Camera To Switch To
+logical_useable.prop
+adv_forestroad.prop
+sk06_kingdok.prop
+sk05_move_walk.anm
+sk05_move_run.anm
+sk05_ratcreaturelow.skl
+sk05_ratcreaturelow.d3dmesh
+adv_forestroadtile.prop
+obj_ratcreaturegroup.prop
+obj_forestrockgroupa.prop
+obj_foresttreegroupa.prop
+obj_foresttreegroupb.prop
+obj_forestroadtilecenterc.prop
+obj_forestrockgroupc.prop
+obj_forestrockgroupb.prop
+obj_forestrocka.prop
+obj_forestrockb.prop
+obj_forestrockgroupd.prop
+obj_foresttreegroupc.prop
+obj_forestrockc.prop
+obj_forestrockgroupe.prop
+obj_foresttreegroupd.prop
+obj_forestroadtilecentera.prop
+obj_forestbusha.prop
+obj_forestroadtiled.prop
+obj_forestroadtilec.prop
+obj_forestroadtileb.prop
+obj_forestroadtilea.prop
+obj_star.prop
+adv_forestwaterfall.prop
+adv_forestwaterfall_west.wbox
+navcam_forestwaterfall1.chore
+obj_deadtree.prop
+obj_apple.prop
+adv_forestwaterfall_closeup.prop
+obj_forestwaterfallbranch.prop
+obj_forestwaterfallbranchbroken.prop
+obj_forestwaterfallriver.prop
+bFoneCanEscapeRatCreatures
+bLookingAtFone
+obj_cigarbuttwaterfall.prop
+sk08_tedsbigbrother.prop
+Footsteps - Foot Nodes
+sk08_move_stampede.anm
+Footsteps - Volume Adjust
+Footsteps - Sound files
+fs_log_01.aud
+fs_log_03.aud
+fs_log_04.aud
+obj_forestwaterfallappletree.prop
+character.prop
+obj_forestwaterfallriverrockslarge.prop
+obj_applephoney.prop
+obj_applelogical.prop
+object_useable.prop
+adv_forestwaterfall_east.wbox
+navcam_forestwaterfall3.chore
+obj_forestwaterfallriverrock.prop
+cam_forestwaterfall_river.anm
+obj_forestwaterfallriverrocks.prop
+ui_selectable.prop
+fx_popcorn.prop
+adv_granmasexterior.prop
+adv_granmasexterior.wbox
+cam_granmasexterior_nav.anm
+obj_axehandle.prop
+obj_axehead.prop
+obj_doorgranmas.prop
+obj_logpile.prop
+obj_rockgranmas.prop
+obj_treestump.prop
+obj_well.prop
+obj_bucketwithhole.prop
+obj_woodsplita.prop
+obj_woodsplitb.prop
+sk09_idle_well.anm
+obj_axehandletermites.prop
+obj_axeheadtermites.prop
+obj_treestumptermites.prop
+obj_corncob.prop
+obj_corncobburnt.prop
+adv_granmasinterior.prop
+adv_granmasinteriordinner.prop
+sk02_idle_sitdinner.anm
+sk03_idle_sitdinner.anm
+sk04_idle_sitdinner.anm
+sk02_idle_sitdinnerphoney.anm
+obj_dinnercup.prop
+obj_dinnerfork.prop
+obj_dinnerknife.prop
+obj_dinnerdrumstick.prop
+obj_dinnerturnipslicea.prop
+obj_dinnerturnipsliceb.prop
+object.prop
+obj_candle_halo.d3dmesh
+adv_thorndreamscape.prop
+sk10_thornchild.prop
+Selection Color
+ui_menu.prop
+ui_menubackground.prop
+obj_dreamcloud_sprite.d3dmesh
+obj_dream_sprite.d3dmesh
+obj_sprite.d3dmesh
+sk02_move_walk.anm
+sk02_idle.anm
+bonefont_12.font
+ui_inventoryitem.prop
+ui_inventorypackclosed.prop
+ui_inventorypackopenbot.prop
+ui_inventorypackopentop.prop
+ui_options.prop
+ui_exit.prop
+ui_menuitem.prop
+ui_dialogselectionballoon.prop
+Disable Tutorial
+ui_dialogselectionheadhilite.prop
+ui_dialogselectiontexthilite.prop
+ui_dialogselectionhead.prop
+ui_dialogselectiontext.prop
+ui_scroll.prop
+ui_back.prop
+ui_optionsitem.prop
+ui_optionsmeter.prop
+ui_optionstoggletedoff.prop
+ui_optionstoggletedon.prop
+ui_optionstoggletextoff.prop
+ui_optionstoggletexton.prop
+ui_menuitemtitle.prop
+comic_sans_ms_12.font
+ui_menuitemslot.prop
+ui_menuitemsave.prop
+ui_menuitemload.prop
+ui_menuitemback.prop
+comic sans ms_12.font
+ui_menuitemoption.prop
+ui_button.prop
+ui_dialogspeakingballoon.prop
+ui_dialogspeakinghead.prop
+_test.wbox
+cam_desert_nav.anm
+Light Bump Light
+Light Bump Intensity
+ui_icon.prop
+ui_inventoryitem.d3dmesh
+Render Pixel Shader
+ui_inventorypackclosed.d3dmesh
+ui_inventorypackopenbot.d3dmesh
+ui_inventorypackopentop.d3dmesh
+ui_options.d3dmesh
+adv_barrelhavenentrance.d3dmesh
+adv_caveprophecy.d3dmesh
+adv_desert.d3dmesh
+tile01
+tile01_obstacle01
+tile01_obstacle02
+tile02
+tile02_obstacle01
+tile03
+tile03_obstacle01
+tile03_obstacle02
+tile03_obstacle03
+tile03_obstacle04
+tile04
+tile04_obstacle01
+tile04_obstacle02
+tile05
+tile05_obstacle01
+tile05_obstacle02
+tile05_obstacle03
+tile06
+tile06_obstacle01
+tile06_obstacle02
+tile06_obstacle03
+tile07
+tile07_obstacle01
+tile07_obstacle02
+tile07_obstacle03
+tile08
+tile08_obstacle01
+tile08_obstacle02
+tile08_obstacle03
+tile08_obstacle04
+tile08_obstacle05
+tile09
+tile09_obstacle01
+tile10
+tile10_obstacle01
+tile11
+tile11_obstacle01
+tile12
+tile12_obstacle01
+tile12_obstacle02
+tile12_obstacle03
+tile12_obstacle04
+tile12_obstacle05
+tile12_obstacle06
+tile13
+tile13_obstacle01
+tile13_obstacle02
+tile13_obstacle03
+tile14
+tile15
+tile15_obstacle01
+tile15_obstacle02
+tile16
+tile16_obstacle01
+tile16_obstacle02
+tile16_obstacle03
+tile16_obstacle04
+tile01_obstacle01 position
+tile01_obstacle01 rotation
+tile01_obstacle02 position
+tile01_obstacle02 rotation
+tile02_obstacle01 position
+tile02_obstacle01 rotation
+tile03_obstacle01 position
+tile03_obstacle01 rotation
+tile03_obstacle02 position
+tile03_obstacle02 rotation
+tile03_obstacle03 position
+tile03_obstacle03 rotation
+tile03_obstacle04 position
+tile03_obstacle04 rotation
+tile04_obstacle01 position
+tile04_obstacle01 rotation
+tile04_obstacle02 position
+tile04_obstacle02 rotation
+tile05_obstacle01 position
+tile05_obstacle01 rotation
+tile05_obstacle02 position
+tile05_obstacle02 rotation
+tile05_obstacle03 position
+tile05_obstacle03 rotation
+tile06_obstacle01 position
+tile06_obstacle01 rotation
+tile06_obstacle02 position
+tile06_obstacle02 rotation
+tile06_obstacle03 position
+tile06_obstacle03 rotation
+tile07_obstacle01 position
+tile07_obstacle01 rotation
+tile07_obstacle02 position
+tile07_obstacle02 rotation
+tile07_obstacle03 position
+tile07_obstacle03 rotation
+tile08_obstacle01 position
+tile08_obstacle01 rotation
+tile08_obstacle02 position
+tile08_obstacle02 rotation
+tile08_obstacle03 position
+tile08_obstacle03 rotation
+tile08_obstacle04 position
+tile08_obstacle04 rotation
+tile08_obstacle05 position
+tile08_obstacle05 rotation
+tile09_obstacle01 position
+tile09_obstacle01 rotation
+tile10_obstacle01 position
+tile10_obstacle01 rotation
+tile11_obstacle01 position
+tile11_obstacle01 rotation
+tile12_obstacle01 position
+tile12_obstacle01 rotation
+tile12_obstacle02 position
+tile12_obstacle02 rotation
+tile12_obstacle03 position
+tile12_obstacle03 rotation
+tile12_obstacle04 position
+tile12_obstacle04 rotation
+tile12_obstacle05 position
+tile12_obstacle05 rotation
+tile12_obstacle06 position
+tile12_obstacle06 rotation
+tile13_obstacle01 position
+tile13_obstacle01 rotation
+tile13_obstacle02 position
+tile13_obstacle02 rotation
+tile13_obstacle03 position
+tile13_obstacle03 rotation
+tile15_obstacle01 position
+tile15_obstacle01 rotation
+tile15_obstacle02 position
+tile15_obstacle02 rotation
+tile16_obstacle01 position
+tile16_obstacle01 rotation
+tile16_obstacle02 position
+tile16_obstacle02 rotation
+tile16_obstacle03 position
+tile16_obstacle03 rotation
+tile16_obstacle04 position
+tile16_obstacle04 rotation
+adv_dragonsstair.d3dmesh
+adv_foresthotsprings.d3dmesh
+adv_forestriverbank.d3dmesh
+adv_forestriverpossums.d3dmesh
+adv_forestroad.d3dmesh
+tile01_obstacle03
+tile01_obstacle04
+tile01_obstacle05
+tile01_obstacle06
+tile02_obstacle02
+tile02_obstacle03
+tile04_obstacle03
+tile04_obstacle04
+tile04_obstacle05
+tile04_obstacle06
+tile04_obstacle07
+tile05_obstacle04
+tile06_obstacle04
+tile06_obstacle05
+tile07_obstacle04
+tile09_obstacle02
+tile09_obstacle03
+tile09_obstacle04
+tile09_obstacle05
+tile09_obstacle06
+tile09_obstacle07
+tile10_obstacle02
+tile10_obstacle03
+tile01_obstacle03 position
+tile01_obstacle03 rotation
+tile01_obstacle04 position
+tile01_obstacle04 rotation
+tile01_obstacle05 position
+tile01_obstacle05 rotation
+tile01_obstacle06 position
+tile01_obstacle06 rotation
+tile02_obstacle02 position
+tile02_obstacle02 rotation
+tile02_obstacle03 position
+tile02_obstacle03 rotation
+tile04_obstacle03 position
+tile04_obstacle03 rotation
+tile04_obstacle04 position
+tile04_obstacle04 rotation
+tile04_obstacle05 position
+tile04_obstacle05 rotation
+tile04_obstacle06 position
+tile04_obstacle06 rotation
+tile04_obstacle07 position
+tile04_obstacle07 rotation
+tile05_obstacle04 position
+tile05_obstacle04 rotation
+tile06_obstacle04 position
+tile06_obstacle04 rotation
+tile06_obstacle05 position
+tile06_obstacle05 rotation
+tile07_obstacle04 position
+tile07_obstacle04 rotation
+tile09_obstacle02 position
+tile09_obstacle02 rotation
+tile09_obstacle03 position
+tile09_obstacle03 rotation
+tile09_obstacle04 position
+tile09_obstacle04 rotation
+tile09_obstacle05 position
+tile09_obstacle05 rotation
+tile09_obstacle06 position
+tile09_obstacle06 rotation
+tile09_obstacle07 position
+tile09_obstacle07 rotation
+tile10_obstacle02 position
+tile10_obstacle02 rotation
+tile10_obstacle03 position
+tile10_obstacle03 rotation
+adv_forestwaterfall.d3dmesh
+adv_forestwaterfall_closeup.d3dmesh
+adv_granmasexterior.d3dmesh
+adv_granmasinterior.d3dmesh
+adv_granmasinteriordinner.d3dmesh
+adv_thorndreamscape.d3dmesh
+sk02_fone
+sk02_phoney
+sk02_smiley
+sk03_thorn
+sk04_granmaBen
+sk04_hoodedOne
+sk05_ratCreatureBrown
+sk05_ratCreatureGray
+sk05_ratCreaturePurple
+sk06_kingdok
+sk07_ted
+sk08_tedsBigBrother
+sk09_redDragon
+sk10_thornChild
+sk11_possumKid1
+sk11_possumKid2
+sk11_possumKid3
+AG_ArmLeft
+AG_ArmRight
+AG_BodyLower
+AG_BodyUpper
+AG_Brows
+AG_EyeLids
+AG_Eyes
+AG_Face
+AG_FootLeft
+AG_FootRight
+AG_HandLeft
+AG_HandRight
+AG_Head
+AG_LegLeft
+AG_LegRight
+AG_Mouth
+AG_Root
+Item 01
+Item 01 - Properties
+ui_icon_bookmobydick.prop
+ui_icon_money.prop
+bonelogic_dialog.prop
+bonelogic_help.prop
+nPossumsFound
+nTedHop
+nTimesPlayedLocustChase
+nTimesPlayedRatChase
+TutorialExit
+TutorialLocustChase
+TutorialPlayPhoney
+TutorialPlayTed
+bFoundBigBro
+bGotApples
+bGotCornCob
+bGotTurnips
+bGotWater
+bGotWood
+bMapFound
+bPhoneyTalkedToStomach
+bPhoneyWonHideAndSeek
+bPlayedRiverbankRatCreatureCutscene
+bPossumHoldingShovel
+bPossumsDead
+bReturnedWater
+bReturnedWood
+bScorpionReleased
+bStartWithWood
+bStartedWater
+bStartedWood
+bTasksStarted
+bTriedCornWithBucket
+Last Scene
+Last Script
+nFoneSteps
+bAskedWhosThorn
+bDinnerGranma9LikeFairTooAsked
+bDinnerGranmaStartMoreFairAvail
+bDinnerPhoneySurprisedBet
+bDinnerRecentSlaveComment
+bDinnerSurprisedCowRace
+bDinnerThorn2AllOverSaid
+bFixedBucket
+bFoneBeatPossums
+bFoneDinnerTired
+bFoneMentionedDragonsThorn
+bFonePlayedHideNSeek
+bIgnoreLeafOption
+bIgnoreRepeatDirectionOption
+bJustSaidCaterwaulin
+bPhoneyBeatPossums
+bPhoneyDoneWithSpadeQs
+bPhoneyHatesMusic
+bPhoneyJUSTMentionedSpade
+bPhoneyMentionedSpade
+bPhoneyMetTed
+bPhoneyMetThorn
+bPhoneyStartedStory
+bPhoneyTedAskedAboutFone
+bPhoneyTedAskedAboutFood
+bPlayOldGrayMare
+bPossumsToldFoneHowToGetToSprings
+bPossumsWantToPlayWithPhoney
+bSaidGetAwayLine1
+bSaidGetAwayLine2
+bSpadeStolen
+bTalkedAboutLeaf
+bTalkedGitchy
+bTedMentionsThorn
+bTouchedBucket
+HintNumber
+HintStage
+Subtitle Color
+cursor_talk.d3dtx
+fs_grass_01.aud
+fs_grass_02.aud
+fs_grass_03.aud
+fs_grass_04.aud
+Cursor Offset X
+Cursor Offset Y
+Cursor Size
+cursor.prop
+cursor_exitpoint_down.d3dtx
+cursor_exitpoint_left.d3dtx
+cursor_exitpoint_right.d3dtx
+cursor_exitpoint_up.d3dtx
+cursor_jumpfone.d3dtx
+cursor_jumpted.d3dtx
+cursor_jumpted.prop
+cursor_jumptedlong.d3dtx
+cursor_jumptedlong_no.d3dtx
+cursor_jumpted_no.d3dtx
+cursor_look.d3dtx
+cursor_use.d3dtx
+cursor_walk.d3dtx
+fx_popcorn.d3dmesh
+fx_torchflame.d3dmesh
+lightmaptest3.d3dmesh
+useable.prop
+cursor_type.prop
+Cursor Color
+Dialog Branch
+Footsteps - Use Walk Animator
+Footsteps - Max Height
+Footsteps - Min Height
+NavCam - Always Active
+NavCam - Orbit Relative
+NavCam - Dynamic Conversation Reference Agent
+NavCam - Dynamic Conversation Distance
+Max Path Length
+Style Idles On
+Actor Name
+Style Guide
+Style Idle
+Walk Animation - Blend Animations
+Look-at Target Node Name
+Walk Animation - Eyes
+Walk Animation - Idle Face
+Turn Dampen
+Idle Scale Range
+Shadow Properties
+Walk Animation - Animation Set
+Look-at Target Node Offset
+Look-at Target Node Position
+Walk Animator - Walk Boxes
+obj_apple.d3dmesh
+obj_axehandle.d3dmesh
+obj_axehandletermites.d3dmesh
+obj_axehead.d3dmesh
+obj_axeheadtermites.d3dmesh
+obj_banjo.skl
+obj_banjo.d3dmesh
+obj_bookmobydick.skl
+obj_bookmobydick.d3dmesh
+obj_bucketwithhole_idle.anm
+obj_bucketwithhole.skl
+obj_bucketwithhole.d3dmesh
+obj_camera.d3dmesh
+obj_canteen.d3dmesh
+obj_cigar.d3dmesh
+obj_cigarbutt.d3dmesh
+obj_cigar_glow.d3dmesh
+obj_corncob.d3dmesh
+obj_corncobburnt.d3dmesh
+obj_corncobsplit.d3dmesh
+obj_cslocustswarmflat.d3dmesh
+object_lookable.prop
+obj_deadtree.d3dmesh
+obj_desertbackground.d3dmesh
+obj_obstacle.prop
+obj_desertrocka.d3dmesh
+obj_desertrockb.d3dmesh
+obj_desertrockbig.d3dmesh
+obj_desertrockc.d3dmesh
+Agents
+obj_desertrockd.d3dmesh
+obj_desertrocke.d3dmesh
+obj_desertrockf.d3dmesh
+obj_desertrockg.d3dmesh
+obj_desertrockh.d3dmesh
+obj_desertrocki.d3dmesh
+obj_desertrockj.d3dmesh
+obj_desertrocksmall.prop
+obj_desertrocksmalla.d3dmesh
+obj_desertrocksmallb.d3dmesh
+obj_deserttilea.d3dmesh
+obj_deserttileb.d3dmesh
+obj_deserttilec.d3dmesh
+obj_deserttiled.d3dmesh
+obj_dinnercup.d3dmesh
+obj_dinnerdrumstick.d3dmesh
+obj_dinnerfork.d3dmesh
+obj_dinnerknife.d3dmesh
+obj_dinnerturnipslicea.d3dmesh
+obj_dinnerturnipsliceb.d3dmesh
+obj_dollarboneville.skl
+obj_dollarboneville.d3dmesh
+obj_doorgranmas.d3dmesh
+obj_dragonsstairbackgroundday.d3dmesh
+obj_dragonsstairbackgroundnight.d3dmesh
+obj_dragonsstairvalleyvista.d3dmesh
+obj_firedragon.d3dmesh
+obj_forestbusha.d3dmesh
+obj_forestroadtilea.d3dmesh
+obj_forestroadtileb.d3dmesh
+obj_forestroadtilec.d3dmesh
+obj_forestroadtilecentera.d3dmesh
+obj_forestroadtilecenterc.d3dmesh
+obj_forestroadtiled.d3dmesh
+obj_forestrocka.d3dmesh
+obj_forestrockb.d3dmesh
+obj_forestrockc.d3dmesh
+obj_forestrockgroupa.d3dmesh
+obj_forestrockgroupb.d3dmesh
+obj_forestrockgroupc.d3dmesh
+obj_forestrockgroupd.d3dmesh
+obj_forestrockgroupe.d3dmesh
+obj_foresttreegroupa.d3dmesh
+obj_foresttreegroupb.d3dmesh
+obj_foresttreegroupc.d3dmesh
+obj_foresttreegroupd.d3dmesh
+obj_forestwaterfallbranch.skl
+obj_forestwaterfallbranch.d3dmesh
+obj_forestwaterfallbranchbroken.skl
+obj_forestwaterfallbranchbroken.d3dmesh
+obj_forestwaterfallriverrocks.d3dmesh
+obj_forestwaterfallriverrockslarge.d3dmesh
+obj_heart.skl
+obj_heart.d3dmesh
+Halo Size
+obj_lighthalo.d3dmesh
+obj_lightshaftfronta.d3dmesh
+obj_lightshaftfrontb.d3dmesh
+obj_lightshaftfrontc.d3dmesh
+obj_lightshaftfrontd.d3dmesh
+obj_lightshaftmid.d3dmesh
+obj_locustgroupflat.d3dmesh
+obj_locustgroupflatside.d3dmesh
+obj_locustswarm.d3dmesh
+obj_logpile.d3dmesh
+obj_logstanding.d3dmesh
+obj_mailboxpossum_idle.anm
+obj_mailboxpossum.skl
+obj_mailboxpossum.d3dmesh
+obj_mapvalley.skl
+obj_mapvalley.d3dmesh
+obj_mapvalleyrolled.skl
+obj_mapvalleyrolled.d3dmesh
+obj_match.d3dmesh
+obj_matchbook.d3dmesh
+obj_mudpie.d3dmesh
+obj_packfoneopen.skl
+obj_packfoneopen.d3dmesh
+obj_quiche.d3dmesh
+obj_ratcreatureeyes.d3dmesh
+obj_rockgranmas.d3dmesh
+obj_spade.d3dmesh
+obj_star.d3dmesh
+obj_sun.d3dmesh
+obj_torchratcreature.d3dmesh
+obj_treestump.d3dmesh
+obj_treestumptermites.d3dmesh
+obj_turnip.d3dmesh
+obj_woodsplita.d3dmesh
+obj_woodsplitb.d3dmesh
+Volume Ambient
+Volume Music
+Volume Sound
+Volume Voice
+Procedural Look At Base Priority
+Procedural Look Priority Increment
+Validate Voice before Auto-acting
+Validate embedded commands on entry
+Style Guide Preview Agent
+Style Guide Preview Lip Sync
+Auto-acted Animation Fade Time Default
+Auto-acted Animation Post-delay Default
+Auto-acted Animation Pre-delay Default
+Default max delay for first always gesture
+Default max delay for first listening gesture
+Default max delay for first talking gesture
+Default min delay for first always gesture
+Default min delay for first listening gesture
+Default min delay for first talking gesture
+Procedural Look At Fade Time
+Procedural Look At Strength
+Style Idle Transition Time
+SaveGame Slot 1
+SaveGame Slot 2
+SaveGame Slot 3
+SaveGame Slot 4
+SaveGame Slot 5
+SaveGame Slot 6
+SaveGame Slot 7
+SaveGame Slot 8
+Camera Manager Position
+Chooser Position
+Chore Color - Animation
+Chore Color - Chore
+Chore Color - Language
+Chore Color - Sound
+Console Filter
+Console Verbosity
+Console Opened
+Console Last Command
+Console Mask
+Console Text Color - Cache
+Console Text Color - Default
+Console Text Color - File
+Console Text Color - Render
+Console Text Color - Script Error
+Console Text Color - Script Message
+Console Position
+Debugger Recent1
+Debugger Recent2
+Debugger Recent3
+Debugger Recent4
+Debugger Recent5
+Debugger Position
+struct DialogItem::EnumPlaybackMode
+Dialog Script Editor Position
+Dialog Prop Editor Position
+Dialog Tree Editor Position
+Dialog Tracker Position
+Editor Color - Active Item Border
+Editor Color - Controller Active
+Editor Color - Controller Frame
+Editor Color - Controller Inactive
+Editor Color - Controller Invalid
+Editor Color - Key
+Editor Color - Menu Highlight
+Editor Color - Selected Key
+Editor Color - Selection Marquee
+Editor Color - Sheet Button
+Editor Color - Sheet Caption Background
+Editor Color - Sheet Caption Border
+Fullscreen anti-aliasing quality
+Base Texture only
+Force software vertex processing
+Lightmaps only
+Low Quality Render
+Windowed
+Game Window Name
+Background Color
+Fullscreen Size
+Window Size
+Game Window Position
+class MovieCaptureInfo
+Chore Agent Group Filter Includes Nonskeleton
+Enable Subtitles
+ROM Runtime Load
+Actor to Agent Map
+Default Game Logic Properties
+LUA System File
+ROM Error Message
+ROM Error Title
+ROM Pack Subdirectory
+Style Guide Override Map
+Timed Text Min Seconds
+Timed Text Seconds Per Letter
+Open Localizations
+ROM Error Dialog Resource
+Input Tracker Position
+Game Language Database
+Boot Clears Runtime Properties
+Files: *
+Files: aam
+Files: anm
+Files: anm;*.chore
+Files: aud
+Files: chore
+Files: d3dmesh
+Files: d3dtx
+Files: dlg
+Files: font
+Files: imap
+Files: langdb
+Files: langres
+Files: lua
+Files: prop
+Files: rules
+Files: save
+Files: scene
+Files: skl
+Files: style
+Files: vox
+Files: wbox
+Most Recent Chore
+Most Recent Dialog
+Most Recent Input Map
+Most Recent Property Set
+Most Recent Rules
+Most Recent Scene
+Most Recent Script
+Most Recent Style
+Files: recent
+Maya Mouse Sensitivity
+Menu Position
+Outliner Opened
+Outliner Position
+Saved Game Page
+Screen Resolution Index
+Empty Preference
+Enable Rollover Text
+Project Script
+Saved Games
+Project Menu Items
+SQL Port
+SQL Project ID
+SQL Use Only Local Database
+SQL Database Name
+SQL Password
+SQL Server Name
+SQL User Name
+SSH Tunnel Host
+SSH Tunnel Password
+SSH Tunnel Username
+Stats Position
+Tracker Position
+Voice Complexity
+Voice Quality
+sk02.prop
+sk02_fone.skl
+sk02_fone.d3dmesh
+sk02_move_walkangry.anm
+phoney_idle.chore
+sk02_phoney.skl
+sk02_phoney.d3dmesh
+sk02_smiley.skl
+sk02_smiley.d3dmesh
+sk03_move_walk.anm
+sk03_idle.anm
+sk03_thorn.skl
+sk03_thorn.d3dmesh
+sk04_move_walk.anm
+sk04_idle.anm
+sk04.prop
+sk04_granmaben.skl
+sk04_granmaben.d3dmesh
+sk04_hoodedone.skl
+sk04_hoodedone.d3dmesh
+sk05_idle.anm
+sk05_ratcreature.skl
+sk05_ratcreature.d3dmesh
+sk06_idle.anm
+sk06_kingdok.skl
+sk06_kingdok.d3dmesh
+sk07_move_jumpsmall.anm
+sk07_idle.anm
+sk07_ted.skl
+sk07_ted.d3dmesh
+sk08_move_walk.anm
+sk08_idle.anm
+sk08_tedsbigbrother.skl
+sk08_tedsbigbrother.d3dmesh
+sk09_idle.anm
+sk09_reddragon.skl
+sk09_reddragon.d3dmesh
+sk10_idle_nervous.anm
+sk10_thornchild.skl
+sk10_thornchild.d3dmesh
+sk11_move_run.anm
+sk11_idle.anm
+sk11_possumkid.skl
+sk11_possumkid.d3dmesh
+sk11_possumkid.prop
+sk13_move_walk.anm
+sk13_scorpion.skl
+sk13_scorpion.d3dmesh
+ui_back.d3dmesh
+ui_dialogselectionballoon.d3dmesh
+ui_dialogselectionhead.d3dmesh
+ui_dialogselectionheadhilite.d3dmesh
+ui_dialogselectiontexthilite.d3dmesh
+ui_dialogspeakingballoon.d3dmesh
+ui_dialogspeakinghead.d3dmesh
+ui_dialogspeakingtext.d3dmesh
+ui_text.prop
+ui_dialog_box_foreground.prop
+ui_dialog_box_background.prop
+ui_dialog_box_text.prop
+ui_dialog_box_button.prop
+ui_icon_inventory.prop
+Cursor Highlight Texture
+ui_icon_apple3active.d3dtx
+ui_icon_apple3.d3dtx
+ui_icon_axeheadactive.d3dtx
+ui_icon_axehead.d3dtx
+ui_icon_bookmobydickactive.d3dtx
+ui_icon_bookmobydick.d3dtx
+ui_icon_bucketcorncobactive.d3dtx
+ui_icon_bucketcorncob.d3dtx
+ui_icon_bucketwateractive.d3dtx
+ui_icon_bucketwater.d3dtx
+ui_icon_cigarbuttactive.d3dtx
+ui_icon_cigarbutt.d3dtx
+ui_icon_cigarbuttsactive.d3dtx
+ui_icon_cigarbutts.d3dtx
+ui_icon_corncobactive.d3dtx
+ui_icon_corncob.d3dtx
+ui_icon_corncobburntactive.d3dtx
+ui_icon_corncobburnt.d3dtx
+ui_icon_dollaractive.d3dtx
+ui_icon_dollar.d3dtx
+default.d3dtx
+ui_icon_mapvalleyactive.d3dtx
+ui_icon_mapvalley.d3dtx
+ui_icon_matchesactive.d3dtx
+ui_icon_matches.d3dtx
+ui_icon_moneyactive.d3dtx
+ui_icon_money.d3dtx
+ui_icon_rockactive.d3dtx
+ui_icon_rock.d3dtx
+ui_icon_spadeactive.d3dtx
+ui_icon_spade.d3dtx
+ui_icon_turnipactive.d3dtx
+ui_icon_turnip.d3dtx
+ui_icon_woodactive.d3dtx
+ui_icon_wood.d3dtx
+ui_logo.d3dmesh
+ui_menu.d3dmesh
+ui_menubackground.d3dmesh
+bonefont_2_18.font
+ui_optionsitem.d3dmesh
+ui_optionsmeter.d3dmesh
+ui_optionstoggletedoff.d3dmesh
+ui_optionstoggletedon.d3dmesh
+ui_optionstoggletextoff.d3dmesh
+ui_optionstoggletexton.d3dmesh
+ui_scroll.skl
+ui_scroll.d3dmesh
+Bigbro
+Creature 1
+Creature 2
+Dragon
+Fone
+Gran'ma
+Hooded One
+Kingdok
+Phoney
+Possum 1
+Possum 2
+Possum 3
+Smiley
+Stomach
+Ted
+Thorn
+Villager1
+Villager2
+Villager3
+class HandleBase
+5136512.langres
+5133824.langres
+sk11_gesture_raisehands.anm
+sk11_gesture_nodno.anm
+sk02_idle_leaning.anm
+Use Private Node
+Host Agent Node
+Target Agent
+Target Agent Node
+Max Down Angle
+Max Left/Right Angle
+Max Up Angle
+Target Agent Node Offset
+5281408.langres
+phoney_face_surprise.anm
+phoney_face_blink.anm
+5342336.langres
+5342464.langres
+granma_dinner_gesture_nodyes.chore
+thorn_dinner_gesture_nodyes.chore
+thorn_face_sitdinner_hairrightlift.anm
+sk02_idle_armsback.anm
+sk02_action_pickup.anm
+fol_bone_fall.vox
+fol_bodyfall_dirt_01.vox
+5075968.langres
+5242496.langres
+sk02_action_pullmap.anm
+itm_map_grab.aud
+itm_map_pickup.aud
+crit_scorpion_01.vox
+5207552.vox
+sk02_idle_armsfolded.anm
+6067968.langres
+6071552.langres
+sk02_action_playsitbanjo.chore
+phoney_face_angry.anm
+sk02_action_scream.anm
+sk02_gesture_nodno.anm
+phoney_gesture_frustrated.chore
+6374784.langres
+banjo_oldgraymare.aud
+banjo_pickup.aud
+banjo_putdown.aud
+6068224.langres
+6067712.langres
+6071680.langres
+sk02_gesture_handsup.anm
+sk02_gesture_point.anm
+phoney_face_sad.anm
+6363392.langres
+6067456.langres
+5379968.langres
+5065216.langres
+sk02_gesture_raisehands.anm
+fone_dinner_elbows_long.chore
+fone_dinner_elbows_med.chore
+sk02_gesture_sitdinner_elbowontable.anm
+sk02_gesture_sitdinner_usecup.chore
+sk02_gesture_sitdinner_usefork.chore
+granma_dinner_table_rest_long.chore
+granma_dinner_table_rest_med.chore
+sk04_gesture_sitdinner_usecup.chore
+sk04_gesture_sitdinner_useforkknife.chore
+phoney_dinner_elbow_long.chore
+phoney_dinner_elbow_med.chore
+sk02_action_usecupphoney.chore
+sk02_action_useforkphoney.chore
+sk03_gesture_sitdinner_handsdown.anm
+thorn_dinner_hands_down_med.chore
+thorn_dinner_hands_down_long.chore
+sk03_gesture_sitdinner_useknife.chore
+sk03_gesture_sitdinner_usecup.chore
+thorn_face_sitdinner_hairleftlift.anm
+sk09_idle_sleep.anm
+sk11_gesture_nodyes.anm
+sk11_action_mudpie.anm
+bg_forestriverpossums_idletalk.chore
+sk11_idle_discoveredmailbox.anm
+sk11_idle_lookaround.anm
+sk11_gesture_rubchin.anm
+possumkid_face_blink.anm
+sk11_gesture_giggle.anm
+sk11_gesture_laugh.anm
+5140096.langres
+sk11_gesture_shrug.anm
+sk11_gesture_point.anm
+sk11_action_playdead.anm
+sk11_idle_playdead.anm
+sk11_action_getup.anm
+possumkid_face_surprised.anm
+phoney_face_necklinelower.anm
+bg_forestriverpossums_phoneywaiting.chore
+sk07_gesture_express.anm
+sk08_gesture_nodyes.anm
+imp_tree_falls.aud
+imp_bigbro_tree.aud
+sk02_action_surprise.anm
+phoney_face_default.anm
+5384448.langres
+sk08_idle_madhop.anm
+tedsbigbrother_face_angry.anm
+tedsbigbrother_face_blink.anm
+tedsbigbrother_face_default.anm
+sk08_action_startstampede.anm
+sk02_idle_armsclenched.anm
+sk08_move_stop.anm
+sk02_action_dive.anm
+fol_phoneyfall.vox
+sk02_action_dodge.anm
+sk08_idle_knockedout.anm
+sk02_idle_nervous.anm
+sk08_action_hit.anm
+imp_bigbro_rock_02.vox
+bodyfall_bigbro.vox
+obj_star_knockout.chore
+fol_bigbrogallop.vox
+sk02_move_backup.anm
+sk02_gesture_handships.anm
+sk08_gesture_nodno.anm
+6372096.langres
+imp_fone_02.vox
+imp_apple_fall.vox
+6100480.langres
+sk02_action_hitphoney.anm
+fol_bushes5.vox
+itm_rock_pickup.aud
+cam_desert_openingpan.anm
+cam_forestwaterfall_pandown.anm
+credits_scroll.chore
+credits_scroll2.chore
+cs_barrelhavenreunion_sk02_smiley.anm
+cs_barrelhavenreunion_sk03_thorn.anm
+cs_barrelhavenreunion_sk02_phoney.anm
+cs_barrelhavenreunion_obj_banjo.anm
+cs_barrelhavenreunion_sk04_hoodedone.anm
+cs_barrelhavenreunion_sk02_fone.anm
+cs_barrelhavenreunion_cam_cutscene.anm
+cs_barrelhavenreunion_sk04_granmaben.anm
+5424768.langres
+5424896.langres
+5425024.langres
+5425152.langres
+5425280.langres
+5425408.langres
+5425536.langres
+5425664.langres
+cs_barrelhaven_reunion.aud
+mus_banjo_idle_08.aud
+27545600.langres
+39281152.langres
+39281408.langres
+39276928.langres
+25486848.langres
+cs_granmadragon_sk05_ratcreature1.anm
+cs_granmadragon_sk05_ratcreature3.anm
+cs_granmadragon_sk05_ratcreature4.anm
+cs_granmadragon_sk09_reddragon.anm
+cs_granmadragon_sk05_ratcreature2.anm
+cs_granmadragon_sk03_thorn.anm
+cs_granmadragon_sk02_fone.anm
+cs_granmadragon_sk07_ted.anm
+cs_granmadragon_sk04_granmaben.anm
+cs_granmadragon_cam_cutscene.anm
+obj_firedragon_breathe.anm
+5423232.langres
+5423360.langres
+5423488.langres
+5423616.langres
+5423744.langres
+5423872.langres
+5424000.langres
+5424128.langres
+6081280.langres
+6081408.langres
+6081536.langres
+6110464.langres
+6081664.langres
+dragon_fire.vox
+ratstampede_short.vox
+fone_creepfs_02.vox
+fone_creepfs_03.vox
+fol_bone_jump.vox
+leaves_rustlin2.vox
+leaves_rustlin3.vox
+leaves_rustlin.vox
+mus_cs_grandmadragon.aud
+39275008.langres
+39278976.langres
+sk02_gesture_shrug.anm
+sk04_gesture_nodno.anm
+granmaben_face_angry.anm
+fx_firedragon.d3dtx
+cs_introthorn_cam_cutscene.anm
+cs_introthorn_sk03_thorn.anm
+cs_introthorn_sk02_fone.anm
+cs_introthorn_obj_hearta.anm
+cs_introthorn_obj_heartb.anm
+cs_introthorn_obj_heartc.anm
+cs_introthorn_obj_bookmobydick.anm
+cs_introthorn_obj_mapvalley.anm
+5415552.langres
+fs_grass_03_longer.aud
+fs_grass_04_longer.aud
+small_pop_high.vox
+small_pop_low.vox
+small_pop_middle.vox
+water_spash_large.vox
+cs_locusts_sk02_fone.anm
+cs_locusts_sk02_phoney.anm
+cs_locusts_sk02_smiley.anm
+cs_locusts_obj_mapvalley.anm
+cs_locusts_obj_dollarboneville.anm
+cs_locusts_cam_cutscene.anm
+5066752.langres
+5066880.langres
+5411840.langres
+5411968.langres
+5412096.langres
+5412224.langres
+5412352.langres
+crit_locust_near.aud
+crit_locust_far.aud
+fone_scream.vox
+cs_locusts_arrive.aud
+6347776.langres
+cs_openingdesert_cam_cutscene.anm
+cs_openingdesert_sk02_fone.anm
+cs_openingdesert_sk02_phoney.anm
+cs_openingdesert_sk02_smiley.anm
+cs_openingdesert_obj_cigar.anm
+cs_openingdesert_obj_packfoneopen.anm
+cs_stupidstupidratcreatures_cam_cutscene.anm
+cs_stupidstupidratcreatures_obj_forestwaterfallbranch.anm
+cs_stupidstupidratcreatures_obj_forestwaterfallbranchbroken.anm
+cs_stupidstupidratcreatures_sk02_fone.anm
+cs_stupidstupidratcreatures_sk05_ratcreature1.anm
+cs_stupidstupidratcreatures_sk05_ratcreature2.anm
+5414272.langres
+5414400.langres
+5414528.langres
+ratattack6.vox
+ratattack4.vox
+wood_creak.vox
+wood_splinter.vox
+branch_snap.vox
+bodyfall_bigbro_dirt.aud
+whoosh_land_branch_light.vox
+whoosh_land_branch_heavy.vox
+ratattack1.vox
+ratattack5.vox
+imp_fone_tree.aud
+rock_crumble.vox
+rat_creature_ow.vox
+rat_creature_leggo.vox
+rat_creature_hiss.vox
+cs_stupid_rat_creatures.aud
+39223424.langres
+ted_introbigbrother2_e1_4.chore
+ted_introbigbrother3_e1_5.chore
+5417344.langres
+5417472.langres
+5417600.langres
+6064768.langres
+6064896.langres
+6065024.langres
+6065152.langres
+6065280.langres
+6065408.langres
+6065536.langres
+6065664.langres
+6065792.langres
+6065920.langres
+sk02_gesture_plead.anm
+sk02_gesture_nodyes.anm
+thorn_face_blink.anm
+sk03_idle_armscrossed.anm
+sk02_gesture_take.anm
+sk04_gesture_handships.anm
+sk03_gesture_nodquick.anm
+thorn_face_sad.anm
+thorn_face_happy.anm
+sk04_gesture_nodquick.anm
+thorn_face_surprise.anm
+thorn_face_angry.anm
+fone_face_happy.anm
+sk02_action_dustoff.anm
+sk02_action_punchedphoney.anm
+sk02_idle_sitonground.anm
+sk03_gesture_handships.anm
+sk02_gesture_pointangry.anm
+fol_punchface_02.vox
+fone_brushoff_01.vox
+fone_brushoff_02.vox
+thorn_face_hairliftpose.anm
+fone_face_blink.anm
+sk02_action_openingshot.anm
+sk02_move_jump.anm
+6073600.langres
+5415808.langres
+5415936.langres
+5416064.langres
+5416192.langres
+5416320.langres
+5416448.langres
+5416576.langres
+sk03_action_grabmap.anm
+sk03_action_bringupmap.chore
+sk03_action_mapeyedarts.anm
+sk03_idle_map.chore
+sk03_gesture_shrug.anm
+thorn_face_confused.anm
+sk03_gesture_nodno.anm
+thorn_face_eyesright.anm
+thorn_face_eyesdown.anm
+thorn_face_eyesup.anm
+sk03_gesture_nodyes.anm
+obj_mapvalley_idleneutral.anm
+sk02_action_endlocustchase.anm
+csb_endlocustchase_locusts.chore
+6390528.langres
+sk02_action_endlocustchasedemo.anm
+sk02_idle_demo.anm
+obj_locustgroupflatside.d3dtx
+5342208.langres
+obj_applea_fall.anm
+obj_appleb_fall.anm
+obj_applec_fall.anm
+imp_apple_fall.aud
+sk07_action_jumpbig.anm
+5270016.langres
+sk03_action_wakeup.anm
+5421440.langres
+5421568.langres
+5421696.langres
+5422592.langres
+sk03_gesture_raisehands.anm
+5422720.langres
+5422848.langres
+5421952.langres
+5422080.langres
+sk04_gesture_rubchin.anm
+sk04_gesture_raisehands.anm
+5422208.langres
+5422336.langres
+5422976.langres
+sk03_move_run.anm
+sk02_move_run.anm
+5422464.langres
+sk04_gesture_nodyes.anm
+sk03_action_getupbed.anm
+sk04_gesture_bob.anm
+thorn_face_eyesleft.anm
+amb_ratattack.aud
+39254912.langres
+sk02_move_turnright.anm
+sk02_move_turnleft.anm
+5414656.langres
+5414784.langres
+5414912.langres
+5415040.langres
+5415168.langres
+5415296.langres
+sk05_action_leanback.anm
+sk05_action_surprise.anm
+sk05_gesture_rubchin.anm
+sk09_gesture_shrug.anm
+sk05_gesture_nodyes.anm
+sk05_idle_shift.anm
+fol_ratsrunoff.vox
+reddragon_face_eyesright.anm
+reddragon_face_blink.anm
+sk02_idle_sleep.anm
+sk05_idle_holdtorch.anm
+5412480.langres
+5412608.langres
+5412736.langres
+5412992.langres
+sk05_action_droptorch.anm
+5413120.langres
+ratcreature_face_default.anm
+5412864.langres
+sk09_action_introdragonstair.anm
+dragon_enterscene.vox
+fol_lighttorch.vox
+39220480.langres
+fone_face_default.anm
+sk02_action_treefall.anm
+sk02_action_lookback.anm
+sk02_gesture_fedup.anm
+fone_face_angry.anm
+sk02_gesture_slaphead.anm
+sk07_action_excite.anm
+5416832.langres
+5416960.langres
+5417088.langres
+sk07_gesture_nod.anm
+5417216.langres
+5416704.langres
+sk02_gesture_self.anm
+sk02_gesture_punchpalm.anm
+fist_hithand.aud
+ted_jumpshort_03.vox
+ted_jumpshort_06.vox
+ted_jumplong_01.vox
+sk07_action_jumpsmall.anm
+sk02_gesture_thinking.anm
+5038208.langres
+6359040.langres
+sk02_action_slide.anm
+fone_slopeslide.vox
+fone_slopefs_01.vox
+fone_slopefs_02.vox
+fone_slopefs_03.vox
+5419904.langres
+5420032.langres
+5420160.langres
+5420288.langres
+5420416.langres
+5420544.langres
+5420672.langres
+5420800.langres
+5420928.langres
+5421056.langres
+5421184.langres
+sk06_gesture_point.anm
+sk06_gesture_nodyes.anm
+sk06_gesture_nodquick.anm
+sk06_gesture_nodno.anm
+sk06_gesture_raisehands.anm
+ratcreature_face_happy.anm
+sk11_gesture_clap.anm
+5133568.langres
+possumkid_face_happy.anm
+sk02_gesture_bob.anm
+6075904.langres
+5081856.langres
+5080192.langres
+5080960.langres
+5081088.langres
+5081216.langres
+5081344.langres
+5081472.langres
+5081600.langres
+phoney_face_confused.anm
+5080064.langres
+5080320.langres
+5080448.langres
+5080576.langres
+5080704.langres
+5080832.langres
+sk02_idle_shift.anm
+sk02_action_scare.anm
+sk02_gesture_pointdown.anm
+5081728.langres
+5084800.langres
+6068352.langres
+6072576.langres
+sk02_action_showdollar.chore
+sk02_action_showdollar.anm
+dollar_show.vox
+sk02_action_grabdollar.anm
+5066240.langres
+5245440.langres
+sk02_gesture_shakefist.anm
+5245952.langres
+5073280.langres
+5073408.langres
+5067392.langres
+5078144.langres
+5078400.langres
+5157888.langres
+5070976.langres
+5078272.langres
+5078528.langres
+6066048.langres
+5067264.langres
+5073920.langres
+5074048.langres
+5074176.langres
+sk02_action_playbanjo.anm
+5071104.langres
+5071488.langres
+5071616.langres
+sk02_gesture_sitleanforward.chore
+sk02_gesture_pointright.anm
+6066176.langres
+6063616.langres
+5075072.langres
+5071232.langres
+5071360.langres
+smiley_face_surprise.anm
+6066304.langres
+5075200.langres
+5075328.langres
+5075456.langres
+phoney_gesture_vane.chore
+5072384.langres
+5072512.langres
+5073792.langres
+6063872.langres
+6064000.langres
+6073088.langres
+6073216.langres
+6073344.langres
+6073472.langres
+5078912.langres
+5079424.langres
+phoney_face_happy.anm
+sk02_action_sitwavemap.chore
+5079808.langres
+6347264.langres
+6347392.langres
+6358784.langres
+6358656.langres
+6358528.langres
+6067200.langres
+6067328.langres
+bg_desert_smileybanjo_shellbecomin.chore
+5065984.langres
+6066816.langres
+6067584.langres
+bg_desert_smileybanjo_pickin.chore
+5078656.langres
+5079168.langres
+5079552.langres
+5236096.langres
+6066944.langres
+6067840.langres
+bg_desert_smileybanjo_camptownraces.chore
+6067072.langres
+6068096.langres
+5078784.langres
+5079296.langres
+5082624.langres
+5083136.langres
+5242624.langres
+5081984.langres
+5082368.langres
+6072704.langres
+5079936.langres
+5065856.langres
+5075584.langres
+5075712.langres
+6064640.langres
+5075840.langres
+5077120.langres
+5082752.langres
+5083264.langres
+5082496.langres
+5083008.langres
+6363008.langres
+5032704.langres
+5032832.langres
+5032960.langres
+fone_face_surprise.anm
+5038592.langres
+5038720.langres
+5038848.langres
+6352128.langres
+5036288.langres
+5037568.langres
+5037696.langres
+5037824.langres
+fone_face_confused.anm
+5036928.langres
+5038336.langres
+5039104.langres
+5033472.langres
+5033600.langres
+5035904.langres
+5035264.langres
+5036800.langres
+5036416.langres
+5037952.langres
+5038080.langres
+5037056.langres
+5038464.langres
+5039232.langres
+5033984.langres
+5034112.langres
+5034240.langres
+5033856.langres
+5036160.langres
+5035520.langres
+5037184.langres
+5036544.langres
+5038976.langres
+5310208.langres
+5033728.langres
+5035392.langres
+5037312.langres
+5039488.langres
+5034496.langres
+5035648.langres
+5037440.langres
+5088512.langres
+5039616.langres
+5034624.langres
+5034752.langres
+5034880.langres
+5039872.langres
+5035008.langres
+5039744.langres
+5035136.langres
+5035776.langres
+5090176.langres
+5090304.langres
+5090432.langres
+5090560.langres
+5090688.langres
+5087360.langres
+5087488.langres
+5090816.langres
+5090944.langres
+5087616.langres
+5087744.langres
+5087872.langres
+5088000.langres
+5088128.langres
+5088256.langres
+5088384.langres
+sk08_gesture_nodquick.anm
+5091072.langres
+5091200.langres
+5091328.langres
+5091456.langres
+5088640.langres
+5429504.langres
+5088768.langres
+5088896.langres
+5089024.langres
+5089152.langres
+5089280.langres
+5089408.langres
+5089536.langres
+5089664.langres
+5091584.langres
+5091712.langres
+5091840.langres
+39221632.langres
+39221760.langres
+sk08_action_antennaetwitch.anm
+5089792.langres
+5089920.langres
+5090048.langres
+5052928.langres
+5059456.langres
+5053696.langres
+5059328.langres
+5061120.langres
+5042816.langres
+5042944.langres
+5043072.langres
+5043200.langres
+sk05_gesture_shrug.anm
+forestwaterfall_escapeattempt.chore
+rat2_turn.chore
+sk05_idle_scratch.anm
+5043712.langres
+fone_creepfs_01.vox
+sk05_action_grabfone.chore
+rat2_turnback.chore
+rat_puzzle_intro_place_fone.chore
+sk05_gesture_plead.anm
+sk05_gesture_handshead.anm
+sk05_gesture_raisehands.anm
+sk05_gesture_handships.anm
+fone_face_sad.anm
+fol_ratscratch3.vox
+39222784.langres
+5091968.langres
+sk05_gesture_nodno.anm
+sk02_action_returntonervous.anm
+5043968.langres
+5044736.langres
+5044864.langres
+5045120.langres
+5045248.langres
+5045376.langres
+sk05_gesture_point.anm
+5045504.langres
+5045632.langres
+5048704.langres
+5048832.langres
+5048960.langres
+5049088.langres
+5049216.langres
+5049344.langres
+5049600.langres
+5049856.langres
+5050112.langres
+5049472.langres
+5049728.langres
+5049984.langres
+5054080.langres
+5054848.langres
+5054976.langres
+5055104.langres
+5055232.langres
+5055744.langres
+5055872.langres
+5056000.langres
+5056128.langres
+5056640.langres
+5056768.langres
+5056896.langres
+5715584.langres
+5057664.langres
+5057792.langres
+5057920.langres
+5058048.langres
+5119488.langres
+5119616.langres
+5119744.langres
+5119872.langres
+5118720.langres
+5057152.langres
+5058304.langres
+5058432.langres
+5092608.langres
+5715840.langres
+5120128.langres
+5119232.langres
+5119104.langres
+5055360.langres
+5055488.langres
+5055616.langres
+5096320.langres
+5047808.langres
+5119360.langres
+5056256.langres
+5047936.langres
+5048064.langres
+5048192.langres
+5048320.langres
+5048448.langres
+5048576.langres
+5044480.langres
+5044608.langres
+5046656.langres
+5046784.langres
+5715072.langres
+5715200.langres
+5095296.langres
+5092864.langres
+5092992.langres
+5093120.langres
+5093248.langres
+5117952.langres
+5118080.langres
+5118208.langres
+5120256.langres
+5094656.langres
+5092224.langres
+5094016.langres
+5118592.langres
+5120640.langres
+5120768.langres
+5715328.langres
+5715456.langres
+5092096.langres
+5092352.langres
+5096448.langres
+5096576.langres
+5096704.langres
+5096832.langres
+5118336.langres
+5118464.langres
+5092480.langres
+6063744.langres
+sk05_action_scare.anm
+5117824.langres
+5050752.langres
+5051520.langres
+5059584.langres
+5052672.langres
+5059968.langres
+5043328.langres
+5053184.langres
+5050496.langres
+5052288.langres
+5053952.langres
+5053056.langres
+5052032.langres
+5052416.langres
+5050368.langres
+5053824.langres
+5040256.langres
+5040896.langres
+5041024.langres
+5041152.langres
+5042432.langres
+5041536.langres
+5040512.langres
+5042176.langres
+5042304.langres
+fol_dragon_breathe_fire.aud
+sk09_action_breathefire.anm
+sk09_gesture_nodyes.anm
+sk02_fone.d3dtx
+5041664.langres
+5041792.langres
+5041920.langres
+5042048.langres
+5040000.langres
+5041280.langres
+5040384.langres
+5040768.langres
+5040128.langres
+5041408.langres
+5040640.langres
+5147904.langres
+5145472.langres
+5148928.langres
+5149568.langres
+5150208.langres
+5150336.langres
+5150464.langres
+5144448.langres
+sk11_gesture_handships.anm
+5150976.langres
+5151488.langres
+5152000.langres
+5152640.langres
+5153536.langres
+5154048.langres
+5154176.langres
+5154304.langres
+5154432.langres
+possum_snore.vox
+5154560.langres
+5154688.langres
+5154816.langres
+5127296.langres
+5127424.langres
+5127552.langres
+5127680.langres
+sk11_action_jumpup.anm
+5122048.langres
+5122176.langres
+5122304.langres
+5122432.langres
+5142400.langres
+5142528.langres
+5142656.langres
+5142784.langres
+5131520.langres
+5131648.langres
+5131776.langres
+5131904.langres
+5132032.langres
+5133696.langres
+5136256.langres
+5136384.langres
+5136640.langres
+5137920.langres
+5138048.langres
+5138176.langres
+5139840.langres
+5144832.langres
+5146112.langres
+5146752.langres
+5122560.langres
+5122688.langres
+5122816.langres
+5166464.langres
+5166592.langres
+5166720.langres
+5166848.langres
+sk02_action_counting.anm
+5142912.langres
+5144064.langres
+5298304.vox
+5378176.vox
+5302784.vox
+5143424.langres
+6062848.langres
+5143552.langres
+6062976.langres
+6063104.langres
+5143680.langres
+6063232.langres
+6063360.langres
+6063488.langres
+sk11_action_discoveredmailbox.chore
+dor_mailbox_open.vox
+5148032.langres
+sk11_gesture_possumkids_amused.chore
+5148416.langres
+5149056.langres
+5149696.langres
+sk11_action_jumpexcite.anm
+5150592.langres
+5151104.langres
+5151616.langres
+5152128.langres
+5152768.langres
+5153664.langres
+5154944.langres
+5122944.langres
+5123072.langres
+5123200.langres
+5123328.langres
+5127168.langres
+5130112.langres
+5132160.langres
+5132288.langres
+5132416.langres
+5132544.langres
+5136768.langres
+5138304.langres
+5138944.langres
+5139072.langres
+5139200.langres
+5139328.langres
+5139968.langres
+sk11_gesture_possumkids_turntogiggle.chore
+5140992.langres
+5144960.langres
+possumkid_face_confused.anm
+5145600.langres
+5146240.langres
+possumkid_face_angry.anm
+5146880.langres
+5147520.langres
+5129600.langres
+5130240.langres
+5132672.langres
+5132800.langres
+5132928.langres
+5133056.langres
+5137152.langres
+5138432.langres
+5137024.langres
+5147648.langres
+5148160.langres
+bg_forestriverpossums_bigdragon.chore
+5148544.langres
+5149184.langres
+5149824.langres
+5150720.langres
+sk02_action_read.anm
+5151232.langres
+5151744.langres
+5152256.langres
+5152896.langres
+5153792.langres
+5155072.langres
+5123456.langres
+5123584.langres
+5123712.langres
+5123840.langres
+5123968.langres
+5124096.langres
+5128064.langres
+5128192.langres
+5131392.langres
+5130368.langres
+5133184.langres
+5133312.langres
+5138560.langres
+5139456.langres
+5140224.langres
+5144576.langres
+5145088.langres
+5145728.langres
+sk03_gesture_point.anm
+5146368.langres
+5147136.langres
+5130752.langres
+5147776.langres
+5148288.langres
+5148672.langres
+5149312.langres
+5149952.langres
+5150848.langres
+5151360.langres
+5151872.langres
+5152384.langres
+5153024.langres
+5153920.langres
+5155200.langres
+5124352.langres
+5124480.langres
+5124608.langres
+5124736.langres
+5124864.langres
+5124992.langres
+5124224.langres
+5128832.langres
+5128960.langres
+5129088.langres
+5130496.langres
+5137408.langres
+5138688.langres
+5126272.langres
+5126400.langres
+5126528.langres
+5126656.langres
+5139584.langres
+5140352.langres
+5144704.langres
+5145216.langres
+5145856.langres
+5146496.langres
+5147264.langres
+bg_forestriverpossums_possumscelebrate.chore
+5125120.langres
+5125248.langres
+5125376.langres
+5125504.langres
+possumkid_face_sad.anm
+5129472.langres
+5129216.langres
+5129344.langres
+5130624.langres
+5166336.langres
+5148800.langres
+5149440.langres
+sk11_gesture_possumkids_sad.chore
+5150080.langres
+5152512.langres
+5153152.langres
+5155328.langres
+5125632.langres
+5125760.langres
+5125888.langres
+5126016.langres
+5129728.langres
+5129856.langres
+5129984.langres
+5130880.langres
+5133440.langres
+5137536.langres
+5137664.langres
+5137792.langres
+5139712.langres
+5140480.langres
+5140608.langres
+5140736.langres
+5145344.langres
+5146624.langres
+5147392.langres
+5126144.langres
+5126784.langres
+5126912.langres
+5127040.langres
+5242880.langres
+5144192.langres
+6062336.langres
+5144320.langres
+6062464.langres
+6062720.langres
+6062592.langres
+5145984.langres
+5185152.langres
+5185280.langres
+5187200.langres
+5187328.langres
+5187456.langres
+sk02_gesture_sitleanforward.anm
+obj_heart_floating_obj_hearta.anm
+obj_heart_floating_obj_heartb.anm
+obj_heart_floating_obj_heartc.anm
+5186560.langres
+5186688.langres
+sk03_gesture_sit_rubchin.anm
+sk03_gesture_sit_point.anm
+5186816.langres
+5186944.langres
+sk03_gesture_sit_nodno.anm
+sk03_gesture_sit_shrug.anm
+5187072.langres
+5164672.langres
+5188224.langres
+5188352.langres
+5188480.langres
+5188608.langres
+sk03_gesture_sit_raisehands.anm
+5188736.langres
+5188864.langres
+sk02_action_stomach.anm
+5189504.langres
+5189632.langres
+5181568.langres
+5181696.langres
+5183744.langres
+5185664.langres
+5179008.langres
+5165440.langres
+5179904.langres
+5180032.langres
+5180160.langres
+5179776.langres
+5179648.langres
+5190144.langres
+6348416.langres
+5190272.langres
+5190400.langres
+5190528.langres
+5190656.langres
+5190912.langres
+5191040.langres
+5182336.langres
+5182464.langres
+5183872.langres
+5183488.langres
+5184640.langres
+5184768.langres
+6064128.langres
+6064256.langres
+6064384.langres
+6064512.langres
+sk03_gesture_sitdinner_usecup.anm
+5181184.langres
+5181312.langres
+5184000.langres
+5184128.langres
+5184256.langres
+sk03_gesture_sit_nodyes.anm
+5182720.langres
+5184384.langres
+5184512.langres
+5185792.langres
+5191168.langres
+5191296.langres
+6100608.langres
+5268736.langres
+5283200.langres
+5383168.langres
+5285120.langres
+5383040.langres
+5284864.langres
+5382912.langres
+sk02_action_torch.anm
+5281152.langres
+stomach1.vox
+5282688.langres
+5282432.langres
+5282816.langres
+5282560.langres
+stomach5.vox
+5283072.langres
+5283840.langres
+5283712.langres
+phoney_gesture_pointfirmly.chore
+5282944.langres
+5283456.langres
+5383936.langres
+5283328.langres
+5383552.langres
+5285888.langres
+5287296.langres
+5287168.langres
+sk02_action_canteen.anm
+5287680.langres
+5287424.langres
+5287552.langres
+5284608.langres
+5384064.langres
+5284352.langres
+5383680.langres
+5286016.langres
+5384192.langres
+5268864.langres
+5285632.langres
+5383808.langres
+5268224.langres
+5281280.langres
+5281664.langres
+stomach2.vox
+stomach3.vox
+5281792.langres
+5282176.langres
+stomach6.vox
+5292800.langres
+5292928.langres
+5289856.langres
+5289984.langres
+5290112.langres
+5287808.langres
+5287936.langres
+sk09_action_wakeup.anm
+39227904.langres
+5292160.langres
+5288064.langres
+5290496.langres
+5290624.langres
+5290752.langres
+5288448.langres
+sk09_action_sleep.anm
+5291008.langres
+5291136.langres
+5288576.langres
+5288960.langres
+reddragon_face_angry.anm
+sk02_action_grabbanjo.anm
+5291264.langres
+5289088.langres
+5289472.langres
+dragon_getup.vox
+dragon_yawn.vox
+5291520.langres
+5290880.langres
+5288320.langres
+5288832.langres
+5291392.langres
+5291648.langres
+5289344.langres
+5289728.langres
+5291776.langres
+5291904.langres
+5292032.langres
+5268608.langres
+5293056.langres
+5293184.langres
+5288192.langres
+5288704.langres
+5289216.langres
+5289600.langres
+5290240.langres
+5290368.langres
+5292288.langres
+5311488.langres
+5292544.langres
+5292672.langres
+csb_phoneytedtakeoff.chore
+5293568.langres
+5294848.langres
+5293440.langres
+5293696.langres
+5293824.langres
+6080512.langres
+5293312.langres
+5295360.langres
+5257728.langres
+6080640.langres
+6080768.langres
+5294592.langres
+5294720.langres
+6080896.langres
+6081024.langres
+6081152.langres
+5295488.langres
+5295616.langres
+5295744.langres
+5295872.langres
+5296000.langres
+5296128.langres
+5298304.langres
+5299584.langres
+5294336.langres
+5301504.langres
+5301632.langres
+5301632.vox
+5299712.langres
+5299840.langres
+5299968.langres
+5300096.langres
+5296640.langres
+5296768.langres
+5296896.langres
+5297024.langres
+5297152.langres
+5297280.langres
+5193856.langres
+5300864.langres
+5300992.langres
+5301120.langres
+5301248.langres
+5301376.langres
+sk02_gesture_rubhands.anm
+5297408.langres
+5297536.langres
+5297664.langres
+5293952.langres
+5294080.langres
+5294208.langres
+5298048.langres
+5298176.langres
+5298432.langres
+5298560.langres
+5298688.langres
+5298816.langres
+5298944.langres
+5300352.langres
+5300608.langres
+5300736.langres
+5309056.langres
+5309696.langres
+5309824.langres
+5309952.langres
+5308672.langres
+5310848.langres
+5309568.langres
+5311360.langres
+5311616.langres
+5311744.langres
+5310336.langres
+5310464.langres
+5310080.langres
+5308800.langres
+5309184.langres
+5308928.langres
+5309312.langres
+5309440.langres
+5310976.langres
+5310592.langres
+5310720.langres
+5314304.langres
+5314432.langres
+sk04_gesture_rollingsleeves.anm
+ted_jumplong_02.vox
+5312512.langres
+5312384.langres
+5313408.langres
+5313536.langres
+5313664.langres
+sk04_gesture_shrug.anm
+5313792.langres
+5313920.langres
+5314048.langres
+5312256.langres
+5312640.langres
+5312768.langres
+5312896.langres
+5313024.langres
+5313152.langres
+5313280.langres
+5316352.langres
+5316608.langres
+5316992.langres
+6066560.langres
+5321088.langres
+5321216.langres
+5321344.langres
+5321600.langres
+5328384.langres
+5317760.langres
+5320192.langres
+5320320.langres
+5320448.langres
+5320576.langres
+5320704.langres
+5320832.langres
+5317888.langres
+5318144.langres
+5318784.langres
+5318912.langres
+5319040.langres
+5319168.langres
+5319296.langres
+5319424.langres
+6066688.langres
+5334528.langres
+5240448.langres
+5318016.langres
+5319552.langres
+5319680.langres
+5319808.langres
+5319936.langres
+5245568.langres
+5321856.langres
+5321728.langres
+5233792.langres
+5234944.langres
+sk02_gesture_pointleft.anm
+sk09_gesture_wellnodno.anm
+5234816.langres
+5235072.langres
+reddragon_face_surprise.anm
+5230464.langres
+5230720.langres
+5230848.langres
+5230976.langres
+sk09_action_wellend.anm
+sk09_action_wellstart.anm
+fol_dragon_pop_down.aud
+fol_dragon_pop_up.aud
+5231232.langres
+5231360.langres
+5231616.langres
+5231744.langres
+5231872.langres
+5232000.langres
+5232128.langres
+5232256.langres
+5232384.langres
+5326592.langres
+5326848.langres
+5327232.langres
+5327360.langres
+5331328.langres
+5239296.langres
+5239424.langres
+5326208.langres
+5326336.langres
+6068480.langres
+5229824.langres
+5229952.langres
+5328896.langres
+5328768.langres
+sk02_action_axehang.anm
+5329024.langres
+sk07_move_jumpbig.anm
+5233920.langres
+5235200.langres
+sk09_gesture_wellnodyes.anm
+5235328.langres
+5235456.langres
+5235584.langres
+5235712.langres
+sk09_action_wellbreathefire.anm
+fx_popcorn.chore
+fol_popcornpop.vox
+5329152.langres
+5329536.langres
+5329280.langres
+5329664.langres
+5329792.langres
+5329920.langres
+5181824.langres
+5233536.langres
+5331584.langres
+5331200.langres
+5236224.langres
+reddragon_face_happy.anm
+5240704.langres
+6348928.langres
+5235840.langres
+5330816.langres
+5322624.langres
+5322752.langres
+5322880.langres
+5323008.langres
+5323136.langres
+5330944.langres
+5331072.langres
+5326464.langres
+5326720.langres
+5326976.langres
+5327104.langres
+6072320.langres
+5316864.langres
+5316736.langres
+6072448.langres
+5230208.langres
+5230336.langres
+5232768.langres
+5232896.langres
+5232512.langres
+5232640.langres
+5321984.langres
+5328512.langres
+5328640.langres
+6068736.langres
+6068608.langres
+6068864.langres
+6068992.langres
+6069120.langres
+6069248.langres
+6069376.langres
+6069504.langres
+6069632.langres
+6069760.langres
+6069888.langres
+6070016.langres
+6070144.langres
+6070272.langres
+6070400.langres
+6070528.langres
+6070656.langres
+6070784.langres
+6070912.langres
+6071040.langres
+6071168.langres
+6071296.langres
+6071424.langres
+sk03_idle_armsback.anm
+5330688.langres
+5332224.langres
+5332480.langres
+obj_axehead_termiteseat.chore
+6348544.langres
+6348800.langres
+fol_droptorch.vox
+5329408.langres
+5330048.langres
+5234048.langres
+5236352.langres
+5330176.langres
+5330304.langres
+5236480.langres
+5236608.langres
+5330432.langres
+5330560.langres
+5236736.langres
+5236864.langres
+6344832.langres
+5327488.langres
+5333248.langres
+5327616.langres
+5327744.langres
+5385984.langres
+5332864.langres
+5332992.langres
+5333120.langres
+5199232.langres
+5200640.langres
+5200768.langres
+5200896.langres
+5201024.langres
+5202304.langres
+5201792.langres
+5201920.langres
+5202048.langres
+5202176.langres
+5197952.langres
+5198080.langres
+5198208.langres
+5198336.langres
+5199744.langres
+5199872.langres
+5192576.langres
+5192704.langres
+5192832.langres
+5192960.langres
+5201536.langres
+5278464.langres
+5335040.langres
+5335168.langres
+5335296.langres
+5279872.langres
+5280000.langres
+5280128.langres
+5280256.langres
+5280384.langres
+5280512.langres
+5280640.langres
+5280768.langres
+5280896.langres
+sk11_action_tossshovel.chore
+5335424.langres
+5335552.langres
+5335680.langres
+5337728.langres
+5337856.langres
+5279488.langres
+5279616.langres
+5279744.langres
+5193088.langres
+5193216.langres
+5193344.langres
+5193984.langres
+5194112.langres
+5194240.langres
+5197056.langres
+5197184.langres
+5197312.langres
+5197440.langres
+5197568.langres
+5197696.langres
+5197824.langres
+5199360.langres
+5199488.langres
+5199616.langres
+5276160.langres
+5276544.langres
+5278592.langres
+5278976.langres
+5279104.langres
+5337600.langres
+5338624.langres
+5337984.langres
+5339008.langres
+5339136.langres
+5339264.langres
+5276288.langres
+5276800.langres
+5278208.langres
+5278720.langres
+5279232.langres
+5336320.langres
+5336448.langres
+5336576.langres
+5336704.langres
+5339776.langres
+5338752.langres
+5337216.langres
+5336832.langres
+5336960.langres
+5337088.langres
+5339904.langres
+5337472.langres
+5338880.langres
+5337344.langres
+5276416.langres
+5277184.langres
+5277312.langres
+5277440.langres
+5277568.langres
+5277696.langres
+5277824.langres
+5278336.langres
+5278848.langres
+5279360.langres
+5265792.langres
+5201664.langres
+5277952.langres
+5278080.langres
+5194752.langres
+5194880.langres
+5195008.langres
+5195136.langres
+5195264.langres
+5195392.langres
+5195520.langres
+5195648.langres
+5195776.langres
+5195904.langres
+5196032.langres
+sk02_gesture_pointphoney.anm
+5196160.langres
+5196288.langres
+5196416.langres
+5196544.langres
+5193472.langres
+5193600.langres
+5193728.langres
+5200512.langres
+5198464.langres
+5198592.langres
+5198720.langres
+5198848.langres
+5198976.langres
+5200000.langres
+5200128.langres
+5200256.langres
+5200384.langres
+5194368.langres
+5194496.langres
+5194624.langres
+5196672.langres
+5196800.langres
+5196928.langres
+5340032.langres
+5340800.langres
+5340928.langres
+5341056.langres
+5341184.langres
+5341312.langres
+5341440.langres
+5341568.langres
+5340160.langres
+5340544.langres
+5340672.langres
+5340288.langres
+5341696.langres
+5341952.langres
+5342080.langres
+6239872.langres
+5346432.langres
+5348480.langres
+fone_dinner_gesture_nodno.chore
+phoney_dinner_gesture_self.chore
+phoney_dinner_gesture_nodyes.chore
+5356928.langres
+5359232.langres
+5359360.langres
+thorn_dinner_gesture_nodno.chore
+5357056.langres
+5360256.langres
+5357440.langres
+5360896.langres
+5357696.langres
+5361408.langres
+5358976.langres
+5361536.langres
+5359104.langres
+5359616.langres
+5358592.langres
+5358720.langres
+5358848.langres
+fone_dinner_gesture_nodyes.chore
+phoney_dinner_gesture_nodno.chore
+5360000.langres
+5361664.langres
+5361792.langres
+granma_dinner_gesture_nodno.chore
+5360640.langres
+5362048.langres
+5361152.langres
+5346944.langres
+5361280.langres
+phoney_dinner_gesture_shakefist.chore
+5347200.langres
+5349632.langres
+5349760.langres
+5349888.langres
+phoney_dinner_gesture_thinking.chore
+fone_dinner_gesture_raisehands.chore
+thorn_dinner_gesture_armscrossed.chore
+5342592.langres
+5343744.langres
+5343872.langres
+5347328.langres
+5350016.langres
+5362176.langres
+5362304.langres
+5362432.langres
+5348224.langres
+5350272.langres
+phoney_dinner_gesture_raisehands.chore
+5348352.langres
+5344000.langres
+phoney_dinner_gesture_grimace.chore
+5348736.langres
+5348864.langres
+5350400.langres
+5349248.langres
+5350528.langres
+5350144.langres
+phoney_dinner_gesture_plead.chore
+5350656.langres
+5344128.langres
+phoney_dinner_gesture_glancedown.chore
+6240000.langres
+5364608.langres
+5364736.langres
+obj_heart_floating.chore
+5342976.langres
+5344256.langres
+5344384.langres
+5351680.langres
+5352960.langres
+5353088.langres
+fone_dinner_gesture_thinking.chore
+5351808.langres
+5353216.langres
+5353344.langres
+5352320.langres
+5354368.langres
+5354496.langres
+thorn_dinner_gesture_point.chore
+5352704.langres
+granma_dinner_gesture_slightheadtilt.chore
+5346176.langres
+5347456.langres
+5347584.langres
+5347712.langres
+5352832.langres
+5353472.langres
+5355392.langres
+5354112.langres
+5355648.langres
+fone_dinner_gesture_take.chore
+5354880.langres
+5355520.langres
+5355008.langres
+5355136.langres
+5355264.langres
+5343360.langres
+5345280.langres
+5356544.langres
+5358080.langres
+5358208.langres
+5358336.langres
+5356800.langres
+5348608.langres
+5346048.langres
+5346560.langres
+5346688.langres
+5346816.langres
+fone_dinner_gesture_plead.chore
+5351168.langres
+5357184.langres
+5360384.langres
+5357568.langres
+5361024.langres
+5357824.langres
+5359872.langres
+5360128.langres
+5361920.langres
+5403776.langres
+5403904.langres
+5404032.langres
+5404160.langres
+granmaben_face_sad.anm
+5360768.langres
+5347072.langres
+5349120.langres
+5348992.langres
+5349376.langres
+5350912.langres
+5342720.langres
+5350784.langres
+5351040.langres
+5343104.langres
+5344512.langres
+5344640.langres
+granmaben_face_happy.anm
+5351936.langres
+5352448.langres
+5354624.langres
+5354240.langres
+5355776.langres
+5355904.langres
+5364096.langres
+5364224.langres
+5364352.langres
+5346304.langres
+5347840.langres
+5347968.langres
+5348096.langres
+fone_dinner_gesture_laugh.chore
+5362560.langres
+5362688.langres
+5343488.langres
+5345408.langres
+5356672.langres
+5358464.langres
+5404288.langres
+5404416.langres
+5351296.langres
+5351424.langres
+5362816.langres
+5362944.langres
+5351552.langres
+5363072.langres
+5357312.langres
+5360512.langres
+5363840.langres
+5363968.langres
+5357952.langres
+5345920.langres
+5349504.langres
+5342848.langres
+5343232.langres
+5344768.langres
+5344896.langres
+5345024.langres
+5345152.langres
+5352064.langres
+5353600.langres
+5352576.langres
+5354752.langres
+5343616.langres
+5345536.langres
+5345664.langres
+5345792.langres
+5352192.langres
+5353856.langres
+5353984.langres
+5353728.langres
+5363200.langres
+5363328.langres
+5363456.langres
+5363584.langres
+5363712.langres
+6235648.langres
+sk02_action_sitdinneryawn.anm
+5272576.langres
+5274880.vox
+5275008.vox
+5275136.vox
+slo5274880.vox
+slo5275008.vox
+slo5275136.vox
+slo5275264.vox
+5275264.vox
+5275392.vox
+5275520.vox
+5275648.vox
+slo5275392.vox
+slo5275520.vox
+slo5275648.vox
+slo5275776.vox
+slo5275904.vox
+5275776.vox
+5275904.vox
+5242368.langres
+sk02_action_read.chore
+ui_knapsack_open.aud
+book_open.vox
+book_close.vox
+5241856.langres
+5241984.langres
+5242112.langres
+5242240.langres
+sk02_move_slidetorch.anm
+sk02_gesture_sitdinner_elbowsontable.anm
+sk02_gesture_laugh.anm
+sk02_gesture_yell.anm
+5204096.langres
+sk02_action_getcorn.chore
+5240064.langres
+5240192.langres
+fol_digthroughbag.vox
+sk02_action_useaxehead.chore
+fol_wood_split_01.vox
+sk02_action_getwater.chore
+fol_fillbucket.vox
+sk02_action_rocktoss.chore
+fol_wood_split_03.vox
+imp_fone_01.vox
+5204480.langres
+5204864.langres
+6359296.langres
+5204736.langres
+5216640.langres
+5216768.langres
+5206272.langres
+5206528.langres
+5206784.langres
+6074624.langres
+6074752.langres
+6074880.langres
+5223680.langres
+5223808.langres
+sk02_action_pickupcigarbutt.anm
+5223936.langres
+5224320.langres
+5209216.langres
+5225728.langres
+sk02_action_bucketcorncobburnt.chore
+fol_dropcanteen.vox
+sk02_action_bucketcorncob.anm
+cam_cutscene_sk02_action_bucketcorncob.anm
+obj_corncobburnt_sk02_action_bucketcorncob.anm
+5225216.langres
+obj_bucketwithhole_sk02_action_bucketcorncob.anm
+5225344.langres
+5228160.langres
+5228288.langres
+5228416.langres
+bg_forestriverpossums_idleignore.chore
+sk05_move_shiftbackleft.anm
+sk05_move_shiftbackright.anm
+5095296.vox
+fx_popcorn_fx_popcorna.anm
+fx_popcorn_fx_popcornb.anm
+fx_popcorn_fx_popcornc.anm
+fx_popcorn_fx_popcornd.anm
+fx_popcorn_fx_popcorne.anm
+fx_popcorn_fx_popcornf.anm
+fx_popcorn.d3dtx
+fx_torchflame.d3dtx
+39146112.langres
+39146240.langres
+39146368.langres
+39146496.langres
+39146624.langres
+39146752.langres
+39146880.langres
+39147008.langres
+39147136.langres
+39147264.langres
+39147392.langres
+mus_cs_caveprophecy.aud
+sfx_cs_caveprophecy.aud
+ui_dialog_icon_fone.d3dtx
+sfx_cs_prophecyfire.aud
+amb_dragonstair.aud
+sk04_gesture_sitdinner_elbowsontable.anm
+tile_stream_a.d3dtx
+sk02_idle_sitbanjo.anm
+mus_banjo_idle_03.aud
+mus_banjo_idle_04.aud
+mus_banjo_idle_05.aud
+sk02_action_playsitbanjo.anm
+obj_banjo_sk02_action_playsitbanjo.anm
+obj_banjo_sk02_idle_sitbanjo.anm
+obj_axehead_termiteseat_obj_treestump.anm
+obj_axehead_termiteseat_obj_axehead.anm
+obj_axehead_termiteseat_obj_axehandle.anm
+obj_axehead_termiteseat_obj_treestumptermites.anm
+obj_axehead_termiteseat_obj_axeheadtermites.anm
+obj_axehead_termiteseat_obj_axehandletermites.anm
+fx_termites.d3dtx
+pu_cigar_butt.vox
+obj_star_knockout_obj_stara.anm
+obj_star_knockout_obj_starb.anm
+obj_star_knockout_obj_starc.anm
+5065088.langres
+5065344.langres
+5065472.langres
+5065600.langres
+5072640.langres
+5072768.langres
+5072896.langres
+5073024.langres
+5073152.langres
+sk02_action_canteen.chore
+sk02_action_getonrock.chore
+sk02_idle_sitbanjo.chore
+smiley_face_blink.anm
+smiley_face_happy.anm
+cs_openingdesert.chore
+cs_openingdesertfone.chore
+39209984.langres
+39205376.langres
+banjo_shellbecomin.aud
+sk02_fone_pack.d3dtx
+obj_lighthalo.d3dtx
+5244928.langres
+sk02_action_eatapple.anm
+obj_apple_sk02_action_eatapple.anm
+apple_crunch.aud
+5254144.langres
+5254272.langres
+5258240.langres
+5258368.langres
+5258496.langres
+5267840.langres
+sk02_action_turnipdig.chore
+sk11_action_dig.chore
+sk11_idle_holdshovel.chore
+turnip_digup.vox
+mudpie_slap_01.vox
+mudpie_slap_02.vox
+mudpie_slap_03.vox
+sk05_move_shiftleft.anm
+sk05_move_shiftright.anm
+sk02_action_banjorequests.anm
+obj_banjo_sk02_action_banjorequests.anm
+obj_canteen_sk02_action_canteen.anm
+cam_cutscene_sk02_action_dollarexchange.anm
+sk02_action_dollarexchange.anm
+sk02_smiley_sk02_action_dollarexchange.anm
+obj_dollarboneville_sk02_action_dollarexchange.anm
+obj_mapvalleyrolled_sk02_action_dollarexchange.anm
+sk02_action_getcorn.anm
+obj_corncob_sk02_action_getcorn.anm
+sk02_action_getmap.anm
+obj_banjo_sk02_action_getmap.anm
+cam_cutscene_sk02_action_getmap.anm
+obj_mapvalleyrolled_sk02_action_getmap.anm
+obj_mapvalley_sk02_action_getmap.anm
+5077504.langres
+5077632.langres
+5077888.langres
+5077760.langres
+obj_mapvalley_bentslightly.anm
+5078016.aud
+5078016.langres
+sk02_action_getonrock.anm
+obj_banjo_sk02_action_getonrock.anm
+obj_bucketwithhole_sk02_action_getwater.anm
+sk02_action_getwater.anm
+cam_cutscene_sk02_action_getwater.anm
+obj_corncobburnt_sk02_action_getwater.anm
+obj_banjo_sk02_action_grabbanjo.anm
+obj_banjo_sk02_action_playbanjo.anm
+obj_mapvalleyrolled_sk02_action_pullmap.anm
+sk02_action_putbanjo.anm
+obj_banjo_sk02_action_putbanjo.anm
+obj_bookmobydick_sk02_action_read.anm
+obj_axehead_sk02_action_rocktoss.anm
+obj_rockgranmas_sk02_action_rocktoss.anm
+obj_woodsplita_sk02_action_rocktoss.anm
+obj_woodsplitb_sk02_action_rocktoss.anm
+sk02_action_rocktoss.anm
+obj_dollarboneville_sk02_action_showdollar.anm
+sk02_action_sitwavemap.anm
+obj_banjo_sk02_action_sitwavemap.anm
+obj_mapvalley_sk02_action_sitwavemap.anm
+obj_torchratcreature_sk02_action_torch.anm
+sk02_action_turnipdig.anm
+obj_spade_sk02_action_turnipdig.anm
+obj_turnipa_sk02_action_turnipdig.anm
+sk02_action_turnippull.anm
+6372096.vox
+6372224.vox
+obj_turnipa_sk02_action_turnippull.anm
+fol_bushes6.vox
+obj_axehead_sk02_action_useaxehead.anm
+sk02_action_useaxehead.anm
+obj_dinnercupa_sk02_action_usecupphoney.anm
+sk02_action_usecupphoney.anm
+obj_dinnerforka_sk02_action_useforkphoney.anm
+obj_dinnerdrumstick_sk02_action_useforkphoney.anm
+sk02_action_useforkphoney.anm
+sk02_gesture_sitdinner_usecup.anm
+obj_dinnercupc_sk02_gesture_sitdinner_usecup.anm
+obj_dinnerforkc_sk02_gesture_sitdinner_usefork.anm
+obj_dinnerturnipslicea_sk02_gesture_sitdinner_usefork.anm
+sk02_gesture_sitdinner_usefork.anm
+obj_banjo_sk02_gesture_sitleanforward.anm
+sk02_idle_banjo.anm
+obj_banjo_sk02_idle_banjo.anm
+sk02_idle_map.anm
+obj_mapvalley_sk02_idle_map.anm
+sk02_idle_read.anm
+obj_bookmobydick_sk02_idle_read.anm
+move_walkbackwards_test.anm
+sk02_move_jumprun.anm
+sk02_move_stumble.anm
+sk03_action_bringupmap.anm
+obj_dinnercupd_sk03_gesture_sitdinner_usecup.anm
+sk03_gesture_sitdinner_useknife.anm
+obj_dinnerknifeb_sk03_gesture_sitdinner_useknife.anm
+sk03_idle_map.anm
+sk04_gesture_sitdinner_usecup.anm
+obj_dinnercupb_sk04_gesture_sitdinner_usecup.anm
+obj_dinnerturnipsliceb_sk04_gesture_sitdinner_useforkknife.anm
+sk04_gesture_sitdinner_useforkknife.anm
+obj_dinnerforkb_sk04_gesture_sitdinner_useforkknife.anm
+obj_dinnerknifec_sk04_gesture_sitdinner_useforkknife.anm
+sk05_action_grabfone.anm
+sk02_fone_sk05_action_grabfone.anm
+sk11_action_dig.anm
+obj_spade_sk11_action_dig.anm
+obj_mailboxpossum_sk11_action_discoveredmailbox.anm
+sk11_action_discoveredmailbox.anm
+sk11_action_tossshovel.anm
+obj_spade_sk11_action_tossshovel.anm
+sk11_idle_holdshovel.anm
+obj_spade_sk11_idle_holdshovel.anm
+sk12_move_flyforward.anm
+sk02_action_banjorequests.chore
+5191936.langres
+5192064.langres
+sk08_face_happy.anm
+5191424.langres
+5413632.langres
+5413760.langres
+5413888.langres
+5269632.langres
+5272064.langres
+5192192.langres
+5269760.langres
+5271552.langres
+tedsbigbrother_face_happy.anm
+5211776.langres
+fol_bone_fall.aud
+sfx_bigbrohittree.aud
+tile_stream_c.d3dtx
+obj_dreamcloud.d3dtx
+ui_dialog_selectionarrival_ui_dialogselectionhead1.anm
+ui_dialog_selectionarrival_ui_dialogselectionhead2.anm
+ui_dialog_selectionarrival_ui_dialogselectionhead3.anm
+ui_dialog_selectionarrival_ui_dialogselectionhead4.anm
+ui_dialog_selectionarrival_ui_dialogselectiontext1.anm
+ui_dialog_selectionarrival_ui_dialogselectiontext2.anm
+ui_dialog_selectionarrival_ui_dialogselectiontext3.anm
+ui_dialog_selectionarrival_ui_dialogselectiontext4.anm
+ui_dialog_selectionarrival_ui_dialogselectiontexthilite.anm
+ui_dialog_selectionarrival_ui_dialogselectionballoon.anm
+ui_dialog_selectiondepart_ui_dialogselectionheadhilite.anm
+ui_dialog_selectiondepart_ui_dialogselectionhead1.anm
+ui_dialog_selectiondepart_ui_dialogselectionhead2.anm
+ui_dialog_selectiondepart_ui_dialogselectionhead3.anm
+ui_dialog_selectiondepart_ui_dialogselectionhead4.anm
+ui_dialog_selectiondepart_ui_dialogselectiontext1.anm
+ui_dialog_selectiondepart_ui_dialogselectiontext2.anm
+ui_dialog_selectiondepart_ui_dialogselectiontext3.anm
+ui_dialog_selectiondepart_ui_dialogselectiontext4.anm
+ui_dialog_selectiondepart_ui_dialogselectiontexthilite.anm
+ui_dialog_selectiondepart_ui_dialogselectionballoon.anm
+ui_dialog_selectionheadoff_ui_dialogselectionheadhilite.anm
+ui_dialog_selectionheadoff_ui_dialogselectionhead1.anm
+ui_dialog_selectionheadon_ui_dialogselectionheadhilite.anm
+ui_dialog_selectionheadon_ui_dialogselectionhead1.anm
+ui_dialog_speakingarrival_ui_dialogspeakingballoon.anm
+ui_dialog_speakingarrival_ui_dialogspeakingtext.anm
+ui_dialog_speakingarrival_ui_dialogspeakinghead.anm
+ui_dialog_speakingdepart_ui_dialogspeakingballoon.anm
+ui_dialog_speakingdepart_ui_dialogspeakingtext.anm
+ui_dialog_speakingdepart_ui_dialogspeakinghead.anm
+ui_inventory_close_ui_inventoryitem1.anm
+ui_inventory_close_ui_inventoryitem2.anm
+ui_inventory_close_ui_inventoryitem3.anm
+ui_inventory_close_ui_inventoryitem4.anm
+ui_inventory_close_ui_inventoryitem5.anm
+ui_inventory_close_ui_inventoryitem6.anm
+ui_inventory_close_ui_inventoryitem7.anm
+ui_inventory_close_ui_inventoryitem8.anm
+ui_inventory_close_ui_inventoryitem9.anm
+ui_inventory_close_ui_inventoryitem10.anm
+ui_inventory_close_ui_inventorypackclosed.anm
+ui_inventory_close_ui_inventorypackopentop.anm
+ui_inventory_close_ui_inventorypackopenbot.anm
+ui_inventory_open_ui_inventoryitem1.anm
+ui_inventory_open_ui_inventoryitem2.anm
+ui_inventory_open_ui_inventoryitem3.anm
+ui_inventory_open_ui_inventoryitem4.anm
+ui_inventory_open_ui_inventoryitem5.anm
+ui_inventory_open_ui_inventoryitem6.anm
+ui_inventory_open_ui_inventoryitem7.anm
+ui_inventory_open_ui_inventoryitem8.anm
+ui_inventory_open_ui_inventoryitem9.anm
+ui_inventory_open_ui_inventoryitem10.anm
+ui_inventory_open_ui_inventorypackclosed.anm
+ui_inventory_open_ui_inventorypackopentop.anm
+ui_inventory_open_ui_inventorypackopenbot.anm
+ui_inventory_rolloff.anm
+ui_inventory_rollon.anm
+ui_inventory_select.anm
+ui_itempickup.vox
+ui_menu_scrollclose.anm
+ui_menu_scrollopen.anm
+sk08_gesture_handships.anm
+sk08_gesture_raisehands.anm
+sk08_gesture_shrug.anm
+sk08_gesture_point.anm
+sk08_idle_armsback.anm
+sk08_idle_armsfolded.anm
+sk08_idle_shift.anm
+sk08_gesture_thinking.anm
+sk05_idle_armsback.anm
+sk05_idle_armsfolded.anm
+sk05_gesture_thinking.anm
+sk09_gesture_handships.anm
+sk09_gesture_nodno.anm
+sk09_gesture_raisehands.anm
+sk09_gesture_point.anm
+sk09_idle_armsback.anm
+sk09_idle_armsfolded.anm
+sk09_idle_shift.anm
+sk09_gesture_thinking.anm
+fone_dinner_gesture_self.chore
+sk04_gesture_point.anm
+sk04_idle_armsback.anm
+sk04_idle_armsfolded.anm
+sk04_idle_shift.anm
+granma_dinner_gesture_raisehands.chore
+sk04_gesture_thinking.anm
+sk06_gesture_handships.anm
+sk06_gesture_shrug.anm
+sk06_idle_armsback.anm
+sk06_idle_armsfolded.anm
+sk06_idle_shift.anm
+sk06_gesture_thinking.anm
+phoney_dinner_gesture_take.chore
+sk03_idle_armsfolded.anm
+sk03_gesture_thinking.anm
+thorn_dinner_gesture_shrugsmall.chore
+struct MovieCaptureInfo::EnumCompressorType
+struct EnumBase
+enum MovieCaptureInfo::CompressorType
+Check out files on update
+Compress Animations
+Encrypt MetaStreams
+LUA nil Parameter is Error
+Notebook Mode
+Strip action lines
+Strip director's comments
+Version Writebacks Enabled
+Default LookAt Host Node
+Chore Sync: Small Change Percentage
+Movie Capture Options
+enum DialogItem::PlaybackMode
+Dialog - Postfix Solo Items
+Dialog - Postfix Text Items
+Default Item Playback Mode
+5280640-pish-01.vox
+banjo_shellbecomin.vox
+banjo_pickin.vox
+banjo_camptownraces.vox
+26861184.vox
+class DCArray<LogicGroup>
+class Map<class String,bool,struct std::less<class String> >
+class LogicGroup::LogicItem
+class Map<class String,class LogicGroup::LogicItem,struct std::less<class String> >
+class LogicGroup
+class DCArray<class LogicGroup>
+dlg_environmental_riverbankdragon_e1_2.chore
+dlg_environmental_thorns_dream_e1.chore
+dlg_environmental_thorns_dream_e2.chore
+dlg_environmental_thorns_dream_e3.chore
+dlg_environmental_thorns_dream_e4.chore
+goldnewlines_prophecysequence_e1_1.chore
+phoney_pickup_hotspringsturnip_e1_77.chore
+phoney_pickup_hotspringsturnip_e2_78.chore
+phoney_use_spadewithturnip_e1_85.chore
+phoney_pickup_hotspringsturnip_e3_79.chore
+phoney_look_waterfallapple_e1_3.chore
+phoney_enter_hotspringsturnips_e1_2.chore
+phoney_look_waterfallapple_e2_4.chore
+bg_forestwaterfall_fonetedbb.chore
+dlg_1170_foneoverbridge_item_1_e1_2.chore
+dlg_1170_foneoverbridge_item_2_e1_3.chore
+dlg_1170_foneoverbridge_item_3_e1_4.chore
+dlg_1170_foneoverbridge_item_3_e2_5.chore
+dlg_1170_foneoverbridge_item_3_e3_6.chore
+dlg_1170_foneoverbridge_item_3_e4_7.chore
+dlg_1170_foneoverbridge_item_3_e5_8.chore
+dlg_1170_foneoverbridge_item_4_e1_9.chore
+dlg_1170_foneoverbridge_item_1_e1_10.chore
+dlg_1170_foneoverbridge_item_2_e1_11.chore
+dlg_1170_foneoverbridge_item_3_e1_12.chore
+dlg_1170_foneoverbridge_item_4_e1_13.chore
+bg_forestwaterfall_fonerats.chore
+dlg_1190_foneratdialog_enter_e1_188.chore
+dlg_1190_foneratdialog_enter_e1_192.chore
+dlg_1190_foneratdialog_enter_e1_198.chore
+dlg_1190_foneratdialog_enter_e1_199.chore
+dlg_1190_foneratdialog_enter_e1_212.chore
+dlg_1190_foneratdialog_enter_e1_213.chore
+dlg_1190_foneratdialog_enter_e1_214.chore
+dlg_1190_foneratdialog_army__e1_236.chore
+dlg_1190_foneratdialog_numbers__e1_237.chore
+dlg_1190_foneratdialog_mission__e1_238.chore
+dlg_1190_foneratdialog_enter_e1_243.chore
+dlg_1190_foneratdialog_enter_e1_247.chore
+dlg_1190_foneratdialog_enter_e1_251.chore
+dlg_1190_foneratdialog_enter_e1_258.chore
+dlg_1190_foneratdialog_enter_e2_193.chore
+dlg_1190_foneratdialog_enter_e3_194.chore
+dlg_1190_foneratdialog_enter_e2_244.chore
+dlg_1190_foneratdialog_enter_e3_245.chore
+dlg_1190_foneratdialog_item_1_e1_189.chore
+dlg_1190_foneratdialog_flattery_e1_234.chore
+dlg_1190_foneratdialog_recipies_e1_216.chore
+dlg_1190_foneratdialog_fattening_e1_225.chore
+dlg_1190_foneratdialog_onions_e1_229.chore
+dlg_1190_foneratdialog_mockery_e1_217.chore
+dlg_1190_foneratdialog_more__e1_231.chore
+dlg_1190_foneratdialog_fattening_e1_219.chore
+dlg_1190_foneratdialog_bully_e1_267.chore
+dlg_1190_foneratdialog_bye__e1_240.chore
+dlg_1190_foneratdialog_bye_e1_266.chore
+dlg_1190_foneratdialog_fattening_e1_268.chore
+dlg_1190_foneratdialog_bye_e1_280.chore
+dlg_1190_foneratdialog_enter_e1_281.chore
+dlg_1190_foneratdialog_enter_e1_282.chore
+dlg_1190_foneratdialog_enter_e1_283.chore
+dlg_1190_foneratdialog_quiche_e1_232.chore
+dlg_1190_foneratdialog_enter_e1_197.chore
+dlg_1190_foneratdialog_he's_fatter_e1_272.chore
+dlg_1190_foneratdialog_enter_e1_249.chore
+dlg_1190_foneratdialog_enter_e2_252.chore
+dlg_1190_foneratdialog_stand_up!_e1_241.chore
+dlg_1190_foneratdialog_not_fat_e1_242.chore
+dlg_1190_foneratdialog_disrespected_e1_228.chore
+dlg_1190_foneratdialog_charity_case_e1_235.chore
+dlg_1190_foneratdialog_bye!_e1_233.chore
+dlg_1190_foneratdialog_unfriendly_e1_222.chore
+dlg_1190_foneratdialog_feelings_e1_230.chore
+dlg_1190_foneratdialog_sinew_e1_227.chore
+dlg_1190_foneratdialog_quiche_e1_215.chore
+dlg_1190_foneratdialog_item_3_e1_191.chore
+dlg_1190_foneratdialog_leave__e1_224.chore
+dlg_1190_foneratdialog_apologize_e1_218.chore
+dlg_1190_foneratdialog_bland_e1_220.chore
+dlg_1190_foneratdialog_enter_e3_202.chore
+dlg_1190_foneratdialog_enter_e2_201.chore
+dlg_1190_foneratdialog_enter_e1_200.chore
+dlg_1190_foneratdialog_enter_e1_195.chore
+dlg_1190_foneratdialog_enter_e1_196.chore
+dlg_1190_foneratdialog_enter_e1_203.chore
+dlg_1190_foneratdialog_enter_e2_204.chore
+dlg_1190_foneratdialog_enter_e1_206.chore
+dlg_1190_foneratdialog_enter_e2_207.chore
+dlg_1190_foneratdialog_enter_e3_208.chore
+dlg_1190_foneratdialog_enter_e1_209.chore
+dlg_1190_foneratdialog_enter_e1_210.chore
+dlg_1190_foneratdialog_enter_e1_211.chore
+dlg_1190_foneratdialog_enter_e3_205.chore
+dlg_1190_foneratdialog_excercise_e1_221.chore
+dlg_1190_foneratdialog_item_2_e1_190.chore
+dlg_1190_foneratdialog_you're_right_e1_226.chore
+dlg_1190_foneratdialog_enter_e1_239.chore
+dlg_1190_foneratdialog_enter_e3_253.chore
+dlg_1190_foneratdialog_feelings_e1_265.chore
+dlg_1190_foneratdialog_disrespected_e1_223.chore
+dlg_1190_foneratdialog_ignore__e1_277.chore
+dlg_1190_foneratdialog_rude__e1_279.chore
+dlg_1190_foneratdialog_enter_e1_246.chore
+dlg_1190_foneratdialog_enter_e1_259.chore
+dlg_1190_foneratdialog_stand_up!_e1_263.chore
+dlg_1190_foneratdialog_feelings_e1_276.chore
+dlg_1190_foneratdialog_didn't_mean_it_e1_270.chore
+dlg_1190_foneratdialog_enter_e1_254.chore
+dlg_1190_foneratdialog_enter_e2_255.chore
+dlg_1190_foneratdialog_rude_e1_269.chore
+dlg_1190_foneratdialog_diet__e1_264.chore
+dlg_1190_foneratdialog_not_me!_e1_274.chore
+dlg_1190_foneratdialog_quiche_e1_260.chore
+dlg_1190_foneratdialog_fattening_e1_261.chore
+dlg_1190_foneratdialog__real_monster___e1_262.chore
+dlg_1190_foneratdialog_enter_e1_248.chore
+dlg_1190_foneratdialog_enter_e1_250.chore
+dlg_1190_foneratdialog_enter_e1_256.chore
+dlg_1190_foneratdialog_enter_e2_257.chore
+dlg_1190_foneratdialog_he's_fatter_e1_271.chore
+dlg_1190_foneratdialog_unhealthy_e1_273.chore
+dlg_1190_foneratdialog_excercise_e1_275.chore
+dlg_1190_foneratdialog_fattening_e1_278.chore
+bg_granmasext_phoneygranma.chore
+dlg_1360_phoneymeetgranma_food_e1_3.chore
+dlg_1360_phoneymeetgranma_fone_e1_7.chore
+dlg_1360_phoneymeetgranma_farm_e1_10.chore
+dlg_1360_phoneymeetgranma_food_e2_4.chore
+dlg_1360_phoneymeetgranma_food_e3_5.chore
+dlg_1360_phoneymeetgranma_food_e4_6.chore
+dlg_1360_phoneymeetgranma_fone_e2_8.chore
+dlg_1360_phoneymeetgranma_fone_e3_9.chore
+dlg_1360_phoneymeetgranma_enter_e1_11.chore
+bg_forestwaterfall_phoneybigbroapples.chore
+dlg_1420_phoneyapples_enter_e1_1.chore
+dlg_1420_phoneyapples_hurt_e1_3.chore
+dlg_1420_phoneyapples_insults_e1_4.chore
+dlg_1420_phoneyapples_help_e1_2.chore
+dlg_1420_phoneyapples_whatever_e1_8.chore
+dlg_1420_phoneyapples_insults_e2_5.chore
+dlg_1420_phoneyapples_insults_e3_6.chore
+dlg_1420_phoneyapples_insults_e4_7.chore
+dlg_mobydick_chapter_1__loomings_e1_2.chore
+dlg_mobydick_chapter_28___ahab_e1_3.chore
+dlg_mobydick_chapter_41__moby_dick_e1_4.chore
+dlg_mobydick_chapter_132__the_symphony_e1_5.chore
+dlg_mobydick_chapter_133___the_chase_--_first_day_e1_6.chore
+class Map<class Symbol,bool,struct std::less<class Symbol> >
+bg_desert_smiley.chore
+bg_desert_phoney.chore
+bg_after_map.chore
+bg_desert_dlg_smileyafterdollar.chore
+bg_dlg_desert_phoneyafterdollar.chore
+bg_desert_dlg_map.chore
+dlg_1010_fonedesertdialog.dlg_thing_e1_18.chore
+dlg_1010_fonedesertdialog.dlg_tune_e1_21.chore
+dlg_1010_fonedesertdialog.dlg_enter3_e1_17.chore
+opening_cutscene.chore
+dlg_1010_fonedesertdialog.dlg_enter_e1_12.chore
+sk02_action_getmap.chore
+dlg_1010_fonedesertdialog.dlg_give him something fdf_e1_29.chore
+dlg_1010_fonedesertdialog.dlg_hate music_e1_30.chore
+dlg_1010_fonedesertdialog.dlg_right_e1_34.chore
+dlg_1010_fonedesertdialog.dlg_catering_e1_32.chore
+dlg_1010_fonedesertdialog.dlg_birthday 2_e1_33.chore
+dlg_1010_fonedesertdialog.dlg_map_e1_39.chore
+dlg_1010_fonedesertdialog.dlg_what for_e1_40.chore
+dlg_1010_fonedesertdialog.dlg_enter_e2_4.chore
+dlg_1010_fonedesertdialog.dlg_enter_e3_5.chore
+dlg_1010_fonedesertdialog.dlg_enter_e4_6.chore
+dlg_1010_fonedesertdialog.dlg_enter_e2_13.chore
+dlg_1010_fonedesertdialog.dlg_enter_e4_15.chore
+dlg_1010_fonedesertdialog.dlg_lost in desert_e1_27.chore
+dlg_1010_fonedesertdialog.dlg_enter_e1_51.chore
+dlg_1010_fonedesertdialog.dlg_enter_e2_52.chore
+dlg_1010_fonedesertdialog.dlg_enter_e3_53.chore
+dlg_1010_fonedesertdialog.dlg_item 1_e1_54.chore
+dlg_1010_fonedesertdialog.dlg_item 2_e1_55.chore
+dlg_1010_fonedesertdialog.dlg_item 3_e1_56.chore
+dlg_1010_fonedesertdialog.dlg_item 4_e1_57.chore
+dlg_1010_fonedesertdialog.dlg_enter_e1_58.chore
+dlg_1010_fonedesertdialog.dlg_phoneypays_e1_61.chore
+cs_locusts.chore
+dlg_1010_fonedesertdialog.dlg_nevermind_e1_31.chore
+dlg_1010_fonedesertdialog.dlg_nevermind_e1_45.chore
+dlg_1010_fonedesertdialog.dlg_enter_e5_7.chore
+bg_desert_rockmap.chore
+dlg_1010_fonedesertdialog.dlg_item 1a_e1_23.chore
+dlg_1010_fonedesertdialog.dlg_item 2a_e1_24.chore
+dlg_1010_fonedesertdialog.dlg_item 3a_e1_25.chore
+dlg_1010_fonedesertdialog.dlg_item 1n_e1_22.chore
+dlg_1010_fonedesertdialog.dlg_thing_e3_20.chore
+dlg_1010_fonedesertdialog.dlg_thing_e2_19.chore
+dlg_1010_fonedesertdialog.dlg_what for_e2_41.chore
+dlg_1010_fonedesertdialog.dlg_item 1 aaa_e1_46.chore
+dlg_1010_fonedesertdialog.dlg_item 2 aab_e1_47.chore
+dlg_1010_fonedesertdialog.dlg_item 1 xczxzc_e1_28.chore
+dlg_1010_fonedesertdialog.dlg_item 1 123_e1_49.chore
+dlg_1010_fonedesertdialog.dlg_enter don't play that song_e1_50.chore
+sk02_action_dollarexchange.chore
+dlg_1010_fonedesertdialog.dlg_enter_asdsa_e1_70.chore
+dlg_1010_fonedesertdialog.dlg_enter_asdsa_e2_71.chore
+dlg_come_on_smiley.chore
+dlg_1010_fonedesertdialog.dlg_die of thirst_e1_35.chore
+dlg_1010_fonedesertdialog.dlg_only a dollar_e1_37.chore
+dlg_1010_fonedesertdialog.dlg_better map_e1_36.chore
+dlg_1010_fonedesertdialog.dlg_item 3 aac_e1_48.chore
+dlg_1010_fonedesertdialog_enter_e1_65.chore
+dlg_1010_fonedesertdialog.dlg_hate music_e1_30_b.chore
+dlg_1010_fonedesertdialog.dlg_hate music_e1_30_c.chore
+dlg_1010_fonedesertdialog.dlg_hate music_e1_30_d.chore
+dlg_1010_fonedesertdialog.dlg_hate music_e1_30_e.chore
+bg_forestwaterfall_foneted.chore
+dlg_1120_fonemeetted_enter_e1_2.chore
+dlg_1120_fonemeetted_item 1_e1_3.chore
+dlg_1120_fonemeetted_item 3_e1_5.chore
+dlg_1120_fonemeetted_item 2_e1_4.chore
+dlg_1120_fonemeetted_item 1_e1_6.chore
+dlg_1120_fonemeetted_item 3_e1_8.chore
+dlg_1120_fonemeetted_item 2_e1_7.chore
+dlg_1120_fonemeetted_item 4_e1_9.chore
+dlg_1120_fonemeetted_item 1_e1_13.chore
+dlg_1120_fonemeetted_item 2_e1_14.chore
+dlg_1120_fonemeetted_item 3_e1_15.chore
+dlg_1120_fonemeetted_item 1_e1_16.chore
+dlg_1120_fonemeetted_item 2_e1_17.chore
+dlg_1120_fonemeetted_enter_e1_20.chore
+dlg_1120_fonemeetted_item 3_e1_18.chore
+dlg_1120_fonemeetted_item 1_e1_21.chore
+dlg_1120_fonemeetted_item 2_e1_24.chore
+dlg_1120_fonemeetted_item 4_e1_22.chore
+dlg_1120_fonemeetted_item 5_e1_23.chore
+dlg_1120_fonemeetted_item 7_e1_26.chore
+dlg_1120_fonemeetted_item 6_e1_25.chore
+dlg_1120_fonemeetted_item 8_e1_27.chore
+dlg_1120_fonemeetted_item 4_e2_10.chore
+dlg_1120_fonemeetted_item 3_e1_28.chore
+bg_forestriverbank_fonedragon.chore
+dlg_1220_fonedragondialog_getaway_e1_2.chore
+dlg_1220_fonedragondialog_ratcreatures_e1_3.chore
+dlg_1220_fonedragondialog_cousins_e1_4.chore
+dlg_1220_fonedragondialog_nevermind_e1_6.chore
+dlg_1220_fonedragondialog_eatme_e1_7.chore
+dlg_1220_fonedragondialog_why_e1_11.chore
+dlg_1220_fonedragondialog_enter_e1_10.chore
+dlg_1220_fonedragondialog_cousins_e2_5.chore
+bg_forestriverpossums_fonewaiting.chore
+bg_forestriverpossums_fonepossums.chore
+bg_forestriverpossums_hidingplace01.chore
+bg_forestriverpossums_hidingplace02.chore
+bg_forestriverpossums_hidingplace03.chore
+bg_forestriverpossums_hidingplace04.chore
+bg_forestriverpossums_hidingplace05.chore
+bg_forestriverpossums_hidingplace06.chore
+bg_forestriverpossums_hidingplace07.chore
+bg_forestriverpossums_hidingplace08.chore
+bg_forestriverpossums_hidingplace09.chore
+bg_forestriverpossums_hidingplace10.chore
+bg_forestriverpossums_hidingplace11.chore
+bg_forestriverpossums_hidingplace12.chore
+bg_forestriverpossums_hidingplace13.chore
+bg_forestriverpossums_hidingplace14.chore
+bg_forestriverpossums_hidingplace15.chore
+dlg_1230_fonemeetpossums_enter_e1_20.chore
+dlg_1230_fonemeetpossums_enter_e2_21.chore
+dlg_1230_fonemeetpossums_item_1_e1_22.chore
+dlg_1230_fonemeetpossums_item_2_e1_23.chore
+dlg_1230_fonemeetpossums_item_3_e1_24.chore
+dlg_1230_fonemeetpossums_item_3_e2_25.chore
+dlg_1230_fonemeetpossums_item_4_e1_26.chore
+dlg_1230_fonemeetpossums_item_5_e1_27.chore
+dlg_1230_fonemeetpossums_item_6_e1_28.chore
+dlg_1230_fonemeetpossums_item_1_e1_30.chore
+dlg_1230_fonemeetpossums_item_2_e1_32.chore
+dlg_1230_fonemeetpossums_item_3_e1_33.chore
+dlg_1230_fonemeetpossums_item_3_e2_34.chore
+dlg_1230_fonemeetpossums_item_1_e2_31.chore
+dlg_1230_fonemeetpossums_item_4_e1_35.chore
+dlg_1230_fonemeetpossums_item_1_e1_36.chore
+dlg_1230_fonemeetpossums_item_1_e2_37.chore
+dlg_1230_fonemeetpossums_item_2_e1_38.chore
+dlg_1230_fonemeetpossums_item_3_e1_40.chore
+dlg_1230_fonemeetpossums_item_3_e2_41.chore
+dlg_1230_fonemeetpossums_item_2_e2_39.chore
+dlg_1230_fonemeetpossums_item_4_e1_42.chore
+dlg_1230_fonemeetpossums_enter_e1_43.chore
+dlg_1230_fonemeetpossums_enter_e1_45.chore
+dlg_1230_fonemeetpossums_item_1_e1_46.chore
+dlg_1230_fonemeetpossums_item_1_e2_47.chore
+dlg_1230_fonemeetpossums_item_2_e1_48.chore
+dlg_1230_fonemeetpossums_item_3_e1_49.chore
+dlg_1230_fonemeetpossums_item_4_e1_51.chore
+dlg_1230_fonemeetpossums_enter_e1_52.chore
+dlg_1230_fonemeetpossums_enter_e1_53.chore
+dlg_1230_fonemeetpossums_item_1_e1_54.chore
+dlg_1230_fonemeetpossums_item_1_e2_55.chore
+dlg_1230_fonemeetpossums_item_1_e3_56.chore
+dlg_1230_fonemeetpossums_item_2_e1_57.chore
+dlg_1230_fonemeetpossums_item_3_e1_58.chore
+dlg_1230_fonemeetpossums_item_4_e1_59.chore
+dlg_1230_fonemeetpossums_enter_e1_60.chore
+dlg_1230_fonemeetpossums_item_1_e1_61.chore
+dlg_1230_fonemeetpossums_item_1_e2_62.chore
+dlg_1230_fonemeetpossums_item_2_e1_63.chore
+dlg_1230_fonemeetpossums_item_3_e1_64.chore
+dlg_1230_fonemeetpossums_item_1_e1_65.chore
+dlg_1230_fonemeetpossums_item_2_e1_66.chore
+dlg_1230_fonemeetpossums_item_3_e1_67.chore
+dlg_1230_fonemeetpossums_item_4_e1_68.chore
+dlg_1230_fonemeetpossums_enter_e1_69.chore
+dlg_1230_fonemeetpossums_item_1_e1_75.chore
+dlg_1230_fonemeetpossums_hidenseekcount_e1_154.chore
+dlg_1230_fonemeetpossums_roar1_e1_17.chore
+dlg_1230_fonemeetpossums_roar2_e1_18.chore
+dlg_1230_fonemeetpossums_item_2_e1_76.chore
+dlg_1230_fonemeetpossums_item_3_e1_77.chore
+dlg_1230_fonemeetpossums_enter_e1_78.chore
+dlg_1230_fonemeetpossums_item_1_e1_79.chore
+dlg_1230_fonemeetpossums_item_2_e1_80.chore
+dlg_1230_fonemeetpossums_item_3_e1_81.chore
+dlg_1230_fonemeetpossums_item_4_e1_82.chore
+dlg_1230_fonemeetpossums_enter_e1_83.chore
+dlg_1230_fonemeetpossums_item_1_e1_84.chore
+dlg_1230_fonemeetpossums_item_2_e1_85.chore
+dlg_1230_fonemeetpossums_item_3_e1_86.chore
+dlg_1230_fonemeetpossums_roar3_e1_19.chore
+dlg_1230_fonemeetpossums_enter_e1_88.chore
+dlg_1230_fonemeetpossums_item_1_e1_89.chore
+dlg_1230_fonemeetpossums_item_2_e1_90.chore
+dlg_1230_fonemeetpossums_item_3_e1_91.chore
+dlg_1230_fonemeetpossums_item_4_e1_92.chore
+dlg_1230_fonemeetpossums_enter_e1_93.chore
+dlg_1230_fonemeetpossums_item_1_e1_94.chore
+dlg_1230_fonemeetpossums_item_1_e1_70.chore
+dlg_1230_fonemeetpossums_item_2_e1_95.chore
+dlg_1230_fonemeetpossums_item_3_e1_96.chore
+dlg_1230_fonemeetpossums_item_4_e1_97.chore
+dlg_1230_fonemeetpossums_item_2_e1_71.chore
+dlg_1230_fonemeetpossums_item_3_e1_72.chore
+dlg_1230_fonemeetpossums_item_4_e1_73.chore
+dlg_1230_fonemeetpossums_enter_e1_74.chore
+dlg_1230_fonemeetpossums_item_1_e1_99.chore
+dlg_1230_fonemeetpossums_item_2_e1_100.chore
+dlg_1230_fonemeetpossums_item_3_e1_101.chore
+dlg_1230_fonemeetpossums_enter_e1_102.chore
+dlg_1230_fonemeetpossums_item_1_e1_103.chore
+dlg_1230_fonemeetpossums_item_2_e1_104.chore
+dlg_1230_fonemeetpossums_item_3_e1_105.chore
+dlg_1230_fonemeetpossums_enter_e1_106.chore
+dlg_1230_fonemeetpossums_item_1_e1_107.chore
+dlg_1230_fonemeetpossums_item_2_e1_108.chore
+dlg_1230_fonemeetpossums_item_3_e1_109.chore
+dlg_1230_fonemeetpossums_item_4_e1_110.chore
+dlg_1230_fonemeetpossums_enter_e1_111.chore
+dlg_1230_fonemeetpossums_item_1_e1_112.chore
+dlg_1230_fonemeetpossums_item_2_e1_113.chore
+dlg_1230_fonemeetpossums_item_3_e1_114.chore
+dlg_1230_fonemeetpossums_item_4_e1_115.chore
+dlg_1230_fonemeetpossums_enter_e1_116.chore
+dlg_1230_fonemeetpossums_item_1_e1_117.chore
+dlg_1230_fonemeetpossums_item_2_e1_118.chore
+dlg_1230_fonemeetpossums_item_3_e1_119.chore
+dlg_1230_fonemeetpossums_item_4_e1_120.chore
+dlg_1230_fonemeetpossums_enter_e1_121.chore
+dlg_1230_fonemeetpossums_item_1_e1_122.chore
+dlg_1230_fonemeetpossums_item_2_e1_123.chore
+dlg_1230_fonemeetpossums_item_3_e1_124.chore
+dlg_1230_fonemeetpossums_enter_e1_125.chore
+dlg_1230_fonemeetpossums_item_1_e1_126.chore
+dlg_1230_fonemeetpossums_item_2_e1_127.chore
+dlg_1230_fonemeetpossums_item_3_e1_128.chore
+dlg_1230_fonemeetpossums_enter_e1_129.chore
+dlg_1230_fonemeetpossums_item_1_e1_130.chore
+dlg_1230_fonemeetpossums_item_2_e1_131.chore
+dlg_1230_fonemeetpossums_item_3_e1_132.chore
+dlg_1230_fonemeetpossums_enter_e1_133.chore
+dlg_1230_fonemeetpossums_item_1_e1_134.chore
+dlg_1230_fonemeetpossums_item_2_e1_135.chore
+dlg_1230_fonemeetpossums_item_3_e1_136.chore
+dlg_1230_fonemeetpossums_item_4_e1_137.chore
+dlg_1230_fonemeetpossums_enter_e1_138.chore
+dlg_1230_fonemeetpossums_item_1_e1_139.chore
+dlg_1230_fonemeetpossums_item_2_e1_140.chore
+dlg_1230_fonemeetpossums_item_3_e1_141.chore
+dlg_1230_fonemeetpossums_item_4_e1_142.chore
+dlg_1230_fonemeetpossums_enter_e1_143.chore
+dlg_1230_fonemeetpossums_item_1_e1_144.chore
+dlg_1230_fonemeetpossums_item_2_e1_145.chore
+dlg_1230_fonemeetpossums_item_3_e1_146.chore
+dlg_1230_fonemeetpossums_enter_e1_147.chore
+dlg_1230_fonemeetpossums_enter_e1_148.chore
+dlg_1230_fonemeetpossums_item_1_e1_149.chore
+dlg_1230_fonemeetpossums_item_2_e1_150.chore
+dlg_1230_fonemeetpossums_item_3_e1_151.chore
+dlg_1230_fonemeetpossums_item_4_e1_152.chore
+dlg_1230_fonemeetpossums_item_3_e2_50.chore
+dlg_1230_fonemeetpossums_enter_e2_44.chore
+dlg_1230_fonemeetpossums_item_7_e1_29.chore
+dlg_1230_fonemeetpossums_enter_e1_153.chore
+dlg_1230_fonemeetpossums_hidingplace01_e1_163.chore
+dlg_1230_fonemeetpossums_hidingplace01_e2_164.chore
+dlg_1230_fonemeetpossums_hidingplace06_e1_173.chore
+dlg_1230_fonemeetpossums_hidingplace06_e2_174.chore
+dlg_1230_fonemeetpossums_hidingplace11_e1_183.chore
+dlg_1230_fonemeetpossums_hidingplace02_e1_165.chore
+dlg_1230_fonemeetpossums_hidingplace02_e2_166.chore
+dlg_1230_fonemeetpossums_hidingplace03_e1_167.chore
+dlg_1230_fonemeetpossums_hidingplace03_e2_168.chore
+dlg_1230_fonemeetpossums_hidingplace04_e1_169.chore
+dlg_1230_fonemeetpossums_hidingplace04_e2_170.chore
+dlg_1230_fonemeetpossums_hidingplace05_e1_171.chore
+dlg_1230_fonemeetpossums_hidingplace05_e2_172.chore
+dlg_1230_fonemeetpossums_hidingplace07_e1_175.chore
+dlg_1230_fonemeetpossums_hidingplace07_e2_176.chore
+dlg_1230_fonemeetpossums_hidingplace08_e1_177.chore
+dlg_1230_fonemeetpossums_hidingplace08_e2_178.chore
+dlg_1230_fonemeetpossums_hidingplace09_e1_179.chore
+dlg_1230_fonemeetpossums_hidingplace09_e2_180.chore
+dlg_1230_fonemeetpossums_hidingplace10_e1_181.chore
+dlg_1230_fonemeetpossums_hidingplace10_e2_182.chore
+dlg_1230_fonemeetpossums_hidingplace11_e2_184.chore
+dlg_1230_fonemeetpossums_hidingplace12_e1_185.chore
+dlg_1230_fonemeetpossums_hidingplace12_e2_186.chore
+dlg_1230_fonemeetpossums_hidingplace13_e1_187.chore
+dlg_1230_fonemeetpossums_hidingplace13_e2_188.chore
+dlg_1230_fonemeetpossums_hidingplace14_e1_189.chore
+dlg_1230_fonemeetpossums_hidingplace14_e2_190.chore
+dlg_1230_fonemeetpossums_hidingplace15_e1_191.chore
+dlg_1230_fonemeetpossums_hidingplace15_e2_192.chore
+bg_foresthotsprings_fonethorn.chore
+dlg_1270_fonemeetthorn_enter_e1_2.chore
+dlg_1270_fonemeetthorn_item_1_e1_3.chore
+dlg_1270_fonemeetthorn_item_1_e1_7.chore
+dlg_1270_fonemeetthorn_unsmooth_e1_10.chore
+dlg_1270_fonemeetthorn_helpme_e1_15.chore
+dlg_1270_fonemeetthorn_unsmooth_e2_11.chore
+dlg_1270_fonemeetthorn_ted_e1_13.chore
+dlg_1270_fonemeetthorn_unsmooth_e3_12.chore
+dlg_1270_fonemeetthorn_helpme_e2_16.chore
+dlg_1270_fonemeetthorn_ted_e2_14.chore
+dlg_1270_fonemeetthorn_the_boys_e1_17.chore
+dlg_1270_fonemeetthorn_boastful_e1_20.chore
+dlg_1270_fonemeetthorn_boastful_e2_21.chore
+dlg_1270_fonemeetthorn_enter_e1_25.chore
+dlg_1270_fonemeetthorn_granma_e1_26.chore
+dlg_1270_fonemeetthorn_granma_e2_27.chore
+dlg_1270_fonemeetthorn_rats_e1_28.chore
+dlg_1270_fonemeetthorn_rats_e2_29.chore
+dlg_1270_fonemeetthorn_rats_e3_30.chore
+dlg_1270_fonemeetthorn_ready_e1_31.chore
+dlg_1270_fonemeetthorn_dragons_e1_22.chore
+dlg_1270_fonemeetthorn_dragons_e2_23.chore
+dlg_1270_fonemeetthorn_the_boys_e2_18.chore
+dlg_1270_fonemeetthorn_the_boys_e3_19.chore
+dlg_1270_fonemeetthorn_dragons_e3_24.chore
+dlg_1270_fonemeetthorn_wait_e1_32.chore
+bg_forestwaterfall_phoneystomach.chore
+bg_forestwaterfall_phoneybigbro.chore
+dlg_1300_phoneystomachbigbug_enter_e2_8.chore
+dlg_1300_phoneystomachbigbug_food_e1_12.chore
+dlg_1300_phoneystomachbigbug_fone_e1_13.chore
+dlg_1300_phoneystomachbigbug_enter_e1_27.chore
+dlg_1300_phoneystomachbigbug_item_4_e1_3.chore
+dlg_1300_phoneystomachbigbug_item_5_e1_4.chore
+dlg_1300_phoneystomachbigbug_item_6_e1_5.chore
+dlg_1300_phoneystomachbigbug_enter_e1_2.chore
+dlg_1300_phoneystomachbigbug__e1_20.chore
+dlg_1300_phoneystomachbigbug_enter_e1_6.chore
+dlg_1300_phoneystomachbigbug_banter_e1_9.chore
+dlg_1300_phoneystomachbigbug_banter_e2_10.chore
+dlg_1300_phoneystomachbigbug_banter_e3_11.chore
+dlg_1300_phoneystomachbigbug_enter_e1_7.chore
+dlg_1300_phoneystomachbigbug_item_1_e1_21.chore
+dlg_1300_phoneystomachbigbug_item_1_e2_22.chore
+dlg_1300_phoneystomachbigbug_item_1_e1_24.chore
+dlg_1300_phoneystomachbigbug_item_2_e1_25.chore
+dlg_1300_phoneystomachbigbug_item_2_e1_23.chore
+dlg_1300_phoneystomachbigbug_item_3_e1_26.chore
+dlg_1300_phoneystomachbigbug_insults1_e1_14.chore
+dlg_1300_phoneystomachbigbug_insults1_e3_16.chore
+dlg_1300_phoneystomachbigbug_insults1_e2_15.chore
+dlg_1300_phoneystomachbigbug_insults2_e2_18.chore
+dlg_1300_phoneystomachbigbug_insults2_e3_19.chore
+dlg_1300_phoneystomachbigbug_insults2_e1_17.chore
+dlg_1300_afterbigbropuzzle.chore
+bg_forestriverbank_dragonasleep.chore
+bg_forestriverbank_phoneyted.chore
+dlg_1310_phoneymeetdragonted_enter_e1_2.chore
+dlg_1310_phoneymeetdragonted_fone_e1_3.chore
+dlg_1310_phoneymeetdragonted_where_e1_6.chore
+dlg_1310_phoneymeetdragonted_food_e1_9.chore
+dlg_1310_phoneymeetdragonted_fone_e2_4.chore
+dlg_1310_phoneymeetdragonted_where_e2_7.chore
+dlg_1310_phoneymeetdragonted_food_e2_10.chore
+dlg_1310_phoneymeetdragonted_fone_e3_5.chore
+dlg_1310_phoneymeetdragonted_where_e3_8.chore
+dlg_1310_phoneymeetdragonted_food_e3_11.chore
+dlg_1310_phoneymeetdragonted_enter_e1_13.chore
+dlg_1310_phoneymeetdragonted_who_e1_14.chore
+dlg_1310_phoneymeetdragonted_fone_e1_15.chore
+dlg_1310_phoneymeetdragonted_food_e1_18.chore
+dlg_1310_phoneymeetdragonted_fone_e2_16.chore
+dlg_1310_phoneymeetdragonted_fone_e3_17.chore
+dlg_1310_phoneymeetdragonted_food_e2_19.chore
+dlg_1310_phoneymeetdragonted_food_e3_20.chore
+dlg_1310_phoneymeetdragonted_food_e4_21.chore
+dlg_1310_phoneymeetdragonted_enter_e1_23.chore
+dlg_1310_phoneymeetdragonted_yes_e1_24.chore
+dlg_1310_phoneymeetdragonted_ask_e1_26.chore
+dlg_1310_phoneymeetdragonted_no_e1_25.chore
+dlg_1310_phoneymeetdragonted_item_1_e1_12.chore
+dlg_1310_phoneymeetdragonted_item_1_e1_22.chore
+bg_forestriverpossums_phoneypossums.chore
+dlg_1320_phoneymeetpossums_enter_e1_2.chore
+dlg_1320_phoneymeetpossums_item_1_e1_19.chore
+dlg_1320_phoneymeetpossums_item_2_e1_21.chore
+dlg_1320_phoneymeetpossums_item_3_e1_20.chore
+_dlg_1320_phoneymeetpossums_possumscomplete_e1_22.chore
+dlg_1320_phoneymeetpossums_item_1_e1_14.chore
+dlg_1320_phoneymeetpossums_wanna_help_me_pick_some_apples__e1_15.chore
+dlg_1320_phoneymeetpossums_enter_e2_3.chore
+dlg_1320_phoneymeetpossums_enter_e1_17.chore
+dlg_1320_phoneymeetpossums_enter_e2_18.chore
+dlg_1320_phoneymeetpossums_food_e1_8.chore
+dlg_1320_phoneymeetpossums_food_e2_9.chore
+dlg_1320_phoneymeetpossums_fone_e1_5.chore
+dlg_1320_phoneymeetpossums_fone_e3_7.chore
+dlg_1320_phoneymeetpossums_ted_e1_10.chore
+dlg_1320_phoneymeetpossums_ted_e2_11.chore
+dlg_1320_phoneymeetpossums_ted_e3_12.chore
+dlg_1320_phoneymeetpossums_bye_e1_13.chore
+dlg_1320_phoneymeetpossums_fone_e2_6.chore
+dlg_1320_phoneymeetpossums_item_2_e1_16.chore
+dlg_1320_phoneymeetpossums_item_1_e1_4.chore
+bg_foresthotsprings_phoneytedtalk.chore
+bg_foresthotsprings_phoneyted.chore
+dlg_1340_phoneytedhotsprings_enter_e1_13.chore
+dlg_1340_phoneytedhotsprings_slow_down_e1_14.chore
+dlg_1340_phoneytedhotsprings_stupid_kids_e1_15.chore
+dlg_1340_phoneytedhotsprings_big_idea_e1_16.chore
+dlg_1340_phoneytedhotsprings_no_e1_18.chore
+dlg_1340_phoneytedhotsprings_look_e1_19.chore
+dlg_1340_phoneytedhotsprings_yes_e1_17.chore
+dlg_1340_phoneytedhotsprings_enter_e1_2.chore
+dlg_1340_phoneytedhotsprings_who_e1_3.chore
+dlg_1340_phoneytedhotsprings_food_e1_7.chore
+dlg_1340_phoneytedhotsprings_food_e2_8.chore
+dlg_1340_phoneytedhotsprings_food_e3_9.chore
+dlg_1340_phoneytedhotsprings_fone_e1_4.chore
+dlg_1340_phoneytedhotsprings_fone_e2_5.chore
+dlg_1340_phoneytedhotsprings_fone_e3_6.chore
+dlg_1340_phoneytedhotsprings_item_1_e1_10.chore
+dlg_1340_phoneytedhotsprings_item_2_e1_11.chore
+dlg_1340_phoneytedhotsprings_item_3_e1_12.chore
+dlg_1340_phoneytedhotsprings_enter_e1_20.chore
+dlg_1340_phoneytedhotsprings_enter_e2_21.chore
+bg_granmasext_fonephoney.chore
+bg_granmasext_granmastasks.chore
+bg_granmasext_meetthorn.chore
+dlg_1380_granmastasks_granma_e1_1.chore
+dlg_1380_granmastasks_granma_e2_2.chore
+dlg_1380_granmastasks_granma_e3_3.chore
+dlg_1380_granmastasks_smiley_e1_4.chore
+dlg_1380_granmastasks_smiley_e2_5.chore
+dlg_1380_granmastasks_smiley_e3_6.chore
+dlg_1380_granmastasks_enter_e1_7.chore
+dlg_1380_granmastasks_enter_e1_11.chore
+dlg_1380_granmastasks_wood_e1_12.chore
+dlg_1380_granmastasks_water_e1_13.chore
+dlg_1380_granmastasks_enter_e1_14.chore
+dlg_1380_granmastasks_later_e1_15.chore
+dlg_1380_granmastasks_boneville_e1_8.chore
+dlg_1380_granmastasks_boneville_e2_9.chore
+dlg_1380_granmastasks_help_e1_10.chore
+dlg_1380_granmastasks_phoneyreturns_e1_18.chore
+dlg_1380_granmastasks_repeat_e1_19.chore
+bg_granmasext_foneted.chore
+bg_granmasext_fonethorn.chore
+bg_granmasext_fonedragon.chore
+bg_granmasext_fonegranma.chore
+dlg_1390_fonewoodwater_enter_e1_7.chore
+dlg_1390_fonewoodwater_firewood_e1_8.chore
+dlg_1390_fonewoodwater_granma_e1_9.chore
+dlg_1390_fonewoodwater_thorn_e1_11.chore
+dlg_1390_fonewoodwater_granma_e2_10.chore
+dlg_1390_fonewoodwater_thorn_e2_12.chore
+dlg_1390_fonewoodwater_thorn_e3_13.chore
+dlg_1390_fonewoodwater_sure_e1_15.chore
+dlg_1390_fonewoodwater_nope_e1_16.chore
+dlg_1390_fonewoodwater_other_e1_17.chore
+dlg_1390_fonewoodwater_later_e1_14.chore
+dlg_1390_fonewoodwater_enter_e1_46.chore
+dlg_1390_fonewoodwater_call_thorn_e1_47.chore
+dlg_1390_fonewoodwater_call_thorn_e2_48.chore
+dlg_1390_fonewoodwater_call_thorn_e3_49.chore
+dlg_1390_fonewoodwater_stalking_e1_50.chore
+dlg_1390_fonewoodwater_stalking_e2_51.chore
+dlg_1390_fonewoodwater_stalking_e3_52.chore
+dlg_1390_fonewoodwater_help_e1_53.chore
+dlg_1390_fonewoodwater_nevermind_e1_54.chore
+dlg_1390_fonewoodwater_bucket_e1_55.chore
+dlg_1390_fonewoodwater_bucket_e2_56.chore
+dlg_1390_fonewoodwater_fire_e1_57.chore
+dlg_1390_fonewoodwater_fire_e2_58.chore
+dlg_1390_fonewoodwater_thorn_e1_59.chore
+dlg_1390_fonewoodwater_thorn_e2_60.chore
+dlg_1390_fonewoodwater_thorn_e3_61.chore
+dlg_1390_fonewoodwater_nevermind_e1_62.chore
+dlg_1390_fonewoodwater_enter_e1_2.chore
+dlg_1390_fonewoodwater_smiley_e1_3.chore
+dlg_1390_fonewoodwater_smiley_e2_4.chore
+dlg_1390_fonewoodwater_nevermind_e1_6.chore
+dlg_1390_fonewoodwater_enter_e1_28.chore
+dlg_1390_fonewoodwater_nostory_e1_38.chore
+dlg_1390_fonewoodwater_nostory_e2_39.chore
+dlg_1390_fonewoodwater_nostory_e3_40.chore
+dlg_1390_fonewoodwater_story_e1_29.chore
+dlg_1390_fonewoodwater_story_e2_30.chore
+dlg_1390_fonewoodwater_story_e3_31.chore
+dlg_1390_fonewoodwater_story_e4_32.chore
+dlg_1390_fonewoodwater_story_e5_33.chore
+dlg_1390_fonewoodwater_story_e6_34.chore
+dlg_1390_fonewoodwater_story_e7_35.chore
+dlg_1390_fonewoodwater_story_e8_36.chore
+dlg_1390_fonewoodwater_story_e9_37.chore
+dlg_1390_fonewoodwater_enter_e1_23.chore
+dlg_1390_fonewoodwater_rat_creatures_e1_24.chore
+dlg_1390_fonewoodwater_rat_creatures_e2_25.chore
+dlg_1390_fonewoodwater_dragon_e1_26.chore
+dlg_1390_fonewoodwater_startwood_e1_63.chore
+dlg_1390_fonewoodwater_enter_e2_74.chore
+dlg_1390_fonewoodwater_thornstartwood_e1_75.chore
+dlg_1390_fonewoodwater_wood_e1_78.chore
+dlg_1390_fonewoodwater_woodnowater_e1_80.chore
+dlg_1390_fonewoodwater_water_e1_79.chore
+dlg_1390_fonewoodwater_waternowood_e1_81.chore
+dlg_1390_fonewoodwater_startwater_e1_77.chore
+forestriver_blockcharactersshoveldialog.chore
+forestriver_shoveldialogdefaultcam.chore
+bg_forestriverpossums_storycam.chore
+bg_forestriverpossums_phoneyspadewaiting.chore
+bg_forestriverpossums_possumsspadetalk.chore
+dlg_1405_phoneygetshovel_hide_n'_seek_e1_15.chore
+dlg_1405_phoneygetshovel_dead_e1_17.chore
+dlg_1405_phoneygetshovel_story_e1_19.chore
+dlg_1405_phoneygetshovel_back_e1_22.chore
+dlg_1405_phoneygetshovel_hide_n'_seek_e2_16.chore
+dlg_1405_phoneygetshovel_dead_e2_18.chore
+dlg_1405_phoneygetshovel_story_e2_20.chore
+dlg_1405_phoneygetshovel_tell_it_e1_23.chore
+dlg_1405_phoneygetshovel_back_up_e1_24.chore
+dlg_1405_phoneygetshovel_enter_e1_25.chore
+dlg_1405_phoneygetshovel_poor_bone_e1_26.chore
+dlg_1405_phoneygetshovel_clever_bone_e1_27.chore
+dlg_1405_phoneygetshovel_boring_e1_28.chore
+dlg_1405_phoneygetshovel_item_1_e1_29.chore
+dlg_1405_phoneygetshovel_item_2_e1_30.chore
+dlg_1405_phoneygetshovel_item_3_e1_31.chore
+dlg_1405_phoneygetshovel_item_1_e1_32.chore
+dlg_1405_phoneygetshovel_item_2_e1_35.chore
+dlg_1405_phoneygetshovel_item_3_e1_33.chore
+dlg_1405_phoneygetshovel_item_3_e2_34.chore
+dlg_1405_phoneygetshovel_so_he_had_a_huge_picnic_with_yummy_prune_tarts_an'_music_an'_..._e1_36.chore
+dlg_1405_phoneygetshovel_item_2_e1_37.chore
+dlg_1405_phoneygetshovel_item_3_e1_38.chore
+dlg_1405_phoneygetshovel_enter_e1_39.chore
+dlg_1405_phoneygetshovel_item_1_e1_40.chore
+dlg_1405_phoneygetshovel_item_2_e1_41.chore
+dlg_1405_phoneygetshovel_item_3_e1_42.chore
+dlg_1405_phoneygetshovel_item_1_e1_43.chore
+dlg_1405_phoneygetshovel_item_3_e1_45.chore
+dlg_1405_phoneygetshovel_item_2_e1_44.chore
+dlg_1405_phoneygetshovel_enter_e1_49.chore
+dlg_1405_phoneygetshovel_item_2_e1_50.chore
+dlg_1405_phoneygetshovel_item_2_e2_51.chore
+dlg_1405_phoneygetshovel_item_2_e3_52.chore
+dlg_1405_phoneygetshovel_enter_e1_54.chore
+dlg_1405_phoneygetshovel_item_1_e1_55.chore
+dlg_1405_phoneygetshovel_item_2_e1_56.chore
+dlg_1405_phoneygetshovel_item_2_e2_57.chore
+dlg_1405_phoneygetshovel_item_1_e1_53.chore
+dlg_1405_phoneygetshovel_enter_e1_2.chore
+dlg_1405_phoneygetshovel_friends_e1_3.chore
+dlg_1405_phoneygetshovel_spade3_e1_6.chore
+dlg_1405_phoneygetshovel_spade3_e2_7.chore
+dlg_1405_phoneygetshovel_spade3_e3_8.chore
+dlg_1405_phoneygetshovel_game_intro_e1_9.chore
+dlg_1405_phoneygetshovel_game_intro_e2_10.chore
+dlg_1405_phoneygetshovel_turnips_e1_12.chore
+dlg_1405_phoneygetshovel_turnips_e2_13.chore
+dlg_1405_phoneygetshovel_phoneygetspade_e1_59.chore
+dlg_1405_phoneygetshovel_item_1_e1_14.chore
+dlg_1405_phoneygetshovel_story_e1_11.chore
+dlg_1405_phoneygetshovel_spade_e1_4.chore
+dlg_1405_phoneygetshovel_spade2_e1_5.chore
+dlg_1405_phoneygetshovel_story2_e1_21.chore
+dlg_1405_phoneygetshovel_enter_e1_48.chore
+dlg_1405_phoneygetshovel_enter_e1_46.chore
+dlg_1405_phoneygetshovel_enter_e2_47.chore
+dlg_1405_phoneygetshovel_item_1_e1_43_b.chore
+dlg_1405_phoneygetshovel_enter_e1_48_b.chore
+fone.style
+phoney.style
+thorn.style
+gran'ma.style
+dlg_1430_dinner_item_1_e1_2.chore
+dlg_1430_dinner_item_2_e1_4.chore
+dlg_1430_dinner_item_3_e1_5.chore
+dlg_1430_dinner_item_1_e1_50.chore
+dlg_1430_dinner_item_2_e1_51.chore
+dlg_1430_dinner_item_3_e1_52.chore
+dlg_1430_dinner_item_1_e1_91.chore
+dlg_1430_dinner_item_2_e1_92.chore
+dlg_1430_dinner_item_3_e1_93.chore
+dlg_1430_dinner_item_1_e1_7.chore
+dlg_1430_dinner_item_2_e1_8.chore
+dlg_1430_dinner_item_1_e1_10.chore
+dlg_1430_dinner_item_1_e1_13.chore
+dlg_1430_dinner_item_2_e1_14.chore
+dlg_1430_dinner_item_1_e1_16.chore
+dlg_1430_dinner_item_1_e1_20.chore
+dlg_1430_dinner_item_1_e1_23.chore
+dlg_1430_dinner_item_1_e1_25.chore
+dlg_1430_dinner_item_1_e1_27.chore
+dlg_1430_dinner_item_1_e1_31.chore
+dlg_1430_dinner_item_2_e1_30.chore
+dlg_1430_dinner_item_1_e1_34.chore
+dlg_1430_dinner_item_2_e1_35.chore
+dlg_1430_dinner_item_3_e1_36.chore
+dlg_1430_dinner_item_1_e1_39.chore
+dlg_1430_dinner_item_1_e1_45.chore
+dlg_1430_dinner_item_2_e1_42.chore
+dlg_1430_dinner_item_1_e1_56.chore
+dlg_1430_dinner_item_1_e1_58.chore
+dlg_1430_dinner_item_2_e1_59.chore
+dlg_1430_dinner_item_3_e1_60.chore
+dlg_1430_dinner_item_1_e1_63.chore
+dlg_1430_dinner_item_2_e1_65.chore
+dlg_1430_dinner_item_3_e1_66.chore
+dlg_1430_dinner_item_1_e1_71.chore
+dlg_1430_dinner_item_1_e1_73.chore
+dlg_1430_dinner_item_1_e1_75.chore
+dlg_1430_dinner_item_2_e1_76.chore
+dlg_1430_dinner_item_1_e1_78.chore
+dlg_1430_dinner_item_1_e1_80.chore
+dlg_1430_dinner_item_1_e1_95.chore
+dlg_1430_dinner_item_2_e1_97.chore
+dlg_1430_dinner_item_1_e1_99.chore
+dlg_1430_dinner_item_1_e1_101.chore
+dlg_1430_dinner_item_1_e1_103.chore
+dlg_1430_dinner_item_2_e1_104.chore
+dlg_1430_dinner_item_3_e2_106.chore
+dlg_1430_dinner_item_1_e1_108.chore
+dlg_1430_dinner_item_2_e1_109.chore
+dlg_1430_dinner_item_1_e1_111.chore
+dlg_1430_dinner_item_2_e1_112.chore
+dlg_1430_dinner_item_3_e1_113.chore
+dlg_1430_dinner_item_1_e1_115.chore
+dlg_1430_dinner_item_1_e1_117.chore
+dlg_1430_dinner_item_1_e1_119.chore
+dlg_1430_dinner_item_2_e1_120.chore
+dlg_1430_dinner_item_1_e1_122.chore
+dlg_1430_dinner_item_2_e1_123.chore
+dlg_1430_dinner_item_1_e1_126.chore
+dlg_1430_dinner_item_2_e1_127.chore
+_dlg_1430_dinner_intro_e1_135.chore
+dlg_1430_dinner_item_1_e1_82.chore
+dlg_1430_dinner_item_1_e1_129.chore
+dlg_1430_dinner_item_yawn.chore
+dlg_1430_dinner_enter_e1_47.chore
+dlg_1430_dinner_item_1_e1_48.chore
+dlg_1430_dinner_item_2_e1_49.chore
+dlg_1430_dinner_item_2_e2_43.chore
+dlg_1430_dinner_item_2_e3_44.chore
+dlg_1430_dinner_item_3_e1_40.chore
+dlg_1430_dinner_item_1_e2_32.chore
+dlg_1430_dinner_item_1_e2_3.chore
+dlg_1430_dinner_item_1_e2_28.chore
+dlg_1430_dinner_item_1_e2_11.chore
+dlg_1430_dinner_item_3_e2_53.chore
+dlg_1430_dinner_item_3_e2_61.chore
+dlg_1430_dinner_item_2_e2_124.chore
+dlg_1430_dinner_item_1_e1_68.chore
+dlg_1430_dinner_item_3_e1_105.chore
+dlg_1430_dinner_item_2_e1_84.chore
+dlg_1430_dinner_item_2_e2_85.chore
+dlg_1430_dinner_item_2_e3_86.chore
+dlg_1430_dinner_item_3_e1_21.chore
+dlg_1430_dinner_item_3_e1_69.chore
+dlg_1430_dinner_item_5_e1_54.chore
+dlg_1430_dinner_item_5_e1_64.chore
+dlg_1430_dinner_item_4_e1_96.chore
+dlg_1430_dinner_item_3_e2_18.chore
+dlg_1430_dinner_item_3_e1_17.chore
+fone_look_desertrock_e1_19.chore
+fone_look_desertrock_e4_22.chore
+fone_look_desertrock_e2_20.chore
+fone_look_phoney_e1_1.chore
+fone_look_phoney_e2_2.chore
+fone_look_phoney_e3_3.chore
+fone_look_granmasextaxe_e1_4.chore
+fone_look_granmasextaxe_e2_5.chore
+fone_use_cornwithbucket_e1_14.chore
+fone_use_cornwithbucket_e2_15.chore
+fone_use_cornburntwithbucket_e1_13.chore
+fone_use_e1_10.chore
+fone_use_e2_11.chore
+fone_use_e3_12.chore
+fone_look_waterfallapple_e1_16.chore
+fone_look_waterfallapple_e2_17.chore
+fone_look_waterfallapple_e3_18.chore
+fone_pickup_dragonstaircigarbutt_e1_6.chore
+fone_pickup_dragonstaircigarbutt_e2_7.chore
+fone_pickup_dragonstaircigarbutt_e3_8.chore
+fone_pickup_dragonstaircigarbutt_e4_9.chore
+fone_look_desertrock_e3_21.chore
+ted_findbigbro_e1_2.chore
+ted_introbigbrother1_e1_3.chore
+class Ptr<class D3DShader>
+env_rock_riv_a.d3dtx
+adv_barrelhavenentrance_000.d3dtx
+env_bg_trees_a.d3dtx
+env_bg_trees_b.d3dtx
+env_bush_a_bot_alp.d3dtx
+env_bush_a_branch_alp.d3dtx
+env_grass_sprig_b_alp.d3dtx
+env_grass_trans_alp.d3dtx
+env_groundflwrs_alp.d3dtx
+env_ground_bh1.d3dtx
+env_leaf_a.d3dtx
+env_flowerlily_alp.d3dtx
+env_wood_siding.d3dtx
+env_wood_sidinga.d3dtx
+env_post.d3dtx
+env_barrelbands.d3dtx
+env_grass_sprig_a_alp.d3dtx
+env_barrel_2.d3dtx
+env_rock_gen.d3dtx
+color_000.d3dtx
+env_rock_f.d3dtx
+env_rock_riv_c.d3dtx
+env_rock_riv_d2.d3dtx
+env_rock_riv_d1.d3dtx
+env_rock_a.d3dtx
+env_rock_c.d3dtx
+env_rock_e.d3dtx
+tile_tree_bark.d3dtx
+env_tree_gen_a.d3dtx
+env_tree_gen_b.d3dtx
+env_twig_a_alp.d3dtx
+env_ground_ds_tile.d3dtx
+env_ground_ds_tiled.d3dtx
+env_bg_dreamscape_alp.d3dtx
+env_prayerstone_c.d3dtx
+env_prayerstone_wall.d3dtx
+env_caveprophecy_mimqueen.d3dtx
+env_caveprophecy_harmony.d3dtx
+env_caveprophecy_dragons.d3dtx
+env_caveprophecy_queen.d3dtx
+env_caveprophecy_enemy.d3dtx
+env_caveprophecy_locust.d3dtx
+env_caveprophecy_prayerstone_a.d3dtx
+env_cliff_wall_d.d3dtx
+env_cliff_wall_e.d3dtx
+env_cliff_wall_f2.d3dtx
+env_rock_dsgen_a.d3dtx
+env_cliff_wall_a.d3dtx
+env_rock_dssmall_c.d3dtx
+env_rock_dsgen_b.d3dtx
+env_bg_dreamscape.d3dtx
+env_bg_dreamscapea.d3dtx
+env_brush_brown.d3dtx
+adv_desert_000.d3dtx
+env_desert_ground.d3dtx
+env_bush_desertbranches.d3dtx
+color_857445.d3dtx
+env_rock_deserta.d3dtx
+color_716147.d3dtx
+color_9c7c49.d3dtx
+env_rock_desertb.d3dtx
+env_rock_desertlargec.d3dtx
+env_rock_desertlargeb.d3dtx
+env_rock_desertlargea.d3dtx
+env_rock_desertlarged.d3dtx
+env_cliffds_a.d3dtx
+adv_dragonsstair_000.d3dtx
+env_cliffds_trans.d3dtx
+env_cliffds_transb.d3dtx
+env_cliffds_b.d3dtx
+env_ground_ds_tileb.d3dtx
+env_cliffds_transc.d3dtx
+env_ground_ds_tilec.d3dtx
+env_rock_ds_b.d3dtx
+env_rock_ds_c.d3dtx
+color_666666.d3dtx
+rock6.d3dtx
+env_rock_ds_a.d3dtx
+rock_generalb.d3dtx
+env_ground_ds.d3dtx
+env_cliff_wall_g.d3dtx
+env_cliff_wall_f1.d3dtx
+env_cliff_wall_h.d3dtx
+env_cliff_wall_c.d3dtx
+adv_dragonsstair_001.d3dtx
+adv_dragonsstair_002.d3dtx
+env_cliff_wall_b.d3dtx
+env_rock_dssmall_b.d3dtx
+env_rock_dsgen_c.d3dtx
+env_tree_genclose.d3dtx
+adv_foresthotsprings_000.d3dtx
+env_tree_apple_trunk_front_nite.d3dtx
+env_bush_c_botflwr_alp.d3dtx
+env_bush_a_botflwr_alp.d3dtx
+env_bush_c_bot_alp.d3dtx
+env_bush_c_branch_alp.d3dtx
+env_bush_b_branchflwr_alp.d3dtx
+env_tree_gendead.d3dtx
+tile_grass_forest_cliff_alp.d3dtx
+tile_grass_forest.d3dtx
+env_grass_pathb.d3dtx
+env_lightshaftbig_alp.d3dtx
+env_lightshaft_alp.d3dtx
+env_rock_riv_b.d3dtx
+env_rock_gen_b.d3dtx
+env_rock_b.d3dtx
+env_hill_a.d3dtx
+env_hill_b.d3dtx
+env_rock_d.d3dtx
+env_bush_b_branch_alp.d3dtx
+adv_forestriverbank_000.d3dtx
+env_rock_gen_d.d3dtx
+tile_tree_gen_bark.d3dtx
+env_rock_rivground_c.d3dtx
+env_rock_rivground_e.d3dtx
+env_twig_b_alp.d3dtx
+env_rock_rivground_g1.d3dtx
+env_rock_rivground_f2.d3dtx
+env_rock_rivground_f1.d3dtx
+env_rock_rivground_d.d3dtx
+env_rock_rivground_h.d3dtx
+env_rock_gen_c.d3dtx
+env_rock_rivground_b.d3dtx
+env_rock_rivground_a.d3dtx
+env_bush_b_bot_alp.d3dtx
+env_bush_b_top_alp.d3dtx
+env_tree_poshouse.d3dtx
+adv_forestriverpossums_000.d3dtx
+env_tree_deadposa.d3dtx
+env_tree_dead_pos_inside.d3dtx
+env_tree_dead_pos_front.d3dtx
+env_tree_deadposb.d3dtx
+env_door_possum.d3dtx
+env_mailbox_possum.d3dtx
+env_log_side.d3dtx
+env_log_end.d3dtx
+env_grass_possum_patch.d3dtx
+env_leaf_c.d3dtx
+env_tree_apple_branch_c_alp.d3dtx
+adv_forestroad_000.d3dtx
+env_tree_apple_trunk_front.d3dtx
+bmap_map_tree_apple_trunk_front.d3dtx
+env_bg_trees_a_nite.d3dtx
+env_bg_trees_b_nite.d3dtx
+env_bush_c_bot_nite_alp.d3dtx
+env_bush_c_branch_nite_alp.d3dtx
+env_bush_b_branch_nite_alp.d3dtx
+tile_grass_forest_cliff_nite_alp.d3dtx
+tile_grass_forest_nite.d3dtx
+env_leaf_a_nite.d3dtx
+env_grass_sprig_a_nite_alp.d3dtx
+env_grass_sprig_b_nite_alp.d3dtx
+env_bush_a_bot_nite_alp.d3dtx
+env_grass_trans_nite_alp.d3dtx
+env_twig_a_nite_alp.d3dtx
+env_bush_b_bot_nite_alp.d3dtx
+env_bush_b_top_nite_alp.d3dtx
+adv_forestwaterfall_000.d3dtx
+env_tree_apple_trunk_front1.d3dtx
+env_grass_path.d3dtx
+env_leaf_b.d3dtx
+env_tree_apple_top_alp.d3dtx
+color_3627d.d3dtx
+env_tree_apple_branch_a_alp.d3dtx
+env_tree_apple_branch_b_alp.d3dtx
+env_tree_apple_branch_d_alp.d3dtx
+env_tree_apple_bot_b_alp.d3dtx
+env_tree_apple_bot_alp.d3dtx
+env_rock_g1.d3dtx
+env_rock_g2.d3dtx
+adv_forestwaterfall_closeup_000.d3dtx
+env_groundplane.d3dtx
+adv_granmasexterior_000.d3dtx
+env_house_texture3.d3dtx
+obj_corncob.d3dtx
+env_house_board.d3dtx
+env_fence_post_a.d3dtx
+env_roofhay1.d3dtx
+color_6f5f44.d3dtx
+env_window_frame.d3dtx
+env_barrel_3.d3dtx
+env_fence_post_b.d3dtx
+env_treestump.d3dtx
+env_flower_bed_.d3dtx
+color_fff.d3dtx
+env_window_alp.d3dtx
+adv_granmasinterior_000.d3dtx
+env_door_grndma.d3dtx
+color_76422c.d3dtx
+color_565c25.d3dtx
+color_444f5c.d3dtx
+color_50663b.d3dtx
+env_cup_clay.d3dtx
+env_house_int_nightb.d3dtx
+env_table_int.d3dtx
+env_tableend_int.d3dtx
+env_plate.d3dtx
+env_utensils.d3dtx
+env_shelf_int.d3dtx
+env_house_int.d3dtx
+color_9d9053.d3dtx
+color_1010d.d3dtx
+env_windowframe_int.d3dtx
+env_windowbottle_alp.d3dtx
+adv_granmasinteriordinner_000.d3dtx
+color_425430.d3dtx
+env_bread.d3dtx
+color_626469.d3dtx
+color_9c9c9c.d3dtx
+env_bread_side.d3dtx
+color_345018.d3dtx
+env_plate_chick.d3dtx
+color_345226.d3dtx
+env_lettuceleaf_alp.d3dtx
+env_chicken.d3dtx
+env_turnip.d3dtx
+env_turnip_top.d3dtx
+env_turnip_inside.d3dtx
+env_lettuce.d3dtx
+env_lettuce_alp.d3dtx
+env_chicken_leg.d3dtx
+env_tureen.d3dtx
+env_pepper.d3dtx
+env_sptop.d3dtx
+env_pie.d3dtx
+env_metal_gen_b.d3dtx
+env_plate_gena.d3dtx
+env_plate_genb.d3dtx
+env_bread_table.d3dtx
+env_salt.d3dtx
+color_817745.d3dtx
+env_ds_wall.d3dtx
+adv_thorndreamscape_000.d3dtx
+env_thorndreamscapefloor.d3dtx
+obj_apple.d3dtx
+env_axe_blade.d3dtx
+obj_banjo.d3dtx
+obj_bookmobydick.d3dtx
+obj_buckettop.d3dtx
+obj_bucket.d3dtx
+obj_candle_halo.d3dtx
+obj_canteen.d3dtx
+obj_cigar.d3dtx
+obj_corncobburnt.d3dtx
+cs_locustswarmflat.012.d3dtx
+env_tree_dead_front.d3dtx
+env_desert_background.d3dtx
+obj_desertrocka_000.d3dtx
+env_rockdesertshad_a_alp.d3dtx
+obj_desertrockb_000.d3dtx
+obj_desertrockbig_000.d3dtx
+obj_desertrockc_000.d3dtx
+obj_desertrockd_000.d3dtx
+env_rockdesertshad_b_alp.d3dtx
+obj_desertrocke_000.d3dtx
+obj_desertrockf_000.d3dtx
+env_rockdesertshad_c_alp.d3dtx
+obj_desertrockg_000.d3dtx
+obj_desertrockh_000.d3dtx
+obj_desertrocki_000.d3dtx
+env_rock_desertlargee.d3dtx
+obj_desertrockj_000.d3dtx
+tile_desert_grounda.d3dtx
+obj_deserttilea_000.d3dtx
+env_rock_desertlargef.d3dtx
+tile_desert_groundb.d3dtx
+obj_deserttileb_000.d3dtx
+obj_deserttilec_000.d3dtx
+obj_deserttiled_000.d3dtx
+obj_dollarboneville.d3dtx
+obj_doorgranmas_000.d3dtx
+env_background_dsend.d3dtx
+env_background_ds.d3dtx
+env_backgroundds_b.d3dtx
+obj_dragonsstairvalleyvista_000.d3dtx
+env_backgroundds_c.d3dtx
+env_branch.d3dtx
+env_backgroundds_a.d3dtx
+obj_dream_cutout.d3dtx
+obj_forestbusha_000.d3dtx
+env_shadforroad_obj_alp.d3dtx
+tile_grassforest_nitea.d3dtx
+obj_forestroadtilea_000.d3dtx
+env_flowerlily_nite.d3dtx
+tile_grassforest_niteb.d3dtx
+obj_forestroadtileb_000.d3dtx
+env_groundflwrsnite_alp.d3dtx
+obj_forestroadtilec_000.d3dtx
+obj_forestroadtilecentera_000.d3dtx
+env_shadforroad_trees_alp.d3dtx
+obj_forestroadtilecenterc_000.d3dtx
+obj_forestroadtiled_000.d3dtx
+obj_forestrocka_000.d3dtx
+obj_forestrockb_000.d3dtx
+obj_forestrockc_000.d3dtx
+obj_forestrockgroupa_000.d3dtx
+env_shadforroad_objb_alp.d3dtx
+obj_forestrockgroupb_000.d3dtx
+obj_forestrockgroupc_000.d3dtx
+obj_forestrockgroupd_000.d3dtx
+obj_forestrockgroupe_000.d3dtx
+obj_foresttreegroupa_000.d3dtx
+env_shadforroad_treesb_alp.d3dtx
+obj_foresttreegroupb_000.d3dtx
+env_tree_deada.d3dtx
+obj_foresttreegroupc_000.d3dtx
+obj_foresttreegroupd_000.d3dtx
+obj_forestwaterfallriverrocks_000.d3dtx
+env_rock_gend.d3dtx
+color_424fb.d3dtx
+obj_forestwaterfallriverrockslarge_000.d3dtx
+color_6044.d3dtx
+obj_locustgroupflat_1.d3dtx
+env_deserttile_locusts.d3dtx
+color_6fe1c.d3dtx
+obj_mapvalley.d3dtx
+obj_match.d3dtx
+obj_matchbook.d3dtx
+obj_mudpie.d3dtx
+obj_mudpie_000.d3dtx
+obj_mudpiepile.d3dtx
+obj_quiche.d3dtx
+sk05_ratcreature.d3dtx
+obj_spade.d3dtx
+color_c9c738.d3dtx
+obj_sun.d3dtx
+obj_torchratcreatureflamin.d3dtx
+obj_turnip.d3dtx
+obj_woodsplit.d3dtx
+sk02_phoney.d3dtx
+sk02_smiley.d3dtx
+sk03_thorn.d3dtx
+sk04_granmaben.d3dtx
+sk04_hoodedone.d3dtx
+sk06_kingdok.d3dtx
+sk07_ted.d3dtx
+sk08_tedsbigbrother.d3dtx
+sk08_tedsbigbrother_bandaid.d3dtx
+sk09_reddragon.d3dtx
+sk10_thornchild.d3dtx
+sk11_possumkid.d3dtx
+sk13_scorpion.d3dtx
+comiconendscreen.d3dtx
+color_343434.d3dtx
+ui_dialog_balloonlarge.d3dtx
+ui_dialog_headhilite.d3dtx
+ui_dialog_texthilite.d3dtx
+ui_dialog_balloonsmall.d3dtx
+ui_icon_banjo.d3dtx
+ui_inventory_packclosed.d3dtx
+ui_inventory_packopenbot.d3dtx
+ui_inventory_packopentop.d3dtx
+ui_menu_logo.d3dtx
+ui_menu_background.d3dtx
+color_3c3c3c.d3dtx
+ui_options.d3dtx
+ui_menu_meteron.d3dtx
+ui_menu_meteroff.d3dtx
+ui_menu_scrolltexture.d3dtx
+root
+spine1
+spine2
+spine3
+neck
+head
+thornChild_jaw
+thornChild_mouthLower_L
+thornChild_tongue
+thornChild_mouthLower_R
+thornChild_mouthUpper_L
+thornChild_mouthCorner_L
+thornChild_cheek_L
+thornChild_nose
+thornChild_eye_L
+thornChild_eyeLidUpper_L
+thornChild_browOuter_L
+thornChild_browInner_L
+thornChild_browInner_R
+thornChild_browOuter_R
+thornChild_eyeLidUpper_R
+thornChild_eye_R
+thornChild_cheek_R
+thornChild_mouthCorner_R
+thornChild_mouthUpper_R
+thornChild_eyeLidLower_R
+thornChild_hairFront1_R
+thornChild_hairFront2_R
+thornChild_hairFront1_L
+thornChild_hairFront2_L
+thornChild_eyeLidLower_L
+thornChild_hairUpper
+shoulder_L
+arm_L
+elbow_L
+wrist_L
+pinkyF1_L
+pinkyF2_L
+pinkyF3_L
+middleF1_L
+middleF2_L
+middleF3_L
+indexF1_L
+indexF2_L
+indexF3_L
+thumb1_L
+thumb2_L
+thumb3_L
+ringF1_L
+ringF2_L
+ringF3_L
+shoulderPad_L
+shoulder_R
+arm_R
+elbow_R
+wrist_R
+pinkyF1_R
+pinkyF2_R
+pinkyF3_R
+middleF1_R
+middleF2_R
+middleF3_R
+indexF1_R
+indexF2_R
+indexF3_R
+thumb1_R
+thumb2_R
+thumb3_R
+ringF1_R
+ringF2_R
+ringF3_R
+shoulderPad_R
+pelvis
+leg_L
+knee_L
+ankle_L
+heel_L
+ball_L
+toe_L
+leg_R
+knee_R
+ankle_R
+heel_R
+ball_R
+toe_R
+dank.d3dtx
+bmap_dank.d3dtx
+color_c5c5c5.d3dtx
+color_c58d87.d3dtx
+bmap_dank_bump.d3dtx
+shag.d3dtx
+bmap_shag_bump.d3dtx
+ContainerInterface
+HashMap<String,TTArchiveFolder>
+TTArchiveFileTemplate
+TTArchiveFolder
+TTArchive
+sk01_boris.prop
+obj_chipStackB.d3dmesh
+sk01_boris.d3dmesh
+sk01_boris.skl
+boris_jaw
+boris_mouthLower_L
+boris_tongue
+boris_mouthLower_R
+boris_mouthUpper_L
+boris_mouthCorner_L
+boris_cheek_L
+boris_nose
+boris_eye_L
+boris_eyeLidUpper_L
+boris_browOuter_L
+boris_browInner_L
+boris_browInner_R
+boris_browOuter_R
+boris_eyeLidUpper_R
+boris_eye_R
+boris_cheek_R
+boris_mouthCorner_R
+boris_mouthUpper_R
+boris_eyeLidLower_R
+boris_ear_R
+boris_ear_L
+boris_eyeLidLower_L
+poker_env.prop
+poker_light.prop
+poker_player.prop
+poker_player_harry.prop
+poker_player_ted.prop
+poker_player_grandma.prop
+poker_player_boris.prop
+poker_card.prop
+poker_chips_b.prop
+poker_chips_a.prop
+poker_chips_c.prop
+env_holdem.d3dmesh
+sk01_harry.prop
+subtitle.prop
+sk01_harry.d3dmesh
+sk01_harry.skl
+sk01_theodore.prop
+sk01_theodore.d3dmesh
+sk01_theodore.skl
+sk01_grandma.prop
+sk01_grandma.d3dmesh
+sk01_grandma.skl
+obj_cardHigh.d3dmesh
+poker_chips.prop
+obj_chipStackA.d3dmesh
+obj_chipStackC.d3dmesh
+obj_chips.d3dtx
+obj_card.d3dtx
+cards.d3dtx
+obj_card_face.d3dtx
+sk01_harry.d3dtx
+harry_jaw
+harry_mouthLower_L
+harry_tongue
+harry_mouthLower_R
+harry_mouthUpper_L
+harry_mouthCorner_L
+harry_cheek_L
+harry_nose
+harry_eye_L
+harry_eyeLidUpper_L
+harry_browOuter_L
+harry_browInner_L
+harry_browInner_R
+harry_browOuter_R
+harry_eyeLidUpper_R
+harry_eye_R
+harry_cheek_R
+harry_mouthCorner_R
+harry_mouthUpper_R
+harry_eyeLidLower_R
+harry_ear_R
+harry_ear_L
+harry_eyeLidLower_L
+logo_holdem.d3dtx
+wood.d3dtx
+trim.d3dtx
+felt_tt.d3dtx
+color_262b32.d3dtx
+long_drape.d3dtx
+ceilingtile.d3dtx
+leaf1.d3dtx
+leaf1_top.d3dtx
+pot.d3dtx
+gold.d3dtx
+sk01_grandma.d3dtx
+grandma_jaw
+grandma_mouthLower_L
+grandma_tongue
+grandma_mouthLower_R
+grandma_mouthUpper_L
+grandma_mouthCorner_L
+grandma_cheek_L
+grandma_nose
+grandma_eye_L
+grandma_eyeLidUpper_L
+grandma_browOuter_L
+grandma_browInner_L
+grandma_browInner_R
+grandma_browOuter_R
+grandma_eyeLidUpper_R
+grandma_eye_R
+grandma_cheek_R
+grandma_mouthCorner_R
+grandma_mouthUpper_R
+grandma_eyeLidLower_R
+grandma_ear_R
+grandma_ear_L
+grandma_eyeLidLower_L
+sk01_theodore.d3dtx
+theodore_jaw
+theodore_mouthLower_L
+theodore_tongue
+theodore_mouthLower_R
+theodore_mouthUpper_L
+theodore_mouthCorner_L
+theodore_cheek_L
+theodore_nose
+theodore_eye_L
+theodore_eyeLidUpper_L
+theodore_browOuter_L
+theodore_browInner_L
+theodore_browInner_R
+theodore_browOuter_R
+theodore_eyeLidUpper_R
+theodore_eye_R
+theodore_cheek_R
+theodore_mouthCorner_R
+theodore_mouthUpper_R
+theodore_eyeLidLower_R
+theodore_eyeLidLower_L
+sk01_boris.d3dtx
+poker_ui_screen_options.prop
+poker_text_button_back.prop
+poker_text_button.prop
+poker_ui_sell_sheet.prop
+poker_text_title.prop
+poker_text_rules.prop
+poker_text_button_buy.prop
+poker_ui_star.prop
+ui_holdemBackground.d3dmesh
+dialog_button.prop
+dialog_text.prop
+Trebuchet MS_18_bold.font
+ui_holdemBoxArt.d3dmesh
+poker_text.prop
+Script MT Bold_24.font
+Trebuchet MS_12_bold.font
+ui_glitterStar.d3dmesh
+ui_holdemBoxArt.d3dtx
+ui_glitterStar.d3dtx
+ui_holdemBackground.d3dtx
+poker_text_rules_page.prop
+poker_text_button_small_back.prop
+poker_text_button_small.prop
+poker_text_checkbox_back.prop
+poker_text_checkbox.prop
+poker_text_options_right.prop
+poker_text_slider_bar.prop
+poker_text_slider_back.prop
+poker_text_options.prop
+poker_text_slider_front.prop
+poker_text_bar.prop
+poker_ui_screen_start.prop
+poker_ui_screen_splash.prop
+poker_ui_screen_splash_circle.prop
+poker_ui_screen_splash_rectangle.prop
+ui_menuScreen.d3dmesh
+ui_splashScreen.d3dmesh
+ui_splashCircle.d3dmesh
+ui_menuScreen.d3dtx
+ui_splashScreen.d3dtx
+poker_text_stats.prop
+poker_text_name.prop
+poker_text_amount.prop
+poker_ui_community_card.prop
+poker_ui_player_card_full.prop
+poker_ui_player_card.prop
+poker_text_popup.prop
+poker_dealer_button.prop
+poker_announcer.prop
+ui_cardCommunity.d3dmesh
+ui_dealerButton.d3dmesh
+ui_dealerButton.d3dtx
+prefs_camera_mgr.prop
+prefs_console.prop
+prefs_debugger.prop
+prefs_gamewindow.prop
+prefs_menu.prop
+prefs_outliner.prop
+prefs_tracker.prop
+prefs_dialog_editor.prop
+prefs_dialog_script_editor.prop
+prefs_dialog_tree_editor.prop
+prefs_input_tracker.prop
+prefs_stats.prop
+Reference Code
+Decks Unlocked
+Enable Dialog
+Enable Help
+Full Screen
+Query Help
+Console Verbosity - Script Message
+Fullscreen anti-aliasing
+Most Recent Input Mapper
+dialog_foreground.prop
+test
+prefs.prop

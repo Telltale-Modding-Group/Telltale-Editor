@@ -17,6 +17,37 @@
 // ===================================================================
 
 namespace Meta {
+
+
+    U32 RegGame::GetArchiveVersion(GameSnapshot snapshot) const
+    {
+        String snap = snapshot.Platform;
+        if(snapshot.Vendor.length())
+            snap = snap + "/" + snapshot.Vendor;
+        auto it = SnapToArchiveVersion.find(snap);
+        if(it == SnapToArchiveVersion.end())
+        {
+            snap = snapshot.Platform;
+            it = SnapToArchiveVersion.find(snap);
+            return it == SnapToArchiveVersion.end() ? MasterArchiveVersion : it->second;
+        }
+        return it->second;
+    }
+
+    BlowfishKey RegGame::GetEncryptionKey(GameSnapshot snapshot) const
+    {
+        String snap = snapshot.Platform;
+        if (snapshot.Vendor.length())
+            snap = snap + "/" + snapshot.Vendor;
+        auto it = SnapToEncryptionKey.find(snap);
+        if (it == SnapToEncryptionKey.end())
+        {
+            snap = snapshot.Platform;
+            it = SnapToEncryptionKey.find(snap);
+            return it == SnapToEncryptionKey.end() ? MasterKey : it->second;
+        }
+        return it->second;
+    }
     
     InternalState State{};
     
@@ -64,6 +95,96 @@ namespace Meta {
             return CRC32((U8*)&typeHash, 8, versionNumber ^ 0xF0F0F0F0);
             // needs to be unique. hash the type hash with initial crc being the version number inverted every 4 bits
         }
+
+        Bool _CollectCompiledScriptFunctionMT(CompiledScript& compiledScript, const String& fn)
+        {
+            ScriptManager::GetGlobal(GetToolContext()->GetLibraryLVM(), fn, true);
+
+            if (GetToolContext()->GetLibraryLVM().Type(-1) != LuaType::FUNCTION)
+            {
+                GetToolContext()->GetLibraryLVM().Pop(1);
+                TTE_LOG("The script function '%s' does not exist as a function.", fn.c_str());
+                return false;
+            }
+
+            // function is on the top of the stack, compile it.
+            DataStreamRef localWriter = DataStreamManager::GetInstance()->CreatePrivateCache(fn);
+            if (!GetToolContext()->GetLibraryLVM().Compile(localWriter.get()) || localWriter->GetSize() <= 0)
+            {
+                GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
+                TTE_LOG("Cannot register class script function %s"
+                           ": compile failed or empty", fn.c_str());
+                return false;
+            }
+            GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
+
+            localWriter->SetPosition(0); // seek to beginning, then read all bytes.
+            U8* compiledBytes = TTE_ALLOC(localWriter->GetSize(), MEMORY_TAG_SCRIPTING);
+
+            if (!localWriter->Read(compiledBytes, localWriter->GetSize()))
+            {
+                TTE_LOG("Could not read bytes from compiled serialiser script stream");
+                TTE_FREE(compiledBytes);
+                return false;
+            }
+
+            compiledScript.Binary = compiledBytes;
+            compiledScript.Size = (U32)localWriter->GetSize();
+            return true;
+        }
+
+        U32 _ResolveCommonClassIDSafe(CommonClass clz)
+        {
+            String className = CommonClassInfo::GetCommonClassInfo(clz).ClassName;
+            if(State.Games[State.GameIndex].CommonSelector.empty())
+            {
+                return FindClass(className, 0, false); // default
+            }
+            const CompiledScript& collector = State.Collector;
+            if(collector.Binary == nullptr)
+            {
+                return FindClass(className, 0, false); // default
+            }
+            const String& collectorName = State.GetActiveGame().CommonSelector;
+            LuaManager& LVM = GetThreadLVM();
+            ScriptManager::GetGlobal(LVM, collectorName, true);
+            if (LVM.Type(-1) != LuaType::FUNCTION)
+            {
+                LVM.Pop(1);
+                if (!LVM.LoadChunk(collectorName, collector.Binary, collector.Size, LoadChunkMode::BINARY))
+                {
+                    TTE_ASSERT(false, "Cannot select class version for %s: common selector failed to load", collectorName.c_str());
+                    return 0; // FAIL
+                }
+            }
+            GameSnapshot snapshot = GetToolContext()->GetSnapshot();
+            LVM.PushLString(snapshot.Platform);
+            LVM.PushLString(snapshot.Vendor);
+            LVM.PushInteger((I32)clz);
+            LVM.CallFunction(3, 1, true);
+            if(LVM.Type(1) != LuaType::NUMBER)
+            {
+                TTE_ASSERT(false, "Cannot select class version at %s: the function failed or did not return version number!", collectorName.c_str());
+                return 0; // FAIL
+            }
+            U32 num = (U32)ScriptManager::PopUnsignedInteger(LVM);
+            if(num > MAX_VERSION_NUMBER)
+            {
+                TTE_ASSERT(false, "Cannot select class version at %s: version number %u is too large!", collectorName.c_str(), num);
+                return 0; // FAIL
+            }
+            return FindClass(className, num, false);
+        }
+
+        void _FreeCompiledScriptMT(CompiledScript& script)
+        {
+            if(script.Binary)
+            {
+                TTE_FREE(script.Binary);
+                script.Binary = nullptr;
+                script.Size = 0;
+            }
+        }
         
         void _PushCompiledScript(std::map<Symbol, CompiledScript>& scriptMap, const String& fn)
         {
@@ -72,43 +193,12 @@ namespace Meta {
                 // register serialise and compile it
                 if(scriptMap.find(fn) == scriptMap.end())
                 {
-                    // compile and add it
-                    
-                    ScriptManager::GetGlobal(GetToolContext()->GetLibraryLVM(), fn, true);
-                    
-                    if(GetToolContext()->GetLibraryLVM().Type(-1) != LuaType::FUNCTION)
-                    {
-                        GetToolContext()->GetLibraryLVM().Pop(1);
-                        TTE_ASSERT(false, "The script function '%s' does not exist as a function.", fn.c_str());
-                        return;
-                    }
-                    
-                    // function is on the top of the stack, compile it.
-                    DataStreamRef localWriter = DataStreamManager::GetInstance()->CreatePrivateCache(fn);
-                    if(!GetToolContext()->GetLibraryLVM().Compile(localWriter.get()) || localWriter->GetSize() <= 0)
-                    {
-                        GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
-                        TTE_ASSERT(false, "Cannot register class script function %s"
-                                   ": compile failed or empty", fn.c_str());
-                        return;
-                    }
-                    GetToolContext()->GetLibraryLVM().Pop(1); // pop the func
-                    
-                    localWriter->SetPosition(0); // seek to beginning, then read all bytes.
-                    U8* compiledBytes = TTE_ALLOC(localWriter->GetSize(), MEMORY_TAG_SCRIPTING);
-                    
-                    if(!localWriter->Read(compiledBytes, localWriter->GetSize()))
-                    {
-                        TTE_ASSERT(false, "Could not read bytes from compiled serialiser script stream");
-                        TTE_FREE(compiledBytes);
-                        return;
-                    }
-                    
+                    // compile and add it                
                     CompiledScript compiledScript{};
-                    compiledScript.Binary = compiledBytes;
-                    compiledScript.Size = (U32)localWriter->GetSize();
-                    scriptMap[fn] = compiledScript; // save it
-                    
+                    if(_CollectCompiledScriptFunctionMT(compiledScript, fn))
+                    {
+                        scriptMap[fn] = compiledScript; // save it
+                    }        
                 }
             }
         }
@@ -191,19 +281,6 @@ namespace Meta {
                 return 0;
             }
             
-            // check any duplicate version CRCs
-            for(U32 i = 0; i < MAX_VERSION_NUMBER; i++)
-            {
-                if(i != cls.VersionNumber) {
-                    auto c = State.Classes.find(_GenerateClassID(cls.TypeHash, i));
-                    if(c != State.Classes.end() && c->second.VersionCRC == crc)
-                    {
-                        TTE_LOG("Duplicate type detected for '%s': version CRCs are the same for the given class!", cls.Name.c_str());
-                        return 0;
-                    }
-                }
-            }
-            
             _PushCompiledScript(State.Serialisers, cls.SerialiseScriptFn);
             _PushCompiledScript(State.Normalisers, cls.NormaliserStringFn);
             _PushCompiledScript(State.Specialisers, cls.SpecialiserStringFn);
@@ -254,10 +331,6 @@ namespace Meta {
             
             if(cls.Flags & CLASS_ENUM_WRAPPER)
             {
-                if(cls.Members.size() != 1)
-                {
-                    TTE_LOG("WARNING: Enum wrapper class %s should have 1 member but has %d! Output may be wrong!", cls.Name.c_str(), (U32)cls.Members.size());
-                }
                 cls.ToString = &_EnumFlagToString;
             }
             
@@ -323,7 +396,14 @@ namespace Meta {
         
         String _EnumFlagToString(Class* pClass, const void* pVal)
         {
-            return pClass->Members.size() > 0 ? _EnumFlagMemberToString(pClass->Members[0], pVal) : "<ENUM_WRAPPER_CLASS_NO_MEMBER_FOUND>";
+            for(auto& mem: pClass->Members)
+            {
+                if((mem.Flags & MEMBER_BASE) == 0) // EnumBase class
+                {
+                    return _EnumFlagMemberToString(mem, pVal);
+                }
+            }
+            return "<ENUM_WRAPPER_CLASS_NO_MEMBER_FOUND>";
         }
         
         Bool _Serialise(Stream& stream, ClassInstance& host, Class* clazz, void* pMemory, Bool IsWrite, CString member, Member* hostMember)
@@ -577,6 +657,14 @@ namespace Meta {
             stream.CurrentSection = initialSection; // reset section
             
             return true;
+        }
+
+        U32 _ResolveCommonClassID(const String& extension)
+        {
+            CommonClassInfo info = CommonClassInfo::GetCommonClassInfoByExtension(extension);
+            if (info.Class == CommonClass::NONE)
+                return 0; // use def
+            return Meta::_Impl::_ResolveCommonClassIDSafe(info.Class);
         }
         
         String _PerformToString(U8* pMemory, Class* pClass)
@@ -841,7 +929,8 @@ namespace Meta {
             {
                 const PropertySet::InternalData* srcMem = (const PropertySet::InternalData*)(pSrc + _ClassPropertyCallbacksArrayOff(*pClass));
                 PropertySet::InternalData* dstMem = (PropertySet::InternalData*)(pMemory + _ClassPropertyCallbacksArrayOff(*pClass));
-                new(dstMem) PropertySet::InternalData(*srcMem); // shallow copy, ok just callbacks.
+                new(dstMem) PropertySet::InternalData();
+                srcMem->Clone(*dstMem);
             }
             // If the whole class has a copy constructor, call it (eg String)
             if(pClass->CopyConstruct)
@@ -870,9 +959,11 @@ namespace Meta {
                 ClassChildMap* dstMap = (ClassChildMap*)(pMemory + _ClassChildrenArrayOff(*pClass));
                 new (dstMap) ClassChildMap();
                 // Copy children (deep). User should be careful if editing props in sub-arrays and the array is modified.
+                if ((IsWeakPtrUnbound(host) || host.expired()) && !IsWeakPtrUnbound(concrete) && !concrete.expired())
+                    host = concrete;
                 for(const auto& src: *srcMap)
                 {
-                    CopyInstance(src.second, ClassInstance(pClass->ClassID, pMemory, {}), src.first);
+                    (*dstMap)[src.first] = CopyInstance(src.second, ClassInstance{ pClass->ClassID, pMemory, host }, src.first);
                 }
             }
             else if(bTopLevel)
@@ -890,7 +981,8 @@ namespace Meta {
             {
                 PropertySet::InternalData* srcMem = (PropertySet::InternalData*)(pSrc + _ClassPropertyCallbacksArrayOff(*pClass));
                 PropertySet::InternalData* dstMem = (PropertySet::InternalData*)(pMemory + _ClassPropertyCallbacksArrayOff(*pClass));
-                new(dstMem) PropertySet::InternalData(std::move(*srcMem));
+                new(dstMem) PropertySet::InternalData();
+                srcMem->Move(*dstMem);
             }
             // If the whole class has a move constructor, call it (eg String)
             if(pClass->MoveConstruct)
@@ -918,9 +1010,11 @@ namespace Meta {
                 ClassChildMap* dstMap = (ClassChildMap*)(pMemory + _ClassChildrenArrayOff(*pClass));
                 new(dstMap) ClassChildMap();
                 // Move children (deep)
+                if ((IsWeakPtrUnbound(host) || host.expired()) && !IsWeakPtrUnbound(concrete) && !concrete.expired())
+                    host = concrete;
                 for(const auto& src: *srcMap)
                 {
-                    MoveInstance(src.second, ClassInstance(pClass->ClassID, pMemory, {}), src.first);
+                    (*dstMap)[src.first] = MoveInstance(src.second, ClassInstance(pClass->ClassID, pMemory, host), src.first);
                 }
             }
             else if(bTopLevel)
@@ -1429,7 +1523,23 @@ namespace Meta {
         if(lhs.GetClassID() != rhs.GetClassID())
             return false;
         auto op = State.Classes[lhs.GetClassID()].LessThan;
-        return op ? op(lhs._GetInternal(), rhs._GetInternal()) : false;
+        if (op)
+        {
+            return op(lhs._GetInternal(), rhs._GetInternal());
+        }
+        else
+        {
+            for (const auto& mem : State.Classes[lhs.GetClassID()].Members)
+            {
+                ClassInstance meminstLHS = ClassInstance(mem.ClassID, Ptr<U8>(lhs._InstanceMemory, lhs._GetInternal() + mem.RTOffset), lhs.ObtainParentRef());
+                ClassInstance meminstRHS = ClassInstance(mem.ClassID, Ptr<U8>(rhs._InstanceMemory, rhs._GetInternal() + mem.RTOffset), rhs.ObtainParentRef());
+                if (!PerformLessThan(meminstLHS, meminstRHS))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
     }
     
     Bool PerformEquality(ClassInstance& lhs, ClassInstance& rhs)
@@ -1439,7 +1549,23 @@ namespace Meta {
         if(lhs.GetClassID() != rhs.GetClassID())
             return false;
         auto op = State.Classes[lhs.GetClassID()].Equals;
-        return op ? op(lhs._GetInternal(), rhs._GetInternal()) : false;
+        if(op)
+        {
+            return op(lhs._GetInternal(), rhs._GetInternal());
+        }
+        else
+        {
+            for(const auto& mem: State.Classes[lhs.GetClassID()].Members)
+            {
+                ClassInstance meminstLHS = ClassInstance(mem.ClassID, Ptr<U8>(lhs._InstanceMemory, lhs._GetInternal() + mem.RTOffset), lhs.ObtainParentRef());
+                ClassInstance meminstRHS = ClassInstance(mem.ClassID, Ptr<U8>(rhs._InstanceMemory, rhs._GetInternal() + mem.RTOffset), rhs.ObtainParentRef());
+                if(!PerformEquality(meminstLHS, meminstRHS))
+                {
+                    return false;
+                }
+            }
+            return false;
+        }
     }
     
     String PerformToString(ClassInstance& inst)
@@ -1495,7 +1621,7 @@ namespace Meta {
     {
         TTE_ASSERT(IsCallingFromMain(), "Must only be called from main thread");
         TTE_ASSERT(GetToolContext(), "Tool context not created");
-        GameSnapshot snap = GetToolContext()->GetSnapshot();
+        GameSnapshot& snap = GetToolContext()->_Snapshot;
         
         // Ensure game exists
         Bool Found = false;
@@ -1505,6 +1631,8 @@ namespace Meta {
         {
             if(game.ID == snap.ID)
             {
+                if(snap.Vendor.empty())
+                    snap.Vendor = game.DefaultVendor;
                 Found = true;
                 gameIdx = i;
                 if(!_Impl::_CheckPlatformForGame(game, snap.Platform))
@@ -1514,7 +1642,7 @@ namespace Meta {
                 }
                 if(!_Impl::_CheckVendorForGame(game, snap.Vendor))
                 {
-                    TTE_ASSERT(false, "The vendor '%s' is not (or currently) supported for the game %s!", snap.Platform.c_str(), game.Name.c_str());
+                    TTE_ASSERT(false, "The vendor '%s' is not (or currently) supported for the game %s!", snap.Vendor.c_str(), game.Name.c_str());
                     return;
                 }
                 break;
@@ -1584,18 +1712,22 @@ namespace Meta {
                 }
                 State._Temp.DeferredWarnings.clear();
                 
-                BlowfishKey key = State.Games[gameIdx].MasterKey; // set to master key
-                
-                // if there is a specific platform encryption key, do that here
-                auto it = State.Games[gameIdx].PlatformToEncryptionKey.find(snap.Platform);
-                if(it != State.Games[gameIdx].PlatformToEncryptionKey.end())
-                    key = it->second;
+                BlowfishKey key = State.Games[gameIdx].GetEncryptionKey(snap);
                 
                 if(key.BfKeyLength == 1 && key.BfKey[0] == 0)
                 {
                     TTE_ASSERT(false, "Game encryption key for %s/%s has not been registered. Please contact us with the executable of "
                                "the game for this platform so we can find the encryption key!", snap.ID.c_str(), snap.Platform.c_str());
                     // encryption key '00' means we dont know it yet.
+                    RelGame();
+                    return;
+                }
+
+                const String& collector = State.Games[gameIdx].CommonSelector;
+                if(!collector.empty() && !_Impl::_CollectCompiledScriptFunctionMT(State.Collector, collector))
+                {
+                    TTE_ASSERT(false, "The common class collector function for %s could not be found or compiled: %s! Switch failed.",
+                               State.Games[gameIdx].Name.c_str(), collector.c_str());
                     RelGame();
                     return;
                 }
@@ -1614,14 +1746,15 @@ namespace Meta {
         
         // clear compiled memory
         for(auto& script: State.Serialisers)
-            TTE_FREE(script.second.Binary);
-        State. Serialisers.clear();
+            _Impl::_FreeCompiledScriptMT(script.second);
+        State.Serialisers.clear();
         for(auto& script: State.Normalisers)
-            TTE_FREE(script.second.Binary);
+            _Impl::_FreeCompiledScriptMT(script.second);
         State.Normalisers.clear();
         for(auto& script: State.Specialisers)
-            TTE_FREE(script.second.Binary);
+            _Impl::_FreeCompiledScriptMT(script.second);
         State.Specialisers.clear();
+        _Impl::_FreeCompiledScriptMT(State.Collector);
         
         State.Classes.clear();
         State.VersionCalcFun = "";
@@ -1656,6 +1789,17 @@ namespace Meta {
         State.Games.clear();
     }
     
+    std::vector<U32> GetClassIDs()
+    {
+        std::vector<U32> arr{};
+        arr.reserve(State.Classes.size());
+        for(const auto& cls: State.Classes)
+        {
+            arr.push_back(cls.first);
+        }
+        return arr;
+    }
+
     Bool WriteMetaStream(const String& name, ClassInstance instance, DataStreamRef& stream, MetaStreamParams params)
     {
         
@@ -1876,7 +2020,7 @@ namespace Meta {
             stream->SetPosition(0); // reset stream, MSV6 etc
             return stream;
         }
-        auto seq = DataStreamManager::GetInstance()->CreateSequentialStream("");
+        auto seq = DataStreamManager::GetInstance()->CreateSequentialStream("Legacy Encrypted MS Sequential");
         DataStreamRef header = DataStreamManager::GetInstance()->CreateBufferStream({}, 4, 0, 0);
         header->Write((const U8*)"NIBM", 4); // NIBM header replacement
         header->SetPosition(0);
@@ -1886,8 +2030,13 @@ namespace Meta {
     }
     
     // Reads meta stream file format
-    ClassInstance ReadMetaStream(const String& fn, DataStreamRef& stream, DataStreamRef dbg, U32 _max)
+    ClassInstance ReadMetaStream(const String& fn, DataStreamRef& _stream, DataStreamRef dbg, U32 _max)
     {
+        DataStreamRef stream = _stream;
+        if (stream->GetSize() > 0x200 && stream->GetSize() < 0x800000)
+        {
+            stream = DataStreamManager::GetInstance()->CreateCachedStream(_stream);
+        }
         Stream metaStream{};
         metaStream.Name = fn;
         metaStream.DebugOutputFile = std::move(dbg);
@@ -2946,7 +3095,7 @@ namespace Meta {
     
     // COERSION IMP
     
-    CommonInstanceAllocator* GetCommonAllocator(U32 clz)
+    CommonClassAllocator* GetCommonAllocator(U32 clz)
     {
         String clsName = MakeTypeName(GetClass(clz).Name);
         auto& reg = _Impl::_CoersionRegistry();
@@ -2982,7 +3131,7 @@ namespace Meta {
         auto& reg = _Impl::_CoersionRegistry();
         for(auto& v: reg)
         {
-            if(StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
+            if(v.ClassName && *v.ClassName != 0 && StringMask::MatchSearchMask(clsName.c_str(), v.ClassName, StringMask::MASKMODE_SIMPLE_MATCH))
             {
                 v.MetaToLua(man, inst);
                 return true;
@@ -3004,9 +3153,19 @@ namespace Meta {
             while(true)
             {
                 off += pEnumClazz->Members[0].RTOffset;
-                if(Meta::GetClass(pEnumClazz->Members[0].ClassID).Members.size() == 0)
+                const Class& clz = Meta::GetClass(pEnumClazz->Members[0].ClassID);
+                if(clz.Members.size() == 0)
                     break;
-                pEnumClazz = &Meta::GetClass(pEnumClazz->Members[0].ClassID); // a lot of the times theres like 2 wrapper classes. so stupid i know.
+                U32 memberIndex = 0;
+                for(const auto& member: pEnumClazz->Members)
+                {
+                    if(member.Flags & MEMBER_BASE)
+                        memberIndex++;
+                    else
+                        break;
+                }
+                pEnumClazz = &Meta::GetClass(pEnumClazz->Members[memberIndex].ClassID);
+                // a lot of the times theres like 2 wrapper classes. so stupid i know.
             }
             I32 value = COERCE(inst._GetInternal() + off, I32);
             for(const auto& desc: pEnumClazz->Members[0].Descriptors)
@@ -3075,12 +3234,22 @@ namespace Meta {
                 String v = man.ToString(stackIndex);
                 U32 off = 0;
                 const auto* pEnumClazz = &clazz;
-                while(true)
+                while (true)
                 {
                     off += pEnumClazz->Members[0].RTOffset;
-                    if(Meta::GetClass(pEnumClazz->Members[0].ClassID).Members.size() == 0)
+                    const Class& clz = Meta::GetClass(pEnumClazz->Members[0].ClassID);
+                    if (clz.Members.size() == 0)
                         break;
-                    pEnumClazz = &Meta::GetClass(pEnumClazz->Members[0].ClassID); // a lot of the times theres like 2 wrapper classes. so stupid i know.
+                    U32 memberIndex = 0;
+                    for (const auto& member : pEnumClazz->Members)
+                    {
+                        if (member.Flags & MEMBER_BASE)
+                            memberIndex++;
+                        else
+                            break;
+                    }
+                    pEnumClazz = &Meta::GetClass(pEnumClazz->Members[memberIndex].ClassID);
+                    // a lot of the times theres like 2 wrapper classes. so stupid i know.
                 }
                 I32 value = COERCE(inst._GetInternal() + off, I32);
                 for(const auto& desc: pEnumClazz->Members[0].Descriptors)
@@ -3113,7 +3282,7 @@ Bool InstanceTransformation::PerformNormaliseAsync(Ptr<Handleable> pCommonInstan
 {
     String fn = Meta::GetInternalState().Classes.find(Instance.GetClassID())->second.NormaliserStringFn;
     auto normaliser = Meta::GetInternalState().Normalisers.find(fn);
-    TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found: '%s'", fn.c_str());
+    TTE_ASSERT(normaliser != Meta::GetInternalState().Normalisers.end(), "Normaliser not found: '%s' for class %s", fn.c_str(), Meta::GetInternalState().Classes.find(Instance.GetClassID())->second.Name.c_str());
     
     ScriptManager::GetGlobal(L, fn, true);
     if(L.Type(-1) != LuaType::FUNCTION)

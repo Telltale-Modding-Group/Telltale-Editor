@@ -81,9 +81,29 @@ void RenderViewPass::PushPassParameters(RenderContext& context, ShaderParameters
     context.PushParameterGroup(*SceneView->Frame, &Parameters, pGroup);
 }
 
+void RenderViewPass::SetViewport(RenderViewport vp)
+{
+    Viewport = vp;
+}
+
 void RenderSceneView::PushViewParameters(RenderContext &context, ShaderParametersGroup *pGroup)
 {
     context.PushParameterGroup(*Frame, &Parameters, pGroup);
+}
+
+void RenderInst::SetDebugName(RenderViewPass* ScenePass, CString format, ...)
+{
+#ifdef DEBUG
+    U8 Buf[0x200];
+    va_list va{};
+    va_start(va, format);
+    U32 len = vsnprintf((char*)Buf, 0x200, format, va);
+    va_end(va);
+    U8* str = ScenePass->SceneView->Frame->Heap.Alloc(len + 1);
+    str[len] = 0;
+    memcpy(str, Buf, len);
+    _DebugName = (CString)str;
+#endif
 }
 
 void RenderViewPass::SetName(CString format, ...)
@@ -144,7 +164,8 @@ const RenderTargetDesc& GetRenderTargetDesc(RenderTargetConstantID id)
     return TargetDescs[0]; // never happen
 }
 
-void RenderContext::_ResolveBackBuffers(RenderCommandBuffer& buf)
+RenderTexture* RenderContext::_ResolveBackBuffers(RenderCommandBuffer& buf, 
+                                                  SDL_GPUCommandBuffer* preAcquire, SDL_GPUTexture* bb)
 {
     if(!_ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER])
         _ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER] = AllocateRuntimeTexture();
@@ -153,10 +174,18 @@ void RenderContext::_ResolveBackBuffers(RenderCommandBuffer& buf)
     RenderSurfaceFormat fmt = FromSDLFormat(SDL_GetGPUSwapchainTextureFormat(_Device, _Window));
     U32 sw, sh{};
     SDL_GPUTexture* stex{};
-    TTE_ASSERT(SDL_WaitAndAcquireGPUSwapchainTexture(buf._Handle,
-                                                     _Window, &stex, &sw,  &sh),
-               "Failed to acquire backend swapchain texture: %s", SDL_GetError());
+    if(preAcquire && bb)
+    {
+        stex = bb;
+    }
+    else
+    {
+        TTE_ASSERT(SDL_WaitAndAcquireGPUSwapchainTexture(buf._Handle,
+                   _Window, &stex, &sw, &sh),
+           "Failed to acquire backend swapchain texture: %s", SDL_GetError());
+    }
     _ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER]->CreateTarget(*this, texFlags, fmt, sw, sh, 1, 1, 1, false, stex);
+    return _ConstantTargets[(U32)RenderTargetConstantID::BACKBUFFER].get();
 }
 
 void RenderContext::_ResolveTarget(RenderFrame& frame, const RenderTargetIDSurface &surface, RenderTargetResolvedSurface &resolved, U32 w, U32 h)
@@ -164,11 +193,17 @@ void RenderContext::_ResolveTarget(RenderFrame& frame, const RenderTargetIDSurfa
     TTE_ASSERT(IsCallingFromMain(), "Only render main call");
     resolved.Mip = surface.Mip;
     resolved.Slice = surface.Slice;
-    TTE_ASSERT(!surface.ID.IsDynamicTarget(), "Dynamic targets not supported yet");
+    if(surface.ID.IsDynamicTarget())
+    {
+        // Dynamic target. Ignore w & h.
+        resolved.Target = _ResolveDynamicTarget(surface.ID).get();
+        TTE_ASSERT(resolved.Target, "The dynamic target ID %d could not be resolved", surface.ID._Value);
+    }
+    else
     {
         // Constant target
         Ptr<RenderTexture>& texture = _ConstantTargets[surface.ID._Value];
-        if(!texture || texture->_Width != w || texture->_Height != h)
+        if((surface.ID._Value != (U32)RenderTargetConstantID::BACKBUFFER) && (!texture || texture->_Width != w || texture->_Height != h)) // do we need w and h here?
         {
             if(!texture)
                 texture = AllocateRuntimeTexture();
@@ -197,6 +232,10 @@ void RenderContext::_ResolveTargets(RenderFrame& frame, const RenderTargetIDSet 
 void RenderContext::_PrepareRenderPass(RenderFrame& frame, RenderPass& pass, const RenderViewPass& viewInfo)
 {
     _ResolveTargets(frame, viewInfo.TargetRefs, pass.Targets);
+    if (viewInfo.Viewport.w > 0.5f && viewInfo.Viewport.h > 0.5f)
+    {
+        pass.ClearViewport = viewInfo.Viewport;
+    }
     pass.ClearColour = viewInfo.Params.ClearColour;
     pass.ClearDepth = viewInfo.Params.ClearDepth;
     pass.ClearStencil = viewInfo.Params.ClearStencil;
@@ -234,6 +273,17 @@ void RenderContext::_ExecutePass(RenderFrame &frame, RenderSceneContext &context
         colourFormats[x++] = RenderSurfaceFormat::UNKNOWN;
     passDesc.Name = pass->Name;
     context.CommandBuf->StartPass(std::move(passDesc));
+
+    if(pass->Viewport.w > 0.5f && pass->Viewport.h > 0.5f)
+    {
+        SDL_GPUViewport gpuViewport{};
+        gpuViewport.x = pass->Viewport.x;
+        gpuViewport.y = pass->Viewport.y;
+        gpuViewport.w = pass->Viewport.w;
+        gpuViewport.h = pass->Viewport.h;
+        gpuViewport.min_depth = 0.0f; gpuViewport.max_depth = 1.0f;
+        SDL_SetGPUViewport(context.CommandBuf->_CurrentPass->_Handle, &gpuViewport);
+    }
     
     // DRAW
     for(i = 0; i < pass->DrawCalls.GetSize(); i++)
@@ -244,12 +294,12 @@ void RenderContext::_ExecutePass(RenderFrame &frame, RenderSceneContext &context
         RenderPipelineState pipelineDesc{};
         if(inst._DrawDefault == DefaultRenderMeshType::NONE)
         {
-            TTE_ASSERT(inst.Program.c_str(), "Render instance shader program not set");
+            TTE_ASSERT(inst.EffectRef, "Render instance effect variant not set");
             
             // Find pipeline state for draw
             pipelineDesc.PrimitiveType = inst._PrimitiveType;
             pipelineDesc.VertexState = inst._VertexStateInfo;
-            pipelineDesc.ShaderProgram = inst.Program;
+            pipelineDesc.EffectHash = inst.EffectRef.EffectHash;
         }
         else
         {

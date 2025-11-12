@@ -4,11 +4,15 @@
 #include <Core/Context.hpp>
 #include <Core/BitSet.hpp>
 #include <Meta/Meta.hpp>
+
 #include <Resource/ResourceRegistry.hpp>
+#include <Resource/PropertySet.hpp>
 
 #include <Common/InputMapper.hpp>
 #include <Common/Mesh.hpp>
 #include <Common/Skeleton.hpp>
+
+#include <Symbols.hpp>
 
 #include <vector>
 #include <type_traits>
@@ -21,6 +25,7 @@ class PlaybackController;
 class Scene;
 class SceneRuntime;
 class RenderContext;
+class EditorUI;
 struct Node;
 struct SceneAgent;
 struct SceneMessage;
@@ -42,6 +47,8 @@ public:
         String Name;
         
         inline ObjDataBase(String&& nm, const std::type_info& ti) : Type(ti), Next(), Name(std::move(nm)) {}
+
+        virtual ~ObjDataBase() = default;
         
     };
     
@@ -52,6 +59,8 @@ public:
         
         inline ObjData(String nm, T&& value) :
             ObjDataBase(std::move(nm), typeid(T)), Obj(std::move(value)) {}
+
+        virtual ~ObjData() = default;
         
     };
     
@@ -60,8 +69,9 @@ public:
         
         T& Ref;
         
-        inline ObjDataRef(String nm, T& value) :
-        ObjDataBase(std::move(nm), typeid(T)), Ref(value) {}
+        inline ObjDataRef(String nm, T& value) : ObjDataBase(std::move(nm), typeid(T)), Ref(value) {}
+
+        virtual ~ObjDataRef() = default;
         
     };
     
@@ -176,7 +186,7 @@ public:
 };
 
 // Nodes are fundamental for abstract attachment of other agents and anything to each other in the scene to move together
-// All agents have nodes but not all nodes have agents. Nodes can be skeleton entries (fingers), etc.
+// All agents have nodes but not all nodes have agents. Nodes can be skeleton entries (eg fingers), etc.
 struct Node : ObjOwner
 {
     
@@ -185,93 +195,53 @@ struct Node : ObjOwner
     U32 StaticListeners = 0; // number of static listeners. Static means the object is set unmoveable.
     String AgentName;
     
-    Ptr<Node> Parent, NextSibling, PrevSibling, FirstChild; // no linked list explicitly
+    WeakPtr<Node> Parent, NextSibling, PrevSibling, FirstChild; // no linked list explicitly
     
     Transform LocalTransform, GlobalTransform; // local is from parent, global is world transform.
     
     Ptr<NodeListener> Listeners; // listeners
     
-    Scene* AttachedScene; // scene belongs to
+    Scene* AttachedScene = nullptr; // scene belongs to
 
+    Node() = default;
+    ~Node();
+
+};
+
+// Node visitor callback function. Return true to keep iterating.
+using NodeVisitor = Bool(Ptr<Node> pNode, void* user);
+
+// tree traversal type for node visiting
+enum class NodeVisitorTraversal
+{
+    PRE_ORDER,
+    IN_ORDER, // not really used. impl visits first child, itself, then other children
+    POST_ORDER
 };
 
 // ========================================= SCENE MODULES =========================================
 
-// Scene modules are module_xxx.prop parent properties. they are 'components' or 'behaviour's of game objects.
-// in the engine these correspond to XXX::OnSetupAgent(Ptr<Agent> pAgentGettingCreated, Handle<PropertySet>& hRenderableProps) functions.
-enum class SceneModuleType : I32
-{
-    
-    FIRST_PRERENDERABLE = 0, // Two groups. First set here don't depend on the renderable module.
-    
-    RENDERABLE = 0, // module_renderable.prop
-    SKELETON = 1, // module_skeleton.prop
-    
-    LAST_PRERENDERABLE = 1,
-    
-    FIRST_POSTRENDERABLE = 1,
-    LAST_POSTRENDERABLE = 1,
-    
-    NUM = 2,
-    UNKNOWN = -1,
-};
-
-// Bitset for specifying module types attached to an agent
-using SceneModuleTypes = BitSet<SceneModuleType, (U32)SceneModuleType::NUM, (SceneModuleType)0>;
-
-template<SceneModuleType> struct SceneModule;
-
-struct SceneModuleBase
-{
-    Ptr<Node> AgentNode;
-};
-
-// Renderable scene component (RenderObject_Mesh* obj).
-// Any actual render types (eg RenderVertexState) can be filled up, but not created
-// As in the actual buffers should only be in data streams on CPU side.
-template<> struct SceneModule<SceneModuleType::RENDERABLE> : SceneModuleBase
-{
-    
-    static constexpr SceneModuleType ModuleType = SceneModuleType::RENDERABLE;
-    
-    Mesh Renderable; // group of meshes
-    
-    // Gets this module for the scene
-    static inline std::vector<SceneModule<SceneModuleType::RENDERABLE>>& GetModuleArray(Scene& scene);
-    
-    // on setups create and gather stuff which is otherwise in the agent props or object cache to speed up.
-    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
-    
-};
-
-// Skeleton component
-template<> struct SceneModule<SceneModuleType::SKELETON> : SceneModuleBase
-{
-    
-    static constexpr SceneModuleType ModuleType = SceneModuleType::SKELETON;
-    
-    Handle<Skeleton> Skl; // skeleton handle
-    
-    static inline std::vector<SceneModule<SceneModuleType::SKELETON>>& GetModuleArray(Scene& scene);
-    
-    // impl in animationmgr.cpp
-    void OnSetupAgent(SceneAgent* pAgentGettingCreated);
-    
-};
+#include <SceneModules.inl>
 
 // ========================================= SCENE / SCENE AGENT =========================================
 
 /// An agent in the scene, or game object unity terms.
 struct SceneAgent
 {
+
+    // PROP HEIRARCHY: CLASS PROPERTIES (PARENTS OF .SCENE FILE) => SCENE FILE AGENT PROPS => RUNTIME PROPS => TRANSIENT PROPS
     
     const Symbol NameSymbol; // as a symbol
     const String Name; // agent name
     
     mutable Scene* OwningScene = nullptr;
-    mutable Meta::ClassInstance Props; // agent properties
-    mutable Ptr<Node> AgentNode; // NOTNULL. Is always set, only at runtime in rendering!
+    mutable HandlePropertySet AgentProps;
+    mutable HandlePropertySet RuntimeProps;
+    mutable Meta::ClassInstance TransientProps; // transient properties
+    mutable Ptr<Node> AgentNode; // NOTNULL. Is always set only at runtime in rendering!
     mutable I32 ModuleIndices[(I32)SceneModuleType::NUM]; // points into arrays inside scene.
+
+    Transform InitialTransform;
     
     inline SceneAgent() : Name(""), NameSymbol()
     {
@@ -328,16 +298,37 @@ enum class SceneFlags
     // exclude from save games
 };
 
+namespace SceneModuleUtil 
+{
+
+    struct _SetupAgentModule;
+
+    template<SceneModuleType M>
+    inline SceneModule<M>& GetSceneModule(Scene& scene, const SceneAgent& agent);
+
+}
+
 /// A collection of agents. This is the common scene class for all games by telltale. This does not have any of the code for serialistion, that is done when lua injects scene information
 /// from its scene meta class into this. This is a common class to all games and represents a common telltale scene.
 class Scene : public HandleableRegistered<Scene>
 {
+
+    friend class HandleableRegistered<Scene>;
+
+    Scene(Scene&& rhs) noexcept;
+    Scene(const Scene& rhs);
+
 public:
+    
+    using AgentMap = std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>;
     
     static constexpr CString ClassHandle = "Handle<Scene>";
     static constexpr CString Class = "Scene";
+    static constexpr CString Extension = "scene";
     
     inline Scene(Ptr<ResourceRegistry> reg) : HandleableRegistered<Scene>(std::move(reg)) {}
+
+    ~Scene();
     
     inline void SetName(String name)
     {
@@ -348,32 +339,53 @@ public:
     {
         return Name;
     }
+
+    // by selectable: use selectable. only selectable module objects (like in game). else does by render meshes.
+    String GetAgentAtScreenPosition(Camera& cam, U32 screenX, U32 screenY, Bool bBySelectable);
     
-    // Add a new agent. agent properties can be a nullptr, to start with default props. YOU MUST DISCARD AGENT PROPERTIES AFTER PASSING IT IN. copy it then pass if not!
-    void AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance AgentProperties);
+    // Add a new agent. agent properties can be a nullptr, to start with default props. Agent properties are copied, so you don't need to copy them
+    void AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance AgentProperties, Transform initialTransform = {}, Bool SetupAgent = false);
     
-    // Adds an agent module to the given agent
+    // Adds an agent module to the given agent. This does NOT setup the agent (eg for run / edit). See how the add module popup in module ui.cpp does it, recurisvely selecting the module template and setting it up after this.
     void AddAgentModule(const String& Name, SceneModuleType module);
     
     // Removes an agent module from a given agent.
     void RemoveAgentModule(const Symbol& Name, SceneModuleType module);
     
+    // Gets the agent properties for the agent. (synonymous with scene properties) 
     Meta::ClassInstance GetAgentProps(const Symbol& Name);
+
+    // Gets the runtime properties for this agent.
+    Meta::ClassInstance GetAgentRuntimeProps(const Symbol& Name);
+
+    // Gets the transient properties for this agent
+    Meta::ClassInstance GetAgentTransientProps(const Symbol& Name);
     
     // Returns if the given agent exists
     Bool ExistsAgent(const Symbol& Name);
     
     // Returns if the given agent has the given module
     Bool HasAgentModule(const Symbol& Name, SceneModuleType module);
+
+    // Remvoes an agent from the scene
+    void RemoveAgent(const Symbol& Name);
+
+    SceneModuleTypes GetAgentModules(const Symbol& Name);
     
     // Gets the given module for the given agent. This agent must have this module!
     template<SceneModuleType Type>
     inline SceneModule<Type>& GetAgentModule(const Symbol& Agent);
+
+    // traverse a node and its children in the specified traversal ordering type with an optional user data argument.
+    static void PerformNodeTraversal(Ptr<Node> baseNode, NodeVisitorTraversal traverseType, NodeVisitor* visitor, void* user);
     
     // Registers scene normalisers and specialisers
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
     
     virtual void FinaliseNormalisationAsync() override;
+
+    static String GetAgentScenePropertiesName(const String& sceneName, const String& agentName);
+    static String GetAgentRuntimePropertiesName(const String& sceneName, const String& agentName);
     
     static void UpdateNodeWorldTransform(Ptr<Node> node, Transform world, Bool bStaticUpdateAllow); // update node *world* transform properly.
     
@@ -383,6 +395,30 @@ public:
     static Transform NodeLocalToNode(const Ptr<Node>& node, Transform nodeLocalSpaceTransform, const String& nodeName);
     
     static Transform GetNodeWorldTransform(Ptr<Node> node); // get correct updated world transform
+
+    inline virtual CommonClass GetCommonClassType() override
+    {
+        return CommonClass::SCENE;
+    }
+
+    inline const AgentMap& GetAgents() const
+    {
+        return _Agents;
+    }
+
+    inline std::vector<WeakPtr<Camera>>& GetViewStack() 
+    {
+        return _ViewStack;
+    }
+
+    template<SceneModuleType M>
+    inline const std::vector<SceneModule<M>>& GetModuleView() const
+    {
+        return _Modules.GetModuleArray<M>();
+    }
+
+    // Does not PLAY it! You must call Play on the returned controller.
+    Ptr<PlaybackController> PlayAnimation(const Symbol& agent, Ptr<Animation> pAnim);
     
 private:
     
@@ -404,7 +440,8 @@ private:
     
     void _SetupAgentsModules(); // at created to setup agents
     void _SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>::iterator agent);
-    
+    void _SetupAgentProperties(Ptr<SceneAgent> pAgent, Meta::ClassInstance srcAgentProps);
+
     // ===== NODES
     
     static Bool _ValidateNodeAttachment(Ptr<Node> node, Ptr<Node> potentialChild);
@@ -440,22 +477,18 @@ private:
     
     // ===== GENERAL FUNCTIONALITY PRIVATE AND USE BY SCRIPTING ETC.
     
-    // Does not PLAY it! You must call Play on the returned controller.
-    Ptr<PlaybackController> PlayAnimation(const Symbol& agent, Ptr<Animation> pAnim);
-    
     // =====
     
     String Name; // scene name
     Flags _Flags;
-    std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator> _Agents; // scene agent list
-    std::vector<Camera> _ViewStack; // view stack
+    AgentMap _Agents; // scene agent list
+    std::vector<WeakPtr<Camera>> _ViewStack; // view stack
     std::vector<AnimationManager*> _AnimationMgrs; // anim managers
     std::set<PlaybackController*> _Controllers;
     
     // ==== DATA ORIENTATED AGENT MODULE ATTACHMENTS
-    
-    std::vector<SceneModule<SceneModuleType::RENDERABLE>> _Renderables;
-    std::vector<SceneModule<SceneModuleType::SKELETON>> _Skeletons;
+
+    SceneModuleContainer _Modules;
     
     friend class SceneRuntime;
     friend struct SceneAgent;
@@ -464,90 +497,78 @@ private:
     friend class SkeletonInstance;
     friend class PlaybackController;
     friend class SceneAPI;
-    
+    friend class EditorUI;
+    friend class InspectorView;
+    friend class SceneRenderer;
+    friend class Camera;
+
     template<SceneModuleType M>
     friend struct SceneModule;
+
+    friend struct SceneModuleUtil::_SetupAgentModule;
+
+    template<SceneModuleType M>
+    friend SceneModule<M>& SceneModuleUtil::GetSceneModule(Scene& scene, const SceneAgent& agent);
     
 };
 
-// ========================================= MODULE TEMPLATES =========================================
-// This section is not really needed to ever be modified. A very simple ECS with templates reducing code.
-
-#define _DEFINE_SCENE_GETTER(MOD, MEM) \
-inline std::vector<SceneModule<MOD>>& SceneModule<MOD>::GetModuleArray(Scene& scene)\
-{\
-    return scene.MEM;\
-}
-
-_DEFINE_SCENE_GETTER(SceneModuleType::RENDERABLE, _Renderables)
-_DEFINE_SCENE_GETTER(SceneModuleType::SKELETON, _Skeletons)
-
-#undef _DEFINE_SCENE_GETTER
-
 namespace SceneModuleUtil
 {
-    
-    template<SceneModuleType M>
-    inline SceneModule<M>& GetSceneModule(Scene& scene, const SceneAgent& agent)
-    {
-        TTE_ASSERT(agent.ModuleIndices[(U32)M] != -1, "Agent %s does not have this module", agent.Name.c_str());
-        return SceneModule<M>::GetModuleArray(scene)[agent.ModuleIndices[(U32)M]];
-    }
-    
+
     // recursively perform a function on each scene module type in the range. No need to write if-else chains
     template<SceneModuleType Module, SceneModuleType Last>
     struct _RecursiveModuleIterator
     {
-        
+
         template<typename _IteratorFn>
         static void _Perform(_IteratorFn&& fn)
         {
-            if(fn.template Apply<Module>()) // apply must return a bool and no params. return true to keep recursion going
+            if (fn.template Apply<Module>()) // apply must return a bool and no params. return true to keep recursion going
                 _RecursiveModuleIterator<(SceneModuleType)((U32)Module + 1), Last>::_Perform(std::forward<_IteratorFn>(fn));
         }
-        
+
     };
-    
+
     // end case, do nothing and stop recursion
     template<SceneModuleType Last>
     struct _RecursiveModuleIterator<Last, Last>
     {
-        
+
         template<typename _IteratorFn>
         static void _Perform(_IteratorFn&& fn)
         {
             fn.template Apply<Last>();
         }
-        
+
     };
-    
+
     enum class ModuleRange
     {
         ALL,
         PRE_RENDERABLE,
         POST_RENDERABLE,
     };
-    
+
     // Perform using one of the structs below as the template param
     template<typename _Fi>
     inline void PerformRecursiveModuleOperation(ModuleRange R, _Fi&& fn)
     {
-        if(R == ModuleRange::ALL)
+        if (R == ModuleRange::ALL)
         {
             _RecursiveModuleIterator<SceneModuleType::FIRST_PRERENDERABLE, SceneModuleType::LAST_POSTRENDERABLE>
-            ::_Perform(std::forward<_Fi>(fn));
+                ::_Perform(std::forward<_Fi>(fn));
         }
-        else if(R == ModuleRange::PRE_RENDERABLE)
+        else if (R == ModuleRange::PRE_RENDERABLE)
         {
             _RecursiveModuleIterator<SceneModuleType::FIRST_PRERENDERABLE, SceneModuleType::LAST_PRERENDERABLE>
-            ::_Perform(std::forward<_Fi>(fn));
+                ::_Perform(std::forward<_Fi>(fn));
         }
-        else if(R == ModuleRange::POST_RENDERABLE)
+        else if (R == ModuleRange::POST_RENDERABLE)
         {
-            if(SceneModuleType::LAST_PRERENDERABLE != SceneModuleType::FIRST_POSTRENDERABLE)
+            if (SceneModuleType::LAST_PRERENDERABLE != SceneModuleType::FIRST_POSTRENDERABLE)
             {
                 _RecursiveModuleIterator<SceneModuleType::FIRST_POSTRENDERABLE, SceneModuleType::LAST_POSTRENDERABLE>
-                ::_Perform(std::forward<_Fi>(fn));
+                    ::_Perform(std::forward<_Fi>(fn));
             }
         }
         else
@@ -555,18 +576,57 @@ namespace SceneModuleUtil
             TTE_ASSERT(false, "Invalid module range");
         }
     }
-    
-    // setup agents. used as recursive above
-    struct _SetupAgentSubset
+
+    struct _CollectAgentModules
     {
-        
-        Scene& S;
+
+        SceneModuleTypes& Modules;
         SceneAgent& Agent;
-        
+        Ptr<ResourceRegistry>& Registry;
+
         template<SceneModuleType Module>
         inline Bool Apply()
         {
-            if(S.HasAgentModule(Agent.NameSymbol, Module))
+            if (PropertySet::IsMyParent(Agent.OwningScene->GetAgentProps(Agent.NameSymbol), SceneModule<Module>::GetModulePropertySet(), true, Registry))
+            {
+                Modules.Set(Module, true);
+            }
+            return true;
+        }
+
+    };
+
+    struct _RenderUIModules
+    {
+
+        Scene& S;
+        SceneAgent& Agent;
+        EditorUI& Editor;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            if (S.HasAgentModule(Agent.NameSymbol, Module))
+            {
+                auto& module = S.GetAgentModule<Module>(Agent.NameSymbol);
+                module.RenderUI(Editor, Agent);
+            }
+            return true;
+        }
+
+    };
+
+    // setup agents. used as recursive above
+    struct _SetupAgentSubset
+    {
+
+        Scene& S;
+        SceneAgent& Agent;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            if (S.HasAgentModule(Agent.NameSymbol, Module))
             {
                 auto& module = S.GetAgentModule<Module>(Agent.NameSymbol);
                 module.AgentNode = Agent.AgentNode;
@@ -574,56 +634,180 @@ namespace SceneModuleUtil
             }
             return true;
         }
-        
+
     };
-    
-    struct _AddModuleRecurser
+
+    struct _SetupAgentModule
     {
-        
+
         Scene& S;
-        SceneModuleType Desired;
-        I32& OutIndex;
-        
+        Ptr<Node> AgentNode;
+        SceneModuleType ModuleType;
+
         template<SceneModuleType Module>
         inline Bool Apply()
         {
-            if(Desired == Module)
+            if (ModuleType == Module)
             {
-                auto& vec = SceneModule<Module>::GetModuleArray(S);
+                if (S.HasAgentModule(AgentNode->AgentName, Module))
+                {
+                    auto& module = S.GetAgentModule<Module>(AgentNode->AgentName);
+                    module.AgentNode = AgentNode;
+                    module.OnSetupAgent(S._Agents.find(AgentNode->AgentName)->second.get());
+                }
+                return false;
+            }
+            return true;
+        }
+
+    };
+
+    struct _AddModuleRecurser
+    {
+
+        Scene& S;
+        SceneModuleType Desired;
+        I32& OutIndex;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            if (Desired == Module)
+            {
+                auto& vec = *const_cast<std::vector<SceneModule<Module>>*>(&S.GetModuleView<Module>());
                 OutIndex = (I32)vec.size();
                 vec.emplace_back();
                 return false; // done
             }
             return true;
         }
-        
+
     };
-    
+
+    struct _ModuleVectorMoveRecurser
+    {
+
+        Scene& From;
+        Scene& To;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            auto& toVec = *const_cast<std::vector<SceneModule<Module>>*>(&To.GetModuleView<Module>());
+            auto& fromVec = *const_cast<std::vector<SceneModule<Module>>*>(&From.GetModuleView<Module>());
+            toVec = std::move(fromVec);
+            return true;
+        }
+
+    };
+
+    struct _ModuleVectorCopyRecurser
+    {
+
+        const Scene& From;
+        Scene& To;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            auto& toVec = *const_cast<std::vector<SceneModule<Module>>*>(&To.GetModuleView<Module>());
+            const auto& fromVec = From.GetModuleView<Module>();
+            toVec = fromVec;
+            return true;
+        }
+
+    };
+
     struct _RemoveModuleRecurser
     {
-        
+
         Scene& S;
         SceneModuleType Mod;
         I32 RemovalIndex;
         Bool& result;
-        
+        SceneAgent& Agent;
+
         template<SceneModuleType Module>
         inline Bool Apply()
         {
-            if(Mod == Module)
+            if (Mod == Module)
             {
-                auto& vec = SceneModule<Module>::GetModuleArray(S);
+                auto& vec = *const_cast<std::vector<SceneModule<Module>>*>(&S.GetModuleView<Module>());
                 auto it = vec.begin();
                 std::advance(it, RemovalIndex);
+                it->OnModuleRemove(&Agent);
                 vec.erase(it);
                 result = true;
                 return false;
             }
             return true;
         }
-        
+
     };
-    
+
+    struct _ModulesUpdateSceneChange
+    {
+
+        Scene& S;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            auto& vec = *const_cast<std::vector<SceneModule<Module>>*>(&S.GetModuleView<Module>());
+            for(auto& mod: vec)
+            {
+                mod.OnSceneChange(&S);
+            }
+            return true;
+        }
+
+    };
+
+    struct _ModuleIDCollector
+    {
+
+        std::vector<std::pair<SceneModuleType, CString>>& OutIDs;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            OutIDs.push_back(std::make_pair(Module, SceneModule<Module>::ModuleID));
+            return true;
+        }
+
+    };
+
+    struct _GetModuleInfo
+    {
+
+        SceneModuleType Type;
+        String* OutID = nullptr, * OutPropName = nullptr, * OutName = nullptr;
+
+        template<SceneModuleType Module>
+        inline Bool Apply()
+        {
+            if (Module == Type)
+            {
+                if (OutID)
+                    *OutID = SceneModule<Module>::ModuleID;
+                if (OutPropName)
+                    *OutPropName = SceneModule<Module>::GetModulePropertySet();
+                if (OutName)
+                    *OutName = SceneModule<Module>::ModuleName;
+                return false;
+            }
+            return true;
+        }
+
+    };
+
+    template<SceneModuleType M>
+    inline SceneModule<M>& GetSceneModule(Scene& scene, const SceneAgent& agent)
+    {
+        TTE_ASSERT(agent.ModuleIndices[(U32)M] != -1, "Agent %s does not have this module", agent.Name.c_str());
+        return scene._Modules.GetModuleArray<M>()[agent.ModuleIndices[(U32)M]];
+    }
+
 }
 
 template<SceneModuleType Type>

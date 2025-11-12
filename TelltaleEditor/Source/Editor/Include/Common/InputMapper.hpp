@@ -328,6 +328,7 @@ public:
     
     static constexpr CString ClassHandle = "Handle<InputMapper>";
     static constexpr CString Class = "InputMapper";
+    static constexpr CString Extension = "imap";
     
     inline InputMapper(Ptr<ResourceRegistry> reg) : HandleableRegistered<InputMapper>(std::move(reg)) {}
     
@@ -355,6 +356,11 @@ public:
     static void ConvertRuntimeEvents(const SDL_Event& sdlEvent, std::vector<RuntimeInputEvent>& events, Bool bInPrimaryWindow, Vector2 windowSize);
     
     virtual void FinaliseNormalisationAsync() override;
+
+    inline virtual CommonClass GetCommonClassType() override
+    {
+        return CommonClass::INPUT_MAPPER;
+    }
     
     static constexpr Bool IsCommonInputCode(InputCode code) { return ((U32)code & 0x1000) == 0 && (((U32)code & 0xFFF) != 0); }
     
@@ -432,4 +438,25 @@ public:
     // Note this can be done even in const!
     inline void SetHandled() const { EventFlags.Add(EVENT_HANDLED); }
     
+};
+
+/**
+ * Manages key event management. Enables API to check if a key is down.
+ */
+class RuntimeInputEventManager
+{
+public:
+
+    RuntimeInputEventManager() = default;
+
+    // Returns if the given key is down.
+    Bool IsKeyDown(InputCode key);
+
+    // Processes user events.
+    void ProcessEvents(const std::vector<RuntimeInputEvent>& events);
+
+private:
+
+    BitSetRanged<InputCode, InputCode::COMMON_MAPPINGS_START, InputCode::COMMON_MAPPINGS_END> _KeysDown;
+
 };

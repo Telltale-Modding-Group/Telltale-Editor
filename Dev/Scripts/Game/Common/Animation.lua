@@ -68,7 +68,7 @@ function RegisterSkeleton0(collectionRegistrar, MetaVec3, MetaQuat, transform, m
 	sklEntry.Members[10] = NewMember("mResourceGroupMembership", mapStringFloat)
 	MetaRegisterClass(sklEntry)
 
-	local arraySklEntry, _ = collectionRegistrar("class DCArray<class Skeleton::Entry>", nil, sklEntry)
+	local arraySklEntry = collectionRegistrar("class DCArray<class Skeleton::Entry>", nil, sklEntry)
 
 	local skl = NewClass("class Skeleton", 0)
 	skl.Extension = "skl"
@@ -160,7 +160,6 @@ function NormaliseSkeleton0(instance, state)
         entryInfo["Parent Index"] = MetaGetClassValue(MetaGetMember(entry, "mParentIndex"))
         entryInfo["Local Position"] = MetaGetMember(entry, "mLocalPos")
         entryInfo["Local Rotation"] = MetaGetMember(entry, "mLocalQuat")
-        print(i - 1, entryInfo["Joint Name"])
         entryInfo["Global Scale"] = MetaGetMember(entry, "mGlobalTranslationScale")
         entryInfo["Local Scale"] = MetaGetMember(entry, "mLocalTranslationScale")
         entryInfo["Anim Scale"] = MetaGetMember(entry, "mAnimTranslationScale")

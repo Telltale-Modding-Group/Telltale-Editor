@@ -1,14 +1,369 @@
+#ifdef _TTE_SYMBOLS_IMPL
+
+#undef GSYMBOL
+#undef _TTE_SYMBOLS_HPP
+#define GSYMBOL(_GlobalName, _SymbolStr) String _GlobalName{_SymbolStr}; Symbol _GlobalName##Symbol{_SymbolStr, true, #_GlobalName}
+
+#elif !defined(GSYMBOL)
+
+#define GSYMBOL(_GlobalName, _SymbolStr) extern String _GlobalName; extern Symbol _GlobalName##Symbol
+
+#endif
+
 #ifndef _TTE_SYMBOLS_HPP
+#define _TTE_SYMBOLS_HPP
 
 class Symbol;
 
-#ifdef _TTE_SYMBOLS_IMPL
-#define GSYMBOL(_GlobalName, _SymbolStr) String _GlobalName{_SymbolStr}; Symbol _GlobalName##Symbol{_SymbolStr, true}
-#else
-#define GSYMBOL(_GlobalName, _SymbolStr) extern String _GlobalName; extern Symbol _GlobalName##Symbol;
-#endif
+// GSYMBOL will also register this string to its searchable at runtime by hash!
 
 GSYMBOL(kEmptySymbol, "");
+
+// ======================== SYMBOL SECTION <> PATHING TO ================================
+
+GSYMBOL(kPathToWalkRadius, "Walk Radius");
+
+// ======================== SYMBOL SECTION <> NAV CAMERA ================================
+
+GSYMBOL(kNavCamMode, "NavCam - Mode");
+GSYMBOL(kNavCamTriggerHPercent, "NavCam - Trigger Horizontal Percentage");
+GSYMBOL(kNavCamTriggerVPercent, "NavCam - Trigger Vertical Percentage");
+GSYMBOL(kNavCamTargetAgent, "NavCam - Target Agent");
+GSYMBOL(kNavCamTargetOffset, "NavCam - Target Offset");
+GSYMBOL(kNavCamOrbitOffset, "NavCam - Orbit Offset");
+GSYMBOL(kNavCamOrbitMin, "NavCam - Orbit Min");
+GSYMBOL(kNavCamOrbitMax, "NavCam - Orbit Max");
+GSYMBOL(kNavCamAnimation,  "NavCam - Animation");
+GSYMBOL(kNavCamAnimationTime, "NavCam - Animation Time");
+GSYMBOL(kNavCamDampen, "NavCam - Dampen");
+
+// ======================== SYMBOL SECTION <> TRIGGER MODULE ================================
+
+GSYMBOL(kTriggerEnterCallback, "Trigger Entered Callback");
+GSYMBOL(kTriggerExitCallback, "Trigger Exited Callback");
+GSYMBOL(kTriggerEnabled, "Trigger Enabled");
+
+// ======================== SYMBOL SECTION <> WALK ANIMATOR MODULE ================================
+
+GSYMBOL(kWalkAnimatorForwardAnimation, "Walk Animation - Forward");
+GSYMBOL(kWalkAnimatorIdleAnimation, "Walk Animation - Idle");
+
+// ======================== SYMBOL SECTION <> DIALOG MODULE ================================
+
+GSYMBOL(kDialogResource, "Dialog Resource");
+GSYMBOL(kDialogName, "Dialog Name");
+
+// ======================== SYMBOL SECTION <> DLG CHOICE MODULE ================================
+
+GSYMBOL(kDialogChoicePropName, "module_dialog_choice.prop");
+GSYMBOL(kDialogChoiceChoice, "Dialog Choice");
+
+// ======================== SYMBOL SECTION <> ROLLOVER MODULE ================================
+
+GSYMBOL(kRolloverCursorProps, "Rollover Cursor Props");
+GSYMBOL(kRolloverTexture, "Cursor Texture");
+GSYMBOL(kRolloverText, "Rollover Text");
+GSYMBOL(kRolloverTextColour, "Rollover Text Color");
+GSYMBOL(kRolloverTextBackgroundColour, "Rollover Text Background Color");
+GSYMBOL(kRolloverMesh, "Rollover Mesh");
+
+// ======================== SYMBOL SECTION <> SELECTABLE MODULE ================================
+
+GSYMBOL(kSelectableExtentsMin, "Extents Min");
+GSYMBOL(kSelectableExtentsMax, "Extents Max");
+GSYMBOL(kSelectableOnOff, "Game Selectable");
+
+// ======================== SYMBOL SECTION <> LIGHT MODULE ================================
+
+GSYMBOL(kLightColour, "Light Color");
+GSYMBOL(kLightColourDark, "Light Color Dark");
+GSYMBOL(kLightIntensity, "Light Intensity");
+GSYMBOL(kLightIntensityDiffuse, "Light Intensity Diffuse");
+GSYMBOL(kLightIntensitySpecular, "Light Intensity Specular");
+GSYMBOL(kLightMaxDistance, "Light Max Distance");
+GSYMBOL(kLightMinDistance, "Light Min Distance");
+GSYMBOL(kLightShadowMax, "Light Shadow Max Distance");
+GSYMBOL(kLightShadowDistanceFalloff, "Light Shadow Distance Falloff");
+GSYMBOL(kLightShadowCascades, "Light Shadow Cascades");
+GSYMBOL(kLightShadowBias, "Light Shadow Bias");
+GSYMBOL(kLightDimmer, "Light Dimmer");
+GSYMBOL(kLightColorCorrection, "Light Color Correction");
+GSYMBOL(kLightToonPriority, "Light Toon Priority");
+GSYMBOL(kLightToonOpacity, "Light Toon Opacity");
+GSYMBOL(kLightType, "Light Type");
+GSYMBOL(kLightKeyLight, "Light Key Light");
+GSYMBOL(kLightGroups, "Light Groups");
+GSYMBOL(kDynamicOnLightMap, "Dynamic on LightMap");
+GSYMBOL(kLightTurnedOn, "Light Turned On");
+GSYMBOL(kLightWrapAround, "Light Wrap Around");
+GSYMBOL(kLightSpotInnerRadius, "Light Spot Inner Radius");
+GSYMBOL(kLightSpotOuterRadius, "Light Spot Outer Radius");
+GSYMBOL(kLightSpotTexture, "Light Spot Texture");
+GSYMBOL(kLightSpotAlphaMode, "Light Spot Alpha Mode");
+GSYMBOL(kLightSpotAlpha, "Light Spot Alpha");
+GSYMBOL(kLightRenderLayer, "Light Render Layer");
+GSYMBOL(kLightSpotTextureTranslate, "Light Spot Texture Translate");
+GSYMBOL(kLightSpotTextureScale, "Light Spot Texture Scale");
+GSYMBOL(kLightSpotTextureShear, "Light Spot Texture Shear");
+GSYMBOL(kLightSpotTextureShearOrigin, "Light Spot Texture Shear Origin");
+GSYMBOL(kLightSpotTextureRotate, "Light Spot Texture Rotate");
+GSYMBOL(kLightSpotTextureRotateOrigin, "Light Spot Texture Rotate Origin");
+GSYMBOL(kLightAmbientOcclusion, "Light Ambient Occlusion");
+GSYMBOL(kLightRimIntensity, "Light Rim Intensity");
+GSYMBOL(kLightRimWrapAround, "Light Rim Wrap Around");
+GSYMBOL(kLightRimOcclusion, "Light Rim Occlusion");
+GSYMBOL(kCellBlendMode, "Cell Blend Mode");
+GSYMBOL(kCellBlendWeight, "Cell Blend Weight");
+GSYMBOL(kCell0Colour, "Cell 0 Color");
+GSYMBOL(kCell1Colour, "Cell 1 Color");
+GSYMBOL(kCell2Colour, "Cell 2 Color");
+GSYMBOL(kCell3Colour, "Cell 3 Color");
+GSYMBOL(kNprSpecularIntensity, "NPR Specular Intensity");
+GSYMBOL(kLightStatic, "Light Static");
+GSYMBOL(kCellLightBlendMask, "Cell Light Blend Mask");
+
+// ======================== SYMBOL SECTION <> SCENE MODULE ================================
+
+GSYMBOL(kSceneAmbientColor, "Ambient Color");
+GSYMBOL(kSceneShadowColor, "Shadow Color");
+GSYMBOL(kSceneActiveCamera, "Active Camera");
+GSYMBOL(kSceneWalkBoxes, "Walk Boxes");
+GSYMBOL(kSceneFootstepWalkBoxes, "Footstep Walk Boxes");
+GSYMBOL(kSceneRenderPriority, "Scene Render Priority");
+GSYMBOL(kSceneRenderLayer, "Scene Render Layer");
+GSYMBOL(kSceneExcludeFromSaveGames, "Exclude From Save Games");
+GSYMBOL(kSceneTimeScale, "Scene Time Scale");
+GSYMBOL(kSceneInputEnabled, "Scene Input Enabled");
+GSYMBOL(kSceneAudioListener, "Scene Audio: Listener");
+GSYMBOL(kSceneAudioPlayerOrigin, "Scene Audio: Player Origin");
+GSYMBOL(kSceneAudioMaster, "Scene Audio: Master");
+GSYMBOL(kSceneAudioSnapshotSuite, "Scene Audio: Snapshot Suite");
+GSYMBOL(kSceneAudioReverbDefinition, "Scene Audio: Reverb Definition");
+GSYMBOL(kSceneAudioReverb, "Scene Audio Reverb");
+GSYMBOL(kSceneAudioEventBanks, "Scene Audio Event Banks");
+GSYMBOL(kScenePreloadable, "Scene Preloadable");
+GSYMBOL(kScenePreloadShaders, "Scene Preload Shaders");
+GSYMBOL(kSceneAfterEffectsEnabled, "After Effects Enabled");
+GSYMBOL(kSceneGenerateNPRLines, "Generate NPR Lines");
+GSYMBOL(kSceneNPRLinesFalloff, "NPR Lines Falloff");
+GSYMBOL(kSceneNPRLinesBias, "NPR Lines Bias");
+GSYMBOL(kSceneNPRLinesAlphaFalloff, "NPR Lines Alpha Falloff");
+GSYMBOL(kSceneNPRLinesAlphaBias, "NPR Lines Alpha Bias");
+GSYMBOL(kSceneGlowClearColor, "Glow Clear Color");
+GSYMBOL(kSceneGlowSigmaScale, "Glow Sigma Scale");
+GSYMBOL(kSceneFXAntiAliasing, "FX anti-aliasing");
+GSYMBOL(kSceneFXTAAWeight, "FX TAA Weight");
+GSYMBOL(kSceneFXColorEnabled, "FX Color Enabled");
+GSYMBOL(kSceneFXColorTint, "FX Color Tint");
+GSYMBOL(kSceneFXColorOpacity, "FX Color Opacity");
+GSYMBOL(kSceneFXNoiseScale, "FX Noise Scale");
+GSYMBOL(kSceneFXSharpShadowsEnabled, "FX Sharp Shadows Enabled");
+GSYMBOL(kSceneFXLevelsEnabled, "FX Levels Enabled");
+GSYMBOL(kSceneFXLevelsBlackPoint, "FX Levels Black Point");
+GSYMBOL(kSceneFXLevelsWhitePoint, "FX Levels White Point");
+GSYMBOL(kSceneFXLevelsIntensity, "FX Levels Intensity");
+GSYMBOL(kSceneFXLevelsBlackPointHDR, "FX Levels Black Point HDR");
+GSYMBOL(kSceneFXLevelsWhitePointHDR, "FX Levels White Point HDR");
+GSYMBOL(kSceneFXLevelsIntensityHDR, "FX Levels Intensity HDR");
+GSYMBOL(kSceneFXTonemapType, "FX Tonemap Type");
+GSYMBOL(kSceneFXTonemapEnabled, "FX Tonemap Enabled");
+GSYMBOL(kSceneFXTonemapDOFEnabled, "FX Tonemap DOF Enabled");
+GSYMBOL(kSceneFXTonemapIntensity, "FX Tonemap Intensity");
+GSYMBOL(kSceneFXTonemapWhitePoint, "FX Tonemap White Point");
+GSYMBOL(kSceneFXTonemapBlackPoint, "FX Tonemap Black Point");
+GSYMBOL(kSceneFXTonemapFilmicPivot, "FX Tonemap Filmic Pivot");
+GSYMBOL(kSceneFXTonemapFilmicShoulderIntensity, "FX Tonemap Filmic Shoulder Intensity");
+GSYMBOL(kSceneFXTonemapFilmicToeIntensity, "FX Tonemap Filmic Toe Intensity");
+GSYMBOL(kSceneFXTonemapFilmicSign, "FX Tonemap Filmic Sign");
+GSYMBOL(kSceneFXTonemapFarWhitePoint, "FX Tonemap Far White Point");
+GSYMBOL(kSceneFXTonemapFarBlackPoint, "FX Tonemap Far Black Point");
+GSYMBOL(kSceneFXTonemapFarFilmicPivot, "FX Tonemap Far Filmic Pivot");
+GSYMBOL(kSceneFXTonemapFarFilmicShoulderIntensity, "FX Tonemap Far Filmic Shoulder Intensity");
+GSYMBOL(kSceneFXTonemapFarFilmicToeIntensity, "FX Tonemap Far Filmic Toe Intensity");
+GSYMBOL(kSceneFXTonemapFarFilmicSign, "FX Tonemap Far Filmic Sign");
+GSYMBOL(kSceneFXTonemapRGBEnabled, "FX Tonemap RGB Enabled");
+GSYMBOL(kSceneFXTonemapRGBDOFEnabled, "FX Tonemap RGB DOF Enabled");
+GSYMBOL(kSceneFXTonemapRGBBlackPoints, "FX Tonemap RGB Black Points");
+GSYMBOL(kSceneFXTonemapRGBWhitePoints, "FX Tonemap RGB White Points");
+GSYMBOL(kSceneFXTonemapRGBPivots, "FX Tonemap RGB Pivots");
+GSYMBOL(kSceneFXTonemapRGBShoulderIntensities, "FX Tonemap RGB Shoulder Intensities");
+GSYMBOL(kSceneFXTonemapRGBToeIntensities, "FX Tonemap RGB Toe Intensities");
+GSYMBOL(kSceneFXTonemapRGBSigns, "FX Tonemap RGB Signs");
+GSYMBOL(kSceneFXTonemapRGBFarBlackPoints, "FX Tonemap RGB Far Black Points");
+GSYMBOL(kSceneFXTonemapRGBFarWhitePoints, "FX Tonemap RGB Far White Points");
+GSYMBOL(kSceneFXTonemapRGBFarPivots, "FX Tonemap RGB Far Pivots");
+GSYMBOL(kSceneFXTonemapRGBFarShoulderIntensities, "FX Tonemap RGB Far Shoulder Intensities");
+GSYMBOL(kSceneFXTonemapRGBFarToeIntensities, "FX Tonemap RGB Far Toe Intensities");
+GSYMBOL(kSceneFXTonemapRGBFarSigns, "FX Tonemap RGB Far Signs");
+GSYMBOL(kSceneFXBloomThreshold, "FX Bloom Threshold");
+GSYMBOL(kSceneFXBloomIntensity, "FX Bloom Intensity");
+GSYMBOL(kSceneFXAmbientOcclusionEnabled, "FX Ambient Occlusion Enabled");
+GSYMBOL(kSceneFXAmbientOcclusionIntensity, "FX Ambient Occlusion Intensity");
+GSYMBOL(kSceneFXAmbientOcclusionFalloff, "FX Ambient Occlusion Falloff");
+GSYMBOL(kSceneFXAmbientOcclusionRadius, "FX Ambient Occlusion Radius");
+GSYMBOL(kSceneFXAmbientOcclusionLightmap, "FX Ambient Occlusion Lightmap");
+GSYMBOL(kSceneFXDOFEnabled, "FX DOF Enabled");
+GSYMBOL(kSceneFXDOFFOVAdjustEnabled, "FX DOF FOV Adjust Enabled");
+GSYMBOL(kSceneFXDOFAutoFocusEnabled, "FX DOF Auto Focus Enabled");
+GSYMBOL(kSceneFXDOFNear, "FX DOF Near");
+GSYMBOL(kSceneFXDOFFar, "FX DOF Far");
+GSYMBOL(kSceneFXDOFNearFalloff, "FX DOF Near Falloff");
+GSYMBOL(kSceneFXDOFFarFalloff, "FX DOF Far Falloff");
+GSYMBOL(kSceneFXDOFNearMax, "FX DOF Near Max");
+GSYMBOL(kSceneFXDOFFarMax, "FX DOF Far Max");
+GSYMBOL(kSceneFXDOFVignetteMax, "FX DOF Vignette Max");
+GSYMBOL(kSceneFXDOFDebug, "FX DOF Debug");
+GSYMBOL(kSceneFXDOFCoverageBoost, "FX DOF Coverage Boost");
+GSYMBOL(kSceneFXForceLinearDepthOffset, "FX Force Linear Depth Offset");
+GSYMBOL(kSceneFXVignetteTintEnabled, "FX Vignette Tint Enabled");
+GSYMBOL(kSceneFXVignetteDOFEnabled, "FX Vignette DOF Enabled");
+GSYMBOL(kSceneFXVignetteTint, "FX Vignette Tint");
+GSYMBOL(kSceneFXVignetteFalloff, "FX Vignette Falloff");
+GSYMBOL(kSceneFXVignetteCenter, "FX Vignette Center");
+GSYMBOL(kSceneFXVignetteCorners, "FX Vignette Corners");
+GSYMBOL(kSceneHBAOEnabled, "HBAO Enabled");
+GSYMBOL(kSceneHBAODebug, "HBAO Debug");
+GSYMBOL(kSceneHBAORadius, "HBAO Radius");
+GSYMBOL(kSceneHBAOMaxRadiusPercent, "HBAO Max Radius Percent");
+GSYMBOL(kSceneHBAOHemisphereBias, "HBAO Hemisphere Bias");
+GSYMBOL(kSceneHBAOIntensity, "HBAO Intensity");
+GSYMBOL(kSceneHBAOOcclusionScale, "HBAO Occlusion Scale");
+GSYMBOL(kSceneHBAOLuminanceScale, "HBAO Luminance Scale");
+GSYMBOL(kSceneHBAOMaxDistance, "HBAO Max Distance");
+GSYMBOL(kSceneHBAODistanceFalloff, "HBAO Distance Falloff");
+GSYMBOL(kSceneHBAOBlurSharpness, "HBAO Blur Sharpness");
+GSYMBOL(kSceneScreenSpaceLinesEnabled, "Screen Space Lines - Enabled");
+GSYMBOL(kSceneScreenSpaceLinesColor, "Screen Space Lines - Color");
+GSYMBOL(kSceneScreenSpaceLinesThickness, "Screen Space Lines - Thickness");
+GSYMBOL(kSceneScreenSpaceLinesDepthFadeNear, "Screen Space Lines - Depth Fade Near");
+GSYMBOL(kSceneScreenSpaceLinesDepthFadeFar, "Screen Space Lines - Depth Fade Far");
+GSYMBOL(kSceneScreenSpaceLinesDepthMagnitude, "Screen Space Lines - Depth Magnitude");
+GSYMBOL(kSceneScreenSpaceLinesDepthExponent, "Screen Space Lines - Depth Exponent");
+GSYMBOL(kSceneScreenSpaceLinesLightDirection, "Screen Space Lines - Light Direction");
+GSYMBOL(kSceneScreenSpaceLinesLightMagnitude, "Screen Space Lines - Light Magnitude");
+GSYMBOL(kSceneScreenSpaceLinesLightExponent, "Screen Space Lines - Light Exponent");
+GSYMBOL(kSceneScreenSpaceLinesDebug, "Screen Space Lines - Debug");
+GSYMBOL(kSceneFogEnabled, "Fog Enabled");
+GSYMBOL(kSceneFogColor, "Fog Color");
+GSYMBOL(kSceneFogAlpha, "Fog Alpha");
+GSYMBOL(kSceneFogNearPlane, "Fog Near Plane");
+GSYMBOL(kSceneFogFarPlane, "Fog Far Plane");
+GSYMBOL(kSceneHDRPaperWhiteNits, "HDR - Paper White Nits");
+GSYMBOL(kSceneGraphicBlackThreshold, "Graphic Black Threshold");
+GSYMBOL(kSceneGraphicBlackSoftness, "Graphic Black Softness");
+GSYMBOL(kSceneGraphicBlackAlpha, "Graphic Black Alpha");
+GSYMBOL(kSceneGraphicBlackNear, "Graphic Black Near");
+GSYMBOL(kSceneGraphicBlackFar, "Graphic Black Far");
+GSYMBOL(kSceneWindDirection, "Wind Direction");
+GSYMBOL(kSceneWindSpeed, "Wind Speed");
+GSYMBOL(kSceneWindIdleStrength, "Wind Idle Strength");
+GSYMBOL(kSceneWindIdleSpacialFrequency, "Wind Idle Spacial Frequency");
+GSYMBOL(kSceneWindGustSpeed, "Wind Gust Speed");
+GSYMBOL(kSceneWindGustStrength, "Wind Gust Strength");
+GSYMBOL(kSceneWindGustSpacialFrequency, "Wind Gust Spacial Frequency");
+GSYMBOL(kSceneWindGustIdleStrengthMultiplier, "Wind Gust Idle Strength Multiplier");
+GSYMBOL(kSceneWindGustSeparationExponent, "Wind Gust Separation Exponent");
+GSYMBOL(kSceneLightEnvReflectionEnabled, "LightEnv Reflection Enabled");
+GSYMBOL(kSceneLightEnvBakeEnabled, "LightEnv Bake Enabled");
+GSYMBOL(kSceneLightEnvReflectionTexture, "LightEnv Reflection Texture");
+GSYMBOL(kSceneLightEnvReflectionIntensity, "LightEnv Reflection Intensity");
+GSYMBOL(kSceneLightEnvReflectionTint, "LightEnv Reflection Tint");
+GSYMBOL(kSceneLightEnvEnabled, "LightEnv Enabled");
+GSYMBOL(kSceneLightEnvProbeData, "LightEnv Probe Data");
+GSYMBOL(kSceneLightEnvIntensity, "LightEnv Intensity");
+GSYMBOL(kSceneLightEnvReflectionIntensityShadow, "LightEnv Reflection Intensity Shadow");
+GSYMBOL(kSceneLightEnvSaturation, "LightEnv Saturation");
+GSYMBOL(kSceneLightEnvTint, "LightEnv Tint");
+GSYMBOL(kSceneLightEnvBackgroundColor, "LightEnv Background Color");
+GSYMBOL(kSceneLightEnvProbeResolutionXZ, "LightEnv Probe Resolution XZ");
+GSYMBOL(kSceneLightEnvProbeResolutionY, "LightEnv Probe Resolution Y");
+GSYMBOL(kSceneLightEnvShadowMomentBias, "LightEnv Shadow Moment Bias");
+GSYMBOL(kSceneLightEnvShadowDepthBias, "LightEnv Shadow Depth Bias");
+GSYMBOL(kSceneLightEnvShadowPositionOffsetBias, "LightEnv Shadow Position Offset Bias");
+GSYMBOL(kSceneLightEnvShadowLightBleedReduction, "LightEnv Shadow Light Bleed Reduction");
+GSYMBOL(kSceneLightEnvShadowMinDistance, "LightEnv Shadow Min Distance");
+GSYMBOL(kSceneLightEnvShadowMaxDistance, "LightEnv Shadow Max Distance");
+GSYMBOL(kSceneLightEnvDynamicShadowMaxDistance, "LightEnv Dynamic Shadow Max Distance");
+GSYMBOL(kSceneLightEnvShadowCascadeSplitBias, "LightEnv Shadow Cascade Split Bias");
+GSYMBOL(kSceneLightEnvShadowAutoDepthBounds, "LightEnv Shadow Auto Depth Bounds");
+GSYMBOL(kSceneLightEnvShadowMaxUpdates, "LightEnv Shadow Max Updates");
+GSYMBOL(kSceneLightShadowTraceMaxDistance, "Light Shadow Trace Max Distance");
+GSYMBOL(kSceneLightStaticShadowBoundsMin, "Light Static Shadow Bounds Min");
+GSYMBOL(kSceneLightStaticShadowBoundsMax, "Light Static Shadow Bounds Max");
+GSYMBOL(kSceneEnvLightShadowGoboTexture, "EnvLight Shadow Gobo Texture");
+GSYMBOL(kSceneFXBrushDOFEnable, "FX Brush DOF Enable");
+GSYMBOL(kSceneFXBrushOutlineEnable, "FX Brush Outline Enable");
+GSYMBOL(kSceneFXBrushOutlineFilterEnable, "FX Brush Outline Filter Enable");
+GSYMBOL(kSceneFXBrushOutlineSize, "FX Brush Outline Size");
+GSYMBOL(kSceneFXBrushOutlineThreshold, "FX Brush Outline Threshold");
+GSYMBOL(kSceneFXBrushOutlineColorThreshold, "FX Brush Outline Color Threshold");
+GSYMBOL(kSceneFXBrushOutlineFalloff, "FX Brush Outline Falloff");
+GSYMBOL(kSceneFXBrushNearOutlineScale, "FX Brush Near Outline Scale");
+GSYMBOL(kSceneFXBrushNearTexture, "FX Brush Near Texture");
+GSYMBOL(kSceneFXBrushFarTexture, "FX Brush Far Texture");
+GSYMBOL(kSceneFXBrushNearScale, "FX Brush Near Scale");
+GSYMBOL(kSceneFXBrushNearDetail, "FX Brush Near Detail");
+GSYMBOL(kSceneFXBrushFarScale, "FX Brush Far Scale");
+GSYMBOL(kSceneFXBrushFarDetail, "FX Brush Far Detail");
+GSYMBOL(kSceneFXBrushFarScaleBoost, "FX Brush Far Scale Boost");
+GSYMBOL(kSceneFXBrushFarPlane, "FX Brush Far Plane");
+GSYMBOL(kSceneFXBrushFarPlaneFalloff, "FX Brush Far Plane Falloff");
+GSYMBOL(kSceneFXBrushFarPlaneMaxScale, "FX Brush Far Plane Max Scale");
+GSYMBOL(kSceneFrameBufferScaleOverride, "Frame Buffer Scale Override");
+GSYMBOL(kSceneFrameBufferScaleFactor, "Frame Buffer Scale Factor");
+GSYMBOL(kSceneSpecularMultiplierEnabled, "Specular Multiplier Enabled");
+GSYMBOL(kSceneSpecularColorMultiplier, "Specular Color Multiplier");
+GSYMBOL(kSceneSpecularIntensityMultiplier, "Specular Intensity Multiplier");
+GSYMBOL(kSceneSpecularExponentMultiplier, "Specular Exponent Multiplier");
+GSYMBOL(kSceneHDRLightmapsEnabled, "HDR lightmaps Enabled");
+GSYMBOL(kSceneHDRLightmapsIntensity, "HDR lightmaps Intensity");
+GSYMBOL(kSceneCameraCutPositionThreshold, "Camera Cut Position Threshold");
+GSYMBOL(kSceneCameraCutRotationThreshold, "Camera Cut Rotation Threshold");
+GSYMBOL(kSceneViewportScissorLeft, "Viewport Scissor Left");
+GSYMBOL(kSceneViewportScissorTop, "Viewport Scissor Top");
+GSYMBOL(kSceneViewportScissorRight, "Viewport Scissor Right");
+GSYMBOL(kSceneViewportScissorBottom, "Viewport Scissor Bottom");
+GSYMBOL(kSceneScenePhysicsData, "Scene Physics Data");
+GSYMBOL(kSceneSceneExportsToContentScene, "Scene Exports to Content Scene");
+
+// ======================== SYMBOL SECTION <> TEXT ================================
+
+GSYMBOL(kTextColor, "Text Color");
+GSYMBOL(kTextFont, "Text Font");
+GSYMBOL(kTextScale, "Text Scale");
+GSYMBOL(kTextNonProportionalScale, "Non-Proportional Text Scale");
+GSYMBOL(kTextKerning, "Text Kerning");
+GSYMBOL(kTextLeading, "Text Leading");
+GSYMBOL(kTextSkew, "Text Skew");
+GSYMBOL(kTextString, "Text String");
+GSYMBOL(kTextBackground, "Text Background");
+GSYMBOL(kTextConfine, "Text Confine");
+GSYMBOL(kTextAlignmentHorizontal, "Text Alignment Horizontal");
+GSYMBOL(kTextAlignmentVertical, "Text Alignment Vertical");
+GSYMBOL(kTextShadowColor, "Text Shadow Color");
+GSYMBOL(kTextShadowHeight, "Text Shadow Height");
+GSYMBOL(kTextBackgroundColor, "Text Background Color");
+GSYMBOL(kTextWidth, "Text Width");
+GSYMBOL(kTextMinWidth, "Text Min Width");
+GSYMBOL(kTextMinHeight, "Text Min Height");
+GSYMBOL(kTextExtrudeX, "Text Extrude X");
+GSYMBOL(kTextExtrudeY, "Text Extrude Y");
+GSYMBOL(kTextOffset, "Text Offset");
+GSYMBOL(kTextPlaybackSpeed, "Text Playback Speed");
+GSYMBOL(kTextPercentToDisplay, "Text Percent To Display");
+GSYMBOL(kTextMaxLinesToDisplay, "Text Max Lines To Display");
+GSYMBOL(kTextRenderLayer, "Text Render Layer");
+GSYMBOL(kTextDialogFile, "Text Dialog File");
+GSYMBOL(kTextDialogTextResource, "Text Dialog Text Resource");
+GSYMBOL(kTextDialog2File, "Text Dialog 2.0 File");
+GSYMBOL(kTextDialog2NodeName, "Text Dialog 2.0 Node Name");
+GSYMBOL(kTextKeyAgentName, "Text Key Agent Name");
+GSYMBOL(kTextKeyName, "Text Key Name");
+GSYMBOL(kTextKeyFormatString, "Text Key Format String");
+GSYMBOL(kTextReferenceScreenSize, "Text Reference Screen Size");
+GSYMBOL(kTextWorldSpaceZ, "Text World Space Z");
+GSYMBOL(kTextAlphaMultiply, "Text Alpha Multiply");
+GSYMBOL(kTextBackgroundAlphaMultiply, "Text Background Alpha Multiply");
 
 // ======================== SYMBOL SECTION <> SKELETON ================================
 
@@ -17,6 +372,157 @@ GSYMBOL(kSkeletonFile, "Skeleton File");
 GSYMBOL(kSkeletonUseProceduralJointCorners, "Skeleton Use Procedural Joint Corners");
 GSYMBOL(kSkeletonLegWidth, "Skeleton Leg Width");
 GSYMBOL(kSkeletonArmWidth, "Skeleton Arm Width");
+
+// ======================== SYMBOL SECTION <> CAMERA ================================
+
+GSYMBOL(kClipPlaneFar, "Clip Plane - Far");
+GSYMBOL(kClipPlaneNear, "Clip Plane - Near");
+GSYMBOL(kDepthOfFieldFallOffFar, "Depth of Field Fall Off - Far");
+GSYMBOL(kDepthOfFieldFallOffNear, "Depth of Field Fall Off - Near");
+GSYMBOL(kDepthOfFieldFar, "Depth of Field - Far");
+GSYMBOL(kDepthOfFieldMaxFar, "Depth of Field Max - Far");
+GSYMBOL(kDepthOfFieldMaxNear, "Depth of Field Max - Near");
+GSYMBOL(kDepthOfFieldNear, "Depth of Field - Near");
+GSYMBOL(kCameraPush, "Camera Push");
+GSYMBOL(kAspectRatio, "Aspect Ratio");
+GSYMBOL(kFieldOfView, "Field of View");
+GSYMBOL(kFieldOfViewScale, "Field of View Scale");
+GSYMBOL(kCameraBlendEnable, "Camera Blend Enable");
+GSYMBOL(kCullObjects, "Cull Objects");
+GSYMBOL(kExposure, "Exposure");
+GSYMBOL(kExcludeAgents, "Exclude Agents");
+GSYMBOL(kDepthOfFieldEnabled, "Depth Of Field Enabled");
+GSYMBOL(kUseHighQualityDOF, "Use High Quality DOF");
+GSYMBOL(kDepthOfFieldType, "Depth Of Field Type");
+GSYMBOL(kDepthOfFieldBlurStrength, "Depth Of Field Blur Strength");
+GSYMBOL(kDepthOfFieldDebug, "Depth Of Field Debug");
+GSYMBOL(kDepthOfFieldCoverageBoost, "Depth Of Field Coverage Boost");
+GSYMBOL(kBokehPatternTexture, "Bokeh Pattern Texture");
+GSYMBOL(kBokehBrightnessDeltaThreshold, "Bokeh Brightness Delta Threshold");
+GSYMBOL(kBokehBrightnessThreshold, "Bokeh Brightness Threshold");
+GSYMBOL(kBokehBlurThreshold, "Bokeh Blur Threshold");
+GSYMBOL(kBokehMinSize, "Bokeh Min Size");
+GSYMBOL(kBokehMaxSize, "Bokeh Max Size");
+GSYMBOL(kUseBokeh, "Use Bokeh");
+GSYMBOL(kBokehFalloff, "Bokeh Falloff");
+GSYMBOL(kBokehAberrationOffsetsX, "Bokeh Aberration Offsets X");
+GSYMBOL(kBokehAberrationOffsetsY, "Bokeh Aberration Offsets Y");
+GSYMBOL(kMaxBokehBufferAmount, "Max Bokeh Buffer Amount");
+GSYMBOL(kExcludeFromAutoDirector, "Exclude from Auto Director");
+
+GSYMBOL(kFXColourEnabled, "FX Color Enabled");
+GSYMBOL(kFXColourTint, "FX Color Tint");
+GSYMBOL(kFXColourOpacity, "FX Color Opacity");
+GSYMBOL(kFXLevelsEnabled, "FX Levels Enabled");
+GSYMBOL(kFXLevelsBlackPoint, "FX Levels Black Point");
+GSYMBOL(kFXLevelsWhitePoint, "FX Levels White Point");
+GSYMBOL(kFXLevelsIntensity, "FX Levels Intensity");
+
+GSYMBOL(kFxRadialBlurEnabled, "FX Radial Blur Enabled");
+GSYMBOL(kFxRadialBlurIntensity, "FX Radial Blur Intensity");
+GSYMBOL(kFxRadialBlurInRadius, "FX Radial Blur In Radius");
+GSYMBOL(kFxRadialBlurOutRadius, "FX Radial Blur Out Radius");
+GSYMBOL(kFxRadialBlurTint, "FX Radial Blur Tint");
+GSYMBOL(kFxRadialBlurTintIntensity, "FX Radial Blur Tint Intensity");
+GSYMBOL(kFxRadialBlurScale, "FX Radial Blur Scale");
+GSYMBOL(kFxMotionBlurEnabled, "FX Motion Blur Enabled");
+GSYMBOL(kFxMotionBlurIntensity, "FX Motion Blur Intensity");
+GSYMBOL(kFxMotionBlurMovementThresholdEnabled, "FX Motion Blur Movement Threshold Enabled");
+GSYMBOL(kFxMotionBlurMovementThreshold, "FX Motion Blur Movement Threshold");
+GSYMBOL(kFxMotionBlurRotationThresholdEnabled, "FX Motion Blur Rotation Threshold Enabled");
+GSYMBOL(kFxMotionBlurRotationThreshold, "FX Motion Blur Rotation Threshold");
+GSYMBOL(kFxDelayMotionBlur, "FX Delay Motion Blur");
+GSYMBOL(kAudioListenerOverride, "Audio Listener Override");
+GSYMBOL(kAudioPlayerOriginOverride, "Audio Player Origin Override");
+GSYMBOL(kAudioReverbEventSnapshotOverride, "Audio Reverb Event Snapshot Override");
+GSYMBOL(kAudioReverbOverride, "Audio Reverb Override");
+
+
+// ======================== SYMBOL SECTION <> RENDERABLE ================================
+
+GSYMBOL(kRenderablePropKey3DAlpha, "Render 3D Alpha");
+GSYMBOL(kRenderablePropKeyAllowNPRLines, "Render Allow NPR Lines");
+GSYMBOL(kRenderablePropKeyAlphaAntialiasing, ""); // Empty ones haven't found the string for yet (check other executables, will be there)
+GSYMBOL(kRenderablePropKeyAlphaMultiply, "");
+GSYMBOL(kRenderablePropKeyAmbientOcclusionLightmap, "Render Ambient Occlusion Lightmap");
+GSYMBOL(kRenderablePropKeyAutoFocusEnable, "Render Auto Focus Enable");
+GSYMBOL(kRenderablePropKeyAxisScale, "Render Axis Scale");
+GSYMBOL(kRenderablePropKeyBakeAsStatic, "");
+GSYMBOL(kRenderablePropKeyBrushFarDetailBias, "Render Brush Far Detail Bias");
+GSYMBOL(kRenderablePropKeyBrushForceEnable, "Render Brush Force Enable");
+GSYMBOL(kRenderablePropKeyBrushNearDetailBias, "Render Brush Near Detail Bias");
+GSYMBOL(kRenderablePropKeyBrushScale, "Render Brush Scale");
+GSYMBOL(kRenderablePropKeyBrushScaleByVertex, "Render Brush Scale By Vertex");
+GSYMBOL(kRenderablePropKeyCameraFacing, "Camera Facing");
+GSYMBOL(kRenderablePropKeyCameraFacingType, "Camera Facing Type");
+GSYMBOL(kRenderablePropKeyCastShadow, "Cast Shadow");
+GSYMBOL(kRenderablePropKeyCastShadowsAsStatic, "Cast Shadow As Static");
+GSYMBOL(kRenderablePropKeyColorCorrection, "Render Color Correction");
+GSYMBOL(kRenderablePropKeyColorWrite, "Render Color Write");
+GSYMBOL(kRenderablePropKeyConstantAlpha, "Render Constant Alpha");
+GSYMBOL(kRenderablePropKeyCubeBakeEnable, "");
+GSYMBOL(kRenderablePropKeyD3DMesh, "D3D Mesh");
+GSYMBOL(kRenderablePropKeyD3DMeshList, "D3D Mesh List");
+GSYMBOL(kRenderablePropKeyDepthTest, "Render Depth Test");
+GSYMBOL(kRenderablePropKeyDepthTestFunc, "Render Depth Test Function");
+GSYMBOL(kRenderablePropKeyDepthWrite, "Render Depth Write");
+GSYMBOL(kRenderablePropKeyDepthWriteAlpha, "Render Depth Write Alpha");
+GSYMBOL(kRenderablePropKeyDiffuseColor, "Render Diffuse Color");
+GSYMBOL(kRenderablePropKeyDisableLightBake, "Render Disable Light Bake");
+GSYMBOL(kRenderablePropKeyDoMotionBlur, "");
+GSYMBOL(kRenderablePropKeyEmissionColor, "Render Emission Color");
+GSYMBOL(kRenderablePropKeyFogColor, "");
+GSYMBOL(kRenderablePropKeyFogEnabled, "");
+GSYMBOL(kRenderablePropKeyFogFarPlane, "");
+GSYMBOL(kRenderablePropKeyFogNearPlane, "");
+GSYMBOL(kRenderablePropKeyFogOverride, "");
+GSYMBOL(kRenderablePropKeyForceAsAlpha, "Render Force As Alpha");
+GSYMBOL(kRenderablePropKeyForceLinearDepthWrite, "");
+GSYMBOL(kRenderablePropKeyFXColorEnabled, "");
+GSYMBOL(kRenderablePropKeyGlobalScale, "Render Global Scale");
+GSYMBOL(kRenderablePropKeyLightCinematicRig, "");
+GSYMBOL(kRenderablePropKeyLightEnvEnable, "");
+GSYMBOL(kRenderablePropKeyLightEnvGroup, "");
+GSYMBOL(kRenderablePropKeyLightEnvIntensity, "");
+GSYMBOL(kRenderablePropKeyLightEnvNode, "");
+GSYMBOL(kRenderablePropKeyLightEnvReflectionEnable, "");
+GSYMBOL(kRenderablePropKeyLightEnvReflectionIntensity, "");
+GSYMBOL(kRenderablePropKeyLightEnvShadowCastEnable, "");
+GSYMBOL(kRenderablePropKeyLightEnvShadowCastGroups, "");
+GSYMBOL(kRenderablePropKeyLightingGroups, "Render Lighting Groups");
+GSYMBOL(kRenderablePropKeyLightmapScale, "Render Lightmap Scale");
+GSYMBOL(kRenderablePropKeyLightmapUVGenerationType, "");
+GSYMBOL(kRenderablePropKeyLODBias, "Render LOD Bias");
+GSYMBOL(kRenderablePropKeyLODScale, "Render LOD Scale");
+GSYMBOL(kRenderablePropKeyMaskTest, "Render Mask Test");
+GSYMBOL(kRenderablePropKeyMaskWrite, "Render Mask Write");
+GSYMBOL(kRenderablePropKeyMaterialTime, "Render Material Time");
+GSYMBOL(kRenderablePropKeyNPRLineBias, "Render NPR Line Bias");
+GSYMBOL(kRenderablePropKeyNPRLineFalloff, "Render NPR Line Falloff");
+GSYMBOL(kRenderablePropKeyNPRLineFalloffBiasOverride, "");
+GSYMBOL(kRenderablePropKeyOverrideToonOutlineColor, "");
+GSYMBOL(kRenderablePropKeyRecieveShadows, "Receive Shadows");
+GSYMBOL(kRenderablePropKeyRecieveShadowsDecal, "Receive Shadows Decal");
+GSYMBOL(kRenderablePropKeyRecieveShadowsDoublesided, "Receive Shadows Doublesided");
+GSYMBOL(kRenderablePropKeyRecieveShadowsIntensity, "");
+GSYMBOL(kRenderablePropKeyRenderAfterAntiAliasing, "");
+GSYMBOL(kRenderablePropKeyRenderAfterPostEffects, "");
+GSYMBOL(kRenderablePropKeyRenderCull, "Render Cull");
+GSYMBOL(kRenderablePropKeyRenderLayer, "Render Layer");
+GSYMBOL(kRenderablePropKeyRenderToonOutline, "Render Toon Outline");
+GSYMBOL(kRenderablePropKeyRimBumpScale, "Render Rim Bump Scale");
+GSYMBOL(kRenderablePropKeySceneEnlightenData, "Render Scene Enlighten Data");
+GSYMBOL(kRenderablePropKeySceneLightmapData, "Render Scene Lightmap Data");
+GSYMBOL(kRenderablePropKeyShadowCastGroup, "Render Shadow Cast Group");
+GSYMBOL(kRenderablePropKeyShadowReceiveGroup, "Render Shadow Receive Group");
+GSYMBOL(kRenderablePropKeyShadowUseLowLOD, "");
+GSYMBOL(kRenderablePropKeyShadowVisibleThresholdScale, "");
+GSYMBOL(kRenderablePropKeySSLineEnable, "Render SS Line Enable");
+GSYMBOL(kRenderablePropKeyStatic, "Render Static");
+GSYMBOL(kRenderablePropKeyTextureOverrides, "Render Texture Overrides");
+GSYMBOL(kRenderablePropKeyToonOutlineColor, "Toon Outline Color");
+GSYMBOL(kRenderablePropKeyVisibleThresholdScale, "Render Visible Threshold Scale");
+
 
 // ======================== SYMBOL SECTION <> ANIMATION NODES ================================
 

@@ -5,6 +5,7 @@
 		}
 	],
 	"settings": {
+		"workbench.tree.indent": 20,
 		"customCommands.commands":
 		[
 			{
@@ -12,24 +13,44 @@
 				"command": "../Bin/Debug/TelltaleEditor mkdocs -o Scripts/Docs_Latest.lua",
 			},
 			{
+				"name": "Run Telltale Editor",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor run -project D:/Games/TelltaleTexasHoldEm/Texas.tteproj",
+			},
+			{
 				"name": "Run TX100/PC mod.lua",
-				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game TX100 -platform PC",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/Tests/mod.lua -game TX100 -platform PC",
 			},
 			{
 				"name": "Run BN100/MacOS mod.lua",
-				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game BN100 -platform MacOS",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/Tests/mod.lua -game BN100 -platform MacOS",
+			},
+			{
+				"name": "Run BN100/PC/v2.0_Late mod.lua",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/Tests/mod.lua -game BN100 -platform PC -vendor v2.0_Late",
 			},
 						{
-				"name": "Run BN100/PC mod.lua",
-				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game BN100 -platform PC",
+				"name": "Run BN100/PC/v2.0_Main mod.lua",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/Tests/mod.lua -game BN100 -platform PC -vendor v2.0_Main",
 			},
 			{
 				"name": "Run CSI3/PS2 mod.lua",
-				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game CSI3 -platform PS2",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/Tests/mod.lua -game CSI3 -platform PS2",
 			},
-						{
+			{
 				"name": "Run CSI3/PC mod.lua",
-				"command": "cd ../Bin/Debug && ../Debug/TelltaleEditor execute -script ../../Dev/TestResources/mod.lua -game CSI3 -platform PC",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor execute -script ../../Dev/Tests/mod.lua -game CSI3 -platform PC",
+			},
+			{
+				"name": "Run Prober [edit for params]",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor probe -i \"c:/Users/lucas/Desktop/extract/Data/\" -game BN100 -platform PC -vendor v2.0_Late -ef ../../Dev/Tests/ProbeErr.txt",
+			},
+			{
+				"name": "Run Meta Class Traverse 32",
+				"command": "cd ../Bin/Debug ; python3 ../../Dev/Tools/Traverse/MCDTraverse32.py",
+			},
+			{
+				"name": "Run Symbol Extraction from IDA",
+				"command": "cd ../Bin/Debug ; python3 ../../Dev/Tools/SymbolExtract/SymbolExtractor.py",
 			},
 		],
 		"Lua": {

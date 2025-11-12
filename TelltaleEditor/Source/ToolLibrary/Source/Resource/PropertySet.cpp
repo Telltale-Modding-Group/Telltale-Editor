@@ -580,7 +580,7 @@ void PropertySet::MoveParentToFront(Meta::ClassInstance prop, Symbol parent)
                 break;
             }
         }
-        Meta::ClassInstance global = Meta::CreateInstance(Meta::FindClass(PropertySet::ClassHandle, 0));
+        Meta::ClassInstance global = Meta::CreateInstance(Meta::FindClass(PropertySet::ClassHandle, 0)); // not a common class (its Handle<>) so OK
         Meta::ImportCoercableInstance(parent, global);
         array.Insert({}, std::move(global), 0, false, false);
     }
@@ -597,7 +597,7 @@ void PropertySet::RemoveCallback(Meta::ClassInstance prop, Symbol key, Ptr<Funct
         bRemoved = false;
         for(auto it = data.KeyCallbacks.begin(); it != data.KeyCallbacks.end(); it++)
         {
-            const Ptr<FunctionBase>& pCallback = *it;
+            const Ptr<FunctionBase>& pCallback = it->MyCallback;
             if((key.GetCRC64() == 0 || pCallback->Tag == key) && (!pMatchingCallback || pCallback->Equals(*pMatchingCallback)))
             {
                 data.KeyCallbacks.erase(it);
@@ -752,28 +752,52 @@ void PropertySet::GetParents(Meta::ClassInstance prop, std::set<HandlePropertySe
             prop = array.GetValue(i);
             HandlePropertySet hProp{};
             Meta::ExtractCoercableInstance(hProp, prop);
+            Meta::ClassInstance parentProp = hProp.GetObject(pRegistry, true);
             Symbol name = hProp.GetObject();
-            if(bSearchParents && name)
-                GetParents(hProp.GetObject(pRegistry, true), parents, true, pRegistry);
+            if(bSearchParents && name && parentProp)
+                GetParents(parentProp, parents, true, pRegistry);
             if(name.GetCRC64())
                 parents.insert(std::move(hProp));
         }
     }
 }
 
-void PropertySet::AddCallback(Meta::ClassInstance prop, Symbol key, Ptr<FunctionBase> pCallback)
+void PropertySet::ClearCallbacks(Meta::ClassInstance prop, U32 ref)
+{
+    auto& callbacks = ((InternalData*)prop._GetInternalPropertySetData())->KeyCallbacks;
+    if(ref == 0)
+    {
+        callbacks.clear();
+    }
+    else
+    {
+        for(auto it = callbacks.begin(); it != callbacks.end();)
+        {
+            if(it->TrackingRefID == ref)
+            {
+                it = callbacks.erase(it);
+            }
+            else
+            {
+                it++;
+            }
+        }
+    }
+}
+
+void PropertySet::AddCallback(Meta::ClassInstance prop, Symbol key, Ptr<FunctionBase> pCallback, U32 trackRef)
 {
     auto& callbacks = ((InternalData*)prop._GetInternalPropertySetData())->KeyCallbacks;
     if(pCallback)
     {
         pCallback->Tag = key;
-        auto it = callbacks.find(pCallback);
+        auto it = callbacks.find(KeyCallbackTracked{pCallback});
         if(it != callbacks.end())
         {
-            pCallback->Next = std::move(*it);
+            pCallback->Next = std::move(it->MyCallback);
             callbacks.erase(it);
         }
-        callbacks.insert(std::move(pCallback));
+        callbacks.insert(KeyCallbackTracked{std::move(pCallback), trackRef});
     }
 }
 
@@ -794,9 +818,12 @@ Meta::ClassInstance PropertySet::Get(Meta::ClassInstance prop, Symbol key, Bool 
                 HandlePropertySet hProp{};
                 Meta::ExtractCoercableInstance(hProp, prop);
                 prop = hProp.GetObject(pRegistry, true);
-                prop = Get(prop, key, true, pRegistry);
-                if(prop)
-                    return prop;
+                if (prop)
+                {
+                    prop = Get(prop, key, true, pRegistry);
+                    if (prop)
+                        return prop;
+                }
             }
         }
         return {};
@@ -819,11 +846,11 @@ void PropertySet::Set(Meta::ClassInstance prop, Symbol key, Meta::ClassInstance 
     {
         if(mode == SetPropertyMode::COPY)
         {
-            Meta::CopyInstance(prop, value, key);
+            Meta::CopyInstance(value, prop, key);
         }
         else
         {
-            Meta::MoveInstance(prop, value, key); // assigned in maker.
+            Meta::MoveInstance(value, prop, key); // assigned in maker.
         }
     }
     MarkModified(prop, key, pRegistry);
@@ -835,11 +862,11 @@ void PropertySet::MarkModified(Meta::ClassInstance prop, Symbol Key, Ptr<Resourc
     FunctionDummy D{};
     Ptr<FunctionBase> dummy = TTE_PROXY_PTR(&D, FunctionDummy);
     dummy->Tag = Key;
-    auto it = callbacks.find(dummy);
+    auto it = callbacks.find(KeyCallbackTracked{dummy});
     if(it != callbacks.end())
     {
         Meta::ClassInstance value = Get(prop, Key, true, pRegistry);
-        FunctionBase* callback = it->get();
+        FunctionBase* callback = it->MyCallback.get();
         while(callback)
         {
             callback->CallMeta(value, {}, {}, {});
@@ -868,7 +895,7 @@ Bool PropertySet::ExistsKey(Meta::ClassInstance prop, Symbol keyName, Bool bSear
         for(auto prnt: parents)
         {
             Meta::ClassInstance pProp = prnt.GetObject(pRegistry, true);
-            if(pProp != prop && ExistsKey(pProp, keyName, false, pRegistry))
+            if(pProp && pProp != prop && ExistsKey(pProp, keyName, false, pRegistry))
                 return true;
         }
     }
@@ -944,12 +971,15 @@ void PropertySet::CallAllCallbacks(Meta::ClassInstance prop, Ptr<ResourceRegistr
     auto& callbacks = ((InternalData*)prop._GetInternalPropertySetData())->KeyCallbacks;
     for(const auto& cb: callbacks)
     {
-        Meta::ClassInstance value = Get(prop, cb->Tag, true, pRegistry);
-        FunctionBase* pFunction = cb.get();
-        while(pFunction)
+        Meta::ClassInstance value = Get(prop, cb.MyCallback->Tag, true, pRegistry);
+        if(value) // Important! The callback can exist before or even without the key existing.
         {
-            pFunction->CallMeta(value, {}, {}, {});
-            pFunction = pFunction->Next.get();
+            FunctionBase* pFunction = cb.MyCallback.get();
+            while (pFunction)
+            {
+                pFunction->CallMeta(value, {}, {}, {});
+                pFunction = pFunction->Next.get();
+            }
         }
     }
 }
@@ -975,7 +1005,8 @@ Bool PropertySet::ExistsParentKey(Meta::ClassInstance prop, Symbol KeyName, Ptr<
             prop = array.GetValue(i);
             HandlePropertySet hProp{};
             Meta::ExtractCoercableInstance(hProp, prop);
-            if(ExistsKey(hProp.GetObject(pRegistry, true), KeyName, true, pRegistry))
+            Meta::ClassInstance parentProp = hProp.GetObject(pRegistry, true);
+            if(parentProp && ExistsKey(parentProp, KeyName, true, pRegistry))
                 return true;
         }
     }
@@ -999,10 +1030,22 @@ void PropertySet::GetKeys(Meta::ClassInstance prop, std::set<Symbol> &keys, Bool
                 prop = array.GetValue(i);
                 HandlePropertySet hProp{};
                 Meta::ExtractCoercableInstance(hProp, prop);
-                GetKeys(hProp.GetObject(pRegistry, true), keys, true, pRegistry);
+                Meta::ClassInstance parentProp = hProp.GetObject(pRegistry, true);
+                if(parentProp)
+                    GetKeys(parentProp, keys, true, pRegistry);
             }
         }
     }
+}
+
+U32 PropertySet::GetNumParents(Meta::ClassInstance prop)
+{
+    Meta::ClassInstance parentMember = Meta::GetMember(prop, "mParentList", true);
+    if(parentMember)
+    {
+        return Meta::CastToCollection(parentMember).GetSize();
+    }
+    return 0;
 }
 
 U32 PropertySet::GetNumKeys(Meta::ClassInstance prop, Bool bSearchParents, Ptr<ResourceRegistry> pRegistry)
@@ -1050,8 +1093,8 @@ void PropertySet::RemoveParent(Meta::ClassInstance prop, Symbol parent, Bool bDi
         Meta::ClassInstanceCollection& array = Meta::CastToCollection(parentMember);
         for(U32 i = 0; i < array.GetSize(); i++)
         {
-            prop = array.GetValue(i);
-            Meta::ExtractCoercableInstance(hProp, prop);
+            Meta::ClassInstance pprop = array.GetValue(i);
+            Meta::ExtractCoercableInstance(hProp, pprop);
             Symbol name = hProp.GetObject();
             if(name == parent)
             {
@@ -1061,13 +1104,16 @@ void PropertySet::RemoveParent(Meta::ClassInstance prop, Symbol parent, Bool bDi
                 break;
             }
         }
-        if(bRemoved && bDiscardLocalKeys)
+        if(bRemoved && bDiscardLocalKeys && prop)
         {
             Meta::ClassInstance parentProp = hProp.GetObject(pRegistry, true);
             std::set<Symbol> keys{};
-            GetKeys(parentProp, keys, true, pRegistry);
-            for(Symbol k: keys)
-                RemoveKey(prop, k);
+            if(parentProp)
+            {
+                GetKeys(parentProp, keys, true, pRegistry);
+                for (Symbol k : keys)
+                    RemoveKey(prop, k);
+            }
         }
     }
 }
@@ -1097,4 +1143,16 @@ void PropertySet::PostLoad(Meta::ClassInstance prop, Ptr<ResourceRegistry> pRegi
             }
         }
     }
+}
+
+void PropertySet::InternalData::Move(InternalData &dest)
+{
+    dest.Children = std::move(Children);
+    KeyCallbacks.clear(); // cant move callbacks they can contain specific stuff to that scene
+}
+
+void PropertySet::InternalData::Clone(InternalData &dest) const
+{
+    dest.Children = Children;
+    dest.KeyCallbacks.clear();
 }

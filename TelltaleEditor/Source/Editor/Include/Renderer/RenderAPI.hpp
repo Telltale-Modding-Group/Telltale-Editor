@@ -7,6 +7,7 @@
 #include <Core/LinearHeap.hpp>
 #include <Renderer/Camera.hpp>
 #include <Renderer/RenderParameters.hpp>
+#include <Renderer/RenderFX.hpp>
 #include <Scheduler/JobScheduler.hpp>
 #include <Meta/Meta.hpp>
 
@@ -19,6 +20,7 @@
 #include <mutex>
 
 class RenderContext;
+class RenderViewPass;
 
 // ============================================= ENUMS =============================================
 
@@ -85,50 +87,6 @@ enum class RenderBufferAttributeFormat : U32
     
 };
 
-// ============================================= RENDER VERTEX ATTRIBS =============================================
-
-enum class RenderAttributeType : U32
-{
-    POSITION = 0,
-    NORMAL = 1,
-    BINORMAL = 2,
-    TANGENT = 3,
-    BLEND_WEIGHT = 4,
-    BLEND_INDEX = 5,
-    COLOUR = 6,
-    UV_DIFFUSE = 7,
-    UV_LIGHTMAP = 8,
-    UNKNOWN,
-    COUNT = UNKNOWN,
-};
-
-static struct AttribInfo {
-    RenderAttributeType Type;
-    CString ConstantName;
-} constexpr AttribInfoMap[]
-{
-    {RenderAttributeType::POSITION, "kCommonMeshAttributePosition"},        // 0
-    {RenderAttributeType::NORMAL, "kCommonMeshAttributeNormal"},            // 1
-    {RenderAttributeType::BINORMAL, "kCommonMeshAttributeBinormal"},        // 2
-    {RenderAttributeType::TANGENT, "kCommonMeshAttributeTangent"},          // 3
-    {RenderAttributeType::BLEND_WEIGHT, "kCommonMeshAttributeBlendWeight"}, // 4
-    {RenderAttributeType::BLEND_INDEX, "kCommonMeshAttributeBlendIndex"},   // 5
-    {RenderAttributeType::COLOUR, "kCommonMeshAttributeColour"},            // 6
-    {RenderAttributeType::UV_DIFFUSE, "kCommonMeshAttributeUVDiffuse"},     // 7
-    {RenderAttributeType::UV_LIGHTMAP, "kCommonMeshAttributeUVLightMap"},   // 8
-    {RenderAttributeType::UNKNOWN, "kCommonMeshAttributeUnknown"},          // ~
-};
-
-using VertexAttributesBitset = BitSet<RenderAttributeType, (U32)RenderAttributeType::COUNT, RenderAttributeType::POSITION>;
-
-class RenderContext;
-
-struct RenderScene;
-class RenderTexture;
-class RenderFrame;
-
-// ============================================= UTIL ENUMS AND TYPES =============================================
-
 enum class RenderBufferUsage : U32
 {
     VERTEX = SDL_GPU_BUFFERUSAGE_VERTEX,
@@ -141,6 +99,72 @@ enum class RenderPrimitiveType : U32
     UNKNOWN,
     TRIANGLE_LIST,
     LINE_LIST,
+};
+
+class RenderContext;
+struct RenderScene;
+class RenderTexture;
+class RenderFrame;
+
+static struct AttributeFormatInfo
+{
+    RenderBufferAttributeFormat Format;
+    SDL_GPUVertexElementFormat SDLFormat;
+    U32 NumIntrinsics = 0; // for float4, this is 4
+    U32 IntrinsicSize = 0; // for four ints, three ints, 1 int, etc, this is 4.
+    RenderBufferAttributeFormat IntrinsicType = RenderBufferAttributeFormat::UNKNOWN;
+    CString ConstantName;
+}
+SDL_VertexAttributeMappings[21]
+{
+    {RenderBufferAttributeFormat::F32x1, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT, 1, 4, RenderBufferAttributeFormat::F32x1, "kCommonMeshFloat1"},
+    {RenderBufferAttributeFormat::F32x2, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT2, 2, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat2"},
+    {RenderBufferAttributeFormat::F32x3, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT3, 3, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat3"},
+    {RenderBufferAttributeFormat::F32x4, SDL_GPU_VERTEXELEMENTFORMAT_FLOAT4, 4, 4, RenderBufferAttributeFormat::F32x1,"kCommonMeshFloat4"},
+    {RenderBufferAttributeFormat::I32x1, SDL_GPU_VERTEXELEMENTFORMAT_INT, 1, 4, RenderBufferAttributeFormat::I32x1, "kCommonMeshInt1"},
+    {RenderBufferAttributeFormat::I32x2, SDL_GPU_VERTEXELEMENTFORMAT_INT2, 2, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt2"},
+    {RenderBufferAttributeFormat::I32x3, SDL_GPU_VERTEXELEMENTFORMAT_INT3, 3, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt3"},
+    {RenderBufferAttributeFormat::I32x4, SDL_GPU_VERTEXELEMENTFORMAT_INT4, 4, 4, RenderBufferAttributeFormat::I32x1,"kCommonMeshInt4"},
+    {RenderBufferAttributeFormat::U32x1, SDL_GPU_VERTEXELEMENTFORMAT_UINT, 1, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt1"},
+    {RenderBufferAttributeFormat::U32x2, SDL_GPU_VERTEXELEMENTFORMAT_UINT2, 2, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt2"},
+    {RenderBufferAttributeFormat::U32x3, SDL_GPU_VERTEXELEMENTFORMAT_UINT3, 3, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt3"},
+    {RenderBufferAttributeFormat::U32x4, SDL_GPU_VERTEXELEMENTFORMAT_UINT4, 4, 4, RenderBufferAttributeFormat::U32x1,"kCommonMeshUInt4"},
+    {RenderBufferAttributeFormat::U8x2, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte2"},
+    {RenderBufferAttributeFormat::U8x4, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte4"},
+    {RenderBufferAttributeFormat::I8x2, SDL_GPU_VERTEXELEMENTFORMAT_BYTE2, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte2"},
+    {RenderBufferAttributeFormat::I8x4, SDL_GPU_VERTEXELEMENTFORMAT_BYTE4, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte4"},
+    {RenderBufferAttributeFormat::U8x2_NORM, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE2_NORM, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte2Norm"},
+    {RenderBufferAttributeFormat::U8x4_NORM, SDL_GPU_VERTEXELEMENTFORMAT_UBYTE4_NORM, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshUByte4Norm"},
+    {RenderBufferAttributeFormat::I8x2_NORM, SDL_GPU_VERTEXELEMENTFORMAT_BYTE2_NORM, 2, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte2Norm"},
+    {RenderBufferAttributeFormat::I8x4_NORM, SDL_GPU_VERTEXELEMENTFORMAT_BYTE4_NORM, 4, 1, RenderBufferAttributeFormat::UNKNOWN,"kCommonMeshByte4Norm"},
+    {RenderBufferAttributeFormat::UNKNOWN, SDL_GPU_VERTEXELEMENTFORMAT_INVALID, 0, 0, RenderBufferAttributeFormat::F32x1, "kCommonMeshFormatUnknown"},
+    // add above this!
+};
+
+static struct PrimitiveTypeInfo
+{
+    RenderPrimitiveType Type;
+    SDL_GPUPrimitiveType SDLType;
+    CString ConstantName;
+}
+SDL_PrimitiveMappings[3]
+{
+    {RenderPrimitiveType::TRIANGLE_LIST, SDL_GPU_PRIMITIVETYPE_TRIANGLELIST, "kCommonMeshTriangleList"},
+    {RenderPrimitiveType::LINE_LIST, SDL_GPU_PRIMITIVETYPE_LINELIST, "kCommonMeshLineList"},
+    {RenderPrimitiveType::UNKNOWN, SDL_GPU_PRIMITIVETYPE_TRIANGLESTRIP, "kCommonMeshTriangleStrip"}, // do not add below this, add above
+};
+
+// ============================================= UTIL ENUMS AND TYPES =============================================
+
+struct RenderViewport
+{
+
+    Float x, y, w, h;
+
+    inline RenderViewport() : x(0.0f), y(0.0f), w(0.0f), h(0.0f) {}
+
+    inline RenderViewport(Float xPos, Float yPos, Float xLen, Float yLen) : x(xPos), y(yPos), w(xLen), h(yLen) {}
+
 };
 
 // NDC (Normalised device coords) scissor rect. From -1 to 1 in both. By default is whole screen
@@ -164,7 +188,36 @@ struct RenderNDCScissorRect
         width = maxX > minX ? (maxX - minX) : 0;
         height = maxY > minY ? (maxY - minY) : 0;
     }
-    
+
+    // Get in space 0-1 both x and y.
+    inline void GetFractional(Float& xMin, Float& yMin, Float& xMax, Float& yMax) const
+    {
+        xMin = (Min.x + 1.0f) * 0.5f;
+        yMin = (Min.y + 1.0f) * 0.5f;
+        xMax = (Max.x + 1.0f) * 0.5f;
+        yMax = (Max.y + 1.0f) * 0.5f;
+    }
+
+    // Set from space 0-1 in both x and y
+    inline void SetFractional(Float xMinFrac, Float yMinFrac, Float xMaxFrac, Float yMaxFrac)
+    {
+        Min.x = (xMinFrac * 2.0f) - 1.0f;
+        Min.y = (yMinFrac * 2.0f) - 1.0f;
+        Max.x = (xMaxFrac * 2.0f) - 1.0f;
+        Max.y = (yMaxFrac * 2.0f) - 1.0f;
+    }
+
+    // Gets as a viewport in 0-1 with width and height.
+    inline RenderViewport GetAsViewport() const
+    {
+        RenderViewport vp{};
+        Float xmin = 0.0f, ymin = 0.0f, xmax = 0.0f, ymax=0.0f;
+        GetFractional(xmin, ymin, xmax, ymax);
+        vp.x = xmin; vp.y = ymin;
+        vp.w = xmax - xmin; vp.h = ymax - ymin;
+        return vp;
+    }
+
     // sub rect. scales child inside parent one
     static inline RenderNDCScissorRect SubRect(const RenderNDCScissorRect& parent, const RenderNDCScissorRect& child)
     {
@@ -207,7 +260,7 @@ enum class RenderStateType
     
     CULL_MODE = 1, // SDL_GPUCullMode
     FILL_MODE = 2, // SDL_GPUFillMode
-    WINDING = 3, // SDL_GPUFrontFace
+    VERTEX_WINDING = 3, // SDL_GPUFrontFace
     Z_OFFSET = 4, // Bool. True = add 16 (telltale uses this exact number), False = 0
     Z_INVERSE = 5, // Bool. True to invert Z values by scale of -1.0. Only if depth bias is enabled. Affects depth state too.
     Z_CLIPPING = 6, // Bool. Enable depth clipping
@@ -259,7 +312,7 @@ class RenderStateBlob
         {RenderStateType::NONE, "kRenderStateNone", 0, 0},
         {RenderStateType::CULL_MODE, "kRenderStateCullMode", 2, SDL_GPU_CULLMODE_BACK},
         {RenderStateType::FILL_MODE, "kRenderStateFillMode", 1, SDL_GPU_FILLMODE_FILL},
-        {RenderStateType::WINDING, "kRenderStateWinding", 1, SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE},  // TAKE INTO ACCOUNT GRAPHICS API!!! D3D11 USES CLOCKWISE NORMALLY
+        {RenderStateType::VERTEX_WINDING, "kRenderStateWinding", 1, SDL_GPU_FRONTFACE_COUNTER_CLOCKWISE},  // TAKE INTO ACCOUNT GRAPHICS API!!! D3D11 USES CLOCKWISE NORMALLY
         {RenderStateType::Z_OFFSET, "kRenderStateZOffset", 1, 0},
         {RenderStateType::Z_INVERSE, "kRenderStateZInverse", 1, 0},
         {RenderStateType::Z_CLIPPING, "kRenderStateZClipping", 1, 1}, // true, enable clipping by default
@@ -303,8 +356,16 @@ public:
     
 };
 
+struct RenderResource
+{
+
+    virtual void Release() = 0;
+
+
+};
+
 /// A buffer in the renderer holding data. You own these and can create them below.
-struct RenderBuffer
+struct RenderBuffer : RenderResource
 {
     
     // Last frame number which buffer was used to a binding slot in.
@@ -319,6 +380,8 @@ struct RenderBuffer
     U64 SizeBytes = 0; // size of the bytes of the buffer
     
     ~RenderBuffer();
+
+    virtual void Release() override;
     
 };
 
@@ -339,7 +402,7 @@ struct _RenderTransferBuffer
 };
 
 /// Render sampler which is bindable
-struct RenderSampler
+struct RenderSampler : RenderResource
 {
     
     U64 LastUsedFrame = 0;
@@ -357,7 +420,9 @@ struct RenderSampler
     {
         return MipBias == rhs.MipBias && MipMode == rhs.MipMode && WrapU == rhs.WrapU && WrapV == rhs.WrapV;
     }
-    
+
+    virtual void Release() override;
+
     ~RenderSampler();
     
 };
@@ -397,7 +462,7 @@ enum class RenderTargetConstantID
     NONE = -1,
     BACKBUFFER = 0,
     DEPTH,
-    NUM,
+    COUNT,
 };
 
 // Info about constant target
@@ -437,16 +502,26 @@ public:
     
     inline static RenderTargetID CreateDynamicID(U32 zeroBasedDynamicIndex) // create dynamic id
     {
-        return RenderTargetID((RenderTargetConstantID)(zeroBasedDynamicIndex + (U32)RenderTargetConstantID::NUM));
+        return RenderTargetID((RenderTargetConstantID)(zeroBasedDynamicIndex + (U32)RenderTargetConstantID::COUNT));
     }
     
-    inline Bool IsConstantTarget() const { return _Value < (U32)RenderTargetConstantID::NUM; }
+    inline Bool IsConstantTarget() const { return _Value < (U32)RenderTargetConstantID::COUNT; }
     
-    inline Bool IsDynamicTarget() const { return IsValid() && _Value >= (U32)RenderTargetConstantID::NUM; }
+    inline Bool IsDynamicTarget() const { return IsValid() && _Value >= (U32)RenderTargetConstantID::COUNT; }
     
     inline Bool IsValid() const { return _Value != (U32)-1; }
     
     inline U32 GetRawID() { return _Value; }
+
+    inline Bool operator==(const RenderTargetID& rhs) const
+    {
+        return _Value == rhs._Value;
+    }
+
+    inline Bool operator!=(const RenderTargetID& rhs) const
+    {
+        return _Value != rhs._Value;
+    }
     
 };
 
@@ -486,6 +561,7 @@ class RenderTargetSet
     
     friend class RenderContext;
     friend struct RenderCommandBuffer;
+    friend class SceneRenderer;
     
     RenderTargetResolvedSurface Target[8];
     RenderTargetResolvedSurface Depth;
@@ -496,10 +572,18 @@ public:
     
 };
 
+// Internal dynamic render target
+struct RenderTargetDynamicTarget
+{
+    RenderTargetID DynamicID;
+    WeakPtr<RenderTexture> Texture;
+    U64 CreationFrame;
+};
+
 // ============================================= PIPELINE STATES AND PASSES =============================================
 
 /// Bindable pipeline state. Create lots at initialisation and then bind each and render, this is the modern typical best approach to rendering. Internal use. Represents a state of the rasterizer.
-struct RenderPipelineState
+struct RenderPipelineState : RenderResource
 {
     
     struct
@@ -514,7 +598,7 @@ struct RenderPipelineState
     
     // SET BY INTERNAL USER
     
-    String ShaderProgram = "";
+    U64 EffectHash; // program hash
     
     RenderPrimitiveType PrimitiveType = RenderPrimitiveType::TRIANGLE_LIST; // primitive type
     
@@ -531,6 +615,8 @@ struct RenderPipelineState
     void Create(); // creates and sets hash.
     
     ~RenderPipelineState(); // destroy if needed
+
+    virtual void Release() override;
     
 };
 
@@ -541,6 +627,7 @@ struct RenderPass
     SDL_GPURenderPass* _Handle = nullptr;
     SDL_GPUCopyPass* _CopyHandle = nullptr;
     
+    RenderViewport ClearViewport;
     CString Name = nullptr;
     Colour ClearColour = Colour::Black;
     Float ClearDepth = 0.0f;
@@ -553,23 +640,24 @@ struct RenderPass
 
 };
 
-// ============================================= RENDER SHADERS =============================================
+// ============================================= LOW LEVEL RENDER SHADERS =============================================
 
 /// Internal shader, lightweight object.
-struct RenderShader
+struct RenderShader : RenderResource
 {
     
-    String Name; // no extension
     RenderContext* Context = nullptr;
     SDL_GPUShader* Handle = nullptr;
     
-    U8 ParameterSlots[PARAMETER_COUNT]; // parameter type => slot index
+    U8 ParameterSlots[(U32)ShaderParameterType::PARAMETER_COUNT]; // parameter type => slot index
     VertexAttributesBitset Attribs; // for vertex shaders
     
     inline RenderShader()
     {
-        memset(ParameterSlots, 0xFF, PARAMETER_COUNT);
+        memset(ParameterSlots, 0xFF, (U32)ShaderParameterType::PARAMETER_COUNT);
     }
+
+    virtual void Release() override;
     
     ~RenderShader();
     
@@ -686,7 +774,9 @@ class RenderInst
     
     DefaultRenderMeshType _DrawDefault = DefaultRenderMeshType::NONE;
     
-    String Program;
+    RenderEffectRef EffectRef; // ie shader program resolved
+
+    CString _DebugName = nullptr;
     
 public:
 
@@ -746,11 +836,12 @@ public:
     }
     
     /**
-     Sets the vertex and fragment shaders. In the future this will be made obsolete by having a system where shaders are referenced by enums and variants.
+     Sets the effect ref to use (ie the shader program). Get this from the render context.
      */
-    inline void SetShaderProgram(String name)
+    inline void SetEffectRef(RenderEffectRef ref)
     {
-        Program = std::move(name);
+        TTE_ASSERT(ref, "Effect reference is invalid.");
+        EffectRef = ref;
     }
     
     /**
@@ -782,6 +873,11 @@ public:
     {
         return _SortKey < rhs._SortKey;
     }
+
+    /**
+     * Set the debug name for this draw call for error checking.
+     */
+    void SetDebugName(RenderViewPass* pRenderPass, CString fmt, ...);
     
     friend struct RenderInstSorter;
     friend struct RenderViewPass;
@@ -819,7 +915,8 @@ namespace RenderUtility
     /**
      Creates a scaling and transforming matrix for the given bounding box so its the same
      */
-    inline Matrix4 CreateBoundingBoxModelMatrix(BoundingBox box) {
+    inline Matrix4 CreateBoundingBoxModelMatrix(BoundingBox box)
+    {
         // Calculate the center of the bounding box from _Min and _Max
         Float centerX = (box._Min.x + box._Max.x) / 2.0f;
         Float centerY = (box._Min.y + box._Max.y) / 2.0f;
@@ -857,78 +954,78 @@ namespace RenderUtility
     }
     
     // internal draw. null camera means a higher level camera will be searched for in the base parameters stack
-    void _DrawInternal(RenderContext& context, Camera* cam, Matrix4 world, Colour col, DefaultRenderMeshType primitive, RenderViewPass* pBaseParams);
+    void _DrawInternal(RenderContext& context, Camera* cam, Matrix4 world, Colour col, DefaultRenderMeshType primitive, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState);
     
     /**
      Draws a wire sphere with the given camera and model matrix specifying its world transformation. Vertices from -1 to 1. Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawWireSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_SPHERE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_SPHERE, pBaseParams, pRenderState);
     }
     
     /**
      Draws a wireframe unit capsule with the given camera and model matrix specifying its world transformation. Vertices are from -1 to 1! Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireCapsule(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawWireCapsule(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CAPSULE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CAPSULE, pBaseParams, pRenderState);
     }
     
     /**
      Draws a wireframe box with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawWireBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_BOX, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_BOX, pBaseParams, pRenderState);
     }
     
     /**
      Draws a filled coloured box with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawFilledBox(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_BOX, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_BOX, pBaseParams, pRenderState);
     }
     
     /**
      Draws a filled in sphere with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawFilledSphere(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_SPHERE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_SPHERE, pBaseParams, pRenderState);
     }
     
     /**
      Draws a filled in cone with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 in height and width. Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawFilledCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CONE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CONE, pBaseParams, pRenderState);
     }
     
     /**
      Draws a wireframe cone with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawWireCone(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CONE, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CONE, pBaseParams, pRenderState);
     }
     
     /**
      Draws a filled in cylinder with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 in height and width. Camera can be null. Pass in base parameters.
      */
-    inline void DrawFilledCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawFilledCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CYLINDER, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::FILLED_CYLINDER, pBaseParams, pRenderState);
     }
     
     /**
      Draws a wireframe cylinder with the given camera and model matrix specifying its world transformation.  Vertices from -1 to 1 Camera can be null. Pass in base parameters.
      */
-    inline void DrawWireCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams)
+    inline void DrawWireCylinder(RenderContext& context, Camera* cam, Matrix4 model, Colour col, RenderViewPass* pBaseParams, RenderStateBlob* pRenderState)
     {
-        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CYLINDER, pBaseParams);
+        _DrawInternal(context, cam, model, col, DefaultRenderMeshType::WIREFRAME_CYLINDER, pBaseParams, pRenderState);
     }
     
 }

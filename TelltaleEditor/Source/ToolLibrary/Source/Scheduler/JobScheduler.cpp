@@ -1,6 +1,7 @@
 #include <Scheduler/JobScheduler.hpp>
 #include <Meta/Meta.hpp> // for lua modules
 #include <Scripting/ScriptManager.hpp>
+#include <Resource/ResourceRegistry.hpp>
 
 JobScheduler *JobScheduler::Instance = 0;
 
@@ -44,7 +45,7 @@ void JobScheduler::_JobThreadFn(JobScheduler &scheduler, U32 threadIndex)
     MyLocalThread = &myself;
     
     InjectFullLuaAPI(myself.L, true);
-    ScriptManager::RegisterCollection(myself.L, scheduler._workerScriptCollection); // register anything eles
+    ScriptManager::RegisterCollection(myself.L, scheduler._workerScriptCollection); // register anything else
     
     SetThreadName(myself.ThreadName); // Set name in debugger for future use
     
@@ -154,9 +155,27 @@ JobThreadWaitResult JobScheduler::_WaitJobThread(Bool bWaitSemaphore, JobThread 
             std::lock_guard<std::mutex> _Guard(_jobsLock);
             if (_pendingJobs.size())
             {
-                //  Found a job! Move highest priority job. NOTE: const cast needed (c++ spec...)
-                myself.CurrentJob = std::move(const_cast<Job &>(_pendingJobs.top()));
-                _pendingJobs.pop();
+                Bool hasJob = false;
+                typename std::vector<Job>::iterator foundIt = {};
+                for(auto it = _pendingJobs.get_container().begin(); it != _pendingJobs.get_container().end(); it++)
+                {
+                    if(it->AffinityOverride == -1 || it->AffinityOverride == (I32)myself.ThreadNumber)
+                    {
+                        foundIt = it;
+                        hasJob = true;
+                        break;
+                    }
+                }
+                if(hasJob)
+                {
+                    //  Found a job! Move highest priority job. NOTE: const cast needed (c++ spec...)
+                    myself.CurrentJob = std::move(const_cast<Job &>(*foundIt));
+                    _pendingJobs.get_container().erase(foundIt);
+                }
+                else
+                {
+                    NeedsWait = true;
+                }
             }
             else
             {
@@ -362,7 +381,7 @@ Bool JobScheduler::_DequeueJob(U32 jobID, Job &dest)
     return true;
 }
 
-void JobScheduler::_MakeJob(U32 ID, Job &job, JobDescriptor &descriptor)
+void JobScheduler::_MakeJob(U32 ID, Job &job, JobDescriptor &descriptor, I32 affinityOverride)
 {
     TTE_ASSERT(descriptor.AsyncFunction != NULL, "Job descriptor async function is NULL!");
     job.Priority = descriptor.Priority;
@@ -370,9 +389,10 @@ void JobScheduler::_MakeJob(U32 ID, Job &job, JobDescriptor &descriptor)
     job.UserArgA = descriptor.UserArgA;
     job.UserArgB = descriptor.UserArgB;
     job.JobID = ID;
+    job.AffinityOverride = affinityOverride;
 }
 
-void JobScheduler::_RegisterJobs(U32 nJobs, JobDescriptor *pJobDescriptors, JobHandle *pOutHandles, U32 parent /*= (U32)-1*/)
+void JobScheduler::_RegisterJobs(U32 nJobs, JobDescriptor *pJobDescriptors, JobHandle *pOutHandles, U32 parent /*= (U32)-1*/, I32 affinityOverride)
 {
     Bool bHasParent = parent != (U32)-1;
     
@@ -393,7 +413,7 @@ void JobScheduler::_RegisterJobs(U32 nJobs, JobDescriptor *pJobDescriptors, JobH
             if (checkAliveIt == _jobCounters.end() || checkAliveIt->second.SchedulerReleased)
             {
                 _Guard.unlock();
-                return _RegisterJobs(nJobs, pJobDescriptors, pOutHandles); // Job not found (parent), so is finished! Run normally.
+                return _RegisterJobs(nJobs, pJobDescriptors, pOutHandles, -1, affinityOverride); // Job not found (parent), so is finished! Run normally.
             }
             
             // Add enqueued mapping
@@ -409,7 +429,7 @@ void JobScheduler::_RegisterJobs(U32 nJobs, JobDescriptor *pJobDescriptors, JobH
         for (U32 i = 0; i < nJobs; i++)
         {
             Job tmp{};
-            _MakeJob(newIDs + i, tmp, pJobDescriptors[i]);
+            _MakeJob(newIDs + i, tmp, pJobDescriptors[i], affinityOverride);
             it->second.Append(std::move(tmp));
         }
         
@@ -438,7 +458,7 @@ void JobScheduler::_RegisterJobs(U32 nJobs, JobDescriptor *pJobDescriptors, JobH
             for (U32 i = 0; i < nJobs; i++)
             {
                 Job localJob{}; // Store locally then push it to priority queue.
-                _MakeJob(newIDs + i, localJob, pJobDescriptors[i]);
+                _MakeJob(newIDs + i, localJob, pJobDescriptors[i], affinityOverride);
                 _pendingJobs.push(std::move(localJob));
             }
         }
@@ -486,11 +506,11 @@ Bool JobScheduler::PostAll(JobDescriptor *pDescriptors, U32 Num, JobHandle *pOut
     return true;
 }
 
-JobHandle JobScheduler::Post(JobDescriptor descriptor)
+JobHandle JobScheduler::Post(JobDescriptor descriptor, I32 affinityOverride)
 {
     JobHandle handle{};
     // Call register job to do all the work! Ignore return, will always be true.
-    _RegisterJobs(1, &descriptor, &handle);
+    _RegisterJobs(1, &descriptor, &handle, -1, affinityOverride);
     return handle;
 }
 

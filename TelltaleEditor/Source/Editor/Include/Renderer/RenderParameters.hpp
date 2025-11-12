@@ -3,7 +3,15 @@
 #include <Renderer/Camera.hpp>
 #include <Core/BitSet.hpp>
 
-// DEFAULT BINDABLE TEXTURES AND BUFFERS
+enum class RenderDeviceType
+{
+    UNKNOWN,
+    D3D12,
+    METAL,
+    VULKAN,
+};
+
+// ============================================= DEFAULT TEX/MESH =============================================
 
 enum class DefaultRenderTextureType
 {
@@ -27,6 +35,45 @@ enum class DefaultRenderMeshType
     WIREFRAME_CYLINDER,
 };
 
+// ============================================= RENDER VERTEX ATTRIBS =============================================
+
+enum class RenderAttributeType : U32
+{
+    POSITION = 0,
+    NORMAL = 1,
+    BINORMAL = 2,
+    TANGENT = 3,
+    BLEND_WEIGHT = 4,
+    BLEND_INDEX = 5,
+    COLOUR = 6,
+    UV_DIFFUSE = 7,
+    UV_LIGHTMAP = 8,
+    UNKNOWN,
+    COUNT = UNKNOWN,
+};
+
+static struct AttribInfo
+{
+    RenderAttributeType Type;
+    CString ConstantName;
+    CString FXName;
+} constexpr AttribInfoMap[]
+{
+    {RenderAttributeType::POSITION, "kCommonMeshAttributePosition", "AttribPosition"},        // 0
+    {RenderAttributeType::NORMAL, "kCommonMeshAttributeNormal", "AttribNormal"},            // 1
+    {RenderAttributeType::BINORMAL, "kCommonMeshAttributeBinormal", "AttribBinormal"},        // 2
+    {RenderAttributeType::TANGENT, "kCommonMeshAttributeTangent", "AttribTangent"},          // 3
+    {RenderAttributeType::BLEND_WEIGHT, "kCommonMeshAttributeBlendWeight", "AttribBlendWeight"}, // 4
+    {RenderAttributeType::BLEND_INDEX, "kCommonMeshAttributeBlendIndex", "AttribBlendIndex"},   // 5
+    {RenderAttributeType::COLOUR, "kCommonMeshAttributeColour", "AttribColour"},            // 6
+    {RenderAttributeType::UV_DIFFUSE, "kCommonMeshAttributeUVDiffuse", "AttribUVDiffuse"},     // 7
+    {RenderAttributeType::UV_LIGHTMAP, "kCommonMeshAttributeUVLightMap", "AttribUVLightMap"},   // 8
+    {RenderAttributeType::UNKNOWN, "kCommonMeshAttributeUnknown"},          // ~
+};
+
+using VertexAttributesBitset = BitSet<RenderAttributeType, (U32)RenderAttributeType::COUNT, RenderAttributeType::POSITION>;
+
+// ============================================= RENDER PARAMETERS =============================================
 
 // Render parameter buffer types. These MUST match, with align, shader structs. STD140 (16 byte align) should be followed
 
@@ -80,7 +127,7 @@ struct ShaderParameterTypeInfo
     
 };
 
-enum ShaderParameterType : U32
+enum class ShaderParameterType : U32
 {
     
     // UNIFORMS
@@ -137,6 +184,7 @@ enum ShaderParameterType : U32
     PARAMETER_LAST_GENERIC = 13,
     
     PARAMETER_COUNT = 14, // increase by one each time another added. AND UPDATE NAMES BELOW!
+    COUNT = PARAMETER_COUNT,
 };
 
 // Info mappings by type enum index
@@ -158,7 +206,7 @@ constexpr ShaderParameterTypeInfo ShaderParametersInfo[] =
     ShaderParameterTypeInfo("Generic0", 0, ShaderParameterTypeClass::GENERIC_BUFFER),
 };
 
-using ShaderParameterTypes = BitSet<ShaderParameterType, PARAMETER_COUNT, PARAMETER_OBJECT>;
+using ShaderParameterTypes = BitSet<ShaderParameterType, (U32)ShaderParameterType::PARAMETER_COUNT, ShaderParameterType::PARAMETER_FIRST_UNIFORM>;
 
 // BIND STRUCTS. SEE BELOW.
 

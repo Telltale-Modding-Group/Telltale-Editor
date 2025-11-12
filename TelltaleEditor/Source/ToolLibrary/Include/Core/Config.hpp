@@ -16,26 +16,15 @@
 // ===================================================================        LOGGING
 // ===================================================================
 
-#ifdef DEBUG
+#ifndef TTE_DISABLE_LOGGING
 
-// Helper logging functions, if VA_ARGS is empty overloading is used to not do anything. In the future make this more sophisticated, log to UI and files.
 inline void LogConsole() {}
 
-inline void LogConsole(CString Msg, ...)
-{
-    static std::mutex _Guard{}; // used for \n not coming up because of interleaved calls multithreaded
-    _Guard.lock();
-    va_list va{};
-    va_start(va, Msg);
-    vprintf(Msg, va);
-    va_end(va);
-    
-    // Check if we need a new line
-    size_t len = strlen(Msg);
-    if(len && Msg[len-1] != '\n')
-        printf("\n");
-    _Guard.unlock();
-}
+void LogConsole(CString Msg, ...); // Defined in Context.cpp
+
+void ToggleLoggerCache(Bool bOnOff); // Switch on logging caching. You can call dump log after this and everthing between these calls will be put into the text file.
+
+void DumpLoggerCache(CString file); // Dumps all cached log. Pass in the absolute path
 
 // In DEBUG, simply log any messages simply to the console. Adds a newline character. This is a workaround so empty VA_ARGS works ok. If changing
 // printf, change assert to.
@@ -43,7 +32,7 @@ inline void LogConsole(CString Msg, ...)
 
 #else
 
-// In RELEASE, no logging.
+// No logging.
 #define TTE_LOG(_, ...)
 
 #endif
@@ -59,6 +48,15 @@ if (!(EXPR))                        \
 {                                   \
 TTE_LOG(__VA_ARGS__);               \
 DebugBreakpoint();                  \
+}
+
+// First argument is expression to test, second is format string (optional) then optional format string arguments
+#define TTE_ASSERT_AND_RETURN(EXPR, returnValue, ...)       \
+if (!(EXPR))                        \
+{                                   \
+TTE_LOG(__VA_ARGS__);               \
+DebugBreakpoint();                  \
+return returnValue;                 \
 }
 
 #else
@@ -85,6 +83,8 @@ TTE_LOG(__VA_ARGS__); \
 #define POP_COUNT(x) __popcnt(x)
 #define CLZ_BITS(x)  _tzcnt_u32(x)
 
+#define PLATFORM_WINDOWS
+
 #elif defined(MACOS)
 
 // MacOS Platform Specifics
@@ -94,6 +94,9 @@ TTE_LOG(__VA_ARGS__); \
 #define POP_COUNT(x) __builtin_popcount(x)
 #define CLZ_BITS(x) __builtin_ctz(x)
 
+
+#define PLATFORM_MAC
+
 #elif defined(LINUX)
 
 // Linux Platform Specifics
@@ -102,6 +105,9 @@ TTE_LOG(__VA_ARGS__); \
 
 #define POP_COUNT(x) __builtin_popcount(x)
 #define CLZ_BITS(x) __builtin_ctz(x)
+
+
+#define PLATFORM_LINUX
 
 #else
 
@@ -113,6 +119,11 @@ TTE_LOG(__VA_ARGS__); \
  * @brief Sets a breakpoint
  */
 void DebugBreakpoint();
+
+/**
+ * @brief Shows a message box and waits.
+ */
+void PlatformMessageBoxAndWait(const String& title, const String& message);
 
 // ===================================================================         HANDLEABLE (DEFINED IN RESOURCE REGISTRY)
 // ===================================================================         Defined here as needed everywhere!
@@ -146,8 +157,10 @@ public:
     
 };
 
+enum class CommonClass;
+
 // All common classes which are normalised into from telltale types (eg meshes, textures, dialogs) inherit from this to be used in Handle.
-class Handleable : public std::enable_shared_from_this<Handleable>
+class Handleable : public std::enable_shared_from_this<Handleable>, public ReferenceObjectInterface
 {
     
     mutable std::atomic<U64> _LockTimeStamp;
@@ -184,6 +197,8 @@ public:
     }
     
     virtual void FinaliseNormalisationAsync() = 0;
+
+    virtual CommonClass GetCommonClassType() = 0;
     
     virtual Ptr<Handleable> Clone() const = 0;
     
@@ -237,9 +252,6 @@ public:
     
 };
 
-// Function proto for common instance allocator
-using CommonInstanceAllocator = Ptr<Handleable> (Ptr<ResourceRegistry> registry);
-
 // ===================================================================         FILE API
 // ===================================================================
 
@@ -274,13 +286,16 @@ void FreeAnonymousMemory(U8*, U64); // free memory associated with allocate anon
 
 inline void NullDeleter(void*) {} // Useful in shared pointer, in which nothing happens on the final deletion.
 
+// ===================================================================         GLOBAL TELLTALE EDITOR API STRUCTS
+// ===================================================================
+
 // Lots of classes which can only exist between game switches use this. Such that if they exist outside, we catch the error.
-struct GameDependentObject
+struct SnapshotDependentObject
 {
     
     const CString ObjName;
     
-    inline GameDependentObject(CString obj) : ObjName(obj) {}
+    inline SnapshotDependentObject(CString obj) : ObjName(obj) {}
     
 };
 
@@ -308,6 +323,8 @@ enum MemoryTag
     MEMORY_TAG_OBJECT_DATA, // ObjOwner::ObjData<T> see Scene header in Editor
     MEMORY_TAG_CALLBACK, // Method impl
     MEMORY_TAG_SCENE_DATA,
+    MEMORY_TAG_EDITOR_UI,
+    MEMORY_TAG_REFERENCE_OBJECT,
 };
 
 // each scriptable object in the library (eg ttarchive, ttarchive2, etc) has its own ID. See scriptmanager, GetScriptObjectTag and PushScriptOwned.
@@ -316,4 +333,95 @@ enum ObjectTag : U32
     TTARCHIVE1 = 1, // TTArchive instance, see TTArchive.hpp
     TTARCHIVE2 = 2, // TTArchive2 instance, see TTArchive2.hpp
     HANDLEABLE = 3, // Handleable common instance. eg Animation, Chore or MeshInstance.
+};
+
+// Used to identify a specific game release snapshot of associated game data for grouping formats
+struct GameSnapshot
+{
+    String ID; // game ID, see wiki.
+    String Platform;// game platform, see wiki.
+    String Vendor; // vendor. some games have mulitple differing releases. leave blank unless instructed.
+};
+
+// ===================================================================         COMMON CLASS INFO (ALL ARE IN EDITOR SUB-PROJECT BUT HERE FOR API)
+// ===================================================================
+
+template<typename T> inline Ptr<Handleable> AllocateCommon(Ptr<ResourceRegistry> registry)
+{
+    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
+    Ptr<Handleable> handle =  TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, registry);
+    return handle;
+}
+
+template<> inline Ptr<Handleable> AllocateCommon<Placeholder>(Ptr<ResourceRegistry>)
+{
+    return {};
+}
+
+class ResourceRegistry;
+class LuaFunctionCollection;
+
+typedef Ptr<Handleable> CommonClassAllocator(Ptr<ResourceRegistry> registry);
+
+struct CommonClassInfo
+{
+
+    CommonClass Class;
+    CString ConstantName = "";
+    CString ClassName = ""; // list of ; separated type names
+    CString ClassHandleName = ""; // list of handle type names
+    CString Extension = ""; // list of extensions
+    CommonClassAllocator* ClassAllocator = nullptr; // C++ class handleable alloc
+
+    // Create instance
+    inline Ptr<Handleable> Make(Ptr<ResourceRegistry> registry) const
+    {
+        return ClassAllocator ? ClassAllocator(std::move(registry)) : nullptr;
+    }
+
+    // FUNCTIONALITY IS GENERALLY PRIVATE BUT ACCESSIBLE AS IN A SEPARATE PROJECT. INTERFACE WITH TOOL CONTEXT / TELLTALE EDITOR CLASSES!
+
+    static CommonClassInfo GetCommonClassInfo(CommonClass cls);
+
+    static CommonClassInfo GetCommonClassInfoByExtension(const String& extension);
+
+    static void RegisterCommonClass(CommonClassInfo info);
+
+    static void RegisterConstants(LuaFunctionCollection& Col);
+
+    static void Shutdown();
+
+    template<typename T>
+    inline static CommonClassInfo Make(CommonClass clz, CString kName)
+    {
+        CommonClassInfo info = CommonClassInfo{ clz, kName, T::Class, T::ClassHandle, T::Extension, &AllocateCommon<T> };
+        RegisterCommonClass(info);
+        return info;
+    }
+
+};
+
+// All common classes. Registered in editor project
+enum class CommonClass
+{
+    NONE,
+    MESH,
+    TEXTURE,
+    SCENE,
+    INPUT_MAPPER,
+    ANIMATION,
+    SKELETON,
+    PROPERTY_SET,
+    /* UPCOMING:
+    TRANSITION_REMAPPER,
+    CHORE,
+    DIALOG,
+    PARTICLE,
+    SPRITE,
+    FONT,
+    LANGUAGE_DATABASE,
+    STYLE_GUIDE,
+    RULES,
+    WALK_BOXES,
+    */
 };

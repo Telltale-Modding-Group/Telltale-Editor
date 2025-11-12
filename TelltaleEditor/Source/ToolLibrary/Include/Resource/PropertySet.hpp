@@ -58,21 +58,34 @@ class PropertySet
 {
 public:
     
+    static constexpr CString ClassHandle = "Handle<PropertySet>";
+    
+    struct KeyCallbackTracked
+    {
+        Ptr<FunctionBase> MyCallback;
+        U32 TrackingRefID = 0; // for removing all callbacks with this ID etc.
+    };
+    
     struct KeyCallbackComparator
     {
-        inline Bool operator()(const Ptr<FunctionBase>& lhs, const Ptr<FunctionBase>& rhs) const
+        
+        inline Bool operator()(const KeyCallbackTracked& lhs, const KeyCallbackTracked& rhs) const
         {
-            return lhs->Tag < rhs->Tag;
+            return lhs.MyCallback->Tag < rhs.MyCallback->Tag;
         }
+        
     };
     
     struct InternalData
     {
-        std::set<Ptr<FunctionBase>, KeyCallbackComparator> KeyCallbacks;
+        
+        std::set<KeyCallbackTracked, KeyCallbackComparator> KeyCallbacks;
         std::vector<HandlePropertySet> Children;
+        
+        void Move(InternalData& dest);
+        void Clone(InternalData& dest) const; // clones a copy into the dest.
+        
     };
-    
-    static constexpr CString ClassHandle = "Handle<PropertySet>";
     
     enum Flag
     {
@@ -98,11 +111,17 @@ public:
      Sets a property in the property set prop. Use the intrinsic template version to skip having to create the instance. Last argument is the set mode. See the enum above.
      */
     static void Set(Meta::ClassInstance prop, Symbol key, Meta::ClassInstance value,  Ptr<ResourceRegistry> pRegistry, SetPropertyMode mode = SetPropertyMode::COPY);
+    
+    /**
+     Clears all the callbacks for the given property set. Give the optional tracking reference to clear IDs matching that, or 0 to clear all.
+     */
+    static void ClearCallbacks(Meta::ClassInstance prop, U32 withTrackingRef = 0);
 
     /**
      Adds a callback which will be called with the property given changes.  The property does not have to exist yet.
+     Optional tracking reference to delete all callbacks with that reference. Tracking reference 0 is untrackable (ie clear callbacks with 0 will clear all, not just ones with the ref = 0)
      */
-    static void AddCallback(Meta::ClassInstance prop, Symbol property, Ptr<FunctionBase> pCallback);
+    static void AddCallback(Meta::ClassInstance prop, Symbol property, Ptr<FunctionBase> pCallback, U32 trackingRef = 0);
     
     /**
      Returns if the given property key exists in the property set. Optionally state wether to search all parent properties too.
@@ -168,6 +187,11 @@ public:
      Returns the number of keys in the property set.
      */
     static U32 GetNumKeys(Meta::ClassInstance prop, Bool bSearchParents, Ptr<ResourceRegistry> pRegistry);
+
+    /**
+     * Gets the number of parents in the given property set. Does not search any parents
+     */
+    static U32 GetNumParents(Meta::ClassInstance prop);
     
     /**
      Returns if the given property is local to the property set and not from a parent property set. Change this by making it local or setting this property.
@@ -212,7 +236,7 @@ public:
     static HandlePropertySet GetPropertySetKeyIsIntroducedFrom(Meta::ClassInstance prop, Symbol keyName , Ptr<ResourceRegistry> reg);
     
     /**
-     Returns a handle to the property set which the key is introduced from, ie highest parent containing it.
+     Returns a handle to the property set which the key is retreived from, ie the lowest in the heirarchy with an overriding value (myself, them above etc)
      */
     static HandlePropertySet GetPropertySetValueIsRetrievedFrom(Meta::ClassInstance prop, Symbol keyName , Ptr<ResourceRegistry> reg, Bool bCheckMyself);
     

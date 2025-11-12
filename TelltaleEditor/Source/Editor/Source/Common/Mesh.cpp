@@ -5,9 +5,38 @@
 
 void SceneModule<SceneModuleType::RENDERABLE>::OnSetupAgent(SceneAgent* pAgentGettingCreated)
 {
-    // no need to check parent prop. different from actual engine, module is already initiantiated
+    Meta::ClassInstance mesh = PropertySet::Get(pAgentGettingCreated->OwningScene->GetAgentProps(pAgentGettingCreated->NameSymbol), kRenderablePropKeyD3DMeshSymbol, true, pAgentGettingCreated->OwningScene->GetRegistry());
+    // check mesh list here before possible return
+    if(mesh)
+    {
+        Handle<Mesh::MeshInstance> hMesh{};
+        Meta::ExtractCoercableInstance(hMesh, mesh);
+        if(hMesh.GetObject().GetCRC64())
+        {
+            for(const auto& mesh: Renderable.MeshList)
+            {
+                if(Symbol(mesh->Name) == hMesh.GetObject())
+                    return; // OK already loaded
+            }
+            Ptr<Mesh::MeshInstance> pMesh = hMesh.GetObject(pAgentGettingCreated->OwningScene->GetRegistry(), true);
+            if (pMesh)
+            {
+                Renderable.MeshList.push_back(pMesh);
+            }
+        }
+    }
+    else
+    {
+        TTE_LOG("WARNING: Agent %s is marked renderable but does not specify any meshes (TODO Check MeshList for future games)", pAgentGettingCreated->Name.c_str()); // + add capability for this
+    }
     pAgentGettingCreated->AgentNode->AddObjDataRef("", Renderable);
 }
+
+void SceneModule<SceneModuleType::RENDERABLE>::OnModuleRemove(SceneAgent* pAttachedAgent)
+{
+    pAttachedAgent->AgentNode->RemoveObjData<decltype(Renderable)>("");
+}
+
 
 // NORMALISATION AND SPECIALISATION OF MESH INTO COMMON FORMAT AND BACK
 class MeshAPI
@@ -275,20 +304,27 @@ public:
         
         U32 batchIndex = man.ToBool(2) ? 1 : 0;
         Meta::ClassInstance bb = Meta::AcquireScriptInstance(man, 3);
-        TTE_ASSERT(bb, "Bounding box meta instance was not found or was invalid");
-        Meta::ClassInstance sph{};
-        if(man.GetTop() == 4)
+        if(!bb)
         {
-            sph = Meta::AcquireScriptInstance(man, 4);
-            TTE_ASSERT(sph, "Bounding sphere meta instance invalid or was not found");
+            // no boundings
+            t->LODs.back().Batches[batchIndex].back().BatchFlags.Add(Mesh::BATCH_BOUNDING_DIRTY);
         }
-        
-        BoundingBox box{};
-        Sphere bsph{};
-        _GetBoundings(man, bb, sph, box, bsph, man.GetTop() == 3);
-        
-        t->LODs.back().Batches[batchIndex].back().BBox = box;
-        t->LODs.back().Batches[batchIndex].back().BSphere = bsph;
+        else
+        {
+            Meta::ClassInstance sph{};
+            if (man.GetTop() == 4)
+            {
+                sph = Meta::AcquireScriptInstance(man, 4);
+                TTE_ASSERT(sph, "Bounding sphere meta instance invalid or was not found");
+            }
+
+            BoundingBox box{};
+            Sphere bsph{};
+            _GetBoundings(man, bb, sph, box, bsph, man.GetTop() == 3);
+
+            t->LODs.back().Batches[batchIndex].back().BBox = box;
+            t->LODs.back().Batches[batchIndex].back().BSphere = bsph;
+        }
         
         return 0;
     }
@@ -306,7 +342,14 @@ public:
         U32 maxVert = (U32)man.ToInteger(4);
         U32 startInd = (U32)man.ToInteger(5);
         U32 numPrim = (U32)man.ToInteger(6);
-        U32 numInd = (U32)man.ToInteger(7);
+        U32 numInd = 0;
+        if(man.Type(7) != LuaType::NUMBER)
+        {
+            // some games dont have this
+            numInd = maxVert > minVert ? (maxVert - minVert) : 0;
+        }
+        else
+            numInd = (U32)man.ToInteger(7);
         I32 baseInd = man.ToInteger(8);
         U32 matInd = (U32)man.ToInteger(9);
         
@@ -497,17 +540,43 @@ void Mesh::AddMesh(Ptr<ResourceRegistry>& registry, Handle<Mesh::MeshInstance> h
     MeshList.push_back(handle.GetObject(registry, true));
 }
 
+void Mesh::MeshInstance::_GenerateBoundingBox(const Mesh::LODInstance& lod, Mesh::MeshBatch& batch)
+{
+    const auto& vertexState = VertexStates[lod.VertexStateIndex].Default;
+    for(U32 i = 0; i < vertexState.NumVertexAttribs; i++)
+    {
+        if(vertexState.Attribs[i].Attrib == RenderAttributeType::POSITION && vertexState.Attribs[i].Format == RenderBufferAttributeFormat::F32x3)
+        {
+            Float* data = (Float*)VertexStates[lod.VertexStateIndex].VertexBuffers[vertexState.Attribs[i].VertexBufferIndex].BufferData.get();
+            if(data)
+            {
+                BoundingBox bb{};
+                U32 numVerts = (U32)((VertexStates[lod.VertexStateIndex].VertexBuffers[vertexState.Attribs[i].VertexBufferIndex].BufferSize) / 12);
+                for(U32 vert = 0; vert < numVerts; vert++)
+                {
+                    bb.AddPoint({data[vert * 3 + 0], data[vert * 3 + 1] , data[vert * 3 + 2] });
+                }
+                batch.BBox = bb;
+            }
+        }
+    }
+}
+
 // finish async normalisation, doing any stuff which wasnt set from lua
 void Mesh::MeshInstance::FinaliseNormalisationAsync()
 {
     // Iterate over all LODs
     for (LODInstance& lod : LODs)
     {
-        if(lod.BBox.Volume() == 0.0f)
+        if (lod.BBox.Volume() <= 1e-9)
         {
             BoundingBox b{};
             for (MeshBatch& batch : lod.Batches[RenderViewType::DEFAULT]) // use default view and not shadow
             {
+                if(batch.BBox.Volume() <= 1e-9)
+                {
+                    _GenerateBoundingBox(lod, batch);
+                }
                 b = b.Merge(batch.BBox);
             }
             lod.BBox = b;
@@ -518,7 +587,7 @@ void Mesh::MeshInstance::FinaliseNormalisationAsync()
             for (MeshBatch& batch : lod.Batches[RenderViewType::DEFAULT]) // use default view and not shadow
             {
                 // If the batch has an empty bounding box, inherit from LOD
-                if (batch.BBox.Volume() == 0.0f)
+                if (batch.BBox.Volume() <= 1e-9)
                 {
                     batch.BBox = lod.BBox;
                     batch.BSphere = lod.BSphere;
@@ -528,7 +597,7 @@ void Mesh::MeshInstance::FinaliseNormalisationAsync()
     }
     
     // If the MeshInstance has no bounding box, merge from LODs
-    if (BBox.Volume() == 0.0f && !LODs.empty())
+    if (BBox.Volume() <= 1e-9 && !LODs.empty())
     {
         for (const LODInstance& lod : LODs)
         {

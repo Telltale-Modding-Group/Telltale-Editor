@@ -51,7 +51,7 @@ static void _ColouredMesh(RenderContext& context, DefaultRenderMesh& mesh, Defau
 {
     mesh.Type = type;
     mesh.PipelineDesc.PrimitiveType = bLines ? RenderPrimitiveType::LINE_LIST : RenderPrimitiveType::TRIANGLE_LIST;
-    mesh.PipelineDesc.ShaderProgram = "Flat";
+    mesh.PipelineDesc.EffectHash = context.GetEffectRef(RenderEffect::FLAT, {}).EffectHash;
     mesh.PipelineDesc.VertexState.BufferPitches[0] = sizeof(ColouredVertex);
     mesh.PipelineDesc.VertexState.NumVertexBuffers = 1;
     mesh.PipelineDesc.VertexState.NumVertexAttribs = 1;
@@ -93,7 +93,8 @@ void RegisterDefaultMeshes(RenderContext& context, RenderCommandBuffer* upload, 
     
     {
         mesh.Type = DefaultRenderMeshType::QUAD;
-        mesh.PipelineDesc.ShaderProgram = "Simple"; // sampled vertex shader (ie xyz and uv with camera simple)
+        mesh.PipelineDesc.PrimitiveType = RenderPrimitiveType::TRIANGLE_LIST;
+        mesh.PipelineDesc.EffectHash = context.GetEffectRef(RenderEffect::MESH, {}).EffectHash;
         mesh.PipelineDesc.VertexState.BufferPitches[0] = sizeof(SampledVertex);
         mesh.PipelineDesc.VertexState.NumVertexBuffers = 1;
         mesh.PipelineDesc.VertexState.NumVertexAttribs = 2;

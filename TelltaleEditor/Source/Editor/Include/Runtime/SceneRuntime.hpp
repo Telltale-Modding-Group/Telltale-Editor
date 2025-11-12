@@ -11,7 +11,7 @@
 enum class SceneMessageType : U32
 {
     START_INTERNAL, // INTERNAL! do not post this externally. internally starts the scene in the next frame.
-    OPEN_SCENE, // Open a file. Takes in TWO STRINGs filename and entry point (lua code to run). Send to runtime (scene and agent in scenemessage leave empty).
+    OPEN_SCENE, // Open a file. Takes in TWO std  STRINGs filename and entry point (lua code to run). Send to runtime (scene and agent in scenemessage leave empty).
     ADD_SCENE, // Add scene file. Args are instance of AddSceneInfo
     STOP, // stops the scene rendering and removes it from the stack.
 };
@@ -49,7 +49,7 @@ enum class SceneRuntimeFlag
 
 // This class manages running a group of scenes. This includes rendering, audio and scripts.
 // This attaches to a render context but expects it be alive the whole time this is object is, so make sure it is.
-class SceneRuntime : public GameDependentObject, public RenderLayer
+class SceneRuntime : public SnapshotDependentObject, public RenderLayer
 {
 public:
     
@@ -89,8 +89,6 @@ protected:
     
     void AsyncProcessGlobalMessage(SceneMessage message);
     
-    Bool IsKeyDown(InputCode key);
-    
 private:
     
     friend class Scene;
@@ -102,8 +100,6 @@ private:
     std::vector<Ptr<Scene>> _AsyncScenes; // populator job access ONLY (ensure one thread access at a time). list of active rendering scenes. ACTIVE SCENES.
     std::mutex _MessagesLock; // for below
     std::priority_queue<SceneMessage> _AsyncMessages; // messages stack
-    
-    BitSetRanged<InputCode, InputCode::COMMON_MAPPINGS_START, InputCode::COMMON_MAPPINGS_END> _KeysDown;
     
     Ptr<ResourceRegistry> _AttachedRegistry; // attached resource registry
 

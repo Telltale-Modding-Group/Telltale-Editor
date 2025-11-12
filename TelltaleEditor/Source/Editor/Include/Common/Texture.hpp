@@ -37,13 +37,14 @@ constexpr SDL_FormatMappings[]
     {RenderSurfaceFormat::UNKNOWN, SDL_GPU_TEXTUREFORMAT_INVALID}, // do not add below this, add above
 };
 
-TextureFormatInfo GetSDLFormatInfo(RenderSurfaceFormat format);
+// Or use versions inside render context
+const TextureFormatInfo& GetSDLFormatInfo(RenderSurfaceFormat format);
 RenderSurfaceFormat FromSDLFormat(SDL_GPUTextureFormat format);
 
 // ==================================================
 
 /// A texture.
-class RenderTexture : public HandleableRegistered<RenderTexture>
+class RenderTexture : public HandleableRegistered<RenderTexture>, public RenderResource
 {
 private:
     
@@ -52,6 +53,7 @@ private:
     friend class TextureNormalisationTask;
     friend class RenderFrameUpdateList;
     friend class TextureAPI;
+    friend class SceneView;
     
     struct Image
     {
@@ -94,12 +96,13 @@ private:
     
     std::vector<Image> _Images; // sub images
     
-    void _Release();
-    
 public:
+
+    virtual void Release() override;
     
     static constexpr CString ClassHandle = "Handle<D3DTexture>;Handle<T3Texture>";
     static constexpr CString Class = "D3DTexture;T3Texture";
+    static constexpr CString Extension = "d3dtx";
     
     inline RenderTexture(Ptr<ResourceRegistry> reg) : HandleableRegistered<RenderTexture>(std::move(reg)) {}
     
@@ -127,6 +130,11 @@ public:
     static void RegisterScriptAPI(LuaFunctionCollection& Col); // registry normalisation api
     
     virtual void FinaliseNormalisationAsync() override;
+
+    inline virtual CommonClass GetCommonClassType() override
+    {
+        return CommonClass::TEXTURE;
+    }
     
     inline U32 GetImageIndex(U32 mip, U32 slice, U32 face)
     {
@@ -151,6 +159,16 @@ public:
         outHeight = _Height;
         outDepth = _Depth;
         outArraySize = _ArraySize;
+    }
+
+    inline String GetName() const
+    {
+        return _Name;
+    }
+    
+    inline RenderSurfaceFormat GetFormat() const
+    {
+        return _Format;
     }
     
 };

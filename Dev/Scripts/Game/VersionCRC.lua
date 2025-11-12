@@ -34,6 +34,8 @@ function VersionCRC_V0_PointerFix(classTable)
 					hash = MetaHashString(hash, "class AnimationValueInterfaceBase *")
 				elseif member.Class.Name == "class AnimatedValueInterface<class Quaternion>" then
 					hash = MetaHashString(hash, "class AnimatedValueInterface<class Quaternion> *")
+				elseif member.Name == "Baseclass_PropertySet" then
+					hash = MetaHashString(hash, "class PropertySet *")
 				else
 					hash = MetaHashString(hash, member.Class.Name)
 				end

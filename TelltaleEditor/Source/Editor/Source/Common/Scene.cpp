@@ -2,6 +2,9 @@
 #include <Renderer/RenderContext.hpp>
 #include <Core/Callbacks.hpp>
 #include <Symbols.hpp>
+#include <TelltaleEditor.hpp>
+
+#include <cfloat>
 
 class SceneAPI
 {
@@ -31,10 +34,10 @@ public:
         return 0;
     }
     
-    // state,agentname, props (will be copied)
+    // state,agentname, props (will be copied), initial transform
     static U32 luaScenePushAgent(LuaManager& man)
     {
-        TTE_ASSERT(man.GetTop() == 3, "Incorrect number of arguments");
+        TTE_ASSERT(man.GetTop() >= 3, "Incorrect number of arguments");
         Scene* pScene = Task(man);
         String agent = man.ToString(2);
         if(pScene->ExistsAgent(agent))
@@ -42,8 +45,21 @@ public:
             TTE_LOG("WARNING: When normalising scene %s the agent %s already exists! Ignoring...", pScene->Name.c_str(), agent.c_str());
             return 0;
         }
-        Meta::ClassInstance props = Meta::CopyInstance(Meta::AcquireScriptInstance(man, 3));
-        pScene->AddAgent(agent, {}, std::move(props));
+        Meta::ClassInstance props = Meta::AcquireScriptInstance(man, 3);
+        Transform trans{};
+        if (man.GetTop() >= 4)
+        {   
+            if(man.Type(4) == LuaType::TABLE)
+            {
+                Meta::ExtractCoercableLuaValue(trans, man, 4);
+            }
+            else
+            {
+                Meta::ClassInstance inst = Meta::AcquireScriptInstance(man, 4);
+                Meta::ExtractCoercableInstance(trans, inst);
+            }
+        }
+        pScene->AddAgent(agent, {}, std::move(props), trans); // modules setup at runtime
         return 0;
     }
     
@@ -53,7 +69,7 @@ void Scene::RegisterScriptAPI(LuaFunctionCollection &Col)
 {
     PUSH_FUNC(Col, "CommonSceneSetName", &SceneAPI::luaSceneSetName, "nil CommonSceneSetName(state, name)", "Sets the name of the common scene");
     PUSH_FUNC(Col, "CommonSceneSetHidden", &SceneAPI::luaSceneSetHidden,"nil CommonSceneSetHidden(state, bHidden)", "Sets if the common scene is initially hidden");
-    PUSH_FUNC(Col, "CommonScenePushAgent", &SceneAPI::luaScenePushAgent, "nil CommonScenePushAgent(state, name, props)", "Pushes an agent to the common scene");
+    PUSH_FUNC(Col, "CommonScenePushAgent", &SceneAPI::luaScenePushAgent, "nil CommonScenePushAgent(state, name, props, --[[optional]] initialTransform)", "Pushes an agent to the common scene");
 }
 
 void Scene::FinaliseNormalisationAsync()
@@ -68,6 +84,7 @@ void Scene::_SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>:
     // create node
     Ptr<Node> pNode;
     pAgent->AgentNode = pNode = TTE_NEW_PTR(Node, MEMORY_TAG_OBJECT_DATA);
+    pNode->LocalTransform = pNode->GlobalTransform = pAgent->InitialTransform;
     pNode->AgentName = pAgent->Name;
     pNode->Name = pAgent->Name;
     pNode->AttachedScene = this;
@@ -75,14 +92,23 @@ void Scene::_SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>:
     
     // SETUP RUNTIME PROPERTIES
     
-    if(!PropertySet::ExistsKey(pAgent->Props, kRuntimeVisibilityKey, true, GetRegistry()))
+    Meta::ClassInstance runtimeProps = GetAgentRuntimeProps(pAgent->Name);
+    if(!PropertySet::ExistsKey(runtimeProps, kRuntimeVisibilityKey, true, GetRegistry()))
     {
-        PropertySet::Set<Bool>(pAgent->Props, kRuntimeVisibilityKey, true, "bool", GetRegistry());
+        PropertySet::Set<Bool>(runtimeProps, kRuntimeVisibilityKey, true, "bool", GetRegistry());
     }
+
+    // DOUBLE CHECK ALL MODULES ARE CHECKED
+    SceneModuleTypes modules{};
+    Ptr<ResourceRegistry> reg = GetRegistry();
+    if (reg)
+        SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_CollectAgentModules{ modules, *pAgent.get(), reg });
+    for(auto it = modules.begin(); it != modules.end(); it++)
+        AddAgentModule(pAgent->Name, *it);
     
     // ADD CALLBACKS
     
-    PropertySet::AddCallback(pAgent->Props, kRuntimeVisibilityKey, ALLOCATE_METHOD_CALLBACK_1(pAgent, &SceneAgent::SetVisible, SceneAgent, Bool));
+    PropertySet::AddCallback(runtimeProps, kRuntimeVisibilityKey, ALLOCATE_METHOD_CALLBACK_1(pAgent, SetVisible, SceneAgent, Bool));
     
     // 1 (Sync1) prepare non dependent mesh agents
     
@@ -114,6 +140,50 @@ void Scene::_SetupAgentsModules()
     {
         _SetupAgent(agent);
     }
+    if(_Agents.find(GetName()) == _Agents.end())
+    {
+        // must have a scene agent! set it up now
+        AddAgent(Name, SceneModuleTypes::MakeWith<SceneModuleType::SCENE>(), {});
+    }
+    else
+    {
+        SceneAgent& agent = *_Agents.find(GetName())->second;
+        for(SceneModuleType m = SceneModuleType::FIRST_PRERENDERABLE; m != SceneModuleType::NUM; m = (SceneModuleType)((U32)m + 1))
+        {
+            if(m == SceneModuleType::SCENE && agent.ModuleIndices[(U32)m] == -1)
+            {
+                AddAgentModule(Name, m);
+            }
+            else if(m != SceneModuleType::SCENE && agent.ModuleIndices[(U32)m] != -1)
+            {
+                RemoveAgentModule(Name, m);
+            }
+        }
+    }
+}
+
+Meta::ClassInstance Scene::GetAgentRuntimeProps(const Symbol& sym)
+{
+    for (auto& agent : _Agents)
+    {
+        if (agent.first == sym)
+        {
+            return agent.second->RuntimeProps.GetObject(GetRegistry(), true);
+        }
+    }
+    return {};
+}
+
+Meta::ClassInstance Scene::GetAgentTransientProps(const Symbol& sym)
+{
+    for (auto& agent : _Agents)
+    {
+        if (agent.first == sym)
+        {
+            return agent.second->TransientProps;
+        }
+    }
+    return {};
 }
 
 Meta::ClassInstance Scene::GetAgentProps(const Symbol & sym)
@@ -122,7 +192,7 @@ Meta::ClassInstance Scene::GetAgentProps(const Symbol & sym)
     {
         if(agent.first == sym)
         {
-            return agent.second->Props;
+            return agent.second->AgentProps.GetObject(GetRegistry(), true);
         }
     }
     return {};
@@ -130,6 +200,12 @@ Meta::ClassInstance Scene::GetAgentProps(const Symbol & sym)
 
 void Scene::AddAgentModule(const String& Name, SceneModuleType module)
 {
+    Ptr<ResourceRegistry> pReg = _Registry.lock();
+    if(!pReg)
+    {
+        TTE_LOG("WARNING: Could not acquire resource registry. Module cannot be added to agent %s", Name.c_str());
+        return;
+    }
     Symbol sym{Name};
     for(auto& agent: _Agents)
     {
@@ -146,6 +222,11 @@ void Scene::AddAgentModule(const String& Name, SceneModuleType module)
                     return;
                 }
                 agent.second->ModuleIndices[(U32)module] = index;
+                String propName{};
+                SceneModuleUtil::_GetModuleInfo Getter{ module };
+                Getter.OutPropName = &propName;
+                SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, std::move(Getter));
+                PropertySet::AddParent(GetAgentProps(sym), propName, pReg);
             }
             break;
         }
@@ -167,7 +248,8 @@ void Scene::RemoveAgentModule(const Symbol& sym, SceneModuleType module)
                 toRemove = agent->ModuleIndices[(U32)module];
                 Bool bResult = false;
                 
-                SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_RemoveModuleRecurser{*this, module, toRemove, bResult});
+                SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,
+                    SceneModuleUtil::_RemoveModuleRecurser{*this, module, toRemove, bResult, *agent});
                 
                 if(!bResult)
                 {
@@ -194,6 +276,23 @@ void Scene::RemoveAgentModule(const Symbol& sym, SceneModuleType module)
     }
 }
 
+void Scene::RemoveAgent(const Symbol& Name)
+{
+    auto it = _Agents.find(Name);
+    if(it != _Agents.end())
+    {
+        // On remove
+
+        for (I32 mod = 0; mod < (I32)SceneModuleType::NUM; mod++)
+        {
+            if (it->second->ModuleIndices[mod] != -1)
+            {
+                RemoveAgentModule(Name, (SceneModuleType)mod);
+            }
+        }
+        _Agents.erase(it);
+    }
+}
 
 Bool Scene::ExistsAgent(const Symbol& sym)
 {
@@ -201,6 +300,24 @@ Bool Scene::ExistsAgent(const Symbol& sym)
         if(agent.second->NameSymbol == sym)
             return true;
     return false;
+}
+
+SceneModuleTypes Scene::GetAgentModules(const Symbol& Name)
+{
+    for (auto& agent : _Agents)
+    {
+        if (agent.second->NameSymbol == Name)
+        {
+            SceneModuleTypes m{};
+            for(I32 mod  = 0; mod < (I32)SceneModuleType::NUM; mod++)
+            {
+                if(agent.second->ModuleIndices[mod] != -1)
+                    m.Set((SceneModuleType)mod, true);
+            }
+            return m;
+        }
+    }
+    return {};
 }
 
 Bool Scene::HasAgentModule(const Symbol& sym, SceneModuleType module)
@@ -211,29 +328,216 @@ Bool Scene::HasAgentModule(const Symbol& sym, SceneModuleType module)
     return false;
 }
 
-void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance props)
+static Bool RayIntersectBB(
+    const Vector3& rayOrigin,
+    const Vector3& rayDir,
+    const Vector3& boxMin, 
+    const Vector3& boxMax,
+    Float& t)
+{
+    Float tmin = (boxMin.x - rayOrigin.x) / rayDir.x;
+    Float tmax = (boxMax.x - rayOrigin.x) / rayDir.x;
+
+    if (tmin > tmax) std::swap(tmin, tmax);
+
+    Float tymin = (boxMin.y - rayOrigin.y) / rayDir.y;
+    Float tymax = (boxMax.y - rayOrigin.y) / rayDir.y;
+
+    if (tymin > tymax) std::swap(tymin, tymax);
+
+    if ((tmin > tymax) || (tymin > tmax))
+        return false;
+
+    if (tymin > tmin)
+        tmin = tymin;
+    if (tymax < tmax)
+        tmax = tymax;
+
+    Float tzmin = (boxMin.z - rayOrigin.z) / rayDir.z;
+    Float tzmax = (boxMax.z - rayOrigin.z) / rayDir.z;
+
+    if (tzmin > tzmax) std::swap(tzmin, tzmax);
+
+    if ((tmin > tzmax) || (tzmin > tmax))
+        return false;
+
+    if (tzmin > tmin)
+        tmin = tzmin;
+    if (tzmax < tmax)
+        tmax = tzmax;
+
+    if (tmax < 0)
+        return false;
+
+    t = (tmin >= 0) ? tmin : tmax;
+    return true;
+}
+
+static Bool RayIntersectSphere(
+    const Vector3& rayOrigin,
+    const Vector3& rayDir,
+    const Vector3& sphereCenter,
+    Float sphereRadius, Float& t)
+{
+    Vector3 oc = rayOrigin - sphereCenter;
+
+    Float a = Vector3::Dot(rayDir, rayDir);
+    Float b = 2.0f * Vector3::Dot(oc, rayDir);
+    Float c = Vector3::Dot(oc, oc) - sphereRadius * sphereRadius;
+
+    Float discriminant = b * b - 4 * a * c;
+    if (discriminant < 0.0f)
+        return false;
+
+    Float sqrtDisc = sqrtf(discriminant);
+    Float t0 = (-b - sqrtDisc) / (2.0f * a);
+    Float t1 = (-b + sqrtDisc) / (2.0f * a);
+
+    t = (t0 >= 0.0f) ? t0 : ((t1 >= 0.0f) ? t1 : -1.0f);
+    if (t < 0.0f)
+    {
+        t = 0.0f;
+        return false;
+    }
+
+    return true;
+}
+
+String Scene::GetAgentAtScreenPosition(Camera& cam, U32 screenX, U32 screenY, Bool bBySelectable)
+{
+    TTE_ASSERT(!bBySelectable, "Not supported by selectable"); // IMPL SELECTABLE MODULE
+
+    Float ndcX = (2.0f * screenX) / cam._ScreenWidth - 1.0f;
+    Float ndcY = 1.0f - (2.0f * screenY) / cam._ScreenHeight;
+    Vector4 nearPointClip(ndcX, ndcY, 0.0f, 1.0f);
+    Vector4 farPointClip(ndcX, ndcY, 1.0f, 1.0f);
+
+    Matrix4 invViewProj = (cam.GetProjectionMatrix() * cam.GetViewMatrix()).Inverse();
+
+    Vector4 nearWorld = nearPointClip * invViewProj;
+    Vector4 farWorld = farPointClip * invViewProj;
+
+    nearWorld /= nearWorld.w;
+    farWorld /= farWorld.w;
+
+    Vector3 origin = Vector3(nearWorld.x, nearWorld.y, nearWorld.z);
+    Vector3 direction = (Vector3(farWorld.x, farWorld.y, farWorld.z) - origin);
+    direction.Normalize();
+
+    Float tmin = FLT_MAX;
+    String agent{};
+    for (const auto& renderable : _Modules.GetModuleArray<SceneModuleType::RENDERABLE>())
+    {
+        Transform agentTransform = GetNodeWorldTransform(renderable.AgentNode);
+        Matrix4 agentMat = MatrixTransformation(agentTransform._Rot, agentTransform._Trans);
+        for (const auto& mesh : renderable.Renderable.MeshList)
+        {
+            Float tSphere = 0.0f;
+            Vector3 worldCenter = Vector4(mesh->BSphere._Center, 1.0f) * agentMat;
+
+            if (RayIntersectSphere(origin, direction, worldCenter, mesh->BSphere._Radius, tSphere))
+            {
+                Float tBox = 0.0f;
+                Vector3 boxMin = (Vector4(mesh->BBox._Min, 1.0f)) * agentMat;
+                Vector3 boxMax = (Vector4(mesh->BBox._Max, 1.0f)) * agentMat;
+
+                Bool intersects = RayIntersectBB(origin, direction, boxMin, boxMax, tBox);
+
+                if (intersects && tBox < tmin)
+                {
+                    tmin = tBox;
+                    agent = renderable.AgentNode->AgentName;
+                }
+                else if (!intersects && tSphere < tmin)
+                {
+                    // fallback to sphere if box miss
+                    tmin = tSphere;
+                    agent = renderable.AgentNode->AgentName;
+                }
+            }
+        }
+    }
+    return agent;
+}
+
+extern TelltaleEditor* _MyContext;
+
+String Scene::GetAgentScenePropertiesName(const String& sceneName, const String& agentName)
+{
+    return "\"" + sceneName + ":" + agentName + "\" Agent Properties";
+}
+
+String Scene::GetAgentRuntimePropertiesName(const String& sceneName, const String& agentName)
+{
+    return "\"" + sceneName + ":" + agentName + "\" Runtime Properties";
+}
+
+void Scene::_SetupAgentProperties(Ptr<SceneAgent> pAgent, Meta::ClassInstance sceneProps)
+{
+    String ScenePropsName = GetAgentScenePropertiesName(GetName(), pAgent->Name);
+    String RuntimePropsName = GetAgentRuntimePropertiesName(GetName(), pAgent->Name);
+    GetRuntimeSymbols().Register(ScenePropsName);
+    GetRuntimeSymbols().Register(RuntimePropsName);
+    Bool bNeedCreate = true;
+    if(pAgent->AgentProps.GetObject().GetCRC64() != 0)
+    {
+        Meta::ClassInstance agentProps = pAgent->AgentProps.GetObject(GetRegistry(), true);
+        if(agentProps)
+        {
+            bNeedCreate = false;
+        }
+    }
+    pAgent->AgentProps.SetObject(ScenePropsName);
+    Meta::ClassInstance agentProps{};
+    if(bNeedCreate)
+    {
+        agentProps = Meta::CopyInstance(sceneProps); // create new prop, cant use scene props, as it needs to be unique
+        GetRegistry()->CreateCachedPropertySet(ScenePropsName, agentProps);
+    }
+    else
+    {
+        PropertySet::ImportKeysValuesAndParents(agentProps = pAgent->AgentProps.GetObject(GetRegistry(), true), sceneProps, false, true, {}, true, false, GetRegistry());
+    }
+    pAgent->RuntimeProps.SetObject(RuntimePropsName);
+    Meta::ClassInstance runtimeProps = pAgent->RuntimeProps.GetObject(GetRegistry(), true);
+    if(!runtimeProps)
+    {
+        runtimeProps = _MyContext->CreatePropertySet();
+        GetRegistry()->CreateCachedPropertySet(RuntimePropsName, runtimeProps);
+    }
+    if(PropertySet::GetNumParents(runtimeProps) != 1)
+    {
+        PropertySet::ClearParents(runtimeProps);
+        PropertySet::AddParent(runtimeProps, ScenePropsName, GetRegistry());
+    }
+    if(!pAgent->TransientProps)
+    {
+        pAgent->TransientProps = _MyContext->CreatePropertySet();
+    }
+    if(PropertySet::GetNumParents(pAgent->TransientProps) != 1)
+    {
+        PropertySet::ClearParents(pAgent->TransientProps);
+        PropertySet::AddParent(pAgent->TransientProps, RuntimePropsName, GetRegistry());
+    }
+}
+
+void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassInstance props, Transform init, Bool doSetup)
 {
     TTE_ASSERT(!ExistsAgent(Name), "Agent %s already exists in %s", Name.c_str(), Name.c_str());
     Ptr<SceneAgent> pAgent = TTE_NEW_PTR(SceneAgent, MEMORY_TAG_SCENE_DATA, Name);
     auto agentIt = _Agents.insert({Symbol(Name), pAgent});
     auto& agentPtr = agentIt.first->second;
     agentPtr->OwningScene = this;
-    agentPtr->Props = props;
-    if(!agentPtr->Props)
-    {
-        U32 clazz = Meta::FindClass("class PropertySet", 0);
-        TTE_ASSERT(clazz!=0, "Property set class not found!");
-        agentPtr->Props = Meta::CreateInstance(clazz);
-    }
-    else
-    {
-        TTE_ASSERT(Meta::GetClass(props.GetClassID()).Flags & Meta::_CLASS_PROP, "At Scene::AddAgent -> properties class mismatch!");
-    }
+    agentPtr->InitialTransform = init;
+    _SetupAgentProperties(pAgent, props);
+    Ptr<ResourceRegistry> reg = GetRegistry();
+    if(reg)
+        SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL, SceneModuleUtil::_CollectAgentModules{modules, *pAgent.get(), reg});
     for(auto it = modules.begin(); it != modules.end(); it++)
     {
         AddAgentModule(Name, *it);
     }
-    if(_Flags.Test(SceneFlags::RUNNING))
+    if(_Flags.Test(SceneFlags::RUNNING) || doSetup)
     {
         _SetupAgent(agentIt.first);
     }
@@ -246,54 +550,60 @@ Bool Scene::_ValidateNodeAttachment(Ptr<Node> node, Ptr<Node> potentialChild)
     return !TestChildNode(node, potentialChild);
 }
 
-void Scene::_UpdateListenerAttachments(Ptr<Node>node)
+void Scene::_UpdateListenerAttachments(Ptr<Node> node)
 {
     Ptr<NodeListener> listener = node->Listeners;
-    while(listener)
+    while (listener)
     {
         listener->OnAttachmentChanged();
         listener = listener->Next;
     }
-    Ptr<Node> child = node->FirstChild;
-    while(child)
+
+    auto child = node->FirstChild.lock();
+    while (child)
     {
         _UpdateListenerAttachments(child);
-        child = child->NextSibling;
+        child = child->NextSibling.lock();
     }
 }
 
 void Scene::_InvalidateNode(Ptr<Node> node, Node* pParent, Bool bAllowStaticUpdate)
 {
     node->Fl.Remove(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID);
+
     Ptr<NodeListener> listener = node->Listeners;
-    while(listener)
+    while (listener)
     {
         listener->OnTransformChanged(nullptr);
         listener = listener->Next;
     }
+
     Node* pParentTile = node->Fl.Test(NodeFlags::NODE_ENVIRONMENT_TILE) ? node.get() : nullptr;
-    // invalidate *all* children in tree as need recalc.
-    for(Ptr<Node> pChild = node->FirstChild; pChild; pChild = pChild->NextSibling)
+
+    auto pChild = node->FirstChild.lock();
+    while (pChild)
     {
-        if(bAllowStaticUpdate || _ValidateTransformUpdate(pChild, pParentTile))
+        if (bAllowStaticUpdate || _ValidateTransformUpdate(pChild, pParentTile))
             _InvalidateNode(pChild, pParentTile, bAllowStaticUpdate);
+        pChild = pChild->NextSibling.lock();
     }
 }
 
-Transform Scene::GetNodeWorldTransform(Ptr<Node>node)
+Transform Scene::GetNodeWorldTransform(Ptr<Node> node)
 {
-    if(!node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+    if (!node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
         _CalculateGlobalNodeTransform(node);
     return node->GlobalTransform;
 }
 
 void Scene::_CalculateGlobalNodeTransform(Ptr<Node> node)
 {
-    if(node->Parent)
+    auto parent = node->Parent.lock();
+    if (parent)
     {
-        if(!node->Parent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
-            _CalculateGlobalNodeTransform(node->Parent); // parent needs update first as not a root
-        node->GlobalTransform = node->Parent->GlobalTransform * node->LocalTransform;
+        if (!parent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+            _CalculateGlobalNodeTransform(parent);
+        node->GlobalTransform = parent->GlobalTransform * node->LocalTransform;
         node->GlobalTransform.Normalise();
     }
     else
@@ -306,57 +616,55 @@ void Scene::_CalculateGlobalNodeTransform(Ptr<Node> node)
 Transform Scene::NodeLocalToNode(const Ptr<Node>& node, Transform nodeLocalSpaceTransform, const String& max)
 {
     Transform result = nodeLocalSpaceTransform;
-    
-    Ptr<Node> current = node->Parent;
-    
+    auto current = node->Parent.lock();
+
     while (current)
     {
         result = current->LocalTransform * result;
         result.Normalise();
         if (max.length() != 0 && CompareCaseInsensitive(current->Name, max))
             break;
-        current = current->Parent;
+        current = current->Parent.lock();
     }
-    
+
     return result;
 }
 
 void Scene::UpdateNodeLocalTransform(Ptr<Node> node, Transform trans, Bool bAllowSt)
 {
-    Bool bAllow = bAllowSt || _ValidateTransformUpdate(node, nullptr);
-    if (!bAllow)
+    if (!bAllowSt && !_ValidateTransformUpdate(node, nullptr))
         return;
-    
-    node->LocalTransform = trans; // use as-is, assumes local space
+
+    node->LocalTransform = trans;
     node->LocalTransform.Normalise();
-    
+
     _InvalidateNode(node, nullptr, bAllowSt);
 }
 
 void Scene::UpdateNodeWorldTransform(Ptr<Node> node, Transform trans, Bool bAllowSt)
 {
-    Bool bAllow = bAllowSt || _ValidateTransformUpdate(node, nullptr);
-    if(!bAllow)
+    if (!bAllowSt && !_ValidateTransformUpdate(node, nullptr))
         return;
-    if(node->Parent)
+
+    auto parent = node->Parent.lock();
+    if (parent)
     {
-        // CALCULATE GLOBAL
-        if(!node->Parent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
-            _CalculateGlobalNodeTransform(node->Parent);
-        // CALCULATE LOCAL
-        node->LocalTransform = trans / node->Parent->GlobalTransform;
+        if (!parent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+            _CalculateGlobalNodeTransform(parent);
+        node->LocalTransform = trans / parent->GlobalTransform;
     }
     else
     {
-        node->LocalTransform = trans; // update local, no parent
+        node->LocalTransform = trans;
     }
+
     node->LocalTransform.Normalise();
     _InvalidateNode(node, nullptr, bAllowSt);
 }
 
-Bool Scene::_ValidateTransformUpdate(Ptr<Node> node, Node *pTileNode)
+Bool Scene::_ValidateTransformUpdate(Ptr<Node> node, Node* pTileNode)
 {
-    return pTileNode || !node->StaticListeners; // if theres a parent tile always allow. if no static listeners, allow.
+    return pTileNode || !node->StaticListeners;
 }
 
 void NodeListener::SetStatic(Bool bStatic)
@@ -432,14 +740,15 @@ void Scene::RemoveNodeListener(Ptr<Node> node, NodeListener *pListener)
 
 Ptr<Node> Scene::FindChildNode(Ptr<Node> node, Symbol name)
 {
-    if(Symbol(node->Name) == name)
+    if (Symbol(node->Name) == name)
         return node;
-    Ptr<Node> pChild = node->FirstChild;
+
+    auto pChild = node->FirstChild.lock();
     Ptr<Node> result{};
-    if(!pChild || !(result = FindChildNode(pChild, name)))
+    if (!pChild || !(result = FindChildNode(pChild, name)))
     {
-        pChild = pChild->NextSibling;
-        if(pChild)
+        pChild = pChild ? pChild->NextSibling.lock() : nullptr;
+        if (pChild)
             return FindChildNode(pChild, name);
     }
     return result;
@@ -447,53 +756,57 @@ Ptr<Node> Scene::FindChildNode(Ptr<Node> node, Symbol name)
 
 Bool Scene::TestChildNode(Ptr<Node> node, Ptr<Node> potentialChild)
 {
-    if(node == potentialChild)
+    if (node == potentialChild)
         return true;
-    Ptr<Node> pChild = node->FirstChild;
-    while(pChild)
+
+    auto pChild = node->FirstChild.lock();
+    while (pChild)
     {
-        if(pChild == potentialChild)
+        if (pChild == potentialChild)
             return true;
-        if(TestChildNode(pChild, potentialChild))
+        if (TestChildNode(pChild, potentialChild))
             return true;
-        pChild = pChild->NextSibling;
+        pChild = pChild->NextSibling.lock();
     }
     return false;
 }
 
 Bool Scene::TestParentNode(Ptr<Node> pNode, Ptr<Node> potentialParent)
 {
-    while(pNode)
+    while (pNode)
     {
-        if(pNode == potentialParent)
+        if (pNode == potentialParent)
             return true;
-        pNode = pNode->Parent;
+        pNode = pNode->Parent.lock();
     }
     return false;
 }
 
 void Scene::AttachNode(Ptr<Node> node, Ptr<Node> parent, Bool bPreserveWorldPosition, Bool bInitialAttach)
 {
-    if(node != parent && (bInitialAttach || _ValidateTransformUpdate(node, nullptr)))
+    if (node != parent && (bInitialAttach || _ValidateTransformUpdate(node, nullptr)))
     {
-        if(node->Parent)
+        if (node->Parent.lock())
             UnAttachNode(node, bPreserveWorldPosition, true);
-        if(!parent->Parent || _ValidateNodeAttachment(parent->Parent, node))
+
+        auto grandParent = parent->Parent.lock();
+        if (!grandParent || _ValidateNodeAttachment(grandParent, node))
         {
             node->Parent = parent;
             node->NextSibling = parent->FirstChild;
-            if(parent->FirstChild)
-            {
-                parent->FirstChild->PrevSibling = node;
-            }
+            if (auto first = parent->FirstChild.lock())
+                first->PrevSibling = node;
             parent->FirstChild = node;
+
             _InvalidateNode(node, nullptr, bInitialAttach || bPreserveWorldPosition);
-            if(bPreserveWorldPosition)
+
+            if (bPreserveWorldPosition)
             {
-                if(!node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
-                    _CalculateGlobalNodeTransform(node); // ensure we know its transform
+                if (!node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+                    _CalculateGlobalNodeTransform(node);
                 UpdateNodeLocalTransform(node, node->LocalTransform, true);
             }
+
             _UpdateListenerAttachments(node);
         }
     }
@@ -501,64 +814,206 @@ void Scene::AttachNode(Ptr<Node> node, Ptr<Node> parent, Bool bPreserveWorldPosi
 
 void Scene::UnAttachNode(Ptr<Node> node, Bool bPreserveWorldPosition, Bool bForceUnattach)
 {
-    if(node && node->Parent && (bForceUnattach || _ValidateTransformUpdate(node, nullptr)))
+    auto parent = node->Parent.lock();
+    if (node && parent && (bForceUnattach || _ValidateTransformUpdate(node, nullptr)))
     {
-        if(bPreserveWorldPosition && !node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
-            _CalculateGlobalNodeTransform(node); // ensure we know its transform
-        
-        Ptr<Node> prev = node->PrevSibling;
-        Ptr<Node> next = node->NextSibling;
-        if(prev)
+        if (bPreserveWorldPosition && !node->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+            _CalculateGlobalNodeTransform(node);
+
+        auto prev = node->PrevSibling.lock();
+        auto next = node->NextSibling.lock();
+
+        if (prev)
         {
-            prev->NextSibling = std::move(next);
-            if(node->NextSibling)
-            {
-                node->NextSibling->PrevSibling = std::move(prev);
-            }
+            prev->NextSibling = next;
+            if (next)
+                next->PrevSibling = prev;
         }
         else
-        { // first in d-ll
-            node->Parent->FirstChild = std::move(next);
-            if(node->NextSibling)
-            {
-                node->NextSibling->PrevSibling = nullptr;
-            }
-        }
-        node->NextSibling = node->PrevSibling = nullptr;
-        
-        // preserve world pos if needed
-        if(bPreserveWorldPosition)
         {
-            if(node->Parent)
+            parent->FirstChild = next;
+            if (next)
+                next->PrevSibling.reset();
+        }
+
+        node->NextSibling.reset();
+        node->PrevSibling.reset();
+
+        if (bPreserveWorldPosition)
+        {
+            if (auto pParent = node->Parent.lock())
             {
-                if(!node->Parent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
-                    _CalculateGlobalNodeTransform(node->Parent);
-                node->LocalTransform = node->GlobalTransform / node->Parent->GlobalTransform;
+                if (!pParent->Fl.Test(NodeFlags::NODE_GLOBAL_TRANSFORM_VALID))
+                    _CalculateGlobalNodeTransform(pParent);
+                node->LocalTransform = node->GlobalTransform / pParent->GlobalTransform;
             }
             _InvalidateNode(node, nullptr, true);
         }
         else
+        {
             _InvalidateNode(node, nullptr, bForceUnattach);
-        
-        node->Parent = nullptr;
-        
-        // finally signal attachment change
+        }
+
+        node->Parent.reset();
         _UpdateListenerAttachments(node);
     }
 }
 
 void Scene::UnAttachAllChildren(Ptr<Node> node, Bool bAttachChildrenToParent)
 {
-    if(!node->Parent)
+    if (!node->Parent.lock())
         bAttachChildrenToParent = false;
-    Ptr<Node> child = node->FirstChild;
-    while(child)
+
+    auto child = node->FirstChild.lock();
+    while (child)
     {
+        auto next = child->NextSibling.lock();
         UnAttachNode(child, true, true);
-        if(bAttachChildrenToParent)
-            AttachNode(child, node->Parent, true, true);
-        child = child->NextSibling;
+        if (bAttachChildrenToParent)
+            AttachNode(child, node->Parent.lock(), true, true);
+        child = next;
     }
+}
+
+static Ptr<Node> _DeepCopyNodeTree(const Ptr<Node> src, Scene* newScene, Ptr<Node> parent = nullptr)
+{
+    if (!src)
+        return nullptr;
+
+    Ptr<Node> copy = TTE_NEW_PTR(Node, MEMORY_TAG_SCENE_DATA);
+
+    copy->Name = src->Name;
+    copy->Fl = src->Fl;
+    copy->AgentName = src->AgentName;
+
+    copy->LocalTransform = src->LocalTransform;
+    copy->GlobalTransform = src->GlobalTransform;
+    copy->AttachedScene = newScene;
+    copy->Parent = parent;
+
+    // --- Recursively copy children ---
+    Ptr<Node> prevChildCopy = nullptr;
+    for (Ptr<Node> child = src->FirstChild.lock(); child; child = child->NextSibling.lock())
+    {
+        Ptr<Node> childCopy = _DeepCopyNodeTree(child, newScene, copy);
+
+        if (IsWeakPtrUnbound(copy->FirstChild))
+        {
+            copy->FirstChild = childCopy;
+        }
+
+        if (prevChildCopy) 
+        {
+            prevChildCopy->NextSibling = childCopy;
+            childCopy->PrevSibling = prevChildCopy;
+        }
+
+        prevChildCopy = childCopy;
+    }
+
+    return copy;
+}
+
+static Bool _DoTraverseNode(Ptr<Node> node, NodeVisitorTraversal traverseType, NodeVisitor* visitor, void* user)
+{
+    if (!node) return true;
+
+    switch (traverseType)
+    {
+
+        case NodeVisitorTraversal::PRE_ORDER:
+        {
+            if (!(*visitor)(node, user)) return false;
+            for (Ptr<Node> child = node->FirstChild.lock(); child; child = child->NextSibling.lock())
+                if (!_DoTraverseNode(child, traverseType, visitor, user)) return false;
+            break;
+        }
+
+        case NodeVisitorTraversal::IN_ORDER:
+        {
+            Ptr<Node> firstChild = node->FirstChild.lock();
+            if (firstChild)
+                if (!_DoTraverseNode(firstChild, traverseType, visitor, user)) return false;
+
+            if (!(*visitor)(node, user)) return false;
+
+            for (Ptr<Node> child = firstChild ? firstChild->NextSibling.lock() : nullptr;
+                child;
+                child = child->NextSibling.lock())
+            {
+                if (!_DoTraverseNode(child, traverseType, visitor, user)) return false;
+            }
+            break;
+        }
+
+        case NodeVisitorTraversal::POST_ORDER:
+        {
+            for (Ptr<Node> child = node->FirstChild.lock(); child; child = child->NextSibling.lock())
+                if (!_DoTraverseNode(child, traverseType, visitor, user)) return false;
+            if (!(*visitor)(node, user)) return false;
+            break;
+        }
+    }
+
+    return true;
+}
+
+void Scene::PerformNodeTraversal(Ptr<Node> baseNode, NodeVisitorTraversal traverseType, NodeVisitor* visitor, void* user)
+{
+    if (!baseNode || !visitor)
+        return;
+    _DoTraverseNode(baseNode, traverseType, visitor, user);
+}
+
+static Bool _SceneMovePostTraverse(Ptr<Node> node, void* me)
+{
+    node->AttachedScene = (Scene*)me;
+    return true;
+}
+
+Scene::Scene(Scene&& rhs) noexcept : HandleableRegistered(rhs), Name(std::move(rhs.Name)), _Flags(rhs._Flags)
+{
+    _Agents = std::move(rhs._Agents);
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,
+                                                     SceneModuleUtil::_ModuleVectorMoveRecurser{ rhs, *this });
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,
+                                                     SceneModuleUtil::_ModulesUpdateSceneChange{ *this });
+    for(auto& agent: _Agents)
+    {
+        agent.second->OwningScene = this;
+        if (agent.second->AgentNode)
+            PerformNodeTraversal(agent.second->AgentNode, NodeVisitorTraversal::PRE_ORDER, &_SceneMovePostTraverse, this);
+    }
+    // we dont need to move the other runtime stuff and scene moving only moves static scene data.
+}
+
+Scene::Scene(const Scene& rhs) : HandleableRegistered(rhs), Name(rhs.Name), _Flags(rhs._Flags)
+{
+    for(const auto& agent: rhs._Agents)
+    {
+        Ptr<SceneAgent> pCopyAgent = TTE_NEW_PTR(SceneAgent, MEMORY_TAG_SCENE_DATA, *agent.second);
+        pCopyAgent->OwningScene = this;
+        // module incides OK same
+        // copy transient props (theyre transient, but doesnt matter here)
+        pCopyAgent->TransientProps = pCopyAgent->TransientProps ? Meta::CopyInstance(pCopyAgent->TransientProps) : Meta::ClassInstance{};
+        // runtime and agent props are ok they are global at runtime. transient props inherits from these (or will) already 
+        pCopyAgent->AgentNode = _DeepCopyNodeTree(pCopyAgent->AgentNode, this);
+        _Agents[agent.first] = std::move(pCopyAgent);
+    }
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,
+                                                     SceneModuleUtil::_ModuleVectorCopyRecurser{ rhs, *this });
+    SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,
+                                                     SceneModuleUtil::_ModulesUpdateSceneChange{ *this });
+}
+
+Scene::~Scene()
+{
+    _Agents.clear();
+}
+
+Node::~Node()
+{
+
 }
 
 // OBJECT CACHE MANAGER
@@ -604,14 +1059,12 @@ void ObjOwner::_GetObjData(Ptr<ObjDataBase>& pOut, const String& obj, const std:
 
 void ObjOwner::FreeOwnedObjects()
 {
-    Ptr<ObjDataBase> cur = Objects;
-    while(cur)
+    while (Objects)
     {
-        Ptr<ObjDataBase> cache = cur->Next;
-        cur->Next.reset();
-        cur = cache;
+        Ptr<ObjDataBase> next = Objects->Next;
+        Objects->Next.reset(); // Break the link to the next node
+        Objects = next;        // Move to next
     }
-    Objects.reset();
 }
 
 ObjOwner::~ObjOwner()

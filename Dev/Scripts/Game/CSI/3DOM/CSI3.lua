@@ -9,14 +9,15 @@ function CSI3_GetGameDescriptor()
 	CSI3.Name = "CSI: 3 Dimensions of Murder"
 	CSI3.ID = "CSI3"
 	CSI3.DefaultMetaVersion =
-	"MBIN"                       -- Although, the PS2 uses a special one of version BMS3 (and encrypted EMS3, not used), MBIN is supported.
+	"MBIN"                       -- Although, the PS2 uses a special one of version BMS3 (and encrypted EMS3, not used), MBIN is supported on all platforms.
 	CSI3.LuaVersion = "5.0.2"
 	CSI3.IsArchive2 = false
-	CSI3.ArchiveVersion = 0 -- still archive version 0
+	CSI3.ArchiveVersion = 0
 	CSI3.Platforms = "PC;PS2"
 	CSI3.Vendors = ""
 	MetaPushGameCapability(CSI3, kGameCapRawClassNames) -- CHECK OTHER CAPS
-	MetaRegisterGame(CSI3)
+	MetaPushExecutableHash(CSI3, "7D4AD17841DB6DF4", "PC", "") -- T3.MLL
+	MetaPushExecutableHash(CSI3, "F46E4734C4B42DBB", "PS2", "") -- SLUS blah.55
 	return CSI3
 end
 

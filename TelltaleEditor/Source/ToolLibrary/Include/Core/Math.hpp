@@ -94,18 +94,23 @@ struct alignas(4) Colour {
 };
 
 // 2D VECTOR
-struct alignas(4) Vector2 {
+struct alignas(4) Vector2
+{
     
     static Vector2 Zero;
     
     // Access by vec2.x,u,array[0] and vec2.y,v,array[1]
-    union {
-        struct {
-            union {
+    union
+    {
+        struct
+        {
+            union
+            {
                 float x;
                 float u;
             };
-            union {
+            union
+            {
                 float y;
                 float v;
             };
@@ -206,7 +211,8 @@ struct alignas(4) Vector2 {
 struct Vector4;
 
 // 3D VECTOR
-struct alignas(4) Vector3 {
+struct alignas(4) Vector3
+{
     
     // Returns 2D vector of the first two components
     inline operator Vector2() const
@@ -224,8 +230,9 @@ struct alignas(4) Vector3 {
         y = _y;
         z = _z;
     }
-    
-    inline Float DistanceSquared(const Vector3& other) const {
+
+    inline Float DistanceSquared(const Vector3& other) const
+    {
         float dx = x - other.x;
         float dy = y - other.y;
         float dz = z - other.z;
@@ -329,9 +336,7 @@ struct alignas(4) Vector3 {
     
     // Construct from vector 2 setting z to zero.
     inline Vector3(Vector2 xy) : Vector3(xy,0.f) {}
-    
-    inline Vector3(Vector4 xyz);
-    
+
     inline static Vector3 Orthogonal(const Vector3& v)
     {
         if (fabsf(v.x) < fabsf(v.y) && fabsf(v.x) < fabsf(v.z))
@@ -410,10 +415,12 @@ struct alignas(4) Vector3 {
     
 };
 
-struct alignas(4) Vector4 {
+struct alignas(4) Vector4
+{
     
     // Convert to color, rgba to xyzw
-    inline operator Colour() {
+    inline operator Colour()
+    {
         return Colour(x, y, z, w);
     }
     
@@ -444,8 +451,6 @@ struct alignas(4) Vector4 {
     {
         return Vector2(x, y);
     }
-    
-    inline Vector4(Vector3 xyz) : Vector4(xyz, 0.f) {}
     
     inline Vector4(Vector2 xy) : Vector4(xy, 0.f, 0.f) {}
     
@@ -544,6 +549,11 @@ struct alignas(4) Vector4 {
             mag = 0.f;
         return mag;
     }
+
+    inline Vector3 xyz() const
+    {
+        return Vector3(x, y, z);
+    }
     
 };
 
@@ -555,13 +565,6 @@ inline Colour Vector4ToColour(Vector4 v)
 inline Vector4 ColourToVector4(Colour c)
 {
     return Vector4(c.r, c.g, c.b, c.a);
-}
-
-inline Vector3::Vector3(Vector4 rhs)
-{
-    x = rhs.x;
-    y = rhs.y;
-    z = rhs.z;
 }
 
 inline Vector2 operator*(const Vector2& lhs, const Vector2& rhs)
@@ -767,8 +770,8 @@ struct BoundingBox {
 struct Sphere
 {
     
-    Vector3 _Center;
-    float _Radius;
+    Vector3 _Center = {};
+    float _Radius = 0.0f;
     
     Bool FullyContains(const Sphere& rhs);
     
@@ -1189,6 +1192,23 @@ public:
         return _Entries[Row];
     }
     
+    inline Vector3 GetRight() const
+    {
+        return Vector3(_Entries[0][0], _Entries[0][1], _Entries[0][2]);
+    }
+
+    // Returns local +Y axis
+    inline Vector3 GetUp() const
+    {
+        return Vector3(_Entries[1][0], _Entries[1][1], _Entries[1][2]);
+    }
+
+    // Returns local +Z axis
+    inline Vector3 GetForward() const
+    {
+        return Vector3(_Entries[2][0], _Entries[2][1], _Entries[2][2]);
+    }
+
     inline void SetColumn(U32 Column, const Vector4& Values)
     {
         _Entries[0][Column] = Values.x;
@@ -1269,6 +1289,11 @@ Matrix4 MatrixTransformation(const Quaternion& rot, const Vector3& Translation);
 // Matrix which scales and transforms
 Matrix4 MatrixTransformation(const Vector3 scale, const Quaternion& rot, const Vector3& Translation);
 
+inline Matrix4 MatrixTransformation(const Transform& transform)
+{
+    return MatrixTransformation(transform._Rot, transform._Trans);
+}
+
 // Matrix which scales differently in each direction
 Matrix4 MatrixScaling(float ScaleX, float ScaleY, float ScaleZ);
 
@@ -1289,12 +1314,14 @@ Matrix4 operator + (const Matrix4& Left, const Matrix4& Right);
 Matrix4 operator - (const Matrix4& Left, const Matrix4& Right);
 
 // Apply matrix to vector 4
-inline Vector4 operator * (const Vector4& Right, const Matrix4& Left)
+inline Vector4 operator * (const Vector4& v, const Matrix4& m)
 {
-    return Vector4(Right.x * Left[0][0] + Right.y * Left[1][0] + Right.z * Left[2][0] + Right.w * Left[3][0],
-                   Right.x * Left[0][1] + Right.y * Left[1][1] + Right.z * Left[2][1] + Right.w * Left[3][1],
-                   Right.x * Left[0][2] + Right.y * Left[1][2] + Right.z * Left[2][2] + Right.w * Left[3][2],
-                   Right.x * Left[0][3] + Right.y * Left[1][3] + Right.z * Left[2][3] + Right.w * Left[3][3]);
+    return Vector4(
+        v.x * m[0][0] + v.y * m[0][1] + v.z * m[0][2] + v.w * m[0][3],
+        v.x * m[1][0] + v.y * m[1][1] + v.z * m[1][2] + v.w * m[1][3],
+        v.x * m[2][0] + v.y * m[2][1] + v.z * m[2][2] + v.w * m[2][3],
+        v.x * m[3][0] + v.y * m[3][1] + v.z * m[3][2] + v.w * m[3][3]
+    );
 }
 
 // A plane, defined by the normal vector.
@@ -1346,7 +1373,7 @@ struct Frustum {
     {
         for (U32 i = 0; i < 6; i++) {
             for(int j = 0; j < 8; j++){
-                if (!((Vector3::Dot(Vector3(_Plane[i]._Plane), boxCorners[j]) + _Plane[i]._Plane.w) > 0.0f))
+                if (!((Vector3::Dot(_Plane[i]._Plane.xyz(), boxCorners[j]) + _Plane[i]._Plane.w) > 0.0f))
                     return false;
             }
         }

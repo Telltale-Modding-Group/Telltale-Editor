@@ -1,9 +1,12 @@
 #include <Core/Context.hpp>
 #include <Resource/ResourceRegistry.hpp>
 #include <Meta/Meta.hpp>
+#include <Resource/PSPKG.hpp>
 
-// ===================================================================         UTIL
-// ===================================================================
+#include <sstream>
+#include <stdio.h>
+#include <fstream>
+#include <filesystem>
 
 thread_local Bool _IsMain = false;
 
@@ -24,22 +27,6 @@ Bool IsCallingFromMain()
 {
     return _IsMain;
 }
-
-String MakeTypeName(String fullName)
-{
-    if(Meta::GetInternalState().GameIndex == -1 || Meta::GetInternalState().GetActiveGame().Caps[GameCapability::RAW_TYPE_NAMES])
-    {
-        StringReplace(fullName, "class ", "");
-        StringReplace(fullName, "struct ", "");
-        StringReplace(fullName, "enum ", "");
-        StringReplace(fullName, "std::", "");
-        StringReplace(fullName, " ", "");
-    }
-    return fullName;
-}
-
-// ===================================================================         TOOL CONTEXT
-// ===================================================================
 
 static ToolContext* GlobalContext = nullptr;
 
@@ -81,7 +68,13 @@ LuaManager& ToolContext::GetGameLVM()
     return _L[(U32)Meta::GetInternalState().GetActiveGame().LVersion];
 }
 
-Ptr<ResourceRegistry> ToolContext::CreateResourceRegistry()
+static Bool _AsyncAttachRegistry(const JobThread& thread, void* A, void* B)
+{
+    ((ResourceRegistry*)A)->BindLuaManager(thread.L);
+    return true;
+}
+
+Ptr<ResourceRegistry> ToolContext::CreateResourceRegistry(Bool bAttachAll)
 {
     if(GetActiveGame() == nullptr)
     {
@@ -91,12 +84,24 @@ Ptr<ResourceRegistry> ToolContext::CreateResourceRegistry()
     
     Ptr<ResourceRegistry> registry = TTE_NEW_PTR(ResourceRegistry, MEMORY_TAG_RESOURCE_REGISTRY, GetGameLVM());
     
-    Ptr<GameDependentObject> asDependent = std::static_pointer_cast<GameDependentObject>(registry);
+    Ptr<SnapshotDependentObject> asDependent = std::static_pointer_cast<SnapshotDependentObject>(registry);
     {
         std::lock_guard<std::mutex> G{_DependentsLock};
         _SwitchDependents.push_back(asDependent);
     }
     
+    if(bAttachAll)
+    {
+        JobHandle Handles[NUM_SCHEDULER_THREADS];
+        JobDescriptor desc{};
+        desc.AsyncFunction = &_AsyncAttachRegistry;
+        desc.UserArgA = registry.get();
+        desc.Priority = JOB_PRIORITY_HIGHEST;
+        for(I32 i = 0; i < NUM_SCHEDULER_THREADS; i++)
+        {
+            Handles[i] = JobScheduler::Instance->Post(desc, i);
+        }
+    }
     registry->BindLuaManager(GetLibraryLVM());
     
     return registry;
@@ -133,6 +138,7 @@ ToolContext::~ToolContext()
     Meta::Shutdown();
     DataStreamManager::Shutdown();
     Memory::Shutdown();
+    CommonClassInfo::Shutdown();
     // Lua shuts down automatically in dtor
 }
 
@@ -152,6 +158,9 @@ ToolContext::ToolContext(LuaFunctionCollection PerState)
     
     DataStreamRef symbols = LoadLibraryResource("SymbolMaps/RuntimeSymbols.symmap"); // Load runtime symbols
     GetRuntimeSymbols().SerialiseIn(symbols);
+    
+    PlaystationPKG::_RegisterKeys(this);
+    
 }
 
 String ToolContext::LoadLibraryStringResource(String name)
@@ -184,7 +193,7 @@ void ToolContext::Release()
         U32 errors{};
         for(auto& dependent: _SwitchDependents)
         {
-            Ptr<GameDependentObject> alive = dependent.lock();
+            Ptr<SnapshotDependentObject> alive = dependent.lock();
             if(alive)
             {
                 errors++;
@@ -196,60 +205,192 @@ void ToolContext::Release()
         _SwitchDependents.clear();
         
         JobScheduler::Shutdown();
-        Meta::RelGame();
         Blowfish::Shutdown();
         GetGameSymbols().Clear();
         
+        _L[0].GC();
+        _L[1].GC();
+        _L[2].GC();
+
+        Meta::RelGame();
+
         _Setup = false;
         
     }
 }
 
-String StringFromInteger(I64 original_value,U32 radix, Bool is_negative)
+// WEAK SLOTS
+
+void ToolContext::_AssertWeakSlot(U64 _Stat)
 {
-    U8 Buf[64]{};
-    U8* out = Buf;
-    if (radix < 2 || radix > 36)
+    TTE_ASSERT(_Stat == 0 || ((_Stat & WEAK_SIGNAL_SANITY_NSTATE_MASK) == WEAK_SIGNAL_SANITY_NSTATE_MASK),
+               "A weak slot signal has been corrupted! Code somewhere has modified this signal object before "
+               "it's slot master and weak references expired. Was the signal object destroyed?");
+}
+
+void ToolContext::CreateMasterWeakSlot(WeakSlotMaster &master, WeakSlotSignal *signal)
+{
+    std::scoped_lock<std::mutex> _Lk{_WkLock};
+    if(master._WeakSlot)
     {
-        TTE_LOG("Invali radix");
-        return "";
+        TTE_LOG("Cannot create weak slot as the master slot is not empty");
+        TTE_ASSERT(false, "");
     }
-    
-    uint64_t value = static_cast<uint64_t>(original_value);
-    uint64_t written = 0;
-    
-    if (is_negative) {
-        *out++ = '-';
-        ++written;
-        value = static_cast<uint64_t>(-original_value);
-    }
-    
-    U8* digits_start = out;
-    
-    // Write digits in reverse order
-    do {
-        if (written >= 63)
+    else
+    {
+        // find slot
+        constexpr U32 Ngroups = sizeof(_WkPtrSlots) / sizeof(_WkPtrSlots[0]);
+        U32 availGroup = 0;
+        while((_WkPtrSlots[availGroup] & 0xF) == 0xF && availGroup < Ngroups)
+            availGroup++;
+        if(availGroup >= Ngroups)
         {
-            TTE_LOG("Integer too large for buffer");
-            return "";
+            // really? over
+            TTE_ASSERT(false, "Cannot create master weak slot: ran out of slot entries! Increase the buffer size or restart!"
+                       " Only have %d possible master weak slots in this release.", Ngroups << 2);
+            return;
         }
-        
-        uint64_t remainder = value % radix;
-        value /= radix;
-        *out++ = (remainder < 10) ? ('0' + remainder) : ('a' + remainder - 10);
-        ++written;
-        
-    } while (value != 0);
-    
-    *out = '\0';
-    
-    // Reverse the digits (excluding minus sign if present)
-    U8* left = digits_start;
-    U8* right = out - 1;
-    while (left < right)
-    {
-        std::swap(*left++, *right--);
+        U32 subgroup = 0;
+        if(_WkPtrSlots[availGroup] & 1) // simple 4 bit loop unwound FLS/FFS
+        {
+            if(_WkPtrSlots[availGroup] & 2)
+            {
+                subgroup = (2 + ((_WkPtrSlots[availGroup] & 4) >> 2));
+            }
+            else
+            {
+                subgroup = 1;
+            }
+        }
+        _WkPtrSlots[availGroup] |= (1u << subgroup); // slot acquire
+        _WkPtrSlots[availGroup] |= (0x10u << subgroup); // master ref
+        master._WeakSlot = 0xFFFF'FFFFu - ((availGroup << 2) + subgroup); // do inverse as slot 0 is for invalid
+        master._Signal = signal;
+        master._Context = this;
+        if(signal)
+            signal->_Stat = WEAK_SIGNAL_SANITY; // active signal
     }
+}
+
+void ToolContext::_ReleaseRequiredSlotUnlocked(U32 grp, U32 sgrp, U32 nwkrefs)
+{
+    if(nwkrefs == 0 && (_WkPtrSlots[grp] & (0x10u << sgrp)) == 0)
+    {
+        _WkPtrSlots[grp] -= (1u << sgrp);
+    }
+}
+
+void ToolContext::_DetachWeakSlotMaster(U32 slot, WeakSlotSignal *sig)
+{
+    constexpr U32 Nslots = (sizeof(_WkPtrSlots) / sizeof(_WkPtrSlots[0])) << 2;
+    slot = 0xFFFF'FFFF - slot;
+    U32 group = slot >> 2;
+    U32 subgroup = slot & 3;
+    TTE_ASSERT(slot < Nslots, "Corrupt weak slot");
     
-    return String((CString)Buf);
+    std::scoped_lock<std::mutex> _Lk{_WkLock};
+
+    // ensure the master weak slot actually is acquired (1) and is alive (2)
+    TTE_ASSERT(_WkPtrSlots[group] & (1u << subgroup), "Corrupt weak slot referenced (1)");
+    TTE_ASSERT(_WkPtrSlots[group] & (0x10u << subgroup), "Corrupt weak slot referenced (2)");
+    
+    _WkPtrSlots[group] &= ~((U64)0x10 << subgroup);
+    if(sig)
+        sig->_Stat |= WEAK_SIGNAL_SANITY_SSTATE_MASK; // signal on
+    _ReleaseRequiredSlotUnlocked(group, subgroup, (_WkPtrSlots[group] >> (14 * subgroup)) & 0x3FFF);
+}
+
+void ToolContext::_DetachWeakSlotRef(U32 slot)
+{
+    constexpr U32 Nslots = (sizeof(_WkPtrSlots) / sizeof(_WkPtrSlots[0])) << 2;
+    slot = 0xFFFF'FFFF - slot;
+    U32 group = slot >> 2;
+    U32 subgroup = slot & 3;
+    TTE_ASSERT(slot < Nslots, "Corrupt weak slot");
+    
+    std::scoped_lock<std::mutex> _Lk{_WkLock};
+
+    TTE_ASSERT(_WkPtrSlots[group] & (1u << subgroup), "Corrupt weak slot referenced");
+    
+    U32 nref = (_WkPtrSlots[group] >> (14 * subgroup)) & 0x3FFF;
+    if(nref > 0)
+    {
+        TTE_ASSERT(false, "Cannot detach weak slot reference: no weak reported references");
+        return;
+    }
+    _WkPtrSlots[group] &= ~((U64)0x3FFF00 << (14 * subgroup));
+    _WkPtrSlots[group] |= ((U64)(nref - 1) << (14 * subgroup));
+    _ReleaseRequiredSlotUnlocked(group, subgroup, nref - 1);
+}
+
+void ToolContext::_IncrWeakRef(U32 slot)
+{
+    constexpr U32 Nslots = (sizeof(_WkPtrSlots) / sizeof(_WkPtrSlots[0])) << 2;
+    slot = 0xFFFF'FFFF - slot;
+    U32 group = slot >> 2;
+    U32 subgroup = slot & 3;
+    TTE_ASSERT(slot < Nslots, "Corrupt weak slot");
+    
+    std::scoped_lock<std::mutex> _Lk{_WkLock};
+    
+    TTE_ASSERT(_WkPtrSlots[group] & (1u << subgroup), "Corrupt weak slot referenced");
+    
+    U32 nref = (_WkPtrSlots[group] >> (14 * subgroup)) & 0x3FFF;
+    if(nref >= 0x3FFF)
+    {
+        TTE_ASSERT(false, "Cannot create weak slot reference: reached maximum weak references"); // really?? 16k+ refs?
+        return;
+    }
+    _WkPtrSlots[group] &= ~((U64)0x3FFF00 << (14 * subgroup));
+    _WkPtrSlots[group] |= ((U64)(nref + 1) << (14 * subgroup));
+}
+
+WeakSlotRef ToolContext::CreateWeakSlotReference(const WeakSlotMaster &master)
+{
+    if(master._WeakSlot)
+    {
+        _IncrWeakRef(master._WeakSlot);
+        return WeakSlotRef(master._WeakSlot, this);
+    }
+    else
+    {
+        return {}; // empty master
+    }
+}
+
+WeakSlotSignal::~WeakSlotSignal()
+{
+    ToolContext::_AssertWeakSlot(_Stat);
+    _Stat = 0;
+}
+
+WeakSlotMaster::~WeakSlotMaster()
+{
+    if(_WeakSlot)
+        _Context->_DetachWeakSlotMaster(_WeakSlot, _Signal);
+}
+
+WeakSlotRef::~WeakSlotRef()
+{
+    if(_WeakSlot)
+        _Context->_DetachWeakSlotRef(_WeakSlot);
+}
+
+WeakSlotMaster& WeakSlotMaster::operator=(const WeakSlotMaster&)
+{
+    if(_WeakSlot && _Context)
+        _Context->_DetachWeakSlotRef(_WeakSlot);
+    _WeakSlot = 0;
+    return *this;
+}
+
+WeakSlotRef& WeakSlotRef::operator=(const WeakSlotRef& rhs)
+{
+    _Context = rhs._Context;
+    if(rhs._WeakSlot)
+    {
+        _WeakSlot = rhs._WeakSlot;
+        _Context->_IncrWeakRef(_WeakSlot);
+    }
+    return *this;
 }

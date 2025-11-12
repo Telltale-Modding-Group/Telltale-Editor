@@ -6,6 +6,24 @@
 #include <iomanip>
 #include <cstdint>
 
+std::vector<std::pair<CString, CString>>& GetPropKeyConstants()
+{
+    static std::vector<std::pair<CString, CString>> _PropKeyConstants{};
+    return _PropKeyConstants;
+}
+
+Symbol::Symbol(CString s, Bool bRegisterSymbolMap, CString konst) : Symbol(String(s))
+{
+    if (bRegisterSymbolMap)
+    {
+        GetRuntimeSymbols().Register(s);
+        if(konst)
+        {
+            GetPropKeyConstants().push_back(std::make_pair(konst, s));
+        }
+    }
+}
+
 // Standard CRC32 and CRC64 routines and tables.
 
 U64 CRC64(const U8 *Buffer, U32 BufferLength, U64 InitialCRC64)
@@ -47,6 +65,8 @@ Symbol SymbolFromHexString(const String& str, Bool bStrict)
 {
     if(str.length() != 18)
     {
+        if (str.length())
+            GetRuntimeSymbols().Register(str);
         return bStrict ? Symbol() : Symbol(str);
     }
     
@@ -104,7 +124,13 @@ void SymbolTable::SerialiseOut(DataStreamRef& stream)
     std::ostringstream ss{};
     for(auto& str: _Table)
     {
-        ss << str << "\n";
+        if(str.length())
+        {
+            // skip runtime property names, in which there are absolutely LOADS.
+            if((StringStartsWith(str, "\"") && StringEndsWith(str, " Properties")) || StringEndsWith(str, "Mesh Properties"))
+                continue;
+            ss << str << "\n";
+        }
     }
     String str = ss.str();
     stream->Write((const U8*)str.c_str(), (U64)str.length());
@@ -119,7 +145,7 @@ SymbolTable::SymbolTable(Bool bPrivate)
     }
 }
 
-String SymbolTable::_Find(Symbol sym)
+String SymbolTable::FindLocal(Symbol sym)
 {
     std::lock_guard<std::mutex> _L{_Lock};
     auto it = _SortedHashed.find(sym); // BINARY SEARCH

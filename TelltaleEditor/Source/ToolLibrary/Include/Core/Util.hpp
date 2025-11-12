@@ -16,6 +16,7 @@
 #include <sstream>
 #include <cmath>
 #include <atomic>
+#include <type_traits>
 #include <utility>
 
 class ToolContext; // forward declaration. used a lot. see context.hpp
@@ -169,8 +170,7 @@ inline void _TTEFree(U8* _Instance)
 // Gets a current timestamp.
 inline U64 GetTimeStamp()
 {
-    return std::chrono::duration_cast<std::chrono::microseconds>(
-                                                                 std::chrono::high_resolution_clock::now().time_since_epoch()).count();
+    return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
 }
 
 // Gets the time difference in *seconds* between start and end.
@@ -179,7 +179,8 @@ inline Float GetTimeStampDifference(U64 start, U64 end)
     return static_cast<Float>(end - start) / 1'000'000.0f;
 }
 
-inline String GetFormatedTime(Float secs) {
+inline String GetFormatedTime(Float secs) 
+{
     std::ostringstream stream;
     
     if (secs >= 1.0f)
@@ -194,6 +195,34 @@ inline String GetFormatedTime(Float secs) {
     return stream.str();
 }
 
+// Helper. If T must be default constructible use this. Get wil return nullptr if not.
+template<typename T, Bool Value = std::is_default_constructible<T>::value>
+class OptionalDefaultConstructible
+{
+    
+    T _Value;
+    
+public:
+    
+    inline T* Get()
+    {
+        return &_Value;
+    }
+    
+};
+
+template<typename T>
+class OptionalDefaultConstructible<T, false>
+{
+public:
+    
+    inline T* Get()
+    {
+        return nullptr;
+    }
+    
+};
+
 // ================================================ COLLECTION UTIL ================================================
 
 template< typename T >
@@ -206,6 +235,7 @@ typename std::vector<T>::iterator VectorInsertSorted(std::vector<T> & vec, T&& i
 template <typename T> class hacked_priority_queue : public std::priority_queue<T>
 { // Not applying library convention, see this as an 'extension' to std::
 public:
+    
     std::vector<T> &get_container() { return this->c; }
     
     const std::vector<T> &get_container() const { return this->c; }
@@ -429,10 +459,55 @@ inline void StringReplace(String& str, const String& from, const String& to, Boo
     }
 }
 
-// Radius must be 2 to 36
-String StringFromInteger(I64 original_value,U32 radix, Bool is_negative); // defined tool lib context
+inline Bool StringContains(const String& str, const String& substr, Bool ignoreCase = false)
+{
+    if (substr.empty()) return false;
 
-// Removes 'class ' 'struct ' 'std::' and 'enum ' stuff. Used by telltale. Tests game caps if they strip. Defined in Context.cpp
+    String haystack = str;
+    String needle = substr;
+    if (ignoreCase)
+    {
+        haystack = ToLower(haystack);
+        needle = ToLower(needle);
+    }
+
+    return haystack.find(needle) != String::npos;
+}
+
+inline String StringToSnake(const String& input)
+{
+    String result;
+    result.reserve(input.size());
+    for (char c : input)
+    {
+        if (std::isspace(static_cast<unsigned char>(c)))
+        {
+            result.push_back('_');
+        }
+        else
+        {
+            result.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+        }
+    }
+
+    return result;
+}
+
+inline String StringExtractTemplateParameter(const String& typeName)
+{
+    size_t start = typeName.find('<');
+    size_t end = typeName.rfind('>');
+
+    if (start == String::npos || end == String::npos || end <= start + 1)
+        return "";
+
+    return typeName.substr(start + 1, end - start - 1);
+}
+
+// Radius must be 2 to 36
+String StringFromInteger(I64 original_value,U32 radix, Bool is_negative); // defined in Config.cpp
+
+// Removes 'class ' 'struct ' 'std::' and 'enum ' stuff. Used by telltale. Tests game caps if they strip. Defined in Config.cpp
 String MakeTypeName(String fullName);
 
 // ================================================== STRING MASK HELPER ==================================================
@@ -539,3 +614,152 @@ dstVar |= dstVar >> 4; dstVar |= dstVar >> 8; dstVar |= dstVar >> 16; dstVar++; 
 #define COERCE(_Ptr, _WantedT) (*(_WantedT*)(_Ptr))
 
 #define MACRO_COMMA ,
+
+#define NULLABLE
+
+#define NONNULL
+
+struct WeakPtrHash
+{
+
+    template <typename T>
+    std::size_t operator()(const std::weak_ptr<T>& wp) const
+    {
+        auto sp = wp.lock();
+        return std::hash<std::shared_ptr<T>>{}(sp);
+    }
+
+};
+
+struct WeakPtrEqual
+{
+
+    template <typename T>
+    Bool operator()(const std::weak_ptr<T>& a, const std::weak_ptr<T>& b) const
+    {
+        return !a.owner_before(b) && !b.owner_before(a);
+    }
+
+};
+
+struct ReferenceObjectInterface { virtual ~ReferenceObjectInterface() = default; }; // for weak ptr to nothing for inherit for use in normal objects 
+
+struct ReferenceObjectConcrete final : ReferenceObjectInterface { void* Data$; inline ReferenceObjectConcrete(void* _D = nullptr) : Data$(_D) {} }; // for actual weak ptr to this, containing nothing or the actual pointer
+
+class Ticker
+{
+public:
+
+    inline Ticker(I32 threshold) : _Threshold(MAX(1, threshold)), _Ticks(0) {}
+
+    inline Bool Tick()
+    {
+        _Ticks = (_Ticks + 1) % _Threshold;
+        return _Ticks == 0;
+    }
+
+private:
+
+    I32 _Threshold;
+    I32 _Ticks;
+
+};
+
+// ================================================ WEAK REF SLOTS ================================================
+
+// fun test! find where a hidden sequence here is from. hint: crack 180 software. good luck. bits 5 & 37 used for signal state.
+#define WEAK_SIGNAL_SANITY 0xEDFD425C'CB42FDCD
+#define WEAK_SIGNAL_SANITY_NSTATE_MASK 0xFFFFFFDF'FFFFFDFF
+#define WEAK_SIGNAL_SANITY_SSTATE_MASK 0x00000020'00000020
+
+// must be alive until all weak refs expire & master expire!!
+// fast listenable signal if master expires. can be shared by masters/weaks
+class WeakSlotSignal
+{
+    
+    friend class ToolContext;
+    
+    U64 _Stat = 0; // 2bits is the stat, rest are sanity bits to ensure it doesnt change (corruption checks).
+    
+    inline WeakSlotSignal() {}
+    inline WeakSlotSignal(WeakSlotSignal&&) : _Stat(0) {}
+    inline WeakSlotSignal(const WeakSlotSignal&) : _Stat(0) {}
+    WeakSlotSignal& operator=(WeakSlotSignal&&) { _Stat = 0; return *this; }
+    WeakSlotSignal& operator=(const WeakSlotSignal&) { _Stat = 0; return *this; }
+    
+public:
+    
+    inline Bool Expired() const
+    {
+        return _Stat != 0 && ((_Stat & WEAK_SIGNAL_SANITY_SSTATE_MASK) == WEAK_SIGNAL_SANITY_SSTATE_MASK);
+    }
+    
+    // reset signal to unset, allowing you to check if another master with this signal has expired
+    inline void Unset()
+    {
+        _Stat &= WEAK_SIGNAL_SANITY_NSTATE_MASK;
+    }
+    
+    // ensures status is 0 or sanity bit-and'ed with the initial sanity above.
+    ~WeakSlotSignal();
+    
+};
+
+// master holder to the weak slot. unique ptr, not shared. weak is sharable.
+class WeakSlotMaster
+{
+    // can copy but wont copy ref, ie x = y, x will be detached and will be empty.
+    
+    friend class ToolContext;
+    friend class WeakSlotRef;
+    
+    ToolContext* _Context = 0;
+    WeakSlotSignal* _Signal = 0;
+    U32 _WeakSlot = 0;
+    
+    WeakSlotMaster(WeakSlotMaster&&) = default;
+    WeakSlotMaster& operator=(WeakSlotMaster&&) = default;
+    
+    WeakSlotMaster& operator=(const WeakSlotMaster&);
+    
+    inline WeakSlotMaster(const WeakSlotMaster&) : _WeakSlot(0)
+    {
+    }
+    
+    ~WeakSlotMaster();
+    
+public:
+    
+    inline WeakSlotMaster() {}
+    
+};
+
+// weak reference to slot. up to 32767 wk refs
+class WeakSlotRef
+{
+    
+    friend class WeakSlotMaster;
+    friend class ToolContext;
+    
+    ToolContext* _Context = 0;
+    U32 _WeakSlot = 0;
+    
+    WeakSlotRef(WeakSlotRef&&) = default;
+    WeakSlotRef& operator=(WeakSlotRef&&) = default;
+    
+    WeakSlotRef& operator=(const WeakSlotRef& rhs);
+    
+    inline WeakSlotRef(const WeakSlotMaster& rhs)
+    {
+        *this = rhs;
+    }
+    
+    ~WeakSlotRef();
+    
+    inline WeakSlotRef(U32 s, ToolContext* c) : _WeakSlot(s), _Context(c) {}
+    
+public:
+    
+    inline WeakSlotRef() {}
+    
+};

@@ -3,6 +3,8 @@
 require("ToolLibrary/Game/Common/LuaPropertySet.lua")
 require("ToolLibrary/Game/VersionCRC.lua")
 
+require("ToolLibrary/UI/ModuleCollector.lua")
+
 require("ToolLibrary/Game/TX100/D3DTexture.lua")
 require("ToolLibrary/Game/TX100/D3DMesh.lua")
 require("ToolLibrary/Game/Common/Scene.lua")
@@ -10,10 +12,16 @@ require("ToolLibrary/Game/Common/Audio.lua")
 require("ToolLibrary/Game/Common/Animation.lua")
 require("ToolLibrary/Game/Common/Chore.lua")
 require("ToolLibrary/Game/Common/InputMapper.lua")
+require("ToolLibrary/Game/Common/WalkBoxes.lua")
+
+function TX100_RegisterModuleUI()
+
+	ModuleCollector_RegisterUI(0)
+end
 
 function TX100_GetGameDescriptor()
 	local texasHoldem = {}
-	texasHoldem.Name = "Telltale Texax Hold'em"
+	texasHoldem.Name = "Telltale Texas Hold'em"
 	texasHoldem.ID = "TX100" -- Texas S1 (100)
 	texasHoldem.DefaultMetaVersion = "MBIN"
 	texasHoldem.LuaVersion = "5.0.2"
@@ -24,7 +32,8 @@ function TX100_GetGameDescriptor()
 	MetaPushGameCapability(texasHoldem, kGameCapSeparateAnimationTransform)
 	MetaPushGameCapability(texasHoldem, kGameCapUsesLenc)
 	MetaPushGameCapability(texasHoldem, kGameCapRawClassNames)
-	MetaRegisterGame(texasHoldem) -- does not have any encryption, so no encryption keys
+	MetaPushExecutableHash(texasHoldem, "E64AB49D1EE153E3", "PC", "")
+	-- does not have any encryption, so no encryption keys
 	return texasHoldem
 end
 
@@ -163,9 +172,16 @@ function RegisterTX100(vendor)
 	MetaRegisterClass(lightType)
 
 	local textAlign = NewClass("class TextAlignmentType", 0)
-	textAlign.Members[1] = NewMember("mAlignmentType", kMetaInt, 0)
+	textAlign.Flags = kMetaClassEnumWrapper 
+	textAlign.Members[1] = NewMember("mAlignmentType", kMetaInt, kMetaMemberEnum)
+	AddEnum(textAlign, 1, "None", 0)
+	AddEnum(textAlign, 1, "Left Justified", 1)
+	AddEnum(textAlign, 1, "Centered", 2)
+	AddEnum(textAlign, 1, "Right Justified", 4)
+	AddEnum(textAlign, 1, "Top", 8)
+	AddEnum(textAlign, 1, "Middle", 16)
+	AddEnum(textAlign, 1, "Bottom", 32)
 	MetaRegisterClass(textAlign)
-
 
 	local audStreamed = NewClass("struct AudioData::Streamed", 0)
 	audStreamed.Members[1] = NewMember("mStreamRegionSize", kMetaInt)
@@ -258,6 +274,7 @@ function RegisterTX100(vendor)
 	local scene = NewClass("class Scene", 0)
 	scene.Extension = "scene"
 	scene.Serialiser = "SerialiseScene0"
+	scene.Normaliser = "NormaliseScene_V0"
 	scene.Members[1] = NewMember("mbHidden", kMetaBool)
 	scene.Members[2] = NewMember("mName", kMetaClassString)
 	scene.Members[3] = NewMember("_mAgents", arrayAgents, kMetaMemberVersionDisable + kMetaMemberSerialiseDisable)
@@ -368,6 +385,9 @@ function RegisterTX100(vendor)
 	font.Members[4] = NewMember("mTexturePages", arrayTex)
 	MetaRegisterClass(font)
 	MetaAssociateFolderExtension("TX100", "*.font", "Fonts/")
+
+	local wbox = RegisterWalkBoxes0(MetaFlags, MetaVec3, RegisterTXCollection)
+	MetaAssociateFolderExtension("TX100", "*.wbox", "WalkBoxes/")
 
 	return true
 end

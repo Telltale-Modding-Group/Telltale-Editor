@@ -208,7 +208,6 @@ void RenderTexture::RegisterScriptAPI(LuaFunctionCollection &Col)
     PUSH_FUNC(Col, "CommonTextureCalculateSlicePitch", &TextureAPI::luaTextureCalculateSlicePitch,
               "int CommonTextureCalculateSlicePitch(texFormat, width, height)", "Calculates the slice pitch of the texture given the texture format, in bytes.");
     PUSH_GLOBAL_I(Col, "kCommonTextureResolvableFormatBGRX", 0, "BGR'X' resolvable texture format. 'X' is unused and set to opaque.");
-    //PUSH_GLOBAL_I(Col, "kCommonTextureDDSHeaderSize", 0x7C, "..."); different versions
     
 }
 

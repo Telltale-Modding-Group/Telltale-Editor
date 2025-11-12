@@ -69,6 +69,12 @@ namespace CommandLine
         _DumpCollection(luaGameEngine(false), docs);
         if(!excludeLib)
         {
+            LuaFunctionCollection PropKonst{};
+            for (const auto& prop : GetPropKeyConstants())
+            {
+                PUSH_GLOBAL_S(PropKonst, prop.first, prop.second, "Telltale Property Keys");
+            }
+            _DumpCollection(PropKonst, docs);
             _DumpCollection(luaLibraryAPI(false), docs);
             _DumpCollection(CreateScriptAPI(), docs);
         }
@@ -126,9 +132,9 @@ namespace CommandLine
         if(!game.ID.length())
             return 1;
         {
-            TelltaleEditor* editor = CreateEditorContext(game, false);
+            TelltaleEditor* editor = CreateEditorContext(game);
             
-            Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry();
+            Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry(false);
             registry->MountSystem("<Data>/", mount, true);
             
             std::set<String> all{};
@@ -173,8 +179,8 @@ namespace CommandLine
         if(!game.ID.length())
             return 1;
         {
-            TelltaleEditor* editor = CreateEditorContext(game, false);
-            Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry();
+            TelltaleEditor* editor = CreateEditorContext(game);
+            Ptr<ResourceRegistry> registry = editor->CreateResourceRegistry(false);
             if(std::filesystem::is_regular_file(mount))
                 registry->MountArchive("<Data>/", mount);
             else if(std::filesystem::is_directory(mount))
@@ -204,7 +210,7 @@ namespace CommandLine
         if(!game.ID.length())
             return 1;
         {
-            TelltaleEditor* editor = CreateEditorContext(game, false);
+            TelltaleEditor* editor = CreateEditorContext(game);
             DataStreamRef infile = DataStreamManager::GetInstance()->CreateFileStream(in);
             DataStreamRef outfile = DataStreamManager::GetInstance()->CreateFileStream(out);
             if(!infile->GetSize())
@@ -237,7 +243,7 @@ namespace CommandLine
             outfo += "/";
         {
             GameSnapshot game = GetSnapshot(args);
-            TelltaleEditor* editor = CreateEditorContext(game, false);
+            TelltaleEditor* editor = CreateEditorContext(game);
             for(String in: infiles)
             {
                 String out = infiles.size() == 1 && HasArgument(args, "-out") ? GetStringArgumentOrDefault(args, "-out", "") : (outfo + FileGetFilename(in));
@@ -296,9 +302,9 @@ namespace CommandLine
         GameSnapshot game = GetSnapshot(args);
         if(!game.ID.length())
             return 1;
-        TelltaleEditor* editor = CreateEditorContext(game, false);
+        TelltaleEditor* editor = CreateEditorContext(game);
         {
-            Ptr<ResourceRegistry> userReg = editor->CreateResourceRegistry();
+            Ptr<ResourceRegistry> userReg = editor->CreateResourceRegistry(true);
             DataStreamRef file = DataStreamManager::GetInstance()->CreateFileStream(exec);
             if(!file->GetSize())
             {
@@ -332,7 +338,7 @@ namespace CommandLine
             outfo += "/";
         {
             GameSnapshot game = GetSnapshot(args);
-            TelltaleEditor* editor = CreateEditorContext(game, false);
+            TelltaleEditor* editor = CreateEditorContext(game);
             for(String in: infiles)
             {
                 String out = infiles.size() == 1 && HasArgument(args, "-out") ? GetStringArgumentOrDefault(args, "-out", "") : (outfo + FileGetFilename(in));
@@ -365,7 +371,7 @@ namespace CommandLine
         if(!infiles.size())
             return 1;
         GameSnapshot game = GetSnapshot(args);
-        TelltaleEditor* editor = CreateEditorContext(game, false);
+        TelltaleEditor* editor = CreateEditorContext(game);
         {
             U32 i = 0;
             Float scale = 100.0f / (Float)infiles.size();
@@ -517,7 +523,9 @@ namespace CommandLine
         }
         
         {
-            auto& task = tasks.emplace_back(TaskInfo{"run", "Runs the Telltale Editor application", &Executor_Editor});
+            auto& task = tasks.emplace_back(TaskInfo{"run", "Runs the Telltale Editor application. Optionally pass in the user directory for your workspace, or project file path to load.", &Executor_Editor});
+            task.OptionalArguments.push_back({ "-userdir",ArgumentType::STRING, {"-cwd"} });
+            task.OptionalArguments.push_back({ "-project",ArgumentType::STRING, {"-p","-proj"} });
             task.DefaultTask = true;
         }
         

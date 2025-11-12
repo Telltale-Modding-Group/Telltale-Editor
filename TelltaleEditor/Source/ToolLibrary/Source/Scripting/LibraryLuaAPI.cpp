@@ -10,8 +10,9 @@
 #include <utility>
 #include <set>
 #include <sstream>
+#include <algorithm>
 
-extern thread_local bool _IsMain;
+extern thread_local Bool _IsMain;
 
 // ===================================================================         META LUA API
 // ===================================================================
@@ -32,7 +33,7 @@ namespace Meta
             
             U32 len = (U32)hexkey.length();
             ret.BfKeyLength = len >> 1;
-            TTE_ASSERT(ret.BfKeyLength, "Provided encryption key"
+            TTE_ASSERT(ret.BfKeyLength < 56, "Provided encryption key"
                        " is too large at %d bytes. Maximum 56.", ret.BfKeyLength);
             
             for(U32 i = 0; i < len; i += 2) // convert hex string to max 56 byte buffer
@@ -75,6 +76,49 @@ namespace Meta
             
             TTE_ASSERT(false, "When registering %s => %s, the game %s has not been registered", ext.c_str(), folder.c_str(), game.c_str());
             
+            return 0;
+        }
+
+        U32 luaMetaPushHash(LuaManager& man)
+        {
+            TTE_ASSERT(_IsMain, "Can only be called in initialisation on the main thread");
+            if (!GetToolContext() || GetToolContext()->GetActiveGame()) // no active game can be set here
+            {
+                TTE_ASSERT(false, "This function can only be called during initialisation of a game");
+                return 0;
+            }
+            man.PushLString("HashMap");
+            man.GetTable(1);
+            if (man.Type(-1) != LuaType::TABLE)
+            {
+                man.Pop(1);
+                man.PushLString("HashMap");
+                man.PushTable();
+                man.SetTable(1);
+                man.PushLString("HashMap");
+                man.GetTable(1);
+            }
+            // game tab, hash str, platform, vendor, hash tab
+            String hash = man.ToString(2);
+            String plat = man.ToString(3);
+            String vend = man.ToString(4);
+            U64 hashVal = (U64)std::stoull(hash, nullptr, 16);
+            if(hashVal == 0)
+            {
+                TTE_LOG("WARNING: Hash %s is invalid when pushing game hash", hash.c_str());
+            }
+            else
+            {
+                man.PushLString(hash);
+                man.PushTable();
+                man.PushLString("Platform");
+                man.PushLString(plat);
+                man.SetTable(-3);
+                man.PushLString("Vendor");
+                man.PushLString(vend);
+                man.SetTable(-3);
+                man.SetTable(-3);
+            }
             return 0;
         }
         
@@ -144,13 +188,33 @@ namespace Meta
             if(ScriptManager::PopBool(man))
                 reg.Fl.Add(RegGame::ARCHIVE2);
             ScriptManager::TableGet(man, "ArchiveVersion");
-            reg.ArchiveVersion = ScriptManager::PopUnsignedInteger(man);
+            if(man.Type(-1) == LuaType::TABLE)
+            {
+                man.PushNil(); // set for each table
+                while (man.TableNext(-2) != 0)
+                {
+                    TTE_ASSERT(man.Type(-2) == LuaType::STRING && man.Type(-1) == LuaType::NUMBER, "Archive version table invalid");
+
+                    man.PushCopy(-2); // push copy of key
+
+                    U32 archive = (U32)man.ToInteger(-2);
+                    String platformName = man.ToString(-1); // more like snapshot ID
+                    reg.SnapToArchiveVersion[platformName] = archive;
+
+                    man.Pop(2);
+                }
+                man.Pop(1); // pop last key
+            }
+            else
+            {
+                reg.MasterArchiveVersion = ScriptManager::PopUnsignedInteger(man);
+            }
             ScriptManager::TableGet(man, "ModifiedEncryption");
             if(man.Type(-1) == LuaType::BOOL)
             {
                 if(ScriptManager::PopBool(man))
                     reg.Fl.Add(RegGame::MODIFIED_BLOWFISH);
-            }
+            } // [Gitbook Documentation](https://telltale-editor.gitbook.io/documentation-for-the-telltale-editor
             else
             {
                 man.Pop(1);
@@ -172,6 +236,24 @@ namespace Meta
                     reg.Caps.Set((GameCapability)man.ToInteger(-1), true);
                     man.Pop(1);
                     index++;
+                }
+            }
+            man.Pop(1);
+
+            ScriptManager::TableGet(man, "HashMap");
+            if (man.Type(-1) == LuaType::TABLE)
+            {
+                ITERATE_TABLE(it, -1)
+                {
+                    String hash = man.ToString(it.KeyIndex());
+                    man.PushLString("Platform");
+                    man.GetTable(it.ValueIndex());
+                    String plat = ScriptManager::PopString(man);
+                    man.PushLString("Vendor");
+                    man.GetTable(it.ValueIndex());
+                    String vend = ScriptManager::PopString(man);
+                    U64 hashVal = (U64)std::stoull(hash, nullptr, 16);
+                    reg.ExecutableHash[hashVal] = std::make_pair(plat, vend);
                 }
             }
             man.Pop(1);
@@ -204,8 +286,7 @@ namespace Meta
                     
                     String key = man.ToString(-2);
                     String platformName = man.ToString(-1);
-                    TTE_ASSERT(_Impl::_CheckPlatform(platformName), "The platform '%s' is invalid! Check valid ones", platformName.c_str());
-                    reg.PlatformToEncryptionKey[platformName] = luaToKey(key); // set platform key
+                    reg.SnapToEncryptionKey[platformName] = luaToKey(key);
                     
                     man.Pop(2);
                 }
@@ -235,22 +316,64 @@ namespace Meta
             ScriptManager::TableGet(man, "Vendors");
             if(man.Type(-1) == LuaType::STRING)
             {
-                String val = ScriptManager::PopString(man);
-                if(val.length() > 1) // at least 2
+                String val = StringTrim(ScriptManager::PopString(man));
+                if(val.length() == 0)
+                {
+                    reg.ValidVendors.push_back(""); // default vendor is empty
+                }
+                else
                 {
                     std::stringstream ss(val);
                     String token{};
                     while (std::getline(ss, token, ';'))
                     {
+                        if(token.length() == 0)
+                        {
+                            TTE_ASSERT(false, "At MetaRegisterGame: %s: vendor array invalid", reg.Name.c_str());
+                            return 0;
+                        }
                         reg.ValidVendors.push_back(token);
                     }
                 }
             }
             else
             {
-                TTE_ASSERT(false, "Game table must specify Vendors as a string");
+                TTE_ASSERT(false, "At MetaRegisterGame: %s: vendor array not specified",
+                           reg.Name.c_str());
                 man.Pop(1);
                 return 0;
+            }
+
+            if(reg.ValidVendors[0].length())
+            {
+                ScriptManager::TableGet(man, "DefaultVendor");
+                if (man.Type(-1) == LuaType::STRING)
+                {
+                    reg.DefaultVendor = ScriptManager::PopString(man);
+                    if(std::find(reg.ValidVendors.begin(), reg.ValidVendors.end(), reg.DefaultVendor) == reg.ValidVendors.end())
+                    {
+                        TTE_ASSERT(false, "At MetaRegisterGame: %s: the default vendor %s is not a valid vendor specified in the vendors array",
+                                   reg.Name.c_str());
+                        return 0;
+                    }
+                }
+                else
+                {
+                    TTE_ASSERT(false, "At MetaRegisterGame: %s: the default vendor must be specified here!", reg.Name.c_str());
+                    man.Pop(1);
+                    return 0;
+                }
+            }
+
+            ScriptManager::TableGet(man, "CommonSelector");
+            if(man.Type(-1) == LuaType::STRING)
+            {
+                reg.CommonSelector = ScriptManager::PopString(man);
+            }
+            else
+            {
+                reg.CommonSelector = "";
+                man.Pop(1); // OK, just use normal version number 0
             }
             
             ScriptManager::TableGet(man, "LuaVersion");
@@ -351,33 +474,33 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             
             // I define all possible type names used in all games here as it doesn't matter how many there are. (different compiler ones etc)
             
-            REGISTER_INTRINSIC(U32, "uint32", "kMetaUInt32", 4, &SerialiseU32);
-            REGISTER_INTRINSIC(I32,"int", "kMetaInt", 4, &SerialiseU32);
-            REGISTER_INTRINSIC(U32,"uint", "kMetaUInt", 4, &SerialiseU32); // alias (obvious 32)
-            REGISTER_INTRINSIC(I32,"int32", "kMetaInt32", 4, &SerialiseU32); // alias
-            REGISTER_INTRINSIC(U64,"uint64", "kMetaUInt64", 8, &SerialiseU64);
-            REGISTER_INTRINSIC(I64,"int64", "kMetaInt64", 8, &SerialiseU64);
-            REGISTER_INTRINSIC(U64,"unsigned __int64", "kMeta__UnsignedInt64", 8, &SerialiseU64);
-            REGISTER_INTRINSIC(I32,"long", "kMetaLong", 4, &SerialiseU32); // alias for int32 on most windows
-            REGISTER_INTRINSIC(float,"float", "kMetaFloat", 4, &SerialiseU32); // serialise it as U32
-            REGISTER_INTRINSIC(double,"double", "kMetaDouble", 8, &SerialiseU64); // serialise as U64
-            REGISTER_INTRINSIC(bool,"bool", "kMetaBool", 1, &_Impl::SerialiseBool);
-            REGISTER_INTRINSIC(I8,"int8", "kMetaInt8", 1, &SerialiseU8);
-            REGISTER_INTRINSIC(U8,"uint8", "kMetaUnsignedInt8", 1, &SerialiseU8);
-            REGISTER_INTRINSIC(I16,"int16", "kMetaInt16", 2, &SerialiseU16);
-            REGISTER_INTRINSIC(U16,"uint16", "kMetaUnsignedInt16", 2, &SerialiseU16);
-            REGISTER_INTRINSIC(I8,"signed char", "kMetaSignedChar", 1, &SerialiseU8);
-            REGISTER_INTRINSIC(I8,"char", "kMetaChar", 1, &SerialiseU8);
-            REGISTER_INTRINSIC(double,"long double", "kMetaLongDoubler", 8, &SerialiseU64); // alias for double
-            REGISTER_INTRINSIC(U8,"unsigned char", "kMetaUnsignedChar", 1, &SerialiseU8);
-            REGISTER_INTRINSIC(U32,"unsigned int", "kMetaUnsignedInt", 4, &SerialiseU32);
-            REGISTER_INTRINSIC(U32,"unsigned long", "kMetaUnsignedLong", 4, &SerialiseU32);
-            REGISTER_INTRINSIC(U16,"unsigned short", "kMetaUnsignedShort", 2, &SerialiseU16);
-            REGISTER_INTRINSIC(I16,"short", "kMetaShort", 2, &SerialiseU16);
-            REGISTER_INTRINSIC(wchar_t,"wchar_t", "kMetaWideChar", 2, &SerialiseU16);
-            REGISTER_INTRINSIC(I64,"long long", "kMetaLongLong", 8, &SerialiseU64);
-            REGISTER_INTRINSIC(U64,"unsigned long long", "kMetaUnsignedLongLong", 8, &SerialiseU64);
-            REGISTER_INTRINSIC(I64,"__int64", "kMeta__Int64", 8, &SerialiseU64); // alias for uint64
+            REGISTER_INTRINSIC(U32,     "uint32", "kMetaUInt32", 4, &SerialiseU32);
+            REGISTER_INTRINSIC(I32,     "int", "kMetaInt", 4, &SerialiseU32);
+            REGISTER_INTRINSIC(U32,     "uint", "kMetaUInt", 4, &SerialiseU32); // alias (obvious 32)
+            REGISTER_INTRINSIC(I32,     "int32", "kMetaInt32", 4, &SerialiseU32); // alias
+            REGISTER_INTRINSIC(U64,     "uint64", "kMetaUInt64", 8, &SerialiseU64);
+            REGISTER_INTRINSIC(I64,     "int64", "kMetaInt64", 8, &SerialiseU64);
+            REGISTER_INTRINSIC(U64,     "unsigned __int64", "kMeta__UnsignedInt64", 8, &SerialiseU64);
+            REGISTER_INTRINSIC(I32,     "long", "kMetaLong", 4, &SerialiseU32); // alias for int32 on most windows
+            REGISTER_INTRINSIC(float,   "float", "kMetaFloat", 4, &SerialiseU32); // serialise it as U32
+            REGISTER_INTRINSIC(double,  "double", "kMetaDouble", 8, &SerialiseU64); // serialise as U64
+            REGISTER_INTRINSIC(bool,    "bool", "kMetaBool", 1, &_Impl::SerialiseBool);
+            REGISTER_INTRINSIC(I8,      "int8", "kMetaInt8", 1, &SerialiseU8);
+            REGISTER_INTRINSIC(U8,      "uint8", "kMetaUnsignedInt8", 1, &SerialiseU8);
+            REGISTER_INTRINSIC(I16,     "int16", "kMetaInt16", 2, &SerialiseU16);
+            REGISTER_INTRINSIC(U16,     "uint16", "kMetaUnsignedInt16", 2, &SerialiseU16);
+            REGISTER_INTRINSIC(I8,      "signed char", "kMetaSignedChar", 1, &SerialiseU8);
+            REGISTER_INTRINSIC(I8,      "char", "kMetaChar", 1, &SerialiseU8);
+            REGISTER_INTRINSIC(double,  "long double", "kMetaLongDoubler", 8, &SerialiseU64); // alias for double
+            REGISTER_INTRINSIC(U8,      "unsigned char", "kMetaUnsignedChar", 1, &SerialiseU8);
+            REGISTER_INTRINSIC(U32,     "unsigned int", "kMetaUnsignedInt", 4, &SerialiseU32);
+            REGISTER_INTRINSIC(U32,     "unsigned long", "kMetaUnsignedLong", 4, &SerialiseU32);
+            REGISTER_INTRINSIC(U16,     "unsigned short", "kMetaUnsignedShort", 2, &SerialiseU16);
+            REGISTER_INTRINSIC(I16,     "short", "kMetaShort", 2, &SerialiseU16);
+            REGISTER_INTRINSIC(wchar_t, "wchar_t", "kMetaWideChar", 2, &SerialiseU16);
+            REGISTER_INTRINSIC(I64,     "long long", "kMetaLongLong", 8, &SerialiseU64);
+            REGISTER_INTRINSIC(U64,     "unsigned long long", "kMetaUnsignedLongLong", 8, &SerialiseU64);
+            REGISTER_INTRINSIC(I64,     "__int64", "kMeta__Int64", 8, &SerialiseU64); // alias for uint64
             
 #undef REGISTER_INTRINSIC
             
@@ -386,6 +509,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             c.RTSize = sizeof(Symbol); // should definitely be 8!
             c.ToString = &SymbolToStringOperation;
             c.Serialise = &_Impl::SerialiseSymbol;
+            c.Equals = &GenerateEquals<Symbol>;
+            c.LessThan = &GenerateLT<Symbol>;
             AddIntrinsic(man, "kMetaSymbol", "Symbol", std::move(c));
             
             // older games have class before it
@@ -394,6 +519,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             c.RTSize = sizeof(Symbol); // should definitely be 8!
             c.ToString = &SymbolToStringOperation;
             c.Serialise = &_Impl::SerialiseSymbol;
+            c.Equals = &GenerateEquals<Symbol>;
+            c.LessThan = &GenerateLT<Symbol>;
             AddIntrinsic(man, "kMetaClassSymbol", "class Symbol", std::move(c));
             
             c.Flags = CLASS_INTRINSIC;
@@ -405,18 +532,22 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             c.CopyConstruct = &_Impl::CopyString;
             c.MoveConstruct = &_Impl::MoveString;
             c.ToString = &StringToStringOperation;
+            c.Equals = &GenerateEquals<String>;
+            c.LessThan = &GenerateLT<String>;
             AddIntrinsic(man, "kMetaString", "String", std::move(c));
             memset(&c, 0, sizeof(Class));
             
             // register string again with 'class', some older games use that
             c.Flags = CLASS_INTRINSIC;
-            c.Name = "class String";
+            c.Name = String("class String");
             c.RTSize = (U32)sizeof(String);
             c.Constructor = &_Impl::CtorString;
             c.Destructor = &_Impl::DtorString;
             c.Serialise = &_Impl::SerialiseString;
             c.CopyConstruct = &_Impl::CopyString;
             c.MoveConstruct = &_Impl::MoveString;
+            c.Equals = &GenerateEquals<String>;
+            c.LessThan = &GenerateLT<String>;
             c.ToString = &StringToStringOperation;
             AddIntrinsic(man, "kMetaClassString", "class String", std::move(c));
             memset(&c, 0, sizeof(Class));
@@ -635,6 +766,11 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.SetTable(-3);
             }
             
+            if(c.Flags & Meta::CLASS_COLLECTION_SORTED)
+            {
+                c.Flags &= ~Meta::CLASS_COLLECTION_SORTED;
+            }
+            
             ScriptManager::TableGet(man, "Serialiser");
             if(man.Type(-1) == LuaType::STRING)
                 c.SerialiseScriptFn = ScriptManager::PopString(man);
@@ -745,6 +881,7 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                 man.GetTable(2);
                 TTE_ASSERT(man.Type(-1) == LuaType::NUMBER, "When registering collection, key type table not registered properly");
                 c.ArrayKeyClass = (U32)ScriptManager::PopInteger(man);
+                c.Flags |= Meta::CLASS_COLLECTION_SORTED;
             }
             else if(man.Type(2) == LuaType::STRING) // defer it
             {
@@ -756,8 +893,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
                     val = val.substr(0, semi);
                 }
                 def.KeyType = std::move(val);
+                c.Flags |= Meta::CLASS_COLLECTION_SORTED;
             }
-            
             
             if(man.Type(3) == LuaType::STRING) // defer it
             {
@@ -1297,7 +1434,8 @@ AddIntrinsic(man, script_constant_string, name_string, std::move(c));
             }
             else
             {
-                TTE_LOG("Invalid class %s [%d]", man.ToString(1).c_str(), man.ToInteger(2));
+                String clas = man.ToString(1);
+                TTE_LOG("Invalid class %s [%d]", clas.c_str(), man.ToInteger(2));
                 man.PushNil();
             }
             return 1;
@@ -2529,7 +2667,7 @@ namespace LuaMisc
     {
         TTE_ASSERT(man.GetTop() == 1, "Incorrect usage for SymbolFind")
         Symbol sym = SymbolFromHexString(man.ToString(-1));
-        String str = sym.GetCRC64() == 0 ? man.ToString(-1) : SymbolTable::Find(sym);
+        String str = sym.GetCRC64() == 0 ? "" : SymbolTable::Find(sym);
         man.PushLString(std::move(str));
         return 1;
     }
@@ -2593,6 +2731,26 @@ namespace TTE
         }
         return true;
     }
+
+    static U32 luaGetMountPoints(LuaManager& man)
+    {
+        TTE_ASSERT(man.GetTop() == 0, "Invalid use of TTE_GetMountPoints");
+        auto reg = ResourceRegistry::GetBoundRegistry(man);
+        man.PushTable();
+        if(reg)
+        {
+            std::vector<String> names{};
+            reg->GetResourceLocationNames(names);
+            I32 i = 0;
+            for(const auto& name: names)
+            {
+                man.PushInteger(++i);
+                man.PushLString(name);
+                man.SetTable(-3);
+            }
+        }
+        return 1;
+    }
     
     static U32 luaSwitch(LuaManager& man)
     {
@@ -2616,7 +2774,7 @@ namespace TTE
             Context->Switch(snap);
             if(hasReg)
             {
-                Context->CreateResourceRegistry()->BindLuaManager(man); // cached in dependents. keeps alive
+                Context->CreateResourceRegistry(false); // cached in dependents. keeps alive
             }
         }
         return 0;
@@ -2633,12 +2791,28 @@ namespace TTE
             man.PushNil();
             return 1;
         }
+        Ptr<ResourceRegistry> reg = ResourceRegistry::GetBoundRegistry(man);
+        if (!reg)
+        {
+            TTE_LOG("At TTE_OpenMetaStream: no bound resource registry. Cannot be used here");
+            man.PushBool(false);
+            return 1;
+        }
         if(EnsureMain())
         {
             String path = man.ToString(1);
             DataStreamRef r;
             if(man.GetTop() == 1)
-                r = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, path));
+            {
+                ResourceAddress addr = reg->CreateResolvedAddress(path, false);
+                if (!addr)
+                {
+                    TTE_LOG("At TTE_OpenMetaStream: resource address %s is invalid", path.c_str());
+                    man.PushBool(false);
+                    return 1;
+                }
+                r = reg->OpenDataStream(addr.GetLocationName(), addr.GetName());
+            }
             else
             {
                 // open from archive
@@ -2682,6 +2856,13 @@ namespace TTE
         TTE_ASSERT(man.GetTop() == 2, "Invalid use of TTE_SaveMetaStream");
         ToolContext* Context = ::GetToolContext();
         TTE_ASSERT(Context, "At TTE_SaveMetaStream: no context is present. Ensure any modding scripts are run after context initialisation.");
+        Ptr<ResourceRegistry> reg = ResourceRegistry::GetBoundRegistry(man);
+        if(!reg)
+        {
+            TTE_LOG("At TTE_SaveMetaStream: no bound resource registry. Cannot be used here");
+            man.PushBool(false);
+            return 1;
+        }
         if(!Context)
         {
             man.PushBool(false);
@@ -2690,7 +2871,14 @@ namespace TTE
         if(EnsureMain())
         {
             String path = man.ToString(-1);
-            DataStreamRef r = DataStreamManager::GetInstance()->CreateFileStream(ResourceURL(ResourceScheme::FILE, path));
+            ResourceAddress addr = reg->CreateResolvedAddress(path, false);
+            if(!addr)
+            {
+                TTE_LOG("At TTE_SaveMetaStream: resource address %s is invalid", path.c_str());
+                man.PushBool(false);
+                return 1;
+            }
+            DataStreamRef r = reg->OpenDataStream(addr.GetLocationName(), addr.GetName());
             Meta::ClassInstance inst = Meta::AcquireScriptInstance(man, -1);
             if(inst)
             {
@@ -2718,7 +2906,7 @@ namespace TTE
     static U32 luaActiveGame(LuaManager& man)
     {
         ToolContext* Context = ::GetToolContext();
-        TTE_ASSERT(Context, "At TTE_GetActiveGame: no context is present. Ensure any modding scripts are run after context initialisation.");
+        TTE_ASSERT(Context, "At TTE_GetActiveSnapshot: no context is present. Ensure any modding scripts are run after context initialisation.");
         if(!Context || !Context->GetActiveGame())
         {
             man.PushNil();
@@ -2736,12 +2924,8 @@ namespace TTE
         man.PushLString(pGame->ID);
         man.SetTable(-3);
         
-        man.PushLString("ArchiveVersion");
-        man.PushUnsignedInteger(pGame->ArchiveVersion);
-        man.SetTable(-3);
-        
-        man.PushLString("IsArchive2");
-        man.PushBool(pGame->UsesArchive2());
+        man.PushLString("Vendor");
+        man.PushLString(Context->GetSnapshot().Vendor);
         man.SetTable(-3);
         
         return 1;
@@ -2771,7 +2955,7 @@ namespace TTE
         
         if(r->GetSize() > 0)
         {
-            TTArchive2* pArchive = TTE_NEW(TTArchive2, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->ArchiveVersion);
+            TTArchive2* pArchive = TTE_NEW(TTArchive2, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->GetArchiveVersion(Context->GetSnapshot()));
             if(!pArchive->SerialiseIn(r))
             {
                 TTE_LOG("Cannot open archive %s: read failed (archive format invalid)", path.c_str());
@@ -2812,7 +2996,7 @@ namespace TTE
         
         if(r->GetSize() > 0)
         {
-            TTArchive* pArchive = TTE_NEW(TTArchive, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->ArchiveVersion);
+            TTArchive* pArchive = TTE_NEW(TTArchive, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->GetArchiveVersion(Context->GetSnapshot()));
             if(!pArchive->SerialiseIn(r))
             {
                 TTE_LOG("Cannot open archive %s: read failed (archive format invalid)", path.c_str());
@@ -3024,6 +3208,17 @@ namespace TTE
         return 1;
     }
     
+    static U32 luaGetPlatform(LuaManager& man)
+    {
+        if(man.GetTop() != 0)
+        {
+            TTE_LOG("At GetPlatform: did not expect arguments");
+            return 0;
+        }
+        man.PushLString(PLATFORM_NAME);
+        return 1;
+    }
+    
     static U32 luaTableToCollection(LuaManager& man)
     {
         if(man.GetTop() != 2)
@@ -3086,22 +3281,19 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     
     if(!bWorker)
     {
-        Col.Functions.push_back({"TTE_TableToContainer", &TTE::luaTableToCollection, "table TTE_TableToContainer(container)",
-            "Converts the container into a lua table and returns it. For keyed container, they are the table keys. For non keyed, they are 0 based indices."
-        });
-        Col.Functions.push_back({"TTE_ContainerToTable", &TTE::luaContainerToTable, "table TTE_ContainerToTable(container, table)",
-            "Inserts all key-value mappings from the input table into the container. For non keyed containers (eg arrays) keys are ignored and its added at the back."
-        });
         Col.Functions.push_back({"TTE_PrintResourceSets", &TTE::luaMountArchive, "nil TTE_PrintResourceSets()",
+            "This function is only available to mod scripts! "
             "Prints to the console all of the resource sets in the resource system, Must have a resource system attached!"
         });
         Col.Functions.push_back({"TTE_MountArchive", &TTE::luaMountArchive, "nil TTE_MountArchive(locationID, physPath)",
+            "This function is only available to mod scripts! "
             "Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that archive"
             " can be found. This supports .ttarch2/ttarch/iso/pk2. Physical path is the path on your local machine. Location ID should be in the format "
             "<XXX>/. Please note that the archive must be from the current game snapshot! Otherwise it will fail to read due to incorrect encryptino and "
             "expected format."
         });
         Col.Functions.push_back({"TTE_MountSystem", &TTE::luaMountSystem, "nil TTE_MountSystem(locationID, physPath, forceLegacy)",
+            "This function is only available to mod scripts! "
             "Mounts the resource system (like creating a concrete directory location) to the given physical path under the name locationID."
             " Location ID should be in the format <XXX>/. Physical path can be absolute or relative to your working directory. "
             "The last argument can be set to true to use the old telltale engine resource system which had no resource set descriptions. "
@@ -3109,55 +3301,71 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
             " so that they are all in resource system ready to be used."
         });
         Col.Functions.push_back({"TTE_Switch", &TTE::luaSwitch, "nil TTE_Switch(gameID, platformName, vendorName)",
+            "This function is only available to mod scripts! "
             "Switches the editor context to a new game snapshot. Note that this can only be called from a mod "
             "script at startup or when no files are being read or processed. If it is called at one of those"
             " times, an error is thrown to the log and it does nothing."});
-        Col.Functions.push_back({"TTE_OpenMetaStream", &TTE::luaOpenMetaStream, "instance TTE_OpenMetaStream(filename, --[[optional]] archive)",
+        Col.Functions.push_back({"TTE_OpenMetaStream", &TTE::luaOpenMetaStream, "instance TTE_OpenMetaStream(address_or_file, --[[optional]] archive)",
+            "This function is only available to mod scripts! "
             "Opens and reads a meta stream, returning the base class instance that the file contains. "
             "This returns a strong reference to the instance. If one argument is passed in, filename is "
-            "the path on your computer where the file is (or relative to the executable). If two are "
+            "resource address in the resource system where it is located. If two are "
             "passed in, the first must be the file name string and the second is the archive (any version) which the file is located in."
         });
-        Col.Functions.push_back({"TTE_SaveMetaStream", &TTE::luaSaveMetaStream, "bool TTE_SaveMetaStream(filename, instance)",
-            "Writes the given instance to the file located at the filename argument. Returns if it was successfully written."
+        Col.Functions.push_back({"TTE_SaveMetaStream", &TTE::luaSaveMetaStream, "bool TTE_SaveMetaStream(address, instance)",
+            "This function is only available to mod scripts! "
+            "Writes the given instance to the file located at the given resource address. Returns if it was successfully written."
         });
         Col.Functions.push_back({"TTE_OpenTTArchive", &TTE::luaOpenTTArch,
-            "arc TTE_OpenTTArchive(filepath)",
+            "arc TTE_OpenTTArchive(filepath)", "This function is only available to mod scripts! "
             "Opens a TTARCH file which is located at the given file path on your computer (or relative, like all file paths, to the executable)."
             " Returns the archive instance, a strong reference although this is not a class instance. "
             "You can then use this to list files and open files from it. Note that this archive MUST match the version of the currently selected game,"
             "ie the archive must be from the game that the editor context is currently working with."
         });
-        Col.Functions.push_back({"TTE_OpenTTArchive2", &TTE::luaOpenTTArch2, "arc TTE_OpenTTArchive2(filepath)",
+        Col.Functions.push_back({"TTE_OpenTTArchive2", &TTE::luaOpenTTArch2, "arc TTE_OpenTTArchive2(filepath)", "This function is only available to mod scripts! "
             "Opens a TTARCH2 file which is located at the given file path on your computer (or relative). "
             "Returns the archive instance, a strong reference. This archive, like others, must be from the currently"
             " active game such that the encryption key matches."
         });
-        Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles, "table TTE_ArchiveListFiles(archive)",
+        Col.Functions.push_back({"TTE_ArchiveListFiles", &TTE::luaArchiveListFiles, "table TTE_ArchiveListFiles(archive)", "This function is only available to mod scripts! "
             "Returns a table (indices 1 to N) of all the file names in the given archive, which was previously opened with open TTArchive or TTArchive2."
         });
-        Col.Functions.push_back({"TTE_Blowfish", &TTE::luaBlowfish,
-            "nil TTE_Blowfish(bufferMetaInstance, size, isEncrypt)",
-            "Performs a blowfish encryption on the given buffer class instance (must be kMetaClassInternalBinaryBuffer class). "
-            "The second argument must be less than or equal to the size of the buffer, how many bytes are to be encrypted or decrypted. "
-            "The last argument is if we want to encrypt (true) or decrypt (false). The key used is the current game key. "
-            "Note that blowfish encrypts in blocks of eight, ie the last remaining bytes aren't encrypted. All blowfish is like this, however, so don't worry."
-        });
     }
+
+    Col.Functions.push_back({ "TTE_Blowfish", &TTE::luaBlowfish,
+    "nil TTE_Blowfish(bufferMetaInstance, size, isEncrypt)",
+    "Performs a blowfish encryption on the given buffer class instance (must be kMetaClassInternalBinaryBuffer class). "
+    "The second argument must be less than or equal to the size of the buffer, how many bytes are to be encrypted or decrypted. "
+    "The last argument is if we want to encrypt (true) or decrypt (false). The key used is the current game key. "
+    "Note that blowfish encrypts in blocks of eight, ie the last remaining bytes aren't encrypted. All blowfish is like this, however, so don't worry."
+    });
+    Col.Functions.push_back({ "TTE_TableToContainer", &TTE::luaTableToCollection, "table TTE_TableToContainer(container)",
+    "Converts the container into a lua table and returns it. For keyed container, they are the table keys. For non keyed, they are 0 based indices."
+    });
+    Col.Functions.push_back({ "TTE_ContainerToTable", &TTE::luaContainerToTable, "table TTE_ContainerToTable(container, table)",
+        "Inserts all key-value mappings from the input table into the container. For non keyed containers (eg arrays) keys are ignored and its added at the back."
+    });
     
     // part of the TTE but can be called async
     Col.Functions.push_back({"TTE_DumpMemoryLeaks", &TTE::luaDumpMemLeaks, "nil TTE_DumpMemoryLeaks()",
         "Dumps to the logger all memory which has not been freed yet. This will contain a lot of script stuff which won't "
         "matter as the script engine requires memory which s tracked, however can be useful for tracking specific script object allocations."
     });
-    Col.Functions.push_back({"TTE_GetActiveGame", &TTE::luaActiveGame, "table TTE_GetActiveGame()",
+    Col.Functions.push_back({"TTE_GetActiveSnapshot", &TTE::luaActiveGame, "table TTE_GetActiveSnapshot()",
         "Returns the information about the currently active game. The returned table contains keys string "
-        "'Name', string 'ID',  integer 'ArchiveVersion' and bool 'IsArchive2'."
+        "'Name', string 'ID', and string 'Vendor'"
     });
     Col.Functions.push_back({"TTE_Assert", &TTE::luaAssert, "nil TTE_Assert(bool, errorMessage)", "If the first parameter is false, debug builds "
         "will throw an assert and break in the debugger"
     });
     Col.Functions.push_back({"TTE_Log", &TTE::luaLog, "nil TTE_Log(valueStr)", "Logs to the editor logger, the string argument."});
+    Col.Functions.push_back({"TTE_GetPlatform", &TTE::luaGetPlatform, "string TTE_GetPlatform()", "Gets the platform name which the Telltale Editor"
+        " is running on. This will return strings 'Windows' or 'MacOS', 'Linux' and etc for others in the future."
+    });
+    Col.Functions.push_back({"TTE_GetMountPoints", &TTE::luaGetMountPoints, "table TTE_GetMountPoints()", "Returns a N indexed array of all the mount"
+        " points in the resource system. These are the resource location names. You can use there to find resources."
+    });
     
     // REGISTER META API
     
@@ -3165,11 +3373,21 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     {
         Col.Functions.push_back({"MetaRegisterGame",&Meta::L::luaMetaRegisterGame, "nil MetaRegisterGame(gameInfoTable)",
             "This is used in the Games.lua script to register a game to the Meta system on initialisation. "
-            "It takes in a table which must have keys string Name, string ID, bool ModifiedEncryption, table Key[string platform]"
-            " to string hex key, etc. You could add your own game if you want to create one!"
+            "It takes in a table which must have keys string Name, string ID, bool ModifiedEncryption, string DefaultMetaVersion,"
+            "string LuaVersion, int/table ArchiveVersion, string/table Key, bool IsArchive2, table Platforms, table Vendors and pushed"
+            " capabilities. Archive version and key are either one static key/version or a table of snapshot ID to it. This is just 'Platform/Vendor'"
+            " if there are more than just the default (empty string) vendor. Else its just the platform name. See existing examples."
+            " If vendors are specified, then DefaultVendor must be as well as a string. The 'CommonSelector' key is also useful. It should specify a "
+            "function *name* which takes in the platform, vendor and common class type and returns the class name and version number of the common class "
+            "to create for that snapshot and class type. Optional, defaults to the normal class name and version 0."
+            " If specified, return just nil and 0 to use default class name as well. Else do special checks dependent on that snapshot."
         });
         Col.Functions.push_back({"MetaPushGameCapability",&Meta::L::luaMetaPushGameCap, "nil MetaPushGameCapability(gameTable, cap)","Push a game capability to the "
             "game table. Call before registering the game table."
+        });
+        Col.Functions.push_back({"MetaPushExecutableHash",&Meta::L::luaMetaPushHash, "nil MetaPushExecutableHash(gameTable, hashStr, platform, vendor)",
+                                "Push an executable hash which maps to the given platform/vendor pair. This is used for the Editor when user selects "
+                                "the mount points of their installation such that we can detect their installation game snapshot."
         });
         Col.Functions.push_back({"MetaAssociateFolderExtension",&Meta::L::luaAssignFolderExt,
             "nil MetaAssociateFolderExtension(gameID, mask, folder)", "This associates file name masks to folders. When extracting "
@@ -3197,7 +3415,7 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
             "then this should be an integer being the number of elements. The third argument must always be non nil and a table, which is the previously "
             "registered value type in the collection. There is a special case where key or value type table can be strings. "
             "If you pass them as a string, this means they will be resolved once all classes have been registered. This allows forward declaration of "
-            "a class inside a collection before its fully defined. Instead of padding in the type table you pass in the string name of the class it "
+            "a class inside a collection before its fully defined. Instead of passing in the type table you pass in the string name of the class it "
             "should be. Optionally you can end the string with a semicolon followed by the version index, eg 'class Hello;1', such that version index "
             "1 is used in this example. By default version index 0 is used."
         }); // used in Meta::Initialise4 in engine
@@ -3390,14 +3608,14 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     ADD_FN(MS, "MetaStreamWriteCached", luaMetaStreamWriteCached, "nil MetaStreamWriteCached(stream, cacheInstance)",
            "See above for information about cacheInstance. Does not write the size. Writes the cached bytes in its entirety to the stream.");
     ADD_FN(MS, "MetaStreamWriteDDS", luaMetaStreamWriteDDS, "nil MetaStreamWriteDDS(stream, table)",
-           "Writes a DDS file header with the given information. It must include the same information as returned by the read version above.");
+           "Writes a DDS file header with the given information. It must include the same information as returned by the read version. See MetaStreamReadDDS for information about the table values.");
     ADD_FN(MS, "MetaStreamDumpBuffer", luaMetaStreamDumpBuffer, "nil MetaStreamDumpBuffer(binaryBuffer, offset, size, outFileName)",
            "Dumps the binary buffer out to a file name. Pass in the offset in the buffer and number of bytes to dump.");
     ADD_FN(MS, "MetaStreamGetDDSHeaderSize", luaMetaStreamDDSSize, "number MetaStreamGetDDSHeaderSize(table)",
            "Gets the number of bytes that would be written or have been read from the given DDS header table that "
            "either you contruct or was returned in the read function above. This is the number of bytes read or would be written.");
     ADD_FN(MS, "MetaStreamReadDDS", luaMetaStreamReadDDS, "table MetaStreamReadDDS(stream)",
-           "Reads a DDS file header returning a table with its information. See gitbook docs for table of return values.");
+           "Reads a DDS file header returning a table with its information. See Gitbook documentation in the Meta System page for the table values.");
     ADD_FN(MS, "MetaGetCachedSize", luaMetaStreamCachedSize, "number MetaGetCachedSize(cacheInstance)",
            "Returns the size of the cached data stream instance (kMetaClassInternalDataStreamCache class). "
            "This size is set when you read a buffer from a meta stream - its held internally.");
@@ -3444,6 +3662,8 @@ LuaFunctionCollection luaLibraryAPI(Bool bWorker)
     PUSH_GLOBAL_I(Col, "kMetaClassAbstract", Meta::CLASS_ABSTRACT, "Class is abstract");
     PUSH_GLOBAL_I(Col, "kMetaClassAttachable", Meta::CLASS_ATTACHABLE, "Class is attachable");
     PUSH_GLOBAL_I(Col, "kMetaClassProxy", Meta::CLASS_PROXY, "Proxy class disables member blocking");
+    PUSH_GLOBAL_I(Col, "kMetaClassSortedCollection", Meta::CLASS_COLLECTION_SORTED, "This is a sorted collection (set or map). Applied"
+        " automatically to keyed collections (Map). Note that sorted collection cannot contain duplicates (duplicat kv pairs override previous one)");
     PUSH_GLOBAL_I(Col, "kMetaClassEnumWrapper", Meta::CLASS_ENUM_WRAPPER, "Is an enum wrapper class. Should have one member (normally mVal), as integer value.");
     
     PUSH_GLOBAL_I(Col, "kMetaMemberEnum", Meta::MEMBER_ENUM, "Member is an enum");

@@ -25,7 +25,7 @@ public:
     inline Symbol(const String &value) { _Hash = CRC64LowerCase((const U8 *)value.c_str(), (U32)value.length()); }
     
     // Constructs with C string
-    inline Symbol(CString s, Bool bRegisterSymbolMap = false);
+    Symbol(CString s, Bool bRegisterSymbolMap = false, CString constantName = 0);
     
     // Constructs from a hash
     inline Symbol(U64 hash) : _Hash(hash) {}
@@ -85,7 +85,7 @@ public:
     {
         for(SymbolTable* table = _ActiveTables; table; table = table->_Next)
         {
-            String result = table->_Find(sym);
+            String result = table->FindLocal(sym);
             if(result.length())
                 return std::move(result);
         }
@@ -100,6 +100,11 @@ public:
             val = SymbolToHexString(sym);
         return val;
     }
+
+    inline static Bool IsHashString(const String& value)
+    {
+        return value.length() > 2 && StringStartsWith(value, "<") && StringEndsWith(value, ">");
+    }
     
     // DO NOT CREATE NON PRIVATE INSTANCES OF THESE UNLESS THEY ARE GLOBALS AND ONLY GET DESTROYED AT PROGRAM END!
     SymbolTable(Bool bPrivate = false);
@@ -113,9 +118,9 @@ public:
     
     void SerialiseIn(DataStreamRef&); // Reads in the serialised version. Adds to whats currently in here, does not clear.
     
+    String FindLocal(Symbol); // Finds a symbol
+
 private:
-    
-    String _Find(Symbol); // Finds a symbol
     
     SymbolTable* _Next = nullptr;
     std::mutex _Lock{};
@@ -134,12 +139,4 @@ inline SymbolTable& GetGameSymbols() // game-specific runtime symbols
 {
     static SymbolTable symbols{};
     return symbols;
-}
-
-inline Symbol::Symbol(CString s, Bool bRegisterSymbolMap) : Symbol(String(s))
-{
-    if(bRegisterSymbolMap)
-    {
-        GetRuntimeSymbols().Register(s);
-    }
 }

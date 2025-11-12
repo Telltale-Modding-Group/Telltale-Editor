@@ -772,42 +772,2229 @@ end
 function PropertyKeys(propertySet)
 end
 
+--- Telltale Property Keys
+--- @type string
+kTextKerning = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightAmbientOcclusion = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldBlurStrength = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kAnimationRelativeNode = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowLightBleedReduction = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamOrbitMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneTonemapPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kWalkAnimatorForwardAnimation = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightRimIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamTriggerVPercent = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFCoverageBoost = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBrushScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsIntensityHDR = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kRolloverTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kRolloverText = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehAberrationOffsetsX = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAODistanceFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAutofocusPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneShadowColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kRuntimeVisibilityKey = ""
+
+--- Telltale Property Keys
+--- @type string
+kSelectableExtentsMin = ""
+
+--- Telltale Property Keys
+--- @type string
+kSelectableOnOff = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightShadowMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightShadowBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureShearOrigin = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightColourDark = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAlphaAntialiasing = ""
+
+--- Telltale Property Keys
+--- @type string
+kNprSpecularIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAmbientOcclusionLightmap = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSSLinesPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsWhitePoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFilmicShoulderIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamOrbitOffset = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamTriggerHPercent = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneRenderPriority = ""
+
+--- Telltale Property Keys
+--- @type string
+kSound3dParametersPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvDynamicShadowMaxDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightIntensitySpecular = ""
+
+--- Telltale Property Keys
+--- @type string
+kTriggerEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundSfxInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBShoulderIntensities = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnvironmentPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFFarMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBloomIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightType = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDepthTest = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kDialogChoicePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSelectablePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightMaxDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesLightMagnitude = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushDOFEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamMode = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDiffuseColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kCellLightBlendMask = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightShadowCascades = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehMaxSize = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightColour = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightWrapAround = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFilmicPivot = ""
+
+--- Telltale Property Keys
+--- @type string
+kDecalPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteCorners = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesThickness = ""
+
+--- Telltale Property Keys
+--- @type string
+kAudioListenerOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightGroups = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushNearOutlineScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kViewportPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurRotationThresholdEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kScenePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotOuterRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTAAWeight = ""
+
+--- Telltale Property Keys
+--- @type string
+kDynamicOnLightMap = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnvironmentLightGroupPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowPositionOffsetBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextBackground = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextDialogFile = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamAnimation = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightTurnedOn = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaterialParticlePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneExcludeFromSaveGames = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyToonOutlineColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextExtrudeX = ""
+
+--- Telltale Property Keys
+--- @type string
+kRolloverMesh = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAmbientColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamAnimationTime = ""
+
+--- Telltale Property Keys
+--- @type string
+kTriggerExitCallback = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneCameraCutPositionThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyTextureOverrides = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXColorOpacity = ""
+
+--- Telltale Property Keys
+--- @type string
+kDialogResource = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFNearMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamDampen = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kExcludeFromAutoDirector = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurMovementThresholdEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightRimWrapAround = ""
+
+--- Telltale Property Keys
+--- @type string
+kPathToWalkRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureRotate = ""
+
+--- Telltale Property Keys
+--- @type string
+kRolloverTextBackgroundColour = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxDelayMotionBlur = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldMaxFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kCullObjects = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureRotateOrigin = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFNearFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kDialogChoiceChoice = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSpecularExponentMultiplier = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSceneExportsToContentScene = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyShadowReceiveGroup = ""
+
+--- Telltale Property Keys
+--- @type string
+kClipPlaneNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXColourEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBloomThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarFilmicToeIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldType = ""
+
+--- Telltale Property Keys
+--- @type string
+kCellBlendWeight = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindIdleStrength = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvShadowCastEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kCell0Colour = ""
+
+--- Telltale Property Keys
+--- @type string
+kCell1Colour = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvReflectionIntensityShadow = ""
+
+--- Telltale Property Keys
+--- @type string
+kCell3Colour = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneInputEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightIntensityDiffuse = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAfterEffectsEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightRimOcclusion = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBDOFEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarPivots = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneCameraCutRotationThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyColorCorrection = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLODBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXColourTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXSharpShadowsEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kChorecorderPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightDimmer = ""
+
+--- Telltale Property Keys
+--- @type string
+kAnimationConstraintsPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehBlurThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyForceAsAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFootstepWalkBoxes = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioSnapshotSuite = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextOffset = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXNoiseScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kIKAttachPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneRenderLayer = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneTimeScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioListener = ""
+
+--- Telltale Property Keys
+--- @type string
+kLogicGroupLogicItemDlgNodePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextKeyName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBBlackPoints = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioMaster = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneNPRLinesAlphaBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureTranslate = ""
+
+--- Telltale Property Keys
+--- @type string
+kScenePreloadShaders = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowMinDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kEmptySymbol = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesDepthMagnitude = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightRenderLayer = ""
+
+--- Telltale Property Keys
+--- @type string
+kDialogName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTriggerEnterCallback = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeySSLineEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneNPRLinesFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGraphicBlackFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightKeyLight = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneNPRLinesBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioReverb = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextNonProportionalScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRenderCull = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarToeIntensities = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneNPRLinesAlphaFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGlowClearColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGlowSigmaScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kRolloverTextColour = ""
+
+--- Telltale Property Keys
+--- @type string
+kUseHighQualityDOF = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAntiAliasing = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXColorEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOHemisphereBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kCursorPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvReflectionIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureShear = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHDRLightmapsIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOBlurSharpness = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineSize = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightToonPriority = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsBlackPoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kWalkAnimatorIdleAnimation = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarFilmicShoulderIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsBlackPointHDR = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDepthWrite = ""
+
+--- Telltale Property Keys
+--- @type string
+kFootsteps2PropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapDOFEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarPlane = ""
+
+--- Telltale Property Keys
+--- @type string
+kExcludeAgents = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundDataPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyCameraFacing = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapWhitePoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamTargetOffset = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarPlaneFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapBlackPoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextWidth = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyCameraFacingType = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBWhitePoints = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyShadowCastGroup = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextString = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXForceLinearDepthOffset = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTextureScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioReverbDefinition = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneViewportPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kUIDialogPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowAutoDepthBounds = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextDialogTextResource = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarBlackPoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarFilmicPivot = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLODScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kScenePreloadable = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarFilmicSign = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAutoFocusEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kAudioPlayerOriginOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindGustIdleStrengthMultiplier = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBToeIntensities = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXColorTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarShoulderIntensities = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAmbientOcclusionEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSelectableExtentsMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDisableLightBake = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvReflectionIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAORadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAmbientOcclusionIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightToonOpacity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteCenter = ""
+
+--- Telltale Property Keys
+--- @type string
+kCell2Colour = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightShadowDistanceFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kCameraBlendEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAmbientOcclusionFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kAudioReverbOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyShadowVisibleThresholdScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFrameBufferScaleFactor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAmbientOcclusionLightmap = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFAutoFocusEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesDepthExponent = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesLightDirection = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFilmicSign = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyMaskWrite = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXColourOpacity = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightingGroups = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteDOFEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFogEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAlphaMultiply = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightStatic = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindGustSpeed = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOOcclusionScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOMaxDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightColorCorrection = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesDepthFadeNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamOrbitMin = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesDepthFadeFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesDebug = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFogColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFogNearPlane = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldDebug = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFogFarPlane = ""
+
+--- Telltale Property Keys
+--- @type string
+kExposure = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAxisScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHDRPaperWhiteNits = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXLevelsIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundEventPreloadInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGraphicBlackThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGraphicBlackAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBPivots = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGenerateNPRLines = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGraphicBlackSoftness = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyOverrideToonOutlineColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneGraphicBlackNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindDirection = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindSpeed = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindGustSpacialFrequency = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindIdleSpacialFrequency = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindGustSeparationExponent = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAODebug = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarSigns = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvReflectionTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyCastShadow = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvReflectionTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarScaleBoost = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvProbeData = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWindGustStrength = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyVisibleThresholdScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvSaturation = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextAlignmentVertical = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvBackgroundColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFarWhitePoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvProbeResolutionY = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBrushForceEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowMomentBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapType = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotAlphaMode = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowDepthBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowMaxUpdates = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarBlackPoints = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXLevelsBlackPoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenAutoProbeVolumePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLookAtBlockingPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightShadowTraceMaxDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightStaticShadowBoundsMin = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowMaxDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFVignetteMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightStaticShadowBoundsMax = ""
+
+--- Telltale Property Keys
+--- @type string
+kCellBlendMode = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneEnvLightShadowGoboTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXAmbientOcclusionRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineFilterEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineColorThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvShadowCascadeSplitBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBrushScaleByVertex = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushNearTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kRolloverPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonLegWidth = ""
+
+--- Telltale Property Keys
+--- @type string
+kRolloverCursorProps = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushNearScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushNearDetail = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScreenSpaceLinesLightExponent = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarDetail = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarPlaneMaxScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvProbeResolutionXZ = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFrameBufferScaleOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightMinDistance = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSpecularMultiplierEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOMaxRadiusPercent = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFFarFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSpecularColorMultiplier = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneSpecularIntensityMultiplier = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushOutlineThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBFarWhitePoints = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHDRLightmapsEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteTintEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneViewportScissorLeft = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextBackgroundAlphaMultiply = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneViewportScissorTop = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneActiveCamera = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldFallOffFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneViewportScissorBottom = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFogAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kFootstepsPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldFallOffNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOLuminanceScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneScenePhysicsData = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldCoverageBoost = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurTintIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextLeading = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneTonemapRGBPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextMinWidth = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXBrushFarScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneWalkBoxes = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyStatic = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextSkew = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextConfine = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextAlignmentHorizontal = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextFont = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextShadowColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextShadowHeight = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyMaterialTime = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextBackgroundColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvBakeEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextExtrudeY = ""
+
+--- Telltale Property Keys
+--- @type string
+kAspectRatio = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightSpotInnerRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextPlaybackSpeed = ""
+
+--- Telltale Property Keys
+--- @type string
+kAudioReverbEventSnapshotOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextPercentToDisplay = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextMaxLinesToDisplay = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextRenderLayer = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextDialog2File = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehAberrationOffsetsY = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextDialog2NodeName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextKeyAgentName = ""
+
+--- Telltale Property Keys
+--- @type string
+kNavCamTargetAgent = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextKeyFormatString = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextWorldSpaceZ = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioPlayerOrigin = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextAlphaMultiply = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonInstanceNodeName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXLevelsWhitePointHDR = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehMinSize = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonFile = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonUseProceduralJointCorners = ""
+
+--- Telltale Property Keys
+--- @type string
+kSkeletonArmWidth = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehBrightnessDeltaThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kClipPlaneFar = ""
+
+--- Telltale Property Keys
+--- @type string
+kDepthOfFieldMaxNear = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextReferenceScreenSize = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnvironmentLightPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kCameraPush = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kFieldOfView = ""
+
+--- Telltale Property Keys
+--- @type string
+kFieldOfViewScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurTint = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapRGBSigns = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehPatternTexture = ""
+
+--- Telltale Property Keys
+--- @type string
+kBokehBrightnessThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneViewportScissorRight = ""
+
+--- Telltale Property Keys
+--- @type string
+kUseBokeh = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyEmissionColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaxBokehBufferAmount = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXLevelsEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvReflectionEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXTonemapFilmicToeIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kFXLevelsWhitePoint = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXVignetteFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurInRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneAudioEventBanks = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxRadialBlurOutRadius = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurMovementThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFFOVAdjustEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kFxMotionBlurRotationThreshold = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundReverbInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kProceduralLookAtPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKey3DAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvReflectionEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyAllowNPRLines = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBrushFarDetailBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextMinHeight = ""
+
+--- Telltale Property Keys
+--- @type string
+kParticleAffectorPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBrushNearDetailBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyCastShadowsAsStatic = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneFXDOFDebug = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyBakeAsStatic = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyColorWrite = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyConstantAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kPhysicsObjectPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyCubeBakeEnable = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyD3DMesh = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyD3DMeshList = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundSnapshotPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDepthTestFunc = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDepthWriteAlpha = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyDoMotionBlur = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFogColor = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaterialDecalPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFogEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFogFarPlane = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFogNearPlane = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFogOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyForceLinearDepthWrite = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyFXColorEnabled = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyGlobalScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightCinematicRig = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvGroup = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kParticleEmitterBasePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvNode = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightEnvShadowCastGroups = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightmapScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyLightmapUVGenerationType = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyMaskTest = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyNPRLineBias = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyNPRLineFalloff = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyNPRLineFalloffBiasOverride = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRecieveShadows = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRecieveShadowsDecal = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRecieveShadowsDoublesided = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRecieveShadowsIntensity = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRenderAfterAntiAliasing = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRenderAfterPostEffects = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRenderLayer = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRenderToonOutline = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyRimBumpScale = ""
+
+--- Telltale Property Keys
+--- @type string
+kText2PropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeySceneEnlightenData = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeySceneLightmapData = ""
+
+--- Telltale Property Keys
+--- @type string
+kPostMaterialScenePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropKeyShadowUseLowLOD = ""
+
+--- Telltale Property Keys
+--- @type string
+kAnimationAbsoluteNode = ""
+
+--- Telltale Property Keys
+--- @type string
+kAnimationPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+k3dSoundPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kAgentStatePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kCameraPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kCinematicLightBlockingPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kCinematicLightPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kCinematicLightRigPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kContextMenuPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kDialogPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenAdaptiveProbeVolumePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenCubemapPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaterialPostPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenCubemapTextureEnvPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenProbeVolumePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnlightenSystemPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kEnvironmentTilePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kHLSPlayerPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLightProbePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kLipSyncPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kMoviePlayerPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kParticleEmitterMaterialPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kVfxGroupPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kParticleEmitterPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kPathToPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kRenderablePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneBrushPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneDOFPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneBrushOutlinePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneHBAOPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneLightEnvAdvancedPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSceneVignettePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundAmbientInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundEventEmitterPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundListenerInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kSoundMusicInterfacePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kStylePropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTextPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kTriggerPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kVoiceSpeakerPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kWalkAnimatorPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kStyleIdleTransitionsPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kIKPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaterialLegacyPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kMaterialPropName = ""
+
+--- Telltale Property Keys
+--- @type string
+kParticleIKPropName = ""
+
 --- Returns if currently being called from a worker thread.
 --- @return bool
 function IsIsolated()
 end
 
---- Converts the container into a lua table and returns it. For keyed container, they are the table keys. For non keyed, they are 0 based indices.
---- @param container nil
---- @return table
-function TTE_TableToContainer(container)
-end
-
---- Inserts all key-value mappings from the input table into the container. For non keyed containers (eg arrays) keys are ignored and its added at the back.
---- @param container nil
---- @param table nil
---- @return table
-function TTE_ContainerToTable(container, table)
-end
-
---- Prints to the console all of the resource sets in the resource system, Must have a resource system attached!
+--- This function is only available to mod scripts! Prints to the console all of the resource sets in the resource system, Must have a resource system attached!
 --- @return nil
 function TTE_PrintResourceSets()
 end
 
---- Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that archive can be found. This supports .ttarch2/ttarch/iso/pk2. Physical
---- path is the path on your local machine. Location ID should be in the format <XXX>/. Please note that the archive must be from the current game snapshot! Otherwise it
---- will fail to read due to incorrect encryptino and expected format.
+--- This function is only available to mod scripts! Mounts a game data archive from the current game snapshot into the resource system, so that all of the files inside that
+--- archive can be found. This supports .ttarch2/ttarch/iso/pk2. Physical path is the path on your local machine. Location ID should be in the format <XXX>/. Please note that the archive must
+--- be from the current game snapshot! Otherwise it will fail to read due to incorrect encryptino and expected format.
 --- @param locationID nil
 --- @param physPath nil
 --- @return nil
 function TTE_MountArchive(locationID, physPath)
 end
 
---- Mounts the resource system (like creating a concrete directory location) to the given physical path under the name locationID. Location ID should be in the format <XXX>/. Physical path can
---- be absolute or relative to your working directory. The last argument can be set to true to use the old telltale engine resource system which had no resource set descriptions.
---- This means that it will recurse all directories and add them all. Set this to true to just easily get all resources quickly for debugging, so that they are all
---- in resource system ready to be used.
+--- This function is only available to mod scripts! Mounts the resource system (like creating a concrete directory location) to the given physical path under the name locationID. Location ID should
+--- be in the format <XXX>/. Physical path can be absolute or relative to your working directory. The last argument can be set to true to use the old telltale engine
+--- resource system which had no resource set descriptions. This means that it will recurse all directories and add them all. Set this to true to just easily get all resources
+--- quickly for debugging, so that they are all in resource system ready to be used.
 --- @param locationID nil
 --- @param physPath nil
 --- @param forceLegacy nil
@@ -815,8 +3002,8 @@ end
 function TTE_MountSystem(locationID, physPath, forceLegacy)
 end
 
---- Switches the editor context to a new game snapshot. Note that this can only be called from a mod script at startup or when no files are being read or
---- processed. If it is called at one of those times, an error is thrown to the log and it does nothing.
+--- This function is only available to mod scripts! Switches the editor context to a new game snapshot. Note that this can only be called from a mod script at startup
+--- or when no files are being read or processed. If it is called at one of those times, an error is thrown to the log and it does nothing.
 --- @param gameID nil
 --- @param platformName nil
 --- @param vendorName nil
@@ -824,38 +3011,39 @@ end
 function TTE_Switch(gameID, platformName, vendorName)
 end
 
---- Opens and reads a meta stream, returning the base class instance that the file contains. This returns a strong reference to the instance. If one argument is passed in, filename
---- is the path on your computer where the file is (or relative to the executable). If two are passed in, the first must be the file name string and the
---- second is the archive (any version) which the file is located in.
---- @param filename nil
+--- This function is only available to mod scripts! Opens and reads a meta stream, returning the base class instance that the file contains. This returns a strong reference to the
+--- instance. If one argument is passed in, filename is resource address in the resource system where it is located. If two are passed in, the first must be the file
+--- name string and the second is the archive (any version) which the file is located in.
+--- @param address_or_file nil
 --- @param --[[optional]] archive nil
 --- @return instance
-function TTE_OpenMetaStream(filename, --[[optional]] archive)
+function TTE_OpenMetaStream(address_or_file, --[[optional]] archive)
 end
 
---- Writes the given instance to the file located at the filename argument. Returns if it was successfully written.
---- @param filename nil
+--- This function is only available to mod scripts! Writes the given instance to the file located at the given resource address. Returns if it was successfully written.
+--- @param address nil
 --- @param instance nil
 --- @return bool
-function TTE_SaveMetaStream(filename, instance)
+function TTE_SaveMetaStream(address, instance)
 end
 
---- Opens a TTARCH file which is located at the given file path on your computer (or relative, like all file paths, to the executable). Returns the archive instance, a strong
---- reference although this is not a class instance. You can then use this to list files and open files from it. Note that this archive MUST match the version of
---- the currently selected game,ie the archive must be from the game that the editor context is currently working with.
+--- This function is only available to mod scripts! Opens a TTARCH file which is located at the given file path on your computer (or relative, like all file paths, to
+--- the executable). Returns the archive instance, a strong reference although this is not a class instance. You can then use this to list files and open files from it. Note
+--- that this archive MUST match the version of the currently selected game,ie the archive must be from the game that the editor context is currently working with.
 --- @param filepath nil
 --- @return arc
 function TTE_OpenTTArchive(filepath)
 end
 
---- Opens a TTARCH2 file which is located at the given file path on your computer (or relative). Returns the archive instance, a strong reference. This archive, like others, must be
---- from the currently active game such that the encryption key matches.
+--- This function is only available to mod scripts! Opens a TTARCH2 file which is located at the given file path on your computer (or relative). Returns the archive instance, a
+--- strong reference. This archive, like others, must be from the currently active game such that the encryption key matches.
 --- @param filepath nil
 --- @return arc
 function TTE_OpenTTArchive2(filepath)
 end
 
---- Returns a table (indices 1 to N) of all the file names in the given archive, which was previously opened with open TTArchive or TTArchive2.
+--- This function is only available to mod scripts! Returns a table (indices 1 to N) of all the file names in the given archive, which was previously opened with open
+--- TTArchive or TTArchive2.
 --- @param archive nil
 --- @return table
 function TTE_ArchiveListFiles(archive)
@@ -871,15 +3059,28 @@ end
 function TTE_Blowfish(bufferMetaInstance, size, isEncrypt)
 end
 
+--- Converts the container into a lua table and returns it. For keyed container, they are the table keys. For non keyed, they are 0 based indices.
+--- @param container nil
+--- @return table
+function TTE_TableToContainer(container)
+end
+
+--- Inserts all key-value mappings from the input table into the container. For non keyed containers (eg arrays) keys are ignored and its added at the back.
+--- @param container nil
+--- @param table nil
+--- @return table
+function TTE_ContainerToTable(container, table)
+end
+
 --- Dumps to the logger all memory which has not been freed yet. This will contain a lot of script stuff which won't matter as the script engine requires memory which
 --- s tracked, however can be useful for tracking specific script object allocations.
 --- @return nil
 function TTE_DumpMemoryLeaks()
 end
 
---- Returns the information about the currently active game. The returned table contains keys string 'Name', string 'ID', integer 'ArchiveVersion' and bool 'IsArchive2'.
+--- Returns the information about the currently active game. The returned table contains keys string 'Name', string 'ID', and string 'Vendor'
 --- @return table
-function TTE_GetActiveGame()
+function TTE_GetActiveSnapshot()
 end
 
 --- If the first parameter is false, debug builds will throw an assert and break in the debugger
@@ -895,8 +3096,23 @@ end
 function TTE_Log(valueStr)
 end
 
+--- Gets the platform name which the Telltale Editor is running on. This will return strings 'Windows' or 'MacOS', 'Linux' and etc for others in the future.
+--- @return string
+function TTE_GetPlatform()
+end
+
+--- Returns a N indexed array of all the mount points in the resource system. These are the resource location names. You can use there to find resources.
+--- @return table
+function TTE_GetMountPoints()
+end
+
 --- This is used in the Games.lua script to register a game to the Meta system on initialisation. It takes in a table which must have keys string Name, string ID,
---- bool ModifiedEncryption, table Key[string platform] to string hex key, etc. You could add your own game if you want to create one!
+--- bool ModifiedEncryption, string DefaultMetaVersion,string LuaVersion, int/table ArchiveVersion, string/table Key, bool IsArchive2, table Platforms, table Vendors and pushed capabilities. Archive
+--- version and key are either one static key/version or a table of snapshot ID to it. This is just 'Platform/Vendor' if there are more than just the default (empty string)
+--- vendor. Else its just the platform name. See existing examples. If vendors are specified, then DefaultVendor must be as well as a string. The 'CommonSelector' key is also useful. It
+--- should specify a function *name* which takes in the platform, vendor and common class type and returns the class name and version number of the common class to create for
+--- that snapshot and class type. Optional, defaults to the normal class name and version 0. If specified, return just nil and 0 to use default class name as well. Else
+--- do special checks dependent on that snapshot.
 --- @param gameInfoTable nil
 --- @return nil
 function MetaRegisterGame(gameInfoTable)
@@ -907,6 +3123,16 @@ end
 --- @param cap nil
 --- @return nil
 function MetaPushGameCapability(gameTable, cap)
+end
+
+--- Push an executable hash which maps to the given platform/vendor pair. This is used for the Editor when user selects the mount points of their installation such that we can
+--- detect their installation game snapshot.
+--- @param gameTable nil
+--- @param hashStr nil
+--- @param platform nil
+--- @param vendor nil
+--- @return nil
+function MetaPushExecutableHash(gameTable, hashStr, platform, vendor)
 end
 
 --- This associates file name masks to folders. When extracting files in the Telltale Editor sometimes the user can select to extract to sub-folders. This function associates masks to sub-folders which
@@ -937,7 +3163,7 @@ end
 --- be nil for non keyed collections, such as most arrays, but must be a previoulsy registered table otherwise (eg for Map classes). If this is a static array (SArray) class,
 --- then this should be an integer being the number of elements. The third argument must always be non nil and a table, which is the previously registered value type in
 --- the collection. There is a special case where key or value type table can be strings. If you pass them as a string, this means they will be resolved once
---- all classes have been registered. This allows forward declaration of a class inside a collection before its fully defined. Instead of padding in the type table you pass in the
+--- all classes have been registered. This allows forward declaration of a class inside a collection before its fully defined. Instead of passing in the type table you pass in the
 --- string name of the class it should be. Optionally you can end the string with a semicolon followed by the version index, eg 'class Hello;1', such that version index 1
 --- is used in this example. By default version index 0 is used.
 --- @param table nil
@@ -1321,8 +3547,8 @@ end
 function MetaStreamWriteBool(stream, value)
 end
 
---- Writes the symbol argument. If it is a 16 byte hex string hash, the value is represents is written, else the string is hashed on the lower case version. Note
---- that SymbolXXX can be used to create and manage symbols.
+--- Writes the symbol argument. If it is a 16 byte hex string hash with <>, the value is represents is written, else the string is hashed on the lower case
+--- version. Note that SymbolXXX can be used to create and manage symbols.
 --- @param stream nil
 --- @param value nil
 --- @return nil
@@ -1410,7 +3636,7 @@ end
 function MetaStreamWriteCached(stream, cacheInstance)
 end
 
---- Writes a DDS file header with the given information. It must include the same information as returned by the read version above.
+--- Writes a DDS file header with the given information. It must include the same information as returned by the read version. See MetaStreamReadDDS for information about the table values.
 --- @param stream nil
 --- @param table nil
 --- @return nil
@@ -1433,7 +3659,7 @@ end
 function MetaStreamGetDDSHeaderSize(table)
 end
 
---- Reads a DDS file header returning a table with its information. See gitbook docs for table of return values.
+--- Reads a DDS file header returning a table with its information. See Gitbook documentation in the Meta System page for the table values.
 --- @param stream nil
 --- @return table
 function MetaStreamReadDDS(stream)
@@ -1445,12 +3671,12 @@ end
 function MetaGetCachedSize(cacheInstance)
 end
 
---- Finds the class in the meta system associated with the given type symbol for the given meta stream. The symbol is either a symbol (16 byte hex hash string) or
---- a string which will be hashed. Examples of use are passing in a symbol read from the meta stream when the meta stream contains a class determined by its symbol
---- also stored in the meta stream. Returns the class type name and version number associated. The class is found by searching the meta stream header for the type name symbol,
---- if it is found then the returned class is one with the same version hash as in the header of the meta stream. If it is not found in the
---- header, then it may still be valid as intrinsic types are container types are not in headers. In those cases, the type with version number zero is returned - as
---- those types don't have different versions and if they do they are never used.
+--- Finds the class in the meta system associated with the given type symbol for the given meta stream. The symbol is either a symbol (16 byte hex hash string with
+--- <>) or a string which will be hashed. Examples of use are passing in a symbol read from the meta stream when the meta stream contains a class determined by
+--- its symbol also stored in the meta stream. Returns the class type name and version number associated. The class is found by searching the meta stream header for the type
+--- name symbol, if it is found then the returned class is one with the same version hash as in the header of the meta stream. If it is not found
+--- in the header, then it may still be valid as intrinsic types are container types are not in headers. In those cases, the type with version number zero is returned
+--- - as those types don't have different versions and if they do they are never used.
 --- @param stream nil
 --- @param typeSymbol nil
 --- @return typename, versionNumber
@@ -1494,15 +3720,15 @@ function SymbolTableClear()
 end
 
 --- Compares if the symbol hash of left and right are equal to each other. Either or both of them can be an un-hashed string, or any of them can be
---- a hashed string (ie a 16 byte hex hash string).
+--- a hashed string (ie a 16 byte hex hash string with <>).
 --- @param left nil
 --- @param right nil
 --- @return bool
 function SymbolCompare(left, right)
 end
 
---- Creates a symbol, by hashing the string argument in lower case. If the string argument is itself a string 16 byte hex hash, it will still be hashed so be
---- careful.
+--- Creates a symbol, by hashing the string argument in lower case. If the string argument is itself a string 16 byte hex hash with <>, it will still be hashed
+--- so be careful.
 --- @param string nil
 --- @return symbol
 function SymbolCreate(string)
@@ -1519,6 +3745,10 @@ kGameCapUsesLenc = 0
 --- Game capabilities
 --- @type number
 kGameCapAllowTransitionMaps = 0
+
+--- Internal data stream cache class
+--- @type number
+kMetaClassInternalDataStreamCache = 0
 
 --- Intrinsic String type
 --- @type number
@@ -1592,6 +3822,10 @@ kMetaClassEnumWrapper = 0
 --- @type number
 kMetaInt8 = 0
 
+--- Intrinsic 32-bit floating point
+--- @type number
+kMetaFloat = 0
+
 --- Member is an enum
 --- @type number
 kMetaMemberEnum = 0
@@ -1632,29 +3866,9 @@ kMetaInt = 0
 --- @type number
 kMetaMemberSerialiseDisable = 0
 
---- Internal data stream cache class
---- @type number
-kMetaClassInternalDataStreamCache = 0
-
---- Intrinsic 32-bit floating point
---- @type number
-kMetaFloat = 0
-
 --- Member is excluded from memory
 --- @type number
 kMetaMemberMemoryDisable = 0
-
---- Alias for signed 32-bit integer
---- @type number
-kMetaInt32 = 0
-
---- Wide character (typically UTF-16)
---- @type number
-kMetaWideChar = 0
-
---- Container flag
---- @type number
-kMetaClassContainer = 0
 
 --- Game capabilities
 --- @type number
@@ -1671,6 +3885,26 @@ kGameCapUsesLocationInfo = 0
 --- Proxy class disables member blocking
 --- @type number
 kMetaClassProxy = 0
+
+--- Member is a base class
+--- @type number
+kMetaMemberBaseClass = 0
+
+--- Alias for signed 32-bit integer
+--- @type number
+kMetaInt32 = 0
+
+--- Wide character (typically UTF-16)
+--- @type number
+kMetaWideChar = 0
+
+--- This is a sorted collection (set or map). Applied automatically to keyed collections (Map)
+--- @type number
+kMetaClassSortedCollection = 0
+
+--- Container flag
+--- @type number
+kMetaClassContainer = 0
 
 --- Can be serialised asynchronously
 --- @type number
@@ -1700,10 +3934,6 @@ kMetaUnsignedShort = 0
 --- @type number
 kMetaClassAbstract = 0
 
---- Member is a base class
---- @type number
-kMetaMemberBaseClass = 0
-
 --- Intrinsic Symbol type with class prefix
 --- @type number
 kMetaClassSymbol = 0
@@ -1719,6 +3949,18 @@ kMetaClassAttachable = 0
 --- Intrinsic unsigned 32-bit integer
 --- @type number
 kMetaUInt32 = 0
+
+--- Registers data which describes how the inspector view should render this module. Data table is a table of UI element to a table of that elements info. Class, PropKey and
+--- Default are required keys. In each entry, 'UI' is a required table which describes how to render it. It should contain InputType which is a string of the valid kPropRenderXXX
+--- types. Or 'handle:xxx' where xxx is the *extension* of the file name to have a handle set as. Note in this case that the handle property must be a string
+--- or symbol. Along with InputType, SubPath is a string. By default set it to 'this', else a chain of variables to get to the input type variable, eg this.mHandle if
+--- the type is a handle and a string is required if mHandle is a string in the Handle class specifying the file name. There can be as many this.sub.paths.as.needed .
+--- @param moduleID nil
+--- @param moduleImage nil
+--- @param dataTable nil
+--- @return nil
+function RegisterModuleUI(moduleID, moduleImage, dataTable)
+end
 
 --- Set the common mesh name
 --- @param state nil
@@ -1862,8 +4104,9 @@ end
 --- @param state nil
 --- @param name nil
 --- @param props nil
+--- @param --[[optional]] initialTransform nil
 --- @return nil
-function CommonScenePushAgent(state, name, props)
+function CommonScenePushAgent(state, name, props, --[[optional]] initialTransform)
 end
 
 --- Sets the name of the common texture
@@ -2011,6 +4254,14 @@ kAnimationValueTypeExplicitCompoundValue = 0
 
 --- Animation value types
 --- @type number
+kAnimationValueTypeAutoAct = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioLowFreqSend = 0
+
+--- Animation value types
+--- @type number
 kAnimationValueTypeAudioFMODParameter = 0
 
 --- Animation value types
@@ -2027,7 +4278,7 @@ kAnimationValueTypeTextureRotateOriginV = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTextureScaleOriginU = 0
+kAnimationValueTypeAudioLowPassFilter = 0
 
 --- Animation value types
 --- @type number
@@ -2039,11 +4290,11 @@ kAnimationValueTypeTextureScaleV = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTextureScaleU = 0
+kAnimationValueTypeAudioReverbDry = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeAudioLowPassFilter = 0
+kAnimationValueTypeTextureScaleU = 0
 
 --- Animation value types
 --- @type number
@@ -2061,17 +4312,13 @@ kAnimationValueTypeProperty = 0
 --- @type number
 kAnimationValueTypeMover = 0
 
+--- Vertex attribute formats
+--- @type number
+kCommonMeshFloat4 = 0
+
 --- Animation value types
 --- @type number
 kAnimationValueTypeSkeletal = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioLowFreqSend = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeContribution = 0
 
 --- Legacy normed quaternion compressed keys (0)
 --- @type number
@@ -2081,25 +4328,149 @@ kCompressedQuatKeysFormatLegacy0 = 0
 --- @type number
 kCommonInputMapperTypeBeginOrEnd = 0
 
---- Trigger when an event begins
+--- Animation value types
 --- @type number
-kCommonInputMapperTypeBegin = 0
+kAnimationValueTypeVertexNormal = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderShort = ""
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeAudioReverbDry = 0
+kAnimationValueTypeTextureShearOriginU = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureShearV = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioLanguageResourceVolume = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureVisibility = 0
+
+--- Trigger forced(?)
+--- @type number
+kCommonInputMapperTypeForce = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureRotate = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributePosition = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderUnsignedInt = ""
+
+--- Trigger on mouse move event
+--- @type number
+kCommonInputMapperTypeMouseMove = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeBlendWeight = 0
 
 --- Animation value types
 --- @type number
 kAnimationValueTypeTime = 0
 
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureShearU = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderString = ""
+
 --- Trigger when an event ends
 --- @type number
 kCommonInputMapperTypeEnd = 0
 
+--- Trigger when an event begins
+--- @type number
+kCommonInputMapperTypeBegin = 0
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshFormatUnknown = 0
+
+--- BGR'X' resolvable texture format. 'X' is unused and set to opaque.
+--- @type number
+kCommonTextureResolvableFormatBGRX = 0
+
+--- Mesh compressed format involving signed normed normal vector3 values
+--- @type number
+kCommonMeshCompressedFormatSNormNormal = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureScaleOriginU = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderEnum = ""
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAdditiveMask = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeContribution = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderInt64 = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderByte = ""
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioSurroundExtent = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderUnsignedShort = ""
+
+--- Module property render instructions
+--- @type string
+kPropRenderInt = ""
+
+--- Vertex attribute formats
+--- @type number
+kCommonMeshUInt3 = 0
+
+--- Vertex attributes
+--- @type number
+kCommonMeshAttributeUnknown = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderFloat = ""
+
+--- Surface formats
+--- @type number
+kCommonTextureFormatRGBA8 = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderBool = ""
+
 --- Vertex attributes
 --- @type number
 kCommonMeshAttributeUVDiffuse = 0
+
+--- Primitive types
+--- @type number
+kCommonMeshTriangleList = 0
 
 --- Vertex attributes
 --- @type number
@@ -2107,19 +4478,7 @@ kCommonMeshAttributeColour = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTargetedMover = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshFormatUnknown = 0
-
---- Mesh compressed format involving unsigned normed UV values
---- @type number
-kCommonMeshCompressedFormatUNormUV = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeBlendWeight = 0
+kAnimationValueTypeVertexPosition = 0
 
 --- Vertex attribute formats
 --- @type number
@@ -2129,17 +4488,13 @@ kCommonMeshInt3 = 0
 --- @type number
 kCommonMeshAttributeTangent = 0
 
---- Vertex attributes
+--- Vertex attribute formats
 --- @type number
-kCommonMeshAttributePosition = 0
+kCommonMeshByte4 = 0
 
 --- Surface formats
 --- @type number
 kCommonTextureFormatDXT5 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioSurroundExtent = 0
 
 --- Surface formats
 --- @type number
@@ -2147,19 +4502,19 @@ kCommonTextureFormatDepth32FStencil8 = 0
 
 --- Animation value types
 --- @type number
+kAnimationValueTypeTextureShearOriginV = 0
+
+--- Animation value types
+--- @type number
 kAnimationValueTypeAudioReverbWet = 0
 
---- Primitive types
---- @type number
-kCommonMeshTriangleList = 0
+--- Module property render instructions
+--- @type string
+kPropRenderSymbol = ""
 
 --- Surface formats
 --- @type number
 kCommonTextureFormatDXT3 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureShearU = 0
 
 --- Vertex attribute formats
 --- @type number
@@ -2175,35 +4530,35 @@ kCommonTextureFormatDXT1 = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeAudioSurroundDir = 0
-
---- Animation value types
---- @type number
 kAnimationValueTypeAudioHighPassFilter = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeUnknown = 0
 
 --- Mesh compressed format involving unsigned approximated normed normal vector3 values
 --- @type number
 kCommonMeshCompressedFormatUNormNormalAprox = 0
 
+--- Module property render instructions
+--- @type string
+kPropRenderVector2 = ""
+
 --- Surface formats
 --- @type number
 kCommonTextureFormatBGRA8 = 0
 
---- Vertex attribute formats
---- @type number
-kCommonMeshFloat4 = 0
+--- Module property render instructions
+--- @type string
+kPropRenderVector4 = ""
 
---- Surface formats
---- @type number
-kCommonTextureFormatRGBA8 = 0
+--- Module property render instructions
+--- @type string
+kPropRenderColour = ""
 
 --- Primitive types
 --- @type number
 kCommonMeshLineList = 0
+
+--- Animation value types
+--- @type number
+kAnimationValueTypeTextureRotateOriginU = 0
 
 --- Vertex attribute formats
 --- @type number
@@ -2211,23 +4566,19 @@ kCommonMeshByte2Norm = 0
 
 --- Vertex attribute formats
 --- @type number
+kCommonMeshFloat2 = 0
+
+--- Vertex attribute formats
+--- @type number
 kCommonMeshUByte2 = 0
 
 --- Vertex attribute formats
 --- @type number
-kCommonMeshUByte4Norm = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAudioLanguageResourceVolume = 0
+kCommonMeshInt2 = 0
 
 --- Vertex attribute formats
 --- @type number
-kCommonMeshByte4 = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeVertexNormal = 0
+kCommonMeshUByte4Norm = 0
 
 --- Vertex attribute formats
 --- @type number
@@ -2236,10 +4587,6 @@ kCommonMeshByte2 = 0
 --- Animation value types
 --- @type number
 kAnimationValueTypeSkeletonRootAnim = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeAdditiveMask = 0
 
 --- Vertex attribute formats
 --- @type number
@@ -2255,63 +4602,47 @@ kCommonMeshUByte4 = 0
 
 --- Animation value types
 --- @type number
-kAnimationValueTypeTextureShearOriginV = 0
+kAnimationValueTypeTargetedMover = 0
 
---- Vertex attribute formats
+--- Mesh compressed format involving unsigned normed UV values
 --- @type number
-kCommonMeshInt2 = 0
+kCommonMeshCompressedFormatUNormUV = 0
 
---- Mesh compressed format involving signed normed normal vector3 values
+--- Animation value types
 --- @type number
-kCommonMeshCompressedFormatSNormNormal = 0
+kAnimationValueTypeTextureMoveU = 0
+
+--- Module property render instructions
+--- @type string
+kPropRenderPolar = ""
 
 --- Vertex attribute formats
 --- @type number
 kCommonMeshInt4 = 0
 
---- Animation value types
---- @type number
-kAnimationValueTypeTextureShearOriginU = 0
+--- Module property render instructions
+--- @type string
+kPropRenderVector3 = ""
 
---- Animation value types
---- @type number
-kAnimationValueTypeTextureShearV = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureVisibility = 0
-
---- Trigger forced(?)
---- @type number
-kCommonInputMapperTypeForce = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshUInt3 = 0
+--- Module property render instructions
+--- @type string
+kPropRenderUnsignedInt64 = ""
 
 --- Animation value types
 --- @type number
 kAnimationValueTypeTextureScaleOriginV = 0
 
+--- Animation value types
+--- @type number
+kAnimationValueTypeAudioSurroundDir = 0
+
 --- Vertex attribute formats
 --- @type number
 kCommonMeshFloat1 = 0
 
---- Animation value types
---- @type number
-kAnimationValueTypeAutoAct = 0
-
 --- Vertex attribute formats
 --- @type number
 kCommonMeshUInt1 = 0
-
---- BGR'X' resolvable texture format. 'X' is unused and set to opaque.
---- @type number
-kCommonTextureResolvableFormatBGRX = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureRotateOriginU = 0
 
 --- Vertex attributes
 --- @type number
@@ -2321,29 +4652,17 @@ kCommonMeshAttributeBlendIndex = 0
 --- @type number
 kCommonMeshUInt2 = 0
 
---- Animation value types
---- @type number
-kAnimationValueTypeVertexPosition = 0
-
 --- Vertex attributes
 --- @type number
 kCommonMeshAttributeNormal = 0
-
---- Vertex attributes
---- @type number
-kCommonMeshAttributeBinormal = 0
 
 --- Vertex attribute formats
 --- @type number
 kCommonMeshFloat3 = 0
 
---- Animation value types
+--- Vertex attributes
 --- @type number
-kAnimationValueTypeTextureRotate = 0
-
---- Trigger on mouse move event
---- @type number
-kCommonInputMapperTypeMouseMove = 0
+kCommonMeshAttributeBinormal = 0
 
 --- Vertex attribute formats
 --- @type number
@@ -2352,12 +4671,4 @@ kCommonMeshInt1 = 0
 --- Vertex attribute formats
 --- @type number
 kCommonMeshByte4Norm = 0
-
---- Animation value types
---- @type number
-kAnimationValueTypeTextureMoveU = 0
-
---- Vertex attribute formats
---- @type number
-kCommonMeshFloat2 = 0
 

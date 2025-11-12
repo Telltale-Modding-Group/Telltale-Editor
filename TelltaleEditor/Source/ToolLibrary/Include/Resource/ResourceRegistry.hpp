@@ -9,6 +9,7 @@
 #include <Resource/TTArchive.hpp>
 #include <Resource/ISO9660.hpp>
 #include <Resource/TTArchive2.hpp>
+#include <Resource/PSPKG.hpp>
 #include <Resource/Pack2.hpp>
 #include <Scripting/ScriptManager.hpp>
 #include <Meta/Meta.hpp>
@@ -32,17 +33,6 @@
 
 // ================================================== RESOURCE LIFETIME MANAGEMENT ==================================================
 
-template<typename T> inline Ptr<Handleable> AllocateCommon(Ptr<ResourceRegistry> registry)
-{
-    static_assert(std::is_base_of<Handleable, T>::value, "T must be handleable");
-    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, registry);
-}
-
-template<> inline Ptr<Handleable> AllocateCommon<Placeholder>(Ptr<ResourceRegistry>)
-{
-    return {};
-}
-
 template<typename T>
 inline HandleableRegistered<T>::HandleableRegistered(Ptr<ResourceRegistry> reg) : Handleable(std::move(reg))
 {
@@ -53,7 +43,8 @@ inline HandleableRegistered<T>::HandleableRegistered(Ptr<ResourceRegistry> reg) 
 template<typename T>
 inline Ptr<Handleable> HandleableRegistered<T>::Clone() const
 {
-    return TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, *dynamic_cast<const T*>(this));
+    Ptr<Handleable> pCloned = TTE_NEW_PTR(T, MEMORY_TAG_COMMON_INSTANCE, *dynamic_cast<const T*>(this));
+    return pCloned;
 }
 
 enum class HandleFlags
@@ -63,6 +54,7 @@ enum class HandleFlags
     NEEDS_DESTROY = 4, // needs to be destroyed
     LOADED = 8, // has been normalised into, so is loaded.
     NON_PURGABLE = 16, // flag 1 in engine
+    CACHE_ONLY = 32, // cache only, cannot be saved, is a runtime resource
     
     // other flags in future, serialise out needed, load dependent resources (eg textures in a mesh, non embeds in chore etc)
 };
@@ -89,6 +81,8 @@ struct HandleObjectInfo
     {
         return _ResourceName == rhs._ResourceName;
     }
+
+    ~HandleObjectInfo();
     
 };
 
@@ -138,6 +132,11 @@ public:
     inline String GetObjectResolved() const
     {
         return SymbolTable::Find(_ResourceName);
+    }
+    
+    inline Ptr<Handleable> GetBlindObject(Ptr<ResourceRegistry>& registry)
+    {
+        return _GetObject(registry, nullptr);
     }
     
 };
@@ -217,7 +216,7 @@ public:
     
     inline operator Bool() const
     {
-        return _Cached.operator Bool();
+        return _ResourceName.GetCRC64() != 0;
     }
     
 };
@@ -287,7 +286,7 @@ public:
     
     inline operator Bool() const
     {
-        return _Cached.operator Bool();
+        return _ResourceName.GetCRC64() != 0;
     }
     
 };
@@ -334,6 +333,7 @@ namespace Meta::_Impl
         {
             out.SetObject(ScriptManager::ToSymbol(man, stackIndex));
         }
+
     };
 
     
@@ -468,9 +468,19 @@ public:
     {
         if(!std::filesystem::is_directory(path))
         {
-            std::filesystem::create_directories(path);
-            if(!std::filesystem::is_directory(path))
+            Bool bOk;
+            try
             {
+                std::filesystem::create_directories(path);
+                bOk = !std::filesystem::is_directory(path);
+            }
+            catch (...)
+            {
+                bOk = false;
+            }
+            if (!bOk)
+            {
+                RegistryDirectory::_Path = ".";
                 TTE_LOG("WARNING: Registry system directory '%s' does not exist!", path.c_str());
             }
         }
@@ -657,6 +667,46 @@ public:
     
 };
 
+/**
+ Legacy console telltale games pack file
+ */
+class RegistryDirectory_PlaystationPKG : public RegistryDirectory
+{
+    
+    friend class ResourceRegistry;
+    
+    String _LastLocatedResource;
+    Bool _LastLocatedResourceStatus = false; // true if it existed
+    String _PackageKey;
+    PlaystationPKG _PKG;
+    
+public:
+    
+    inline RegistryDirectory_PlaystationPKG(const String& path, const String& pkKey, PlaystationPKG&& arc)
+            : RegistryDirectory(path), _LastLocatedResource(), _PKG(std::move(arc)), _PackageKey(pkKey) {}
+    
+    virtual Bool GetResourceNames(std::set<String>& resources, const StringMask* optionalMask); // get file names
+    virtual Bool GetResources(std::vector<std::pair<Symbol, Ptr<ResourceLocation>>>& resources,
+                              Ptr<ResourceLocation>& self, const StringMask* optionalMask);
+    virtual Bool GetSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // get sub directory names
+    virtual Bool GetAllSubDirectories(std::set<String>& resources, const StringMask* optionalMask); // empty return here
+    virtual Bool HasResource(const Symbol& resourceName, const String* actualName /*optional*/); // pass in actual name if you know it to speed up.
+    virtual String GetResourceName(const Symbol& resource); // to string resource name (quicker than symbol table
+    virtual Bool DeleteResource(const Symbol& resource); // delete it if we can
+    virtual Bool RenameResource(const Symbol& resource, const String& newName); // rename it
+    virtual DataStreamRef CreateResource(const String& name); // create resource and open writing stream
+    virtual Bool CopyResource(const Symbol& srcResourceName, const String& dstResourceNameStr); // copy resource to dest
+    virtual DataStreamRef OpenResource(const Symbol& resourceName,String* outName); // open resource
+    virtual void RefreshResources(); // refresh
+    
+    Bool UpdateArchiveInternal(const String& resourceName, Ptr<ResourceLocation>& location, std::unique_lock<std::recursive_mutex>& lck); // update from resource sys
+    
+    virtual Ptr<RegistryDirectory> OpenDirectory(const String& name); // although its not flat, treat as it is. do nothing here.
+    
+    virtual ~RegistryDirectory_PlaystationPKG() = default;
+    
+};
+
 // TODO other directory types: encrypted stuff, STFS saves..
 
 // ================================================== RESOURCE HIGH LEVEL LOCATIONS ==================================================
@@ -802,7 +852,6 @@ struct AsyncResourcePreloadBatchJob // async serialise and normalises
     U32 NumResources = 0; // 0 to 32 below
     Flags BatchFlags;
     HandleObjectInfo HOI[STATIC_PRELOAD_BATCH_SIZE];
-    CommonInstanceAllocator* Allocators[STATIC_PRELOAD_BATCH_SIZE];
     
 };
 
@@ -827,7 +876,7 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* job, void*);
  Ensure that these only exist BETWEEN game switches!
  Concrete locations have a trailing slash, while logical locators do not!
  */
-class ResourceRegistry : public GameDependentObject, public std::enable_shared_from_this<ResourceRegistry>
+class ResourceRegistry : public SnapshotDependentObject, public std::enable_shared_from_this<ResourceRegistry>
 {
 public:
     
@@ -868,6 +917,11 @@ public:
      of archives as well as files in the users actual file system. Best use is for ISOs and other file system container files.
      */
     void MountArchive(const String& id, const String& fspath);
+    
+    /**
+     See MountArchive and MountSystem. This version of mount archive does the same but for a PSP/PS3/etc PKG file. Pass in the package key name (see keys lua script).
+     */
+    void MountPlaystationPackage(const String& id, const String& fsPath, const String& packageKey);
     
     /**
      Creates a logical location in the resource system. In URLs, if they start with this name (it must start and end with <>'s), it will look into this location for the rest of the URL.
@@ -1002,6 +1056,12 @@ public:
     // Most important in this class. Finds a resource in the currently enabled patch sets, highest loaded priority one will be returned.
     DataStreamRef FindResource(const Symbol& name);
     
+    // Open resource data stream from logical location. Not used for loaded
+    DataStreamRef FindResourceFrom(const String& loc, const Symbol& filename);
+
+    // Similar to find resource functions but will create the stream if needed on disk. Returns the FILE stream (not a memory cache stream)
+    DataStreamRef OpenDataStream(const String& loc, const String& filename);
+    
     // Like FindResource but gets the name
     String FindResourceName(const Symbol& name);
     
@@ -1034,7 +1094,7 @@ public:
     String LocateConcreteResourceLocation(const Symbol& resourceName);
     
     // See version with string. Finds it, must exist.
-    ResourceAddress CreateResolvedAddress(const Symbol& resourceName);
+    ResourceAddress CreateResolvedAddressFromSymbol(const Symbol& resourceName);
     
     // Create a resolved resouce address. Include folder path, file name, prefix scheme (optional default file)
     // Valid path may be '<User>/file.txt' or 'ttcache:module_prop.prop'. set default to cache to default to the cache if no scheme (normal) (else locator)
@@ -1059,8 +1119,27 @@ public:
         hHandle.SetObject(shared_from_this(), FileName, false, bEnsureLoaded);
         return hHandle;
     }
+
+    void GetResourceLocationNames(std::vector<String>& names);
+
+    // Creates unsavable cached resource in memory
+    inline Bool CreateCachedResource(String name, Ptr<Handleable> pObject)
+    {
+        TTE_ASSERT(pObject, "The handleable object cannot be null!");
+        return _CreateCachedResourceUnlocked(name, pObject, {});
+    }
+
+    inline Bool CreateCachedPropertySet(String name, Meta::ClassInstance propInstance)
+    {
+        TTE_ASSERT(propInstance, "The property set cannot be null!");
+        return _CreateCachedResourceUnlocked(name, {}, propInstance);
+    }
+    
+    ~ResourceRegistry();
     
 private:
+    
+    // ========== INTERNAL STATE
     
     LuaManager& _LVM; // local LVM used for this registry. Must be alive and acts as a parent!
     
@@ -1086,7 +1165,13 @@ private:
     
     String _DefaultLocation = "<>";
     
+    std::set<String> _ErrorFiles; // reduce multi-log
+    
+    // ========== INTERNAL FUNCTIONALITY
+    
     Ptr<ResourceLocation> _Locate(const String& logicalName); // locate internal no lock
+
+    Bool _CreateCachedResourceUnlocked(const String& name, Ptr<Handleable> asHandleable, Meta::ClassInstance asProp);
     
     void _ProcessDirtyHandle(HandleObjectInfo&& handle, std::unique_lock<std::recursive_mutex>& lck);
     
@@ -1095,6 +1180,8 @@ private:
     void _CheckLogical(const String& name); // checks asserts its OK.
     
     void _CheckConcrete(const String& name); // checks asserts its OK.
+    
+    void _ApplyMountArchive(const String& id, const String& fspath, const String& packageKey);
     
     // searches and loads any resource sets (_resdesc_).
     void _ApplyMountDirectory(RegistryDirectory* pMountPoint, std::unique_lock<std::recursive_mutex>& lck);
@@ -1125,7 +1212,8 @@ private:
     void _LegacyApplyMount(Ptr<ResourceConcreteLocation<RegistryDirectory_System>>& dir, ResourceLogicalLocation* pMaster,
                            const String& folderID, const String& physicalPath, std::unique_lock<std::recursive_mutex>& lck); // open .ttarch, legacy resource system
     
-    Bool _ImportArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
+    Bool _ImportArchivePack(const String& resourceName, const String& archiveID, 
+                            const String& archivePhysicalPath, const String& packageKey,
                             DataStreamRef& archiveStream, std::unique_lock<std::recursive_mutex>& lck); // import ttarch/ttarch2/pk2 into parent as sub
     
     Bool _ImportAllocateArchivePack(const String& resourceName, const String& archiveID, const String& archivePhysicalPath,
@@ -1134,6 +1222,8 @@ private:
     Bool _EnsureHandleLoadedLocked(const HandleBase& handle, Bool bOnlyQuery); // locks
     
     Bool _SetupHandleResourceLoad(HandleObjectInfo& hoi, std::unique_lock<std::recursive_mutex>& lck); // performs a resource load. finds and opens stream and sets serialise and normalise flags
+    
+    void _InsertSymbolTable(const String& fileName);
     
     static StringMask _ArchivesMask(Bool bLegacy);
     
@@ -1156,6 +1246,7 @@ private:
     friend U32 luaFileCopy(LuaManager& man);
     friend U32 luaFileDelete(LuaManager& man);
     friend U32 luaFileExists(LuaManager& man);
+    friend U32 luaResourceGetSymbolsNames(LuaManager& man);
     
     /**
      Constructor. The lua manager version passed in MUST match any game scripts lua versions being run! This is because this will run any resource sets, which may use an older version!

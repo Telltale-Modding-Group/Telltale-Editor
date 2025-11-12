@@ -1,13 +1,12 @@
 #pragma once
 
 #include <fastdelegate/FastDelegate.h>
+#include <type_traits>
 
 #include <Core/Config.hpp>
 #include <Meta/Meta.hpp>
 
 #include <Scripting/ScriptManager.hpp>
-
-// CALLBACKS HELPERS FOR META SYSTEM
 
 // ===================================================================         BASE
 // ===================================================================
@@ -34,6 +33,71 @@ struct FunctionBase
     
 };
 
+// ===================================================================         CALLBACK LIST
+// ===================================================================
+
+// Array of callbacks.
+class Callbacks
+{
+    
+    Ptr<FunctionBase> _Cbs;
+    
+public:
+    
+    inline void CallErased(void* pArg1, U32 classArg1, void* pArg2, U32 classArg2, void* pArg3, U32 classArg3, void* Arg4, U32 classArg4)
+    {
+        Ptr<FunctionBase> fn = _Cbs;
+        while(fn)
+        {
+            fn->CallErased(pArg1, classArg1, pArg2, classArg2, pArg3, classArg3, Arg4, classArg4);
+            fn = fn->Next;
+        }
+    }
+    
+    inline void PushCallback(Ptr<FunctionBase> pCallback)
+    {
+        pCallback->Next = _Cbs;
+        _Cbs = std::move(pCallback);
+    }
+
+    inline void RemoveCallbacks(Symbol callbackTag) // rem all with tag
+    {
+        Ptr<FunctionBase> fn = _Cbs, prev = {};
+        while (fn)
+        {
+            if(fn->Tag == callbackTag)
+            {
+                if(fn == _Cbs)
+                {
+                    fn = _Cbs = fn->Next;
+                }
+                else
+                {
+                    if(prev)
+                        prev->Next = fn->Next;
+                    fn = fn->Next;
+                }
+            }
+            else
+            {
+                prev = fn;
+                fn = fn->Next;
+            }
+        }
+    }
+    
+    inline void Clear()
+    {
+        Ptr<FunctionBase> fn = _Cbs;
+        while(fn)
+        {
+            fn = std::move(fn->Next);
+        }
+        _Cbs.reset();
+    }
+    
+};
+
 // ===================================================================         DUMMY
 // ===================================================================
 
@@ -53,6 +117,8 @@ struct FunctionDummyImpl : FunctionBase
 };
 
 using FunctionDummy = FunctionDummyImpl;
+
+#define CALLBACK_ARGUMENT_ASSERT_NOENUM(A) static_assert(!std::is_enum<A>::value, "Enums cannot be used as callback parameters. Please use Enum<E> for meta coersion support")
 
 // ===================================================================         LUA CALLBACKS (META -> LUA)
 // ===================================================================
@@ -182,25 +248,110 @@ using LuaFunction = LuaFunctionImpl<NumArguments>;
 // ===================================================================         METHOD (CLASS ATTACHED)
 // ===================================================================
 
-template<typename Object>
-struct MethodImplBase : FunctionBase
+template<typename Object, Bool Checked>
+struct MethodLock
 {
-    
-    WeakPtr<Object> MethodObject;
-    
-    inline MethodImplBase(Ptr<Object>&& pObject)
+
+    Ptr<Object> MyObject;
+
+    inline MethodLock(const WeakPtr<Object> wk)
     {
-        MethodObject = std::move(pObject);
+        if (!IsWeakPtrUnbound(wk))
+        {
+            if(wk.expired())
+            {
+                TTE_LOG("WARNING: Method object has expired for unchecked MethodImplBase<TObj>");
+            }
+            else
+            {
+                MyObject = wk.lock();
+            }
+        }
+    }
+
+    ~MethodLock() = default;
+
+};
+
+template<typename T>
+struct MethodLock<T, false>
+{
+    inline MethodLock(T*) {}
+};
+
+template<typename Object, Bool Checked = true>
+class MethodImplBase : public FunctionBase
+{
+protected:
+    
+    WeakPtr<Object> _MethodObject;
+
+public:
+
+    static constexpr Bool MyChecked = true;
+
+    inline MethodImplBase(Ptr<Object> pObject) : _MethodObject(pObject) {}
+
+    inline MethodImplBase(Object* pObject) : _MethodObject()
+    {
+        TTE_ASSERT(false, "Incorrect constructor used! Please check the macro invocation.");
+    }
+
+    inline Bool CompareBase(const MethodImplBase& rhs) const
+    {
+        return _MethodObject.lock() == rhs._MethodObject.lock();
     }
     
 };
 
-template<typename Object, typename Arg1 = Placeholder, typename Arg2 = Placeholder, typename Arg3 = Placeholder, typename Arg4 = Placeholder>
+template<typename Object>
+class MethodImplBase<Object, false> : public FunctionBase
+{
+protected:
+
+    Object* _MethodObject;
+
+public:
+
+    static constexpr Bool MyChecked = false;
+
+    inline MethodImplBase(Object* pObject) : _MethodObject(pObject)
+    {
+    }
+
+    inline MethodImplBase(Ptr<Object> pObject) : _MethodObject(pObject.get())
+    {
+    }
+
+    inline Bool CompareBase(const MethodImplBase& rhs) const
+    {
+        return _MethodObject == rhs._MethodObject;
+    }
+
+};
+
+template<typename Object>
+struct _MethodImplBaseSelector
+{
+    static constexpr Bool _MyChecked = false;
+};
+
+template<typename Object>
+struct _MethodImplBaseSelector<Ptr<Object>>
+{
+    static constexpr Bool _MyChecked = true;
+};
+
+#define CALLBACK_TEST_CHECKED(PtrObj) _MethodImplBaseSelector<std::decay<decltype(PtrObj)>::type>::_MyChecked
+
+template<typename Object, Bool Checked, typename Arg1 = Placeholder, typename Arg2 = Placeholder, typename Arg3 = Placeholder, typename Arg4 = Placeholder>
 struct MethodImpl;
 
-template<typename Object> // 0 ARGS
-struct MethodImpl<Object, Placeholder, Placeholder, Placeholder, Placeholder> : MethodImplBase<Object>
+template<typename Object, Bool Checked> // 0 ARGS
+struct MethodImpl<Object, Checked, Placeholder, Placeholder, Placeholder, Placeholder> : MethodImplBase<Object, Checked>
 {
+
+    using _MethodImplBase = MethodImplBase<Object, Checked>;
     
     fastdelegate::FastDelegate0<> Delegate;
     
@@ -223,34 +374,37 @@ struct MethodImpl<Object, Placeholder, Placeholder, Placeholder, Placeholder> : 
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
     {
-        const MethodImpl* pMethod = dynamic_cast<const MethodImpl*>(&rhs);
-        return pMethod && pMethod->MethodObject.lock() == this->MethodObject.lock() && this->Delegate == pMethod->Delegate;
+        const _MethodImplBase* pMethod = dynamic_cast<const _MethodImplBase*>(&rhs);
+        return pMethod && _MethodImplBase::CompareBase(*pMethod) && this->Delegate == pMethod->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)()) : MethodImplBase<Object>(std::move(pObject))
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)()) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
+    }
+
+    inline MethodImpl(Object* pObject, void (Object::* pMethod)()) : _MethodImplBase(pObject)
+    {
+        Delegate.bind(pObject, pMethod);
     }
     
 protected:
     
     inline void Call()
     {
-        Ptr<Object> acquired{};
-        if(!IsWeakPtrUnbound(this->MethodObject))
-        {
-            if(this->MethodObject.expired())
-                return;
-            acquired = this->MethodObject.lock(); // keep here. delegate pointer lifetime
-        }
+        MethodLock<Object, Checked> _Lock{ this->_MethodObject };
         Delegate();
     }
     
 };
 
-template<typename Object, typename Arg1> // 1 ARG
-struct MethodImpl<Object, Arg1, Placeholder, Placeholder, Placeholder> : MethodImplBase<Object>
+template<typename Object, Bool Checked, typename Arg1> // 1 ARG
+struct MethodImpl<Object, Checked, Arg1, Placeholder, Placeholder, Placeholder> : MethodImplBase<Object, Checked>
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    
+    using _MethodImplBase = MethodImplBase<Object, Checked>;
     
     fastdelegate::FastDelegate1<Arg1> Delegate;
     
@@ -266,40 +420,52 @@ struct MethodImpl<Object, Arg1, Placeholder, Placeholder, Placeholder> : MethodI
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance, Meta::ClassInstance, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Call(std::move(value1));
+        OptionalDefaultConstructible<Arg1> value1{};
+        if(value1.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Call(std::move(*value1.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
     {
-        const auto* pMethod = dynamic_cast<const MethodImpl*>(&rhs);
-        return pMethod && pMethod->MethodObject.lock() == this->MethodObject.lock() && this->Delegate == pMethod->Delegate;
+        const auto* pMethod = dynamic_cast<const _MethodImplBase*>(&rhs);
+        return pMethod && _MethodImplBase::CompareBase(*pMethod) && this->Delegate == ((const MethodImpl*)pMethod)->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1)) : MethodImplBase<Object>(std::move(pObject))
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
+    }
+
+    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1)) : _MethodImplBase(pObject)
+    {
+        Delegate.bind(pObject, pMethod);
     }
     
 protected:
     
     inline void Call(Arg1 arg1)
     {
-        Ptr<Object> acquired;
-        if (!IsWeakPtrUnbound(this->MethodObject))
-        {
-            if (this->MethodObject.expired()) return;
-            acquired = this->MethodObject.lock();
-        }
+        MethodLock<Object, Checked> _Lock{this->_MethodObject};
         Delegate(std::move(arg1));
     }
     
 };
 
-template<typename Object, typename Arg1, typename Arg2> // 2 ARGS
-struct MethodImpl<Object, Arg1, Arg2, Placeholder, Placeholder> : MethodImplBase<Object>
+template<typename Object, Bool Checked, typename Arg1, typename Arg2> // 2 ARGS
+struct MethodImpl<Object, Checked, Arg1, Arg2, Placeholder, Placeholder> : MethodImplBase<Object, Checked>
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+    
+    using _MethodImplBase = MethodImplBase<Object, Checked>;
     
     fastdelegate::FastDelegate2<Arg1, Arg2> Delegate;
     
@@ -315,42 +481,55 @@ struct MethodImpl<Object, Arg1, Arg2, Placeholder, Placeholder> : MethodImplBase
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{};
-        Meta::ExtractCoercableInstance(value2, arg2);
-        Call(std::move(value1), std::move(value2));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        if(value1.Get() && value2.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
     {
-        const auto* pMethod = dynamic_cast<const MethodImpl*>(&rhs);
-        return pMethod && pMethod->MethodObject.lock() == this->MethodObject.lock() && this->Delegate == pMethod->Delegate;
+        const auto* pMethod = dynamic_cast<const _MethodImplBase*>(&rhs);
+        return pMethod && _MethodImplBase::CompareBase(*pMethod) && this->Delegate == ((const MethodImpl*)pMethod)->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2)) : MethodImplBase<Object>(std::move(pObject))
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
+    }
+
+    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1, Arg2)) : _MethodImplBase(pObject)
+    {
+        Delegate.bind(pObject, pMethod);
     }
     
 protected:
     
     inline void Call(Arg1 arg1, Arg2 arg2)
     {
-        Ptr<Object> acquired;
-        if (!IsWeakPtrUnbound(this->MethodObject))
-        {
-            if (this->MethodObject.expired()) return;
-            acquired = this->MethodObject.lock();
-        }
+        MethodLock<Object, Checked> _Lock{ this->_MethodObject };
         Delegate(std::move(arg1), std::move(arg2));
     }
     
 };
 
-template<typename Object, typename Arg1, typename Arg2, typename Arg3> // 3 ARGS
-struct MethodImpl<Object, Arg1, Arg2, Arg3, Placeholder> : MethodImplBase<Object>
+template<typename Object, Bool Checked, typename Arg1, typename Arg2, typename Arg3> // 3 ARGS
+struct MethodImpl<Object, Checked, Arg1, Arg2, Arg3, Placeholder> : MethodImplBase<Object, Checked>
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg3);
+    
+    using _MethodImplBase = MethodImplBase<Object, Checked>;
     
     fastdelegate::FastDelegate3<Arg1, Arg2, Arg3> Delegate;
     
@@ -365,44 +544,58 @@ struct MethodImpl<Object, Arg1, Arg2, Arg3, Placeholder> : MethodImplBase<Object
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance arg3, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{};
-        Meta::ExtractCoercableInstance(value2, arg2);
-        Arg3 value3{};
-        Meta::ExtractCoercableInstance(value3, arg3);
-        Call(std::move(value1), std::move(value2), std::move(value3));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        OptionalDefaultConstructible<Arg3> value3{};
+        if(value1.Get() && value2.Get() && value3.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Meta::ExtractCoercableInstance(*value3.Get(), arg3);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()), std::move(*value3.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
     {
-        const auto* pMethod = dynamic_cast<const MethodImpl*>(&rhs);
-        return pMethod && pMethod->MethodObject.lock() == this->MethodObject.lock() && this->Delegate == pMethod->Delegate;
+        const auto* pMethod = dynamic_cast<const _MethodImplBase*>(&rhs);
+        return pMethod && _MethodImplBase::CompareBase(*pMethod) && this->Delegate == ((const MethodImpl*)pMethod)->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3)) : MethodImplBase<Object>(std::move(pObject))
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
+    }
+
+    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1, Arg2, Arg3)) : _MethodImplBase(pObject)
+    {
+        Delegate.bind(pObject, pMethod);
     }
     
 protected:
     
     inline void Call(Arg1 arg1, Arg2 arg2, Arg3 arg3)
     {
-        Ptr<Object> acquired;
-        if (!IsWeakPtrUnbound(this->MethodObject))
-        {
-            if (this->MethodObject.expired()) return;
-            acquired = this->MethodObject.lock();
-        }
+        MethodLock<Object, Checked> _Lock{ this->_MethodObject };
         Delegate(std::move(arg1), std::move(arg2), std::move(arg3));
     }
     
 };
 
-template<typename Object, typename Arg1, typename Arg2, typename Arg3, typename Arg4> // 4 ARGS
-struct MethodImpl : MethodImplBase<Object>
+template<typename Object, Bool Checked, typename Arg1, typename Arg2, typename Arg3, typename Arg4> // 4 ARGS
+struct MethodImpl : MethodImplBase<Object, Checked>
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg3);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg4);
+    
+    using _MethodImplBase = MethodImplBase<Object, Checked>;
     
     fastdelegate::FastDelegate4<Arg1, Arg2, Arg3, Arg4> Delegate;
     
@@ -422,47 +615,53 @@ struct MethodImpl : MethodImplBase<Object>
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance arg3, Meta::ClassInstance arg4) override final
     {
         // Convert meta type pArg into the C++ Arg type
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{};
-        Meta::ExtractCoercableInstance(value2, arg2);
-        Arg3 value3{};
-        Meta::ExtractCoercableInstance(value3, arg3);
-        Arg4 value4{};
-        Meta::ExtractCoercableInstance(value4, arg4);
-        Call(std::move(value1), std::move(value2), std::move(value3), std::move(value4));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        OptionalDefaultConstructible<Arg3> value3{};
+        OptionalDefaultConstructible<Arg4> value4{};
+        if(value1.Get() && value2.Get() && value3.Get() && value4.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Meta::ExtractCoercableInstance(*value3.Get(), arg3);
+            Meta::ExtractCoercableInstance(*value4.Get(), arg4);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()), std::move(*value3.Get()), std::move(*value4.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
     {
-        const MethodImpl* pMethod = dynamic_cast<const MethodImpl*>(&rhs);
-        return pMethod && pMethod->MethodObject.lock() == this->MethodObject.lock() && this->Delegate == pMethod->Delegate;
+        const _MethodImplBase* pMethod = dynamic_cast<const _MethodImplBase*>(&rhs);
+        return pMethod && _MethodImplBase::CompareBase(*pMethod) && this->Delegate == ((const MethodImpl*)pMethod)->Delegate;
     }
     
-    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3, Arg4)) : MethodImplBase<Object>(std::move(pObject))
+    inline MethodImpl(Ptr<Object> pObject, void (Object::*pMethod)(Arg1, Arg2, Arg3, Arg4)) : _MethodImplBase(pObject)
     {
         Delegate.bind(pObject.get(), pMethod);
+    }
+
+    inline MethodImpl(Object* pObject, void (Object::* pMethod)(Arg1, Arg2, Arg3, Arg4)) : _MethodImplBase(pObject)
+    {
+        Delegate.bind(pObject, pMethod);
     }
     
 protected:
     
     inline void Call(Arg1 arg1, Arg2 arg2, Arg3 arg3, Arg4 arg4)
     {
-        Ptr<Object> acquired{};
-        if(!IsWeakPtrUnbound(this->MethodObject))
-        {
-            if(this->MethodObject.expired())
-                return;
-            acquired = this->MethodObject.lock(); // keep here. delegate pointer lifetime
-        }
+        MethodLock<Object, Checked> _Lock{ this->_MethodObject };
         Delegate(std::move(arg1), std::move(arg2), std::move(arg3), std::move(arg4));
     }
     
 };
 
 // Meta system args bound -> a C++ instance. Member function
-template<typename Object, typename A1 = Placeholder, typename A2 = Placeholder, typename A3 = Placeholder, typename A4 = Placeholder>
-using Method = MethodImpl<Object, A1, A2, A3, A4>;
+template<typename Object, Bool Checked, typename A1 = Placeholder, typename A2 = Placeholder, typename A3 = Placeholder, typename A4 = Placeholder>
+using Method = MethodImpl<Object, Checked, A1, A2, A3, A4>;
 
 // ===================================================================         FUNCTION (NO CLASS ATTACH)
 // ===================================================================
@@ -490,9 +689,6 @@ struct FunctionImpl<Placeholder, Placeholder, Placeholder, Placeholder> : Functi
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance arg3, Meta::ClassInstance arg4) override final
     {
-        // Convert meta type pArg1 into the C++ Arg1 type
-        //Arg1 value{};
-        //Meta::ExtractCoercableInstance(value, arg1);
         Call();
     }
     
@@ -519,6 +715,8 @@ protected:
 template<typename Arg1> // 1 ARG
 struct FunctionImpl<Arg1, Placeholder, Placeholder, Placeholder> : FunctionBase
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
     
     fastdelegate::FastDelegate1<Arg1> Delegate;
     
@@ -533,9 +731,16 @@ struct FunctionImpl<Arg1, Placeholder, Placeholder, Placeholder> : FunctionBase
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance, Meta::ClassInstance, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Call(std::move(value1));
+        OptionalDefaultConstructible<Arg1> value1{};
+        if(value1.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Call(std::move(*value1.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -562,6 +767,9 @@ template<typename Arg1, typename Arg2> // 2 ARGS
 struct FunctionImpl<Arg1, Arg2, Placeholder, Placeholder> : FunctionBase
 {
     
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+
     fastdelegate::FastDelegate2<Arg1, Arg2> Delegate;
     
     virtual U32 GetNumArguments() const override final { return 2; }
@@ -575,11 +783,18 @@ struct FunctionImpl<Arg1, Arg2, Placeholder, Placeholder> : FunctionBase
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{};
-        Meta::ExtractCoercableInstance(value2, arg2);
-        Call(std::move(value1), std::move(value2));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        if(value1.Get() && value2.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -605,6 +820,10 @@ protected:
 template<typename Arg1, typename Arg2, typename Arg3> // 3 ARGS
 struct FunctionImpl<Arg1, Arg2, Arg3, Placeholder> : FunctionBase
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg3);
     
     fastdelegate::FastDelegate3<Arg1, Arg2, Arg3> Delegate;
     
@@ -619,13 +838,20 @@ struct FunctionImpl<Arg1, Arg2, Arg3, Placeholder> : FunctionBase
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance arg3, Meta::ClassInstance) override final
     {
-        Arg1 value1{};
-        Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{};
-        Meta::ExtractCoercableInstance(value2, arg2);
-        Arg3 value3{};
-        Meta::ExtractCoercableInstance(value3, arg3);
-        Call(std::move(value1), std::move(value2), std::move(value3));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        OptionalDefaultConstructible<Arg3> value3{};
+        if(value1.Get() && value2.Get() && value3.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Meta::ExtractCoercableInstance(*value3.Get(), arg3);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()), std::move(*value3.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -651,6 +877,12 @@ protected:
 template<typename Arg1, typename Arg2, typename Arg3, typename Arg4> // 4 ARGS
 struct FunctionImpl : FunctionBase
 {
+
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg1);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg2);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg3);
+    CALLBACK_ARGUMENT_ASSERT_NOENUM(Arg4);
+
     fastdelegate::FastDelegate4<Arg1, Arg2, Arg3, Arg4> Delegate;
     
     virtual U32 GetNumArguments() const override final { return 4; }
@@ -664,11 +896,22 @@ struct FunctionImpl : FunctionBase
     
     inline virtual void CallMeta(Meta::ClassInstance arg1, Meta::ClassInstance arg2, Meta::ClassInstance arg3, Meta::ClassInstance arg4) override final
     {
-        Arg1 value1{}; Meta::ExtractCoercableInstance(value1, arg1);
-        Arg2 value2{}; Meta::ExtractCoercableInstance(value2, arg2);
-        Arg3 value3{}; Meta::ExtractCoercableInstance(value3, arg3);
-        Arg4 value4{}; Meta::ExtractCoercableInstance(value4, arg4);
-        Call(std::move(value1), std::move(value2), std::move(value3), std::move(value4));
+        OptionalDefaultConstructible<Arg1> value1{};
+        OptionalDefaultConstructible<Arg2> value2{};
+        OptionalDefaultConstructible<Arg3> value3{};
+        OptionalDefaultConstructible<Arg4> value4{};
+        if(value1.Get() && value2.Get() && value3.Get() && value4.Get())
+        {
+            Meta::ExtractCoercableInstance(*value1.Get(), arg1);
+            Meta::ExtractCoercableInstance(*value2.Get(), arg2);
+            Meta::ExtractCoercableInstance(*value3.Get(), arg3);
+            Meta::ExtractCoercableInstance(*value4.Get(), arg4);
+            Call(std::move(*value1.Get()), std::move(*value2.Get()), std::move(*value3.Get()), std::move(*value4.Get()));
+        }
+        else
+        {
+            TTE_ASSERT(false, "Cannot use CallMeta: one or more of the arguments to this callback are not default contructible");
+        }
     }
     
     inline virtual Bool Equals(const FunctionBase& rhs) const override final
@@ -696,7 +939,6 @@ protected:
 template<typename A1 = Placeholder, typename A2 = Placeholder, typename A3 = Placeholder, typename A4 = Placeholder>
 using Function = FunctionImpl<A1, A2, A3, A4>;
 
-
 // ===================================================================         UTIL
 // ===================================================================
 
@@ -708,26 +950,26 @@ template<typename T, typename U> struct _TemplArgFnWrapper<T(U)> { typedef U _FT
 
 // Allocate class function callback with no arguments
 #define ALLOCATE_METHOD_CALLBACK_0(PtrObj, MemFn, MethodClass) \
-TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA CALLBACK_TEST_CHECKED(PtrObj)>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, &MethodClass::MemFn)
 
 // Allocate class function callback with one argument
 #define ALLOCATE_METHOD_CALLBACK_1(PtrObj, MemFn, MethodClass, ArgType) \
- TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA ArgType>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+ TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA CALLBACK_TEST_CHECKED(PtrObj) MACRO_COMMA ArgType>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, &MethodClass::MemFn)
 
 // Allocate class function callback with 2 arguments
 #define ALLOCATE_METHOD_CALLBACK_2(PtrObj, MemFn, MethodClass, ArgType1, ArgType2) \
-TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA ArgType1 MACRO_COMMA ArgType2 \
-                                    >)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA CALLBACK_TEST_CHECKED(PtrObj) MACRO_COMMA ArgType1 MACRO_COMMA ArgType2 \
+                                    >)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, &MethodClass::MemFn)
 
 // Allocate class function callback with 3 arguments
 #define ALLOCATE_METHOD_CALLBACK_3(PtrObj, MemFn, MethodClass, ArgType1, ArgType2, ArgType3) \
-TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA ArgType1 MACRO_COMMA ArgType2 \
-                                    MACRO_COMMA ArgType3>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA CALLBACK_TEST_CHECKED(PtrObj) MACRO_COMMA ArgType1 MACRO_COMMA ArgType2 \
+                                    MACRO_COMMA ArgType3>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, &MethodClass::MemFn)
 
 // Allocate class function callback with 4 arguments
 #define ALLOCATE_METHOD_CALLBACK_4(PtrObj, MemFn, MethodClass, ArgType1, ArgType2, ArgType3, ArgType4) \
-TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA ArgType1 MACRO_COMMA ArgType2 \
-                                    MACRO_COMMA ArgType3 MACRO_COMMA ArgType4>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, MemFn)
+TTE_NEW_PTR(_TemplArgFnWrapper<void(Method<MethodClass MACRO_COMMA CALLBACK_TEST_CHECKED(PtrObj) MACRO_COMMA ArgType1 MACRO_COMMA ArgType2 \
+                                    MACRO_COMMA ArgType3 MACRO_COMMA ArgType4>)>::_FTy, MEMORY_TAG_CALLBACK, PtrObj, &MethodClass::MemFn)
 
 // Allocate static/free function callback with no arguments
 #define ALLOCATE_FUNCTION_CALLBACK_0(Fn) \

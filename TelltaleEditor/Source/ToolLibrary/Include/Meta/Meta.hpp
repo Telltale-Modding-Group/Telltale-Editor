@@ -19,6 +19,7 @@
 
 class PropertySet;
 class FunctionBase;
+enum class CommonClass;
 
 // ======================================= META UTILITY TYPES =======================================
 
@@ -51,25 +52,29 @@ using Rect = TRect<I32>;
 
 // Meta system is all inside this namespace. This is a reflection system initialised by the lua scripts.
 // ClassID is the combined hash of the type name and version crc of that type.
-namespace Meta {
+namespace Meta
+{
     
     // ======================================== META BINARY TYPES ========================================
     
     // Sections of binary stream
-    enum StreamSection {
+    enum StreamSection
+    {
         STREAM_SECTION_MAIN = 0,
         STREAM_SECTION_ASYNC = 1,
         STREAM_SECTION_DEBUG = 2,
         STREAM_SECTION_COUNT = 3,
     };
     
-    constexpr CString StreamSectionName[] {
+    constexpr CString StreamSectionName[]
+    {
         "Main",
         "Async",
         "Debug"
     };
     
-    constexpr CString PlatformNames[] {
+    constexpr CString PlatformNames[]
+    {
         "PC",
         "MacOS",
         "PS2",
@@ -86,7 +91,8 @@ namespace Meta {
     };
     
     // Binary stream versions
-    enum StreamVersion {
+    enum StreamVersion
+    {
         MBIN = 0, // Meta BINary
         MBES = 1, // Meta Binary Encrypted Stream. This is not a valid version to write with, encrypt archives if needed.
         MTRE = 2, // Meta Type References
@@ -100,9 +106,11 @@ namespace Meta {
     };
     
     // A binary meta stream. Used internally.
-    struct Stream {
+    struct Stream
+    {
         
-        struct Section {
+        struct Section
+        {
             DataStreamRef Data; // Section binary data stream
             Bool Compressed; // If section is compressed
             std::vector<U64> Blocks; // For blocks. In read, stores the sizes, in write stores the block offset initial.
@@ -142,7 +150,8 @@ namespace Meta {
     
     // ======================================== INTERNAL META TYPES ========================================
     
-    enum MetaMemberFlag {
+    enum MetaMemberFlag
+    {
         MEMBER_MEMORY_DISABLE = 1, // this member is not actually in memory but just exists for the version hashing
         MEMBER_ENUM = 2, // this member is an enum
         MEMBER_FLAG = 4, // this member is a flags bitfield
@@ -151,7 +160,8 @@ namespace Meta {
         MEMBER_VERSION_HASH_DISABLE = 32, // dont include in any version hashes, although is still in memory and serialised
     };
     
-    enum MetaClassFlag {
+    enum MetaClassFlag
+    {
         CLASS_INTRINSIC = 1, // this class is an intrinsic type so is not added to meta class header
         CLASS_ALLOW_ASYNC = 2, // allow this class to be serialised asynchronously, ie its a very large class.
         CLASS_CONTAINER = 4, // this class is a container type (map/set/array/etc)
@@ -161,6 +171,7 @@ namespace Meta {
         CLASS_PROXY = 64, // proxy type which is used for telltale game errors. disables all block sizes in members of this type.
         CLASS_ENUM_WRAPPER = 128, // enum class wrapper. has one member integer (normally mVal)
         _CLASS_PROP = 256, // Internal flag denoting this class is the property set class (undergoes specific treatment in resource API)
+        CLASS_COLLECTION_SORTED = 512, // collection types are map,dcarray,sarray,deque,list,set. set needs this (map is keyed, so implied)
     };
     
     // Enum / flag descriptor for a member in a class
@@ -193,7 +204,8 @@ namespace Meta {
     
     // A type class. This as well as Member are used internally. Refer to classes using the index (U32 - internal version CRC).
     // Refer to members by name string
-    struct Class {
+    struct Class
+    {
         
         // MEMBERS REQUIRED.
         String Name = "";
@@ -274,6 +286,16 @@ namespace Meta {
         U32 _Register(LuaManager& man, Class&& c, I32 classTableStackIndex); // register new class and calc CRCs
         
         U32 _DoLuaVersionCRC(LuaManager& man, I32 classTableStackIndex); // calculate version crc32
+
+        void _PushCompiledScript(std::map<Symbol, CompiledScript>& scriptMap, const String& fn);
+
+        Bool _CollectCompiledScriptFunctionMT(CompiledScript& out, const String& fn);
+
+        U32 _ResolveCommonClassID(const String& extension);
+
+        void _FreeCompiledScriptMT(CompiledScript& script); // main only
+
+        U32 _ResolveCommonClassIDSafe(CommonClass clz); // will use common selector. thread safe
         
         // internally construct type into memory. concrete is actual ref if its a top level so members have it as its parent
         void _DoConstruct(Class* pClass, U8* pMemory, ParentWeakReference host, ParentWeakReference& concrete, Bool bTopLevel);
@@ -410,19 +432,31 @@ namespace Meta {
         String Name, ID, ResourceSetDescMask;
         StreamVersion MetaVersion = MBIN;
         LuaVersion LVersion = LuaVersion::LUA_5_2_3;
-        std::map<String, BlowfishKey> PlatformToEncryptionKey;
         std::multimap<String, String, FolderAssociateComparator> FolderAssociates; // mask to folder name, eg '*.dlg' into Dialogs/, and 'module_*.prop' into Properties/Primitives/, '*.prop' => Properties/
         std::vector<String> ValidPlatforms; // game platforms
-        std::vector<String> ValidVendors; // if non zero it must be specified. eg 'DevBuild' for early dev releases etc. see script
-        BlowfishKey MasterKey; // key used for all platforms
+        String DefaultVendor; // if more than 0 vendors, this specifies the default one to map from an empty string to.
+        std::vector<String> ValidVendors; // if non zero it must be specified. eg 'DevBuild' for early dev releases etc. see script. empty string always allowed as well
         Flags Fl; // flags
-        U32 ArchiveVersion = 0; // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
+        String CommonSelector;
+        std::map<U64, std::pair<String, String>> ExecutableHash; // exe hash => platform + vendor pair
+
+        // These are snapshot => XX mappings. snapshot is not the game ID, but the 'Platform/Vendor' or just 'Platform' (substitute)
+
+        BlowfishKey MasterKey; // key used for all platforms
+        U32 MasterArchiveVersion = 0;  // archive version for old ttarch. for new ttarch2, this is the TTAX (X value) so 2,3 or 4.
+        std::map<String, U32> SnapToArchiveVersion;
+        std::map<String, BlowfishKey> SnapToEncryptionKey;
+
         GameCapabilitiesBitSet Caps;
         
         inline Bool UsesArchive2() const
         {
             return Fl.Test(ARCHIVE2);
         }
+
+        U32 GetArchiveVersion(GameSnapshot snapshot) const;
+
+        BlowfishKey GetEncryptionKey(GameSnapshot snapshot) const;
         
     };
     
@@ -459,6 +493,9 @@ namespace Meta {
         
         friend void _Impl::_DoMoveConstruct(Class* pClass, U8* pDst, U8* pSrc, ParentWeakReference host, ParentWeakReference& concrete,
                                      Bool bSrcTopLevel, Bool bTopLevel);
+
+        friend Bool PerformLessThan(ClassInstance& lhs, ClassInstance& rhs);
+        friend Bool PerformEquality(ClassInstance& lhs, ClassInstance& rhs);
         
     public:
         
@@ -903,6 +940,9 @@ namespace Meta {
     // Acquires a reference to the given script object on the stack. After using ClassInstance::PushScriptRef, this can be used on the pushed value
     // Thread safe between game switches.
     ClassInstance AcquireScriptInstance(LuaManager& man, I32 stackIndex);
+
+    // Gets all meta class IDs
+    std::vector<U32> GetClassIDs();
     
     // Returns if the given instance can have instances attached to it, using it passed into Create/Copy/Move Instance.
     Bool IsAttachable(ClassInstance& instance);
@@ -991,7 +1031,8 @@ namespace Meta {
     
     // If the given instance class is a collection, this returns the modifyable collection for it. DO NOT access this after arrayType is not alive.
     // Thread safe between game switches.
-    inline ClassInstanceCollection& CastToCollection(ClassInstance& arrayType){
+    inline ClassInstanceCollection& CastToCollection(ClassInstance& arrayType)
+    {
         TTE_ASSERT(arrayType, "Cannot cast to collection: array type is null");
         TTE_ASSERT(_Impl::_GetClass(arrayType.GetClassID())->Flags & CLASS_CONTAINER, "Cannot cast class to collection: it is not a collection");
         return *(ClassInstanceCollection*)arrayType._GetInternal();
@@ -1006,6 +1047,7 @@ namespace Meta {
         std::map<Symbol, CompiledScript> Serialisers{}; // map of serialiser name => compiled script binary
         std::map<Symbol, CompiledScript> Normalisers{};
         std::map<Symbol, CompiledScript> Specialisers{};
+        CompiledScript Collector{};
         I32 GameIndex = -1;
         String VersionCalcFun{}; // lua function which calculates version crc for a type.
         
@@ -1054,7 +1096,6 @@ namespace Meta {
      */
     template<typename T> void ExtractCoercableInstance(T& out, Meta::ClassInstance& inst)
     {
-        static_assert(_Impl::_Coersion<T>::IsValid, "Extractor for T has not been implemented!");
         _Impl::_Coersion<T>::Extract(out, inst);
     }
     
@@ -1064,7 +1105,6 @@ namespace Meta {
      */
     template<typename T> void ImportCoercableInstance(const T& in, Meta::ClassInstance& inst)
     {
-        static_assert(_Impl::_Coersion<T>::IsValid, "Instance importer for T has not been implemented!");
         _Impl::_Coersion<T>::Import(in, inst);
     }
     
@@ -1103,7 +1143,7 @@ namespace Meta {
     /**
      Gets the common instance allocator for the given class. The class must be a common class or it will return nullptr. Example classes, Mesh, Chore, Texture or Skeleton etc.
      */
-    CommonInstanceAllocator* GetCommonAllocator(U32 clz);
+    CommonClassAllocator* GetCommonAllocator(U32 clz);
     
 }
 
@@ -1122,36 +1162,42 @@ namespace InstanceTransformation
 // FOR SERIALISERS BELOW, CLAZZ CAN BE NULL, as we know the class 100%.
 
 // Serialises an unsigned byte (can be cast to signed)
-inline Bool SerialiseU8(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU8(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 1) : stream.Read((U8*)pMemory, 1);
 }
 
 // Serialises an unsigned short (can be cast to signed)
-inline Bool SerialiseU16(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU16(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     // Endianness checks in the future?
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 2) : stream.Read((U8*)pMemory, 2);
 }
 
 // Serialises an unsigned int (can be cast to signed)
-inline Bool SerialiseU32(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU32(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     // Endianness checks in the future?
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 4) : stream.Read((U8*)pMemory, 4);
 }
 
 // Serialises an unsigned longlong (can be cast to signed)
-inline Bool SerialiseU64(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseU64(Meta::Stream& stream, Meta::ClassInstance&, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     // Endianness checks in the future?
     return IsWrite ? stream.Write(const_cast<const U8*>((U8*)pMemory), 8) : stream.Read((U8*)pMemory, 8);
 }
 
 // Serialises an unsigned int (can be cast to signed) FROM/TO A DATA STREAM not a meta stream (used in header)
-inline Bool SerialiseDataU32(DataStreamRef& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseDataU32(DataStreamRef& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     // Endianness checks in the future?
     return IsWrite ? stream->Write(const_cast<const U8*>((U8*)pMemory), 4) : stream->Read((U8*)pMemory, 4);
 }
 
 // Serialises an unsigned longlong (can be cast to signed) FROM/TO A DATA STREAM not a meta stream (used in header)
-inline Bool SerialiseDataU64(DataStreamRef& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite){
+inline Bool SerialiseDataU64(DataStreamRef& stream, Meta::Class* clazz, void* pMemory, Bool IsWrite)
+{
     // Endianness checks in the future?
     return IsWrite ? stream->Write(const_cast<const U8*>((U8*)pMemory), 8) : stream->Read((U8*)pMemory, 8);
 }

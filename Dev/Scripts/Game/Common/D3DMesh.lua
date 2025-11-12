@@ -24,7 +24,10 @@ function SerialiseD3DMesh0(stream, inst, write)
         if hasIndexBuffer and not MetaSerialise(stream, MetaGetMember(inst, "_IndexBuffer0"), write, "Index Buffer") then
             return false
         end
-        for i=0,8 do -- Nine vertex buffers
+        local maxIndex = 8
+        if MetaGetMember(inst, "mbVertexAlphaSupport") ~= nil then maxIndex = 9 end
+        for i=0,maxIndex do -- Nine vertex buffers + vertex alpha
+            if i >= 9 and not MetaGetClassValue(MetaGetMember(inst, "mbVertexAlphaSupport")) then break end
             local hasVertexBuffer = MetaStreamReadBool(stream)
             if hasVertexBuffer and not MetaSerialise(stream,
                 MetaGetMember(inst, "_VertexBuffer" .. tostring(i)), write, "VertexBuffer" .. tostring(i)) then
@@ -62,6 +65,7 @@ function NormaliseD3DMesh0(inst, state)
     local triangleSets = MetaGetMember(inst, "mTriangleSets")
     local numTriangleSets = ContainerGetNumElements(triangleSets)
     local bonePalettes = MetaGetMember(inst, "mBonePalettes")
+    local hasBonePalettes = ContainerGetNumElements(bonePalettes) > 0
     local resolveBoneTable = {} -- NOTE the max size is 18! only 18*4 vec4s extra could fit into the shaders.
     local boneIndexTable = {}
 
@@ -81,15 +85,17 @@ function NormaliseD3DMesh0(inst, state)
 
         local diffuseMaterial = MetaGetClassValue(MetaGetMember(MetaGetMember(triangleSet, "mhDiffuseMap"), "mHandle"))
 
-        local bonePalette = ContainerGetElement(bonePalettes, paletteIndex)
-        local numBoneMaps = ContainerGetNumElements(bonePalette)
-        resolveBoneTable[i] = {}
-        for j=1,numBoneMaps do -- j-1 below as 0 based in actual buffer
-            resolveBoneTable[i][j-1] = MetaGetClassValue(MetaGetMember(ContainerGetElement(bonePalette, j - 1), "mBoneName"))
+        if hasBonePalettes then
+            local bonePalette = ContainerGetElement(bonePalettes, paletteIndex)
+            local numBoneMaps = ContainerGetNumElements(bonePalette)
+            resolveBoneTable[i] = {}
+            for j=1,numBoneMaps do -- j-1 below as 0 based in actual buffer
+                resolveBoneTable[i][j-1] = MetaGetClassValue(MetaGetMember(ContainerGetElement(bonePalette, j - 1), "mBoneName"))
+            end
+            boneIndexTable[i] = {Min = minVert, Max = maxVert}
         end
-        boneIndexTable[i] = {Min = minVert, Max = maxVert}
 
-        CommonMeshPushMaterial(state, diffuseMaterial)
+        CommonMeshPushMaterial(state, diffuseMaterial) -- TODO make this better. push only once for each texture
         CommonMeshSetBatchParameters(state, false, minVert, maxVert, startIndex, numPrim, numInd, 0, i - 1) -- base index not exist
 
     end
@@ -124,7 +130,7 @@ function NormaliseD3DMesh0(inst, state)
                 end
                 CommonMeshDecompressVertices(state, bufferCache, nVerts, compressedFmt)
             end
-            if isBoneIndices then
+            if hasBonePalettes and isBoneIndices then
                 CommonMeshResolveBonePalettes(state, bufferCache, resolveBoneTable, boneIndexTable, false, 4, meshName)
             end
             CommonMeshPushVertexBuffer(state, nVerts, stride, bufferCache)
@@ -162,6 +168,11 @@ function NormaliseD3DMesh0(inst, state)
 
     -- BUFFER 8: ?? TANGENT????
     pushedVertexBufferIndex = processBoneBuffer(state, 8, pushedVertexBufferIndex, 12, kCommonMeshAttributeTangent, kCommonMeshFloat3, false)
+
+    if MetaGetMember(inst, "_VertexBuffer9") ~= nil then
+        -- vertex alpha (check format)
+        pushedVertexBufferIndex = processBoneBuffer(state, 9, pushedVertexBufferIndex, 0, kCommonMeshAttributeUnknown, kCommonMeshFormatUnknown, false)
+    end
 
     return true
 end
