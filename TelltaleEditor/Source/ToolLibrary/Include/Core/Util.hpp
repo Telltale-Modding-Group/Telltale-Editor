@@ -684,8 +684,8 @@ class WeakSlotSignal
     inline WeakSlotSignal() {}
     inline WeakSlotSignal(WeakSlotSignal&&) : _Stat(0) {}
     inline WeakSlotSignal(const WeakSlotSignal&) : _Stat(0) {}
-    WeakSlotSignal& operator=(WeakSlotSignal&&) { _Stat = 0; }
-    WeakSlotSignal& operator=(const WeakSlotSignal&) { _Stat = 0; }
+    WeakSlotSignal& operator=(WeakSlotSignal&&) { _Stat = 0; return *this; }
+    WeakSlotSignal& operator=(const WeakSlotSignal&) { _Stat = 0; return *this; }
     
 public:
     

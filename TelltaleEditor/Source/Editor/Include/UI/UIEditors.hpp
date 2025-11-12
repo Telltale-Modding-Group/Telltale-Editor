@@ -226,7 +226,7 @@ public:
         return Alive;
     }
     
-    virtual inline String GetUniqueComparator() const
+    virtual inline String GetUniqueComparator() const override
     {
         return FileName;
     }
