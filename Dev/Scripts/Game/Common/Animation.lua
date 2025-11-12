@@ -92,6 +92,10 @@ function NormaliseAnimation0(instance, state)
             animType = kAnimationValueTypeProperty -- only seen Render Axis Scale animated in this game
         elseif MetaFlagQuery(flags, 16) then
             animType = kAnimationValueTypeMover
+        elseif MetaFlagQuery(flags, 2) then
+            animType = kAnimationValueTypeTime
+        elseif MetaFlagQuery(flags, 4) then
+            animType = kAnimationValueTypeContribution
         else
             if MetaFlagQuery(flags, 512) then
                 flags = flags - 512 -- homogeneous flag

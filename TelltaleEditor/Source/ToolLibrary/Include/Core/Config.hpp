@@ -412,9 +412,9 @@ enum class CommonClass
     ANIMATION,
     SKELETON,
     PROPERTY_SET,
+    CHORE,
     /* UPCOMING:
     TRANSITION_REMAPPER,
-    CHORE,
     DIALOG,
     PARTICLE,
     SPRITE,

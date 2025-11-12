@@ -56,6 +56,10 @@ set_target_properties(${TARGET_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE
 if(WIN32)
 set_target_properties(${TARGET_NAME} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Debug")
 endif()
+# Xcode debugger dir
+if(APPLE)
+set_target_properties(${TARGET_NAME} PROPERTIES XCODE_SCHEME_WORKING_DIRECTORY "${TELLTALE_EDITOR_ROOT_DIR}/Bin/Debug")
+endif()
 
 function(add_copy_cmd fname thirddir target_name output_dir)
     add_custom_command(

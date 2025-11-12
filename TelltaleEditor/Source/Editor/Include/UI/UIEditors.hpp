@@ -167,9 +167,9 @@ class UIResourceEditor : public UIResourceEditorBase
     
 protected:
     
-    inline virtual void OnExit() {}
+    virtual void OnExit();
     
-    virtual Bool RenderEditor() = 0; // true => exit
+    virtual Bool RenderEditor(); // true = exit
     
     inline Meta::ClassInstance GetMetaObject()
     {
@@ -333,3 +333,4 @@ protected:
     Scene* _GetRawScene();
     
 };
+

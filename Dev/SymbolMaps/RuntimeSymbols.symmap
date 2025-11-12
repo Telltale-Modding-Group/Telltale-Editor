@@ -8337,3 +8337,12 @@ Most Recent Input Mapper
 dialog_foreground.prop
 test
 prefs.prop
+HoldEm.scene
+1
+2
+3
+Embedded
+HoldEm_UI.scene
+default.scene
+announcer_blinds-1000.chore
+announcer_blinds-200.chore

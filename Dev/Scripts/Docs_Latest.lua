@@ -3898,7 +3898,7 @@ kMetaInt32 = 0
 --- @type number
 kMetaWideChar = 0
 
---- This is a sorted collection (set or map). Applied automatically to keyed collections (Map)
+--- This is a sorted collection (set or map). Applied automatically to keyed collections (Map). Note that sorted collection cannot contain duplicates (duplicat kv pairs override previous one)
 --- @type number
 kMetaClassSortedCollection = 0
 
@@ -4248,9 +4248,86 @@ end
 function CommonSkeletonPushEntry(state, entryInfoTable)
 end
 
+--- Sets the common chore name
+--- @param state nil
+--- @param name nil
+--- @return nil
+function CommonChoreSetName(state, name)
+end
+
+--- Sets the common chore length in seconds
+--- @param state nil
+--- @param lengthSecs nil
+--- @return nil
+function CommonChoreSetLength(state, lengthSecs)
+end
+
+--- Pushes a resource to the chore. The second argument is a table containing all keys matching kCommonChoreResourceKeyXXX.
+--- @param state nil
+--- @param resTable nil
+--- @return nil
+function CommonChorePushResource(state, resTable)
+end
+
+--- Pushes a choreographed agent to the chore. The second argument is a table containing all keys matching kCommonChoreAgentKeyXXX. You MUST push all resources before pushing any agents, otherwise their
+--- resource indices won't register.
+--- @param state nil
+--- @param agenetTable nil
+--- @return nil
+function CommonChorePushAgent(state, agenetTable)
+end
+
+--- Agent name string
+--- @type string
+kCommonChoreAgentKeyName = ""
+
+--- Time scale of block
+--- @type string
+kCommonChoreResourceBlockKeyScale = ""
+
+--- End time of block
+--- @type string
+kCommonChoreResourceBlockKeyEnd = ""
+
+--- Table of blocks. See kCommonChoreResourceBlockKeyXXX constants
+--- @type string
+kCommonChoreResourceKeyBlocks = ""
+
+--- View properties boolean
+--- @type string
+kCommonChoreResourceKeyViewProperties = ""
+
+--- Enabled boolean
+--- @type string
+kCommonChoreResourceKeyEnabled = ""
+
+--- If block is looping boolean
+--- @type string
+kCommonChoreResourceBlockKeyLooping = ""
+
+--- No pose boolean
+--- @type string
+kCommonChoreResourceKeyNoPose = ""
+
+--- Control animation meta instance
+--- @type string
+kCommonChoreResourceKeyControlAnimation = ""
+
+--- The chore resource length in seconds
+--- @type string
+kCommonChoreResourceKeyLength = ""
+
+--- The chore resource priority
+--- @type string
+kCommonChoreResourceKeyPriority = ""
+
 --- Animation value types
 --- @type number
 kAnimationValueTypeExplicitCompoundValue = 0
+
+--- View groups on boolean
+--- @type string
+kCommonChoreResourceKeyViewGroups = ""
 
 --- Animation value types
 --- @type number
@@ -4311,6 +4388,10 @@ kAnimationValueTypeProperty = 0
 --- Animation value types
 --- @type number
 kAnimationValueTypeMover = 0
+
+--- Is agent resource boolean
+--- @type string
+kCommonChoreResourceKeyAgentResource = ""
 
 --- Vertex attribute formats
 --- @type number
@@ -4396,6 +4477,10 @@ kCommonInputMapperTypeEnd = 0
 --- @type number
 kCommonInputMapperTypeBegin = 0
 
+--- Start time of block
+--- @type string
+kCommonChoreResourceBlockKeyStart = ""
+
 --- Vertex attribute formats
 --- @type number
 kCommonMeshFormatUnknown = 0
@@ -4455,6 +4540,10 @@ kCommonMeshAttributeUnknown = 0
 --- Module property render instructions
 --- @type string
 kPropRenderFloat = ""
+
+--- View graphs on boolean
+--- @type string
+kCommonChoreResourceKeyViewGraphs = ""
 
 --- Surface formats
 --- @type number
@@ -4572,6 +4661,10 @@ kCommonMeshFloat2 = 0
 --- @type number
 kCommonMeshUByte2 = 0
 
+--- Table of indices (values, keys ignored) or meta collection of 32-bit integers.
+--- @type string
+kCommonChoreAgentKeyResourceIndices = ""
+
 --- Vertex attribute formats
 --- @type number
 kCommonMeshInt2 = 0
@@ -4591,6 +4684,10 @@ kAnimationValueTypeSkeletonRootAnim = 0
 --- Vertex attribute formats
 --- @type number
 kCommonMeshUInt4 = 0
+
+--- The chore resource name
+--- @type string
+kCommonChoreResourceKeyName = ""
 
 --- Legacy normed compressed vector3 keys (0).
 --- @type number
@@ -4615,6 +4712,10 @@ kAnimationValueTypeTextureMoveU = 0
 --- Module property render instructions
 --- @type string
 kPropRenderPolar = ""
+
+--- Chore agent properties property set meta instance
+--- @type string
+kCommonChoreAgentKeyProperties = ""
 
 --- Vertex attribute formats
 --- @type number
@@ -4643,6 +4744,10 @@ kCommonMeshFloat1 = 0
 --- Vertex attribute formats
 --- @type number
 kCommonMeshUInt1 = 0
+
+--- Property set for this resource
+--- @type string
+kCommonChoreResourceKeyProperties = ""
 
 --- Vertex attributes
 --- @type number

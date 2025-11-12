@@ -971,7 +971,7 @@ static Bool _SceneMovePostTraverse(Ptr<Node> node, void* me)
     return true;
 }
 
-Scene::Scene(Scene&& rhs) noexcept : HandleableRegistered(rhs), Name(std::move(rhs.Name)), _Flags(rhs._Flags)
+Scene::Scene(Scene&& rhs) noexcept : HandleableRegistered(std::move(rhs)), Name(std::move(rhs.Name)), _Flags(rhs._Flags)
 {
     _Agents = std::move(rhs._Agents);
     SceneModuleUtil::PerformRecursiveModuleOperation(SceneModuleUtil::ModuleRange::ALL,

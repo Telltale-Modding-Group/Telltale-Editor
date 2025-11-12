@@ -12,7 +12,7 @@ TelltaleEditor* _MyContext = nullptr;
 TelltaleEditor* CreateEditorContext(GameSnapshot s)
 {
     TTE_ASSERT(_MyContext == nullptr, "A context already exists");
-    _MyContext = TTE_NEW(TelltaleEditor, MEMORY_TAG_TOOL_CONTEXT, s);
+    TTE_NEW(TelltaleEditor, MEMORY_TAG_TOOL_CONTEXT, s); // constructor stores into mycontext
     for (U32 i = 0; i < 256; i++)
         kDefaultContribution[i] = 1.0f;
     return _MyContext;
@@ -27,7 +27,7 @@ void FreeEditorContext()
 
 TelltaleEditor::TelltaleEditor(GameSnapshot s)
 {
-
+    _MyContext = this;
     RegisterCommonClassInfo();
 
     LuaFunctionCollection commonAPI = CreateScriptAPI(); // Common class API

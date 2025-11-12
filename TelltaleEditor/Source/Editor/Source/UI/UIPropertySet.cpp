@@ -7,6 +7,18 @@ DECL_VEC_ADDITION();
 
 // ========= PROPERTY SET UI IMPL
 
+// these two are needed, they arent implemented as they are overriden
+template<>
+void UIResourceEditor<>::OnExit()
+{
+}
+
+template<>
+Bool UIResourceEditor<>::RenderEditor()
+{
+    return true;
+}
+
 UIPropertySet::UIPropertySet(String propName, EditorUI& ui, String title, Meta::ClassInstance prop) :
     UIResourceEditor<>(propName, ui, title, prop), _HandleTable(true)
 {

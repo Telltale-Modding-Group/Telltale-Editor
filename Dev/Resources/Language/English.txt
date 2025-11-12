@@ -70,6 +70,9 @@ sv.title = "Scene"
 # MENU
 menu.run_script = "Run Lua Script"
 
+# CHORE EDITOR
+chore.title = "Chore :"
+
 # MISC
 misc.drag_here = "Drag a %s file here!"
 misc.empty = "Empty"

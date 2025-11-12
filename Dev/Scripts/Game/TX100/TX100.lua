@@ -15,7 +15,6 @@ require("ToolLibrary/Game/Common/InputMapper.lua")
 require("ToolLibrary/Game/Common/WalkBoxes.lua")
 
 function TX100_RegisterModuleUI()
-
 	ModuleCollector_RegisterUI(0)
 end
 
@@ -351,18 +350,20 @@ function RegisterTX100(vendor)
 
 	local chore = NewClass("class Chore", 0)
 	chore.Extension = "chore"
+	chore.Normaliser = "NormaliseChore0"
 	chore.Serialiser = "SerialiseChore0"
 	chore.Members[1] = NewMember("mName", kMetaClassString)
 	chore.Members[2] = NewMember("mhChoreScene", hScene)
 	chore.Members[3] = NewMember("mLength", kMetaFloat)
 	chore.Members[4] = NewMember("mNumResources", kMetaInt)
 	chore.Members[5] = NewMember("mNumAgents", kMetaInt)
-	chore.Members[6] = NewMember("mResources", arrayChoreResource) -- WHY? this isnt even used.
+	chore.Members[6] = NewMember("mResources", arrayChoreResource) -- WHY? this isnt even used. (until runtime)
 	chore.Members[7] = NewMember("mAgents", arrayChoreAgent)    -- AGAIN THEY DONT USE THIS!
 	chore.Members[8] = NewMember("mEditorProps", prop)
 	chore.Members[9] = NewMember("_mResources", arrayChoreResource,
 	kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
-	chore.Members[10] = NewMember("_mAgents", arrayChoreAgent, kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
+	chore.Members[10] = NewMember("_mAgents", arrayChoreAgent,
+	kMetaMemberSerialiseDisable + kMetaMemberVersionDisable)
 	MetaRegisterClass(chore)
 	MetaAssociateFolderExtension("TX100", "*.chore", "Chores/")
 

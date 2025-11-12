@@ -53,6 +53,24 @@ void EditorUI::UserRequestOpenFile()
     }
 }
 
+template<typename CommonT>
+Bool EditorUI::_TestOpenEditor(const String& ext, const String& fileName, const String& resourceLocation)
+{
+    if(ext == "chore")
+    {
+        String lang = ext + ".title";
+        String viewTitle = GetApplication().GetLanguageText(lang.c_str()) + " " + fileName;
+        DispatchEditor(viewTitle, resourceLocation, [](const EditorUI::LoadInfo& info, EditorUI& ui, Ptr<ResourceRegistry> r)
+        {
+            Handle<CommonT> h{};
+            h.SetObject(info.Resource);
+            return TTE_NEW_PTR(UIResourceEditor<CommonT>, MEMORY_TAG_EDITOR_UI, info.Resource, ui, h.GetObject(r, true), info.ViewTitle);
+        });
+        return true;
+    }
+    return false;
+}
+
 void EditorUI::OnFileClick(const String& resourceLocation)
 {
     if(_TickAsyncLoadingScene())
@@ -96,6 +114,10 @@ void EditorUI::OnFileClick(const String& resourceLocation)
                 hProp.SetObject(info.Resource);
                 return TTE_NEW_PTR(UIPropertySet, MEMORY_TAG_EDITOR_UI, info.Resource, ui, info.ViewTitle, hProp.GetObject(r, true));
             });
+        }
+        else if(_TestOpenEditor<Chore>("chore", fileName, resourceLocation))
+        {
+            ;
         }
         else
         {

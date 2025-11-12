@@ -6,6 +6,7 @@
 	],
 	"settings": {
 		"workbench.tree.indent": 20,
+		"editor.formatOnPaste": true,
 		"customCommands.commands":
 		[
 			{
@@ -42,7 +43,7 @@
 			},
 			{
 				"name": "Run Prober [edit for params]",
-				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor probe -i \"c:/Users/lucas/Desktop/extract/Data/\" -game BN100 -platform PC -vendor v2.0_Late -ef ../../Dev/Tests/ProbeErr.txt",
+				"command": "cd ../Bin/Debug ; ../Debug/TelltaleEditor probe -i \"/Users/lucas/Desktop/tx/chore/chores\" -game TX100 -platform PC -ef ../../Dev/Tests/ProbeErr.txt",
 			},
 			{
 				"name": "Run Meta Class Traverse 32",

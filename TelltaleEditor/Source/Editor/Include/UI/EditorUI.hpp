@@ -58,6 +58,9 @@ class EditorUI : public UIStackable
     Bool _TickAsyncLoadingScene(); // return if currently loading
 
     void _OnFileClickCallbackAdapter(String rl);
+    
+    template<typename CommonT>
+    Bool _TestOpenEditor(const String& ext, const String& fileName, const String& rloc);
 
 public:
 

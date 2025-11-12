@@ -10,6 +10,57 @@ function RegisterChoreResourceBlock()
     return choreBlock
 end
 
+-- Oldest version (TX etc)
+function NormaliseChore0(instance, state)
+    
+    CommonChoreSetName(state, MetaGetClassValue(MetaGetMember(instance, "mName")))
+    CommonChoreSetLength(state, MetaGetClassValue(MetaGetMember(instance, "mLength")))
+    local arrayResources = MetaGetMember(instance, "_mResources")
+    local arrayAgents = MetaGetMember(instance, "_mAgents")
+
+    -- RESOURCES
+    for i = 0, ContainerGetNumElements(arrayResources) - 1 do
+        local resource = ContainerGetElement(arrayResources, i)
+        local resTab = {}
+        resTab[kCommonChoreResourceKeyName] = MetaGetClassValue(MetaGetMember(resource, "mResName"))
+        resTab[kCommonChoreResourceKeyLength] = MetaGetClassValue(MetaGetMember(resource, "mResLength"))
+        resTab[kCommonChoreResourceKeyPriority] = MetaGetClassValue(MetaGetMember(resource, "mPriority"))
+        resTab[kCommonChoreResourceKeyControlAnimation] = MetaGetMember(resource, "mControlAnimation")
+        resTab[kCommonChoreResourceKeyProperties] = MetaGetMember(resource, "mResourceProperties")
+        resTab[kCommonChoreResourceKeyNoPose] = MetaGetClassValue(MetaGetMember(resource, "mbNoPose"))
+        resTab[kCommonChoreResourceKeyEnabled] = MetaGetClassValue(MetaGetMember(resource, "mbEnabled"))
+        resTab[kCommonChoreResourceKeyAgentResource] = MetaGetClassValue(MetaGetMember(resource, "mbIsAgentResource"))
+        resTab[kCommonChoreResourceKeyViewGraphs] = MetaGetClassValue(MetaGetMember(resource, "mbViewGraphs"))
+        resTab[kCommonChoreResourceKeyViewGroups] = MetaGetClassValue(MetaGetMember(resource, "mbViewResourceGroups"))
+        resTab[kCommonChoreResourceKeyViewProperties] = MetaGetClassValue(MetaGetMember(resource, "mbViewProperties"))
+        resTab[kCommonChoreResourceKeyNoPose] = MetaGetClassValue(MetaGetMember(resource, "mbNoPose"))
+        resTab[kCommonChoreResourceKeyBlocks] = {}
+        local blocksInst = MetaGetMember(resource, "mBlocks")
+        for j = 0, ContainerGetNumElements(blocksInst) - 1 do
+            local block = {}
+            local blockInstance = ContainerGetElement(blocksInst, j)
+            block[kCommonChoreResourceBlockKeyStart] = MetaGetClassValue(MetaGetMember(blockInstance, "mStartTime"))
+            block[kCommonChoreResourceBlockKeyEnd] = MetaGetClassValue(MetaGetMember(blockInstance, "mEndTime"))
+            block[kCommonChoreResourceBlockKeyScale] = MetaGetClassValue(MetaGetMember(blockInstance, "mScale"))
+            block[kCommonChoreResourceBlockKeyLooping] = MetaGetClassValue(MetaGetMember(blockInstance, "mbLoopingBlock"))
+            resTab[kCommonChoreResourceKeyBlocks][j] = block
+        end
+        CommonChorePushResource(state, resTab)
+    end
+
+    -- AGENTS
+    for i = 0, ContainerGetNumElements(arrayAgents) - 1 do
+        local agent = ContainerGetElement(arrayAgents, i)
+        local agentTab = {}
+        agentTab[kCommonChoreAgentKeyName] = MetaGetClassValue(MetaGetMember(agent, "mAgentName"))
+        agentTab[kCommonChoreAgentKeyProperties] = MetaGetMember(agent, "mChoreProps")
+        agentTab[kCommonChoreAgentKeyResourceIndices] = MetaGetMember(agent, "mResources")
+        CommonChorePushAgent(state, agentTab)
+    end
+
+    return true
+end
+
 function SerialiseChore0(stream, instance, write)
     if not MetaSerialiseDefault(stream, instance, write) then return false end
     if write then return false end

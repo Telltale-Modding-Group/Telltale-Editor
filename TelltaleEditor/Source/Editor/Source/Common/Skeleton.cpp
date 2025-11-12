@@ -89,7 +89,7 @@ public:
 
 std::atomic<U32> Skeleton::_sSerial{1};
 
-Skeleton::Skeleton(Skeleton&& rhs) : HandleableRegistered<Skeleton>(rhs)
+Skeleton::Skeleton(Skeleton&& rhs) : HandleableRegistered<Skeleton>(std::move(rhs))
 {
     _Serial = rhs._Serial;
     rhs._Serial = 0;

@@ -506,7 +506,7 @@ namespace CommandLine
         
         {
             auto& task = tasks.emplace_back(TaskInfo{"probe", "This probe command loads every single file (recursively) in the input"
-                " mount directory or archive pack. Any erroring files go to the output error file.", &Executor_LoadAll});
+                " mount directory. Any erroring files go to the output error file.", &Executor_LoadAll});
             task.OptionalArguments.push_back({"-in",ArgumentType::STRING, {"-i"}});
             task.RequiredArguments.push_back({"-game",ArgumentType::STRING});
             task.OptionalArguments.push_back({"-platform",ArgumentType::STRING});

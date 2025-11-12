@@ -677,6 +677,8 @@ public:
     
     inline Animation(Ptr<ResourceRegistry> reg) : HandleableRegistered<Animation>(std::move(reg)) {}
     
+    Animation(const Animation& rhs) = default;
+    
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
     
     virtual void FinaliseNormalisationAsync() override;

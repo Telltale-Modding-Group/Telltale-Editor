@@ -10,6 +10,7 @@
 #include <Common/InputMapper.hpp>
 #include <Common/Animation.hpp>
 #include <Common/Skeleton.hpp>
+#include <Common/Chore.hpp>
 
 // Use TelltaleEditor::GetCommonClassInfo()
 inline void RegisterCommonClassInfo()
@@ -20,7 +21,8 @@ inline void RegisterCommonClassInfo()
     CommonClassInfo::Make<InputMapper>(CommonClass::INPUT_MAPPER, "kCommonClassInputMapper");
     CommonClassInfo::Make<Skeleton>(CommonClass::SKELETON, "kCommonClassSkeleton");
     CommonClassInfo::Make<Animation>(CommonClass::ANIMATION, "kCommonClassAnimation");
-    CommonClassInfo::RegisterCommonClass(CommonClassInfo{CommonClass::PROPERTY_SET, "kCommonClassPropertySet", 
+    CommonClassInfo::Make<Chore>(CommonClass::ANIMATION, "kCommonClassChore");
+    CommonClassInfo::RegisterCommonClass(CommonClassInfo{CommonClass::PROPERTY_SET, "kCommonClassPropertySet",
                                          "PropertySet", "Handle<PropertySet>", "prop", nullptr});
 }
 
@@ -43,6 +45,7 @@ inline LuaFunctionCollection CreateScriptAPI()
     InputMapper::RegisterScriptAPI(Col);
     Animation::RegisterScriptAPI(Col);
     Skeleton::RegisterScriptAPI(Col);
+    Chore::RegisterScriptAPI(Col);
     
     return Col;
 }
