@@ -12,7 +12,8 @@ class ApplicationUI;
 #define UI_COMPONENT_CONSTRUCTOR(_Ty) inline _Ty(ApplicationUI& appUI) : UIComponent(appUI) {}
 #define UI_STACKABLE_CONSTRUCTOR(_Ty) inline _Ty(ApplicationUI& appUI) : UIStackable(appUI) {}
 #define SELECT_SIZE(winSize, Frac, MinPix, MaxPix) std::clamp((Frac) * (winSize), (MinPix), (MaxPix))
-#define DECL_VEC_ADDITION() inline static ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2{lhs.x + rhs.x, lhs.y + rhs.y}; }
+#define DECL_VEC_ADDITION() inline static ImVec2 operator+(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2{lhs.x + rhs.x, lhs.y + rhs.y}; } \
+inline static ImVec2 operator-(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2{lhs.x - rhs.x, lhs.y - rhs.y}; }
 #define DECL_VEC_DOT() inline static ImVec2 operator*(const ImVec2& lhs, const ImVec2& rhs) { return ImVec2{lhs.x * rhs.x, lhs.y * rhs.y}; }
 
 class UIComponent

@@ -47,6 +47,13 @@ Bool UIResourceEditorBase::ImageButton(CString iconTex, Float xPos, Float yPos, 
     ImVec2 posImage{ xPos, yPos };
     ImVec2 szImage{ xSizePix, ySizePix };
     Bool hov = ImGui::IsMouseHoveringRect(ImGui::GetWindowPos() + posImage, ImGui::GetWindowPos() + posImage + szImage);
+    if(hov)
+    {
+        posImage.x = MAX(0.0f, posImage.x - 1.0f);
+        posImage.y = MAX(0.0f, posImage.y - 1.0f);
+        szImage.x += 2.0f;
+        szImage.y += 2.0f;
+    }
     DrawResourceTexturePixels(iconTex, posImage.x, posImage.y, szImage.x, szImage.y, sc);
     if (hov && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
     {

@@ -5,6 +5,8 @@
 #include <set>
 #include <map>
 
+// ======================= GENERIC REUSABLE PICKERS
+
 class AbstractListSelectionPopup : public EditorPopup
 {
 
@@ -121,6 +123,8 @@ public:
 
 };
 
+// ======================= BASE CLASS
+
 class UIResourceEditorBase : public EditorUIComponent
 {
 protected:
@@ -145,8 +149,37 @@ public:
     
 };
 
+// ======================= COMMON RENDER STATES
+
+template<typename T>
+struct UIResourceEditorRuntimeData
+{
+    static_assert(false, "Specialisation required");
+};
+
+template<>
+struct UIResourceEditorRuntimeData<I32> {}; // PROP, has its own.
+
+// CHORE
+template<>
+struct UIResourceEditorRuntimeData<Chore>
+{
+    
+    Float CurrentY = 0.0f;
+    Bool IsPlaying = false;
+    Bool ExtraDataOpen = false;
+    Bool IsLooping = true; // loop when end is reached by default
+    Bool SliderGrabbed = false;
+    Bool ViewStartGrabbed = false;
+    Bool ViewEndGrabbed = false;
+    
+    Float ViewStart = 0.0f, ViewEnd = 0.0f;
+    Float CurrentTime = 0.0f;
+    
+};
+
 template<typename CommonT = I32>
-class UIResourceEditor : public UIResourceEditorBase
+class UIResourceEditor : public UIResourceEditorBase, protected UIResourceEditorRuntimeData<CommonT>
 {
     
     enum class Type
