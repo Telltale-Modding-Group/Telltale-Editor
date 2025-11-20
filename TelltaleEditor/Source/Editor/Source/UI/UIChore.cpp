@@ -841,7 +841,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                                 }
                                 SelectedKeyframeSamples.clear();
                             }
-                            if(bLastClicked && )
+
                             // EDIT SELECTED KEYS, EDIT ALL KEYS (FOR THIS ANIMATED) ??? (update sep bool if adding)
                             // STEPPED, LINEAR, FLAT, SMOOTH, CREATE GUIDE
                             // // FIT RANGE,SET RANGE (these seem to be for somethjing else)
