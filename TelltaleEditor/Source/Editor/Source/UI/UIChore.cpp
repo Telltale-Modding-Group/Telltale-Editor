@@ -381,8 +381,9 @@ Bool UIResourceEditor<Chore>::RenderEditor()
 
         CurrentY -= ImGui::GetScrollY();
         Float cache = CurrentY;
-        Bool mouseClickedThisFrame = leftClicked;
-        Bool mouseReleasedThisFrame = ImGui::IsMouseReleased(ImGuiMouseButton_Left);
+        Bool mouseClickedThisFrame = leftClicked && GImGui->OpenPopupStack.empty();
+        Bool mouseReleasedThisFrame = ImGui::IsMouseReleased(ImGuiMouseButton_Left) && GImGui->OpenPopupStack.empty();
+        Bool mouseRightReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Right) && GImGui->OpenPopupStack.empty();
         Bool mouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
         Float mouseDeltaX = ImGui::GetMousePos().x - LastMouseX;
         Float mouseDeltaY = ImGui::GetMousePos().y - LastMouseY;
@@ -499,11 +500,12 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                     ImGui::GetWindowDrawList()->AddRectFilled(resourceBoxMin, resourceBoxMax, ImColor(paramColour.x, paramColour.y, paramColour.z, 1.0f));
                     ImGui::GetWindowDrawList()->AddRect(resourceBoxMin, resourceBoxMax, 
                         bResourceSelected ? IM_COL32(110, 104, 71, 255) : IM_COL32(79, 181, 209, 255), 0.0f, 0, bResourceSelected ? 2.0f : 0.0f);
-                    if(ImGui::IsMouseHoveringRect(resourceBoxMin, resourceBoxMax, false) && (mouseClickedThisFrame || ImGui::IsMouseReleased(ImGuiMouseButton_Right)))
+                    if(ImGui::IsMouseHoveringRect(resourceBoxMin, resourceBoxMax, false) && (mouseClickedThisFrame || mouseRightReleased))
                     {
                         SelectedAgent = agent.Name;
                         SelectedResource = resNameSymbol;
                         anythingClicked = true;
+                        bResourceSelected = true;
                     }
                     if(bResourceSelected)
                         OpenContextMenu("resource", resourceBoxMin, resourceBoxMax);
@@ -654,7 +656,8 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                                 break;
                             }
                         }
-                        Float timeStart = block.Start, timeEnd = block.End; //  TODO ADD SCALE (OR IS SCALE NON UNIQUE AND DETERMINABLE FROM START+END? IF SO EDIT ALL OF THIS FOR BLOCK!)
+                        Float timeStart = block.Start, timeEnd = block.End;
+                        //  TODO ADD SCALE (OR IS SCALE NON UNIQUE AND DETERMINABLE FROM START+END? IF SO EDIT ALL OF THIS FOR BLOCK!)
                         Float xStart = TO_SCREENSPACE(block.Start);
                         Float xEnd = TO_SCREENSPACE(block.End);
                         if (xEnd < resourceBoxMin.x || xStart > resourceBoxMax.x)
@@ -906,7 +909,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                                         if (ImGui::IsKeyDown(ImGuiKey_LeftShift))
                                         {
                                             // only do one axis, (with most movement)
-                                            if (mouseDeltaX > mouseDeltaY)
+                                            if (fabsf(mouseDeltaX) > fabsf(mouseDeltaY))
                                                 sample.Time = newTime;
                                             else
                                                 sample.Value = newValue;
@@ -972,7 +975,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
             }
         }
         SelectionBoxReady = false;
-        if(!anythingClicked && leftClicked)
+        if(!anythingClicked && mouseClickedThisFrame)
         {
             if (SelectionBoxReclickAvail && !usedSelectionReclick)
             {
