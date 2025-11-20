@@ -210,7 +210,7 @@ struct alignas(4) Vector2
 
 struct Vector4;
 
-#define VECTOR3_COL(R_255, G_255, B_255) Vector3(R_255.0f / 255.0f, G_255.0f / 255.0f, B_255.0f / 255.0f)
+#define VECTOR3_COL(R, G, B) Vector3((R) / 255.0f, (G) / 255.0f, (B) / 255.0f)
 
 // 3D VECTOR
 struct alignas(4) Vector3
