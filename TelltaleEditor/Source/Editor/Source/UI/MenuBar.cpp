@@ -70,6 +70,31 @@ void MenuBar::Render()
         }
         if (ImGui::BeginMenu("Scripts"))
         {
+            if(ImGui::MenuItem("Run..."))
+            {
+                nfdchar_t* outp{};
+                if (NFD_OpenDialog("lua", NULL, &outp) == NFD_OKAY)
+                {
+                    DataStreamRef source = DataStreamManager::GetInstance()->CreateFileStream(String(outp));
+                    if (source)
+                    {
+                        String* src = TTE_NEW(String, MEMORY_TAG_TEMPORARY_ASYNC);
+                        String* nm = TTE_NEW(String, MEMORY_TAG_TEMPORARY_ASYNC);
+                        *src = DataStreamManager::GetInstance()->ReadAllAsString(source);
+                        *nm = FileGetName(String(outp));
+                        JobDescriptor desc{};
+                        desc.AsyncFunction = &_AsyncScriptExec;
+                        desc.UserArgA = src;
+                        desc.UserArgB = nm;
+                        JobScheduler::Instance->Post(desc);
+                    }
+                    else
+                    {
+                        TTE_LOG("Cannot open %s: open failed", outp);
+                    }
+                    free(outp);
+                }
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Scene"))
@@ -134,32 +159,6 @@ void MenuBar::Render()
     ImGui::SetCursorPos({ size.x * 0.5f - 0.5f * projNameSize.x, size.y * 0.5f - projNameSize.y * 0.5f });
     ImGui::TextUnformatted(proj.c_str());
     ImGui::PopFont();
-    
-    if(_RenderMenuItem(this, "menu.run_script", "Misc/RunScript.png", xBack, size.x, size.y))
-    {
-        nfdchar_t* outp{};
-        if (NFD_OpenDialog("lua", NULL, &outp) == NFD_OKAY)
-        {
-            DataStreamRef source = DataStreamManager::GetInstance()->CreateFileStream(String(outp));
-            if(source)
-            {
-                String* src = TTE_NEW(String, MEMORY_TAG_TEMPORARY_ASYNC);
-                String* nm = TTE_NEW(String, MEMORY_TAG_TEMPORARY_ASYNC);
-                *src = DataStreamManager::GetInstance()->ReadAllAsString(source);
-                *nm = FileGetName(String(outp));
-                JobDescriptor desc{};
-                desc.AsyncFunction = &_AsyncScriptExec;
-                desc.UserArgA = src;
-                desc.UserArgB = nm;
-                JobScheduler::Instance->Post(desc);
-            }
-            else
-            {
-                TTE_LOG("Cannot open %s: open failed", outp);
-            }
-            free(outp);
-        }
-    }
 
     // END
     ImGui::End();

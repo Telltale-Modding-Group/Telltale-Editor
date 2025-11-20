@@ -236,6 +236,12 @@ void Animation::FinaliseNormalisationAsync()
 
 }
 
+void Animation::GetRenderParameters(Vector3& bgColourOut, CString& iconName) const
+{
+    bgColourOut = VECTOR3_COL(219, 208, 48);
+    iconName = "Chore/Animation.png";
+}
+
 void Animation::RegisterScriptAPI(LuaFunctionCollection &Col)
 {
     

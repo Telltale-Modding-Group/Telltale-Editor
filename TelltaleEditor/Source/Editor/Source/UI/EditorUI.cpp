@@ -182,6 +182,13 @@ Bool EditorUI::_TickAsyncLoadingScene()
     return true;
 }
 
+void EditorUI::CloseEditor(String comparator)
+{
+    if (!_PendingCloseView.empty())
+        TTE_LOG("WARNING: Trying to close more than one sub editor window, using latest call: %s", comparator.c_str());
+    _PendingCloseView = comparator;
+}
+
 void EditorUI::DispatchEditorImmediate(Ptr<UIResourceEditorBase> allocated)
 {
     if(allocated)
@@ -198,7 +205,7 @@ void EditorUI::DispatchEditorImmediate(Ptr<UIResourceEditorBase> allocated)
                 }
             }
         }
-        _TransientViews.push_back(std::move(allocated));
+        _PendingTransientViews.push_back(std::move(allocated));
     }
 }
 
@@ -248,6 +255,32 @@ void EditorUI::Render()
         {
             it = _TransientViews.erase(it);
         }
+    }
+
+    if(!_PendingCloseView.empty())
+    {
+        for (auto it = _TransientViews.begin(); it != _TransientViews.end(); it++)
+        {
+            if ((*it)->GetUniqueComparator() == _PendingCloseView)
+            {
+                _TransientViews.erase(it);
+                break;
+            }
+        }
+        _PendingCloseView = "";
+    }
+
+    for(auto& p: _PendingTransientViews)
+    {
+        _TransientViews.push_back(std::move(p));
+    }
+    _PendingTransientViews.clear();
+
+    // check user request open file from command line or from external source
+    if(!GetApplication()._PendingOpenResourceLocation.empty())
+    {
+        OnFileClick(GetApplication()._PendingOpenResourceLocation);
+        GetApplication()._PendingOpenResourceLocation = "";
     }
 
 }

@@ -162,9 +162,11 @@ struct UIResourceEditorRuntimeData<I32> {}; // PROP, has its own.
 
 // CHORE
 template<>
-struct UIResourceEditorRuntimeData<Chore>
+struct UIResourceEditorRuntimeData<Chore> : MenuOptionInterface
 {
     
+    Ptr<U8> SubRefFence; // for resource dependent windows
+
     Float CurrentY = 0.0f;
     Bool IsPlaying = false;
     Bool ExtraDataOpen = false;
@@ -172,9 +174,46 @@ struct UIResourceEditorRuntimeData<Chore>
     Bool SliderGrabbed = false;
     Bool ViewStartGrabbed = false;
     Bool ViewEndGrabbed = false;
+    Bool SelectionBoxReady = false; // was released, select all inside it
+    Bool SelectionBoxDragging = false;
+    Bool SelectionBoxReclickAvail = false;
+
+    Bool PreloadAwaiting = false;
+    Bool PreloadFinished = false;
+    LoadingTextAnimator PreloadAnimator;
+    U32 PreloadOffset = 0;
+
+    const void* OpenContextMenuGraph = nullptr;
     
+    Float SelectionBox1X = 0.0f, SelectionBox1Y = 0.0f, SelectionBox2X = 0.0f, SelectionBox2Y = 0.0f;
+
     Float ViewStart = 0.0f, ViewEnd = 0.0f;
     Float CurrentTime = 0.0f;
+
+    std::set<Symbol> OpenChoreAgents;
+    String SelectedAgent;
+    Symbol SelectedResource;
+
+    struct SelectedBlock
+    {
+
+        Symbol Resource;
+        I32 Index;
+
+        inline Bool operator==(const SelectedBlock& rhs) const
+        {
+            return Resource == rhs.Resource && Index == rhs.Index;
+        }
+
+    };
+
+    Float LastMouseX = 0.0f;
+    Float LastMouseY;
+    std::vector<SelectedBlock> SelectedResourceBlocks; // resource name + block index into blocks array
+    std::set<const void*> SelectedKeyframeSamples; // we can use a nonowning raw ptr, its just a check and never refered unless its equal
+
+    std::set<Symbol> FailedResources;
+    std::map<Symbol, WeakPtr<MetaOperationsBucket_ChoreResource>> ResourcesCache;
     
 };
 

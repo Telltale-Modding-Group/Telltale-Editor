@@ -100,7 +100,7 @@ function NormaliseAnimation0(instance, state)
             if MetaFlagQuery(flags, 512) then
                 flags = flags - 512 -- homogeneous flag
             end
-            TTE_Assert(flags == 0, "Animation value flags for BN100 " .. tostring(flags) .. " not supported")
+            TTE_Assert(flags == 0, "Animation value flags " .. tostring(flags) .. " not supported")
         end -- check this!
         return animType
     end

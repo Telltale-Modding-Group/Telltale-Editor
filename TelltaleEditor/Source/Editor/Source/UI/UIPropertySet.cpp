@@ -810,7 +810,7 @@ Bool UIPropertySet::RenderEditor()
                 if(ImGui::MenuItem("Add"))
                 {
                     GetApplication().SetCurrentPopup(TTE_NEW_PTR(ResourcePickerPopup, 
-                        MEMORY_TAG_EDITOR_UI, "Choose Global", "*", ALLOCATE_METHOD_CALLBACK_1(this, _AddGlobalCallback, UIPropertySet, String)), _EditorUI);
+                        MEMORY_TAG_EDITOR_UI, "Choose Global", "*.prop", ALLOCATE_METHOD_CALLBACK_1(this, _AddGlobalCallback, UIPropertySet, String)), _EditorUI);
                 }
                 ImGui::EndMenu();
             }

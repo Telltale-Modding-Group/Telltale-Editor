@@ -41,11 +41,13 @@ class EditorUI : public UIStackable
     MenuBar _MenuBar;
     std::vector<Ptr<EditorUIComponent>> _Views; // file view log view etc
     std::vector<Ptr<UIResourceEditorBase>> _TransientViews; // specific file windows
+    std::vector<Ptr<UIResourceEditorBase>> _PendingTransientViews; // to be pushed
     std::vector<LoadInfo> _AwaitingLoads;
     Scene _EditorScene;
     Ptr<ReferenceObjectInterface> _EditorSceneGuard; // replaced when editor scene changes, so we want to discard refs (its not a ptr)
     WeakPtr<SceneView> _SceneView;
     WeakPtr<InspectorView> _InspectorView;
+    String _PendingCloseView;
 
     Ptr<Scene> _AsyncInitScene;
     JobHandle _InitSceneJob;
@@ -69,6 +71,8 @@ public:
     void DispatchEditor(String viewTitle, String rloc, std::function<Ptr<UIResourceEditorBase>(const LoadInfo&, EditorUI&, Ptr<ResourceRegistry>)> callback);
 
     void DispatchEditorImmediate(Ptr<UIResourceEditorBase> allocated);
+
+    void CloseEditor(String comparator);
 
     inline Scene& GetActiveScene()
     {

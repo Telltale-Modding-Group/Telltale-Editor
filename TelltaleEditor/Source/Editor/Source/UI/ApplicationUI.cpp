@@ -32,6 +32,82 @@ void ApplicationUI::Quit()
     _Flags.Remove(ApplicationFlag::RUNNING);
 }
 
+// =========================================== MENU OPTION IMPL
+
+void MenuOptionInterface::AddMenuOptions(CString myToolBarOption)
+{
+    for (const auto& option : MenuOptions)
+    {
+        if (option.ToolBarOption == myToolBarOption)
+        {
+            if (ImGui::MenuItem(option.OverrideSubOptionText ? option.OverrideSubOptionText : option.SubOption.c_str(), option.Shortcut.c_str()))
+            {
+                option.Requested = true;
+            }
+        }
+    }
+}
+
+Bool MenuOptionInterface::TestMenuOption(String toolBarOption, String subOption, String shortcut, U32 imguiKey, Bool needsLshift, Bool lctrl, Bool sep, CString ovText)
+{
+    for (const auto& option : MenuOptions)
+    {
+        if (option.ToolBarOption == toolBarOption && option.SubOption == subOption)
+        {
+            option.OverrideSubOptionText = ovText;
+            if(!option.Shortcut.empty())
+            {
+                if((needsLshift == ImGui::IsKeyDown(ImGuiKey_LeftShift)) && (lctrl == ImGui::IsKeyDown(ImGuiKey_LeftCtrl))  && ImGui::IsKeyReleased((ImGuiKey)imguiKey))
+                {
+                    option.Requested = true;
+                }
+            }
+            Bool bRequested = option.Requested;
+            option.Requested = false;
+            return bRequested;
+        }
+    }
+    auto& opt = MenuOptions.emplace_back();
+    opt.ToolBarOption = toolBarOption;
+    opt.SubOption = subOption;
+    opt.Shortcut = shortcut;
+    opt.Separator = sep;
+    opt.OverrideSubOptionText = ovText;
+    opt.ShortcutLControl = lctrl;
+    opt.ShortcutLShift = needsLshift;
+    opt.ShortcutKey = imguiKey;
+    return false;
+}
+
+Bool MenuOptionInterface::OpenContextMenu(CString toolBarOption, ImVec2 boxMin, ImVec2 boxMax)
+{
+    Bool opn = false;
+    ImVec2 cursor = ImGui::GetCursorScreenPos();
+    ImGui::SetCursorScreenPos(boxMin);
+    ImGui::PushID(toolBarOption);
+    ImGui::InvisibleButton(toolBarOption, boxMax - boxMin);
+    if(ImGui::BeginPopupContextItem())
+    {
+        for (const auto& option : MenuOptions)
+        {
+            if (option.ToolBarOption == toolBarOption)
+            {
+                if (ImGui::MenuItem(option.OverrideSubOptionText ? option.OverrideSubOptionText : option.SubOption.c_str(), option.Shortcut.c_str()))
+                {
+                    option.Requested = true;
+                }
+                if (option.Separator)
+                    ImGui::Separator();
+            }
+        }
+        ImGui::EndPopup();
+        opn = true;
+    }
+    ImGui::PopID();
+    ImGui::SetCursorScreenPos(cursor);
+    return opn;
+}
+
 // =========================================== UI COMPONENT IMPL
 
 void UIComponent::SetNextWindowViewportPixels(Float posX, Float posY, Float SizeX, Float SizeY)
@@ -471,6 +547,7 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     // USER DIR
     userDir = CommandLine::GetStringArgumentOrDefault(args, "-userdir", "./");
     projPath = CommandLine::GetStringArgumentOrDefault(args, "-project", "");
+    _PendingOpenResourceLocation = CommandLine::GetStringArgumentOrDefault(args, "-file", "");
     if (!StringEndsWith(userDir, "/") && !StringEndsWith(userDir, "\\"))
         userDir += "/";
     if (userDir == "./")
@@ -576,6 +653,7 @@ I32 ApplicationUI::Run(const std::vector<CommandLine::TaskArgument>& args)
     init_info.ColorTargetFormat = SDL_GetGPUSwapchainTextureFormat(_Device, _Window);
     init_info.MSAASamples = SDL_GPU_SAMPLECOUNT_1;
     ImGui_ImplSDLGPU3_Init(&init_info);
+    ImGui::GetIO().ConfigWindowsMoveFromTitleBarOnly = true;
 
     // INIT FONT
     _EditorFont = nullptr;

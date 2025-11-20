@@ -5,6 +5,7 @@
 #include <Meta/Meta.hpp>
 #include <Renderer/RenderAPI.hpp>
 #include <Resource/ResourceRegistry.hpp>
+#include <Common/MetaOperations.hpp>
 
 #include <Common/Skeleton.hpp>
 
@@ -177,12 +178,6 @@ class AnimationValueInterface
 {
 public:
     
-    // Every one has an associated name
-    inline AnimationValueInterface(String name);
-    
-    // Get the maximum time extent of this animated value
-    inline virtual Float GetMaxTime() const;
-    
     // Return if this value is empty. Defaults to false.
     virtual Bool IsEmptyValue() const;
     
@@ -191,26 +186,62 @@ public:
     
     virtual const std::type_info& GetValueType() const = 0;
     
-    virtual void GetNonHomogeneousNames(std::set<String>& names) const; // get all non homogeneous bone names
-    
     virtual void CleanMixer(); // clean mixer
     
     // IsDeferred, GetSampleValues, CastToMixer, CastToMixerNode, GetNonHomogeneousNames, CleanMixer
     // ComputeDerivativeValue, AddValue, RemoveValue
+
+    inline AnimationValueInterface(String name) :
+        _Name(std::move(name)), _Flags(), _Type(AnimationValueType::NONE) { }
+
+    inline const String& GetName() const
+    {
+        return _Name;
+    }
+
+    inline Flags GetFlags() const
+    {
+        return _Flags;
+    }
+
+    inline Bool GetAdditive() const
+    {
+        return _Flags.Test(AnimationValueFlags::ADDITIVE);
+    }
+
+    inline AnimationValueType GetType() const
+    {
+        return _Type;
+    }
+
+    inline virtual Float GetMaxTime() const
+    {
+        return 0.0f;
+    }
+
+    inline virtual void GetNonHomogeneousNames(std::set<String>& names) const
+    {
+        if (!_Flags.Test(AnimationValueFlags::HOMOGENEOUS))
+            names.insert(_Name);
+    }
     
     virtual ~AnimationValueInterface() = default;
     
-    inline const String& GetName() const;
-    
-    inline AnimationValueType GetType() const;
-    
-    inline Flags GetFlags() const;
-    
-    inline void SetDisabled(Bool bDisable);
-    
-    inline void SetAdditive(Bool bAdditive);
-    
-    inline Bool GetAdditive() const;
+    inline void SetAdditive(Bool bAdditive)
+    {
+        if (bAdditive)
+            _Flags.Add(AnimationValueFlags::ADDITIVE);
+        else
+            _Flags.Remove(AnimationValueFlags::ADDITIVE);
+    }
+
+    inline void SetDisabled(Bool bDisable)
+    {
+        if (bDisable)
+            _Flags.Add(AnimationValueFlags::DISABLED);
+        else
+            _Flags.Remove(AnimationValueFlags::DISABLED);
+    }
     
 protected:
     
@@ -243,6 +274,7 @@ public:
     
     struct Sample
     {
+
         Float Time; // not incremental, the time offset of this sample
         Flags SampleFlags;
         T Value;
@@ -267,6 +299,15 @@ public:
     inline std::vector<Sample>& GetSamples()
     {
         return _Samples;
+    }
+
+    inline Sample& InsertSample(Float time, T value)
+    {
+        auto it = std::lower_bound(_Samples.begin(), _Samples.end(), time, [](const Sample& s, Float t) { return s.Time < t; });
+        it = _Samples.insert(it, Sample{});
+        it->Time = time;
+        it->Value = std::move(value);
+        return *it;
     }
     
 private:
@@ -667,7 +708,7 @@ struct AnimationMixerAccumulater<SkeletonPose>
 
 // ANIMATION COMMON CLASS (TELLTALE .ANM FILES)
 
-class Animation : public HandleableRegistered<Animation>
+class Animation : public HandleableRegistered<Animation>, public MetaOperationsBucket_ChoreResource
 {
 public:
     
@@ -688,7 +729,7 @@ public:
         return _Name;
     }
     
-    inline Float GetLength() const
+    inline virtual Float GetLength() const override
     {
         return _Length;
     }
@@ -697,6 +738,13 @@ public:
     {
         return CommonClass::ANIMATION;
     }
+
+    inline std::vector<Ptr<AnimationValueInterface>>& GetAnimatedValues() 
+    {
+        return _Values;
+    }
+
+    virtual void GetRenderParameters(Vector3& bgColourOut, CString& iconName) const override;
     
 private:
     

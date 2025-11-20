@@ -169,6 +169,7 @@ private:
     ProjectManager _ProjectMgr;
     I32 _NewWidth = -1, _NewHeight = -1;
     Ptr<EditorPopup> _ActivePopup;
+    String _PendingOpenResourceLocation; // -file option, user requested file to open on startup
     std::queue<Ptr<EditorPopup>> _QueuedPopups;
 
     // RESOURCE MANAGEMENT

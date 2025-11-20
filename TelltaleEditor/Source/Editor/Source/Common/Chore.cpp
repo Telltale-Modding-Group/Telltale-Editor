@@ -164,6 +164,10 @@ public:
                                 TTE_LOG("ERROR: Chore normaliser tries to add agent %s but chore resource index %d does not exist. "
                                         "Ensure resources are pushed first in the normaliser, before agents.", agent.Name.c_str(), index);
                             }
+                            else
+                            {
+                                agent.Resources.push_back(index);
+                            }
                         }
                     }
                     else
@@ -173,9 +177,16 @@ public:
                 }
             }
         }
+        return 0;
     }
     
 };
+
+void Chore::GetRenderParameters(Vector3& bgColOut, CString& iconName) const
+{
+    bgColOut = Vector3(217.0f / 255.0f, 203.0f / 255.0f, 124.0f / 255.0f);
+    // icon?
+}
 
 void Chore::RegisterScriptAPI(LuaFunctionCollection &Col)
 {

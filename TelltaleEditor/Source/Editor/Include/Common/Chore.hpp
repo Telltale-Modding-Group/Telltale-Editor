@@ -6,6 +6,7 @@
 #include <Meta/Meta.hpp>
 #include <Resource/ResourceRegistry.hpp>
 #include <Common/Animation.hpp>
+#include <Common/MetaOperations.hpp>
 
 #include <map>
 
@@ -15,7 +16,7 @@ class UIResourceEditor;
 /**
  Choregraphy file
  */
-class Chore : public HandleableRegistered<Chore>
+class Chore : public HandleableRegistered<Chore>, public MetaOperationsBucket_ChoreResource
 {
 public:
     
@@ -102,11 +103,25 @@ public:
     {
         return _Resources;
     }
+
+    inline const Resource* GetResource(Symbol name) const
+    {
+        for(const auto& res: _Resources)
+        {
+            if(name == res.Name)
+            {
+                return &res;
+            }
+        }
+        return nullptr;
+    }
     
-    inline Float GetLength()
+    inline virtual Float GetLength() const override
     {
         return _Length;
     }
+
+    virtual void GetRenderParameters(Vector3& bgColOut, CString& iconName) const override;
     
 private:
     

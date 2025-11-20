@@ -6,6 +6,62 @@
 #include <algorithm>
 #include <vector>
 
+struct ImVec2;
+
+class LoadingTextAnimator
+{
+public:
+    
+    inline LoadingTextAnimator(U32 ndots = 3, Float tstep = 0.7f) : _DotsCap((U16)ndots), _TimeStep(tstep) {}
+
+    inline String GetEllipses()
+    {
+        U64 now = GetTimeStamp();
+        if(GetTimeStampDifference(_LastTs, now) >= _TimeStep)
+        {
+            _LastTs = now;
+            _NDots = (_NDots + 1) % _DotsCap;
+        }
+        return String(_NDots + 1, '.');
+    }
+
+private:
+
+    U64 _LastTs = 0;
+    Float _TimeStep = 0.0f;
+    U16 _NDots = 0;
+    U16 _DotsCap = 0;
+
+};
+
+struct MenuOption
+{
+
+    String ToolBarOption;
+    String SubOption;
+    String Shortcut;
+    mutable CString OverrideSubOptionText = nullptr;
+
+    U32 ShortcutKey = 0;
+    Bool ShortcutLShift = false;
+    Bool Separator = false;
+    Bool ShortcutLControl = false;
+
+    mutable Bool Requested = false;
+
+};
+
+struct MenuOptionInterface
+{
+
+    std::vector<MenuOption> MenuOptions;
+
+    void AddMenuOptions(CString myToolBarOption);
+    Bool TestMenuOption(String toolBarOption, String subOption, String shortcut, U32 imguiKey, Bool needsLshift, Bool needsControl, Bool separaterAfter = false, CString overrideText = nullptr);
+    Bool OpenContextMenu(CString toolBarOption, ImVec2 boxMin, ImVec2 boxMax);
+
+};
+
 class ApplicationUI;
 
 // UTILS

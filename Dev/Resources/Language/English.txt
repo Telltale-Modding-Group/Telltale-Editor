@@ -107,6 +107,7 @@ misc.warn_symbol = "Modifying this symbol will loose the unknown hash value. Mod
 misc.nonunique = "There is already a window inspecting this resource, or one with the same name. Please work with one at a time!"
 misc.scene_loading = "There is currently a scene loading! Please wait..."
 misc.scene_agent_delete = "The scene agent cannot be deleted!"
+misc.loading_chore = "Please wait, loading referenced chore resources"
 
 # MODULES
 mod.select = "Select Module"

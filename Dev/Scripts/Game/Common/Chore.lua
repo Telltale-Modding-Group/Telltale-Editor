@@ -13,7 +13,8 @@ end
 -- Oldest version (TX etc)
 function NormaliseChore0(instance, state)
     
-    CommonChoreSetName(state, MetaGetClassValue(MetaGetMember(instance, "mName")))
+    local debugChoreName = MetaGetClassValue(MetaGetMember(instance, "mName"))
+    CommonChoreSetName(state, debugChoreName)
     CommonChoreSetLength(state, MetaGetClassValue(MetaGetMember(instance, "mLength")))
     local arrayResources = MetaGetMember(instance, "_mResources")
     local arrayAgents = MetaGetMember(instance, "_mAgents")

@@ -296,58 +296,6 @@ inline const AnimationValueTypeDesc& GetAnimationTypeDesc(AnimationValueType typ
     return *pDesc;
 }
 
-// INTERFACE BASE
-
-AnimationValueInterface::AnimationValueInterface(String name) :
-    _Name(std::move(name)), _Flags(), _Type(AnimationValueType::NONE) {}
-
-inline const String& AnimationValueInterface::GetName() const
-{
-    return _Name;
-}
-
-inline Flags AnimationValueInterface::GetFlags() const
-{
-    return _Flags;
-}
-
-inline Bool AnimationValueInterface::GetAdditive() const
-{
-    return _Flags.Test(AnimationValueFlags::ADDITIVE);
-}
-
-inline void AnimationValueInterface::SetAdditive(Bool bAdditive)
-{
-    if(bAdditive)
-        _Flags.Add(AnimationValueFlags::ADDITIVE);
-    else
-        _Flags.Remove(AnimationValueFlags::ADDITIVE);
-}
-
-inline void AnimationValueInterface::SetDisabled(Bool bDisable)
-{
-    if(bDisable)
-        _Flags.Add(AnimationValueFlags::DISABLED);
-    else
-        _Flags.Remove(AnimationValueFlags::DISABLED);
-}
-
-inline AnimationValueType AnimationValueInterface::GetType() const
-{
-    return _Type;
-}
-
-inline Float AnimationValueInterface::GetMaxTime() const
-{
-    return 0.0f;
-}
-
-inline void AnimationValueInterface::GetNonHomogeneousNames(std::set<String> &names) const
-{
-    if(!_Flags.Test(AnimationValueFlags::HOMOGENEOUS))
-        names.insert(_Name);
-}
-
 // KEYFRAMED<T>
 
 template<typename T> KeyframedValue<T>::KeyframedValue(String name) : AnimationValueInterface(std::move(name)) {}
