@@ -19,6 +19,20 @@ class Symbol;
 
 GSYMBOL(kEmptySymbol, "");
 
+// ======================== SYMBOL SECTION <> P LOOK ATS ================================
+
+GSYMBOL(kProceduralLookAtComputeStage, "Compute Stage");
+GSYMBOL(kProceduralLookAtConstraints, "Constraints");
+GSYMBOL(kProceduralLookAtHostAgentNode, "Host Agent Node");
+GSYMBOL(kProceduralLookAtMaxPerSecondAngleIncrement, "Maximum Per Second Angle Increment");
+GSYMBOL(kProceduralLookAtRotateHostNode, "Rotate Host Node");
+GSYMBOL(kProceduralLookAtTargetAgent, "Target Agent");
+GSYMBOL(kProceduralLookAtTargetAgentNode, "Target Agent Node");
+GSYMBOL(kProceduralLookAtTargetAgentNodeOffset, "Target Agent Node Offset");
+GSYMBOL(kProceduralLookAtUsePrivateNode, "Use Private Node");
+GSYMBOL(kProceduralLookAtXAxisChore, "X Axis Chore");
+GSYMBOL(kProceduralLookAtYAxisChore, "Y Axis Chore");
+
 // ======================== SYMBOL SECTION <> PATHING TO ================================
 
 GSYMBOL(kPathToWalkRadius, "Walk Radius");

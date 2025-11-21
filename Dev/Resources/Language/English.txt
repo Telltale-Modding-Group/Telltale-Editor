@@ -108,6 +108,9 @@ misc.nonunique = "There is already a window inspecting this resource, or one wit
 misc.scene_loading = "There is currently a scene loading! Please wait..."
 misc.scene_agent_delete = "The scene agent cannot be deleted!"
 misc.loading_chore = "Please wait, loading referenced chore resources"
+misc.loading_resource = "Loading new agent resources"
+misc.chore_resource_error = "This chore agent already has this resource!"
+misc.chore_agent_error = "This agent is already part of the chore!"
 
 # MODULES
 mod.select = "Select Module"

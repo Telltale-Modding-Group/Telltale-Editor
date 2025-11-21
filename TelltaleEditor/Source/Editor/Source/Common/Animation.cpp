@@ -1,4 +1,5 @@
 #include <Common/Animation.hpp>
+#include <Common/Chore.hpp>
 #include <AnimationManager.hpp>
 
 // INTERFACE IMPL
@@ -234,6 +235,19 @@ public:
 void Animation::FinaliseNormalisationAsync()
 {
 
+}
+
+void Animation::AddToChore(const Ptr<Chore>& pChore, String myName)
+{
+    Chore::Resource* pResource = const_cast<Chore::Resource*>(pChore->GetResource(myName));
+    if(!pResource->ControlAnimation->HasValue("time"))
+    {
+        pResource->ControlAnimation->GetAnimatedValues().push_back(TTE_NEW_PTR(KeyframedValue<Float>, MEMORY_TAG_ANIMATION_DATA, "time"));
+    }
+    if(!pResource->ControlAnimation->HasValue("contribution"))
+    {
+        pResource->ControlAnimation->GetAnimatedValues().push_back(TTE_NEW_PTR(KeyframedValue<Float>, MEMORY_TAG_ANIMATION_DATA, "contribution"));
+    }
 }
 
 void Animation::GetRenderParameters(Vector3& bgColourOut, CString& iconName) const

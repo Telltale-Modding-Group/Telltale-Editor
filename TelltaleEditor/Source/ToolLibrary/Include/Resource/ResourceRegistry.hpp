@@ -25,6 +25,7 @@
 #include <thread>
 #include <atomic>
 #include <random>
+#include <thread>
 
 // folders excluded from disk unless explicitly mounted when recursively going through directories
 #define EXCLUDE_SYSTEM_FILTER "!*.DS_Store;!*.app/*"
@@ -865,6 +866,18 @@ struct PreloadBatchJobRef // internal waitable batch job ref
     
 };
 
+struct FunctionBase;
+
+struct PreloadCallback
+{
+    U32 PreloadFence;
+    U32 CallbackLockToCalleeThread = 0;
+    Ptr<FunctionBase> Callback;
+    std::vector<Symbol> Resources;
+    std::thread::id CalleeThread;
+    String UpdateMask;
+};
+
 Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* job, void*);
 
 // ================================================== RESOURCE REGISTRY MAIN CLASS ==================================================
@@ -897,8 +910,10 @@ public:
     /**
      Updates the resource registry. If any resource unloads are deferred they will happen here. Doesn't need to be called if you have not explicitly said to defer or preload anything.
      Pass in the time budget you want to maximum spend on this function such that anything not done will get done next call. In seconds.
+     Optionally pass in the update ID as to which non lock-to-thread callbacks to execute, empty does all but you can provide a different one such that uMask in a PreloadWithCallback
+     call has to match updateId for it to be processed.
      */
-    void Update(Float timeBudget);
+    void Update(Float timeBudget, String updateId = "");
     
     /**
      THIS MUST BE CALLED FROM THE MAIN THREAD. LUA ENVIRONMENT USED IS THE GAMES' ONE!
@@ -1107,6 +1122,11 @@ public:
     // Set overwrite to true to overwrite any existing resources which may be loaded when inserting.
     U32 Preload(std::vector<HandleBase>&& resourceHandles, Bool bOverwrite);
     
+    // See Preload(). Preload but with a callback, in which a vector of symbols is passed (the resource names), as a const std::vector<Symbol>*!! POINTER!
+    // Specify to lock the callback to only be called on the thread which calls this. In this case, you need to periodically call Update on this thread.
+    // Also specify a mask (default *) in which that must be passed into ResourceRegistry::Update to process your callback, for finer control.
+    U32 PreloadWithCallback(std::vector<HandleBase>&& resourceHandles, Bool bOverwrite, Ptr<FunctionBase> pCallback, Bool bLockCallbackToCalleeThread, String uMask = "*");
+    
     // Preload offset. If bigger or equal to a return value of a previous Preload(), you can ensure all of those handles have loaded.
     U32 GetPreloadOffset();
     
@@ -1169,9 +1189,13 @@ private:
     
     std::set<String> _ErrorFiles; // reduce multi-log
     
+    std::vector<PreloadCallback> _PreloadCallbacks; // post load callbacks
+    
     // ========== INTERNAL FUNCTIONALITY
     
     Ptr<ResourceLocation> _Locate(const String& logicalName); // locate internal no lock
+    
+    void _AsyncProcessCallbacksUnlocked(CString optionalMask);
 
     Bool _CreateCachedResourceUnlocked(const String& name, Ptr<Handleable> asHandleable, Meta::ClassInstance asProp);
     

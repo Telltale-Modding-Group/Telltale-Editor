@@ -413,6 +413,7 @@ enum class CommonClass
     SKELETON,
     PROPERTY_SET,
     CHORE,
+    PROCEDURAL_LOOKAT,
     /* UPCOMING:
     TRANSITION_REMAPPER,
     DIALOG,

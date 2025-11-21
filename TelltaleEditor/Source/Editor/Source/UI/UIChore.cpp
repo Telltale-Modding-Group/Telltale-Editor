@@ -1,5 +1,6 @@
 #include <UI/UIEditors.hpp>
 #include <Common/Chore.hpp>
+#include <AnimationManager.hpp>
 #include <UI/ApplicationUI.hpp>
 
 #include <imgui_internal.h>
@@ -15,13 +16,125 @@ void UIResourceEditor<Chore>::OnExit()
 #define TO_SCREENSPACE_CLAMPED(Xval) ImClamp(resourceBoxMin.x + ((Xval) - ViewStart) / (ViewEnd - ViewStart) * timelineWidth, resourceBoxMin.x, resourceBoxMax.x)
 #define FROM_SCREENSPACE(Xval) ViewStart + ((((Xval) - resourceBoxMin.x) / timelineWidth) * (ViewEnd - ViewStart))
 
+void UIResourceEditorRuntimeData<Chore>::AddAgentResourcePostLoadCallback(const std::vector<Symbol>* resources)
+{
+    String name{};
+    auto it = EditorInstance->PreloadingResourceToAgent.begin();
+    for(; it != EditorInstance->PreloadingResourceToAgent.end(); it++)
+    {
+        if(Symbol(it->first) == (*resources)[0])
+        {
+            name = it->first;
+            break;
+        }
+    }
+    if(!name.empty())
+    {
+        EditorInstance->PreloadingResourceToAgent.erase(it);
+        DoAddAgentResourcePostLoadCallback(std::move(name));
+    }
+}
+
+void UIResourceEditorRuntimeData<Chore>::DoAddAgentResourcePostLoadCallback(String animFile)
+{
+    Chore* pChore = EditorInstance->GetCommonObject().get();
+    Chore::Agent* pAgent = const_cast<Chore::Agent*>(pChore->GetAgent(SelectedAgent));
+    Ptr<ResourceRegistry> reg = EditorInstance->GetApplication().GetRegistry();
+    WeakPtr<MetaOperationsBucket_ChoreResource> pRes = AbstractMetaOperationsBucket::CreateBucketReference<MetaOperationsBucket_ChoreResource>(reg, animFile, true);
+    if(pRes.lock())
+    {
+        // new resource
+        Chore::Resource& res = pChore->EmplaceResource(animFile);
+        res.Priority = 1;
+        res.ResFlags.Add(Chore::Resource::ENABLED);
+        res.ResFlags.Add(Chore::Resource::VIEW_GRAPHS);
+        res.Properties = TelltaleEditor::Get()->CreatePropertySet();
+        res.ControlAnimation = TTE_NEW_PTR(Animation, MEMORY_TAG_COMMON_INSTANCE, reg);
+        pRes.lock()->AddToChore(EditorInstance->GetCommonObject(), animFile);
+        pAgent->Resources.push_back((I32)pChore->GetResources().size() - 1);
+    }
+    else
+    {
+        TTE_LOG("ERROR: Cannot add '%s' to '%s' as a chore resource, failed to load it!", animFile.c_str(), EditorInstance->FileName.c_str());
+    }
+}
+
+void UIResourceEditorRuntimeData<Chore>::AddAgentResourceCallback(String animFile)
+{
+    Chore* pChore = EditorInstance->GetCommonObject().get();
+    Chore::Agent* pAgent = const_cast<Chore::Agent*>(pChore->GetAgent(SelectedAgent));
+    I32 index = 0;
+    Ptr<ResourceRegistry> reg = EditorInstance->GetApplication().GetRegistry();
+    for(const auto& res: pChore->GetResources())
+    {
+        if(res.Name == animFile)
+        {
+            break;
+        }
+        index++;
+    }
+    if(index >= pChore->GetResources().size())
+    {
+        HandleBase hObject{};
+        hObject.SetObject(animFile);
+        if(hObject.IsLoaded(reg))
+        {
+            DoAddAgentResourcePostLoadCallback(animFile);
+        }
+        else
+        {
+            PreloadingResourceToAgent[animFile] = SelectedAgent;
+            std::vector<HandleBase> handles{};
+            handles.push_back(std::move(hObject));
+            reg->PreloadWithCallback(std::move(handles), false, ALLOCATE_METHOD_CALLBACK_1(this,
+                    AddAgentResourcePostLoadCallback, UIResourceEditorRuntimeData<Chore>, const std::vector<Symbol>*), false, EditorInstance->FileName);
+            TTE_LOG("Async loading unloaded resource '%s' to add to chore '%s'...", animFile.c_str(), EditorInstance->FileName.c_str());
+        }
+    }
+    else
+    {
+        for(const auto idx : pAgent->Resources)
+        {
+            if(idx == index)
+            {
+                PlatformMessageBoxAndWait("Error", EditorInstance->GetApplication().GetLanguageText("misc.chore_resource_error"));
+                return;
+            }
+        }
+        pAgent->Resources.push_back(index);
+    }
+}
+
+void UIResourceEditorRuntimeData<Chore>::AddAgentCallback(Meta::ClassInstance stringName)
+{
+    DoAddAgent(COERCE(stringName._GetInternal(), String));
+}
+
+void UIResourceEditorRuntimeData<Chore>::DoAddAgent(String agentName)
+{
+    Chore* pChore = EditorInstance->GetCommonObject().get();
+    if(pChore->GetAgent(agentName))
+    {
+        PlatformMessageBoxAndWait("Error", EditorInstance->GetLanguageText("misc.chore_agent_error"));
+    }
+    else
+    {
+        auto& agent = pChore->EmplaceAgent(agentName);
+        agent.Properties = TelltaleEditor::Get()->CreatePropertySet();
+    }
+}
+
 template<>
 Bool UIResourceEditor<Chore>::RenderEditor()
 {
+    GetApplication().GetRegistry()->Update(0.5f, FileName);
+    EditorInstance = this;
     // TABS: FILE, EDIT, VIEW (TIDY = COLLAPSES ALL (CLEAR OPEN MAP), AGENTS, RESOURCES, BEHAVIOUR
     // file: set length, compute length, insert time, add 1 sec, add 5 sec (or use 5/1 keys), sync lang resources
     // per chore agent: agent, resources, filter. resources: add animation, add vox, add aud, (add bank etc), add lang res, add proclook, add other
     // THEY ONLY BLEND WHEN THEY ARE THE SAME PRIORITY
+    
+    // CHORE TRACKER MENU (CHECK AROUND  TOOL 102_2 MP4 39 MINS
 
     if(!SubRefFence)
     {
@@ -38,9 +151,12 @@ Bool UIResourceEditor<Chore>::RenderEditor()
             preloadHandles.reserve(GetCommonObject()->GetResources().size());
             for(const auto& resource: GetCommonObject()->GetResources())
             {
-                HandleBase hResource{};
-                hResource.SetObject(resource.Name);
-                preloadHandles.push_back(hResource);
+                if(!resource.ResFlags.Test(Chore::Resource::EMBEDDED))
+                {
+                    HandleBase hResource{};
+                    hResource.SetObject(resource.Name);
+                    preloadHandles.push_back(hResource);
+                }
             }
             if(preloadHandles.empty())
             {
@@ -65,6 +181,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
     }
 
     Bool closing = false;
+    Ptr<Chore> pChore = GetCommonObject();
     ImGui::SetNextWindowSizeConstraints(ImVec2{ 450.0f, 600.0f }, ImVec2{ 99999.0f, 99999.0f });
     if(ImGui::Begin(GetTitle().c_str(), 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_MenuBar))
     {
@@ -92,29 +209,53 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                 AddMenuOptions("View");
                 ImGui::EndMenu();
             }
-            if(ImGui::BeginMenu("Agents"))
+            if(ImGui::BeginMenu("Agent"))
             {
-                AddMenuOptions("Agents");
+                if(ImGui::BeginMenu("Include an agent"))
+                {
+                    if(ImGui::MenuItem("By Name"))
+                    {
+                        GetApplication().QueueMetaInstanceEditPopup(_EditorUI, "New Agent for Chore",
+                                ALLOCATE_METHOD_CALLBACK_1(this, AddAgentCallback, UIResourceEditorRuntimeData<Chore>, Meta::ClassInstance),
+                                        "Agent Name", Meta::CreateInstance(Meta::FindClass("String", 0)));
+                    }
+                    if(!_EditorUI.GetActiveScene().GetName().empty() && ImGui::BeginMenu(_EditorUI.GetActiveScene().GetName().c_str()))
+                    {
+                        for(const auto& agent: _EditorUI.GetActiveScene().GetAgents())
+                        {
+                            String agentName = _EditorUI.GetActiveScene().GetAgentNameString(agent.first);
+                            if(ImGui::MenuItem(agentName.c_str()))
+                            {
+                                DoAddAgent(agentName);
+                            }
+                        }
+                        ImGui::EndMenu();
+                    }
+                    ImGui::EndMenu();
+                }
                 ImGui::EndMenu();
             }
-            if(ImGui::BeginMenu("Resources"))
+            /*if(ImGui::BeginMenu("Resources"))
             {
                 AddMenuOptions("Resources");
                 ImGui::EndMenu();
-            }
+            }*/
             /*if(ImGui::BeginMenu("Behaviour"))
             {
                 ImGui::EndMenu();
             }*/
             if(!SelectedAgent.empty() && ImGui::BeginMenu(SelectedAgent.c_str()))
             {
-                // agent options..
+                // agent options: add aud file, add vox file, add language resource, add prodc anim >, add other resource
+                if(ImGui::MenuItem("Add Animation"))
+                {
+                    GetApplication().QueueResourcePickerPopup(_EditorUI, "Choose Animation", "*.anm",
+                                    ALLOCATE_METHOD_CALLBACK_1(this, AddAgentResourceCallback,UIResourceEditorRuntimeData<Chore>, String));
+                }
                 ImGui::EndMenu();
             }
             ImGui::EndMenuBar();
         }
-
-        Ptr<Chore> pChore = GetCommonObject();
         
         ImVec2 wpos = ImGui::GetWindowPos();
         ImVec2 wsize = ImVec2{ ImGui::GetCurrentWindowRead()->ScrollbarY ? ImGui::GetContentRegionAvail().x + 10.0f : ImGui::GetWindowSize().x, ImGui::GetWindowSize().y };
@@ -126,6 +267,30 @@ Bool UIResourceEditor<Chore>::RenderEditor()
         {
             SelectedKeyframeSamples.clear();
             SelectedResourceBlocks.clear();
+        }
+        if(TestMenuOption("View", "Tidy", "[CTRL + T]", ImGuiKey_T, false, true))
+        {
+            // close all graphs and properties
+            for(auto& resource : pChore->_Resources)
+            {
+                resource.ResFlags.Remove(Chore::Resource::VIEW_GRAPHS);
+                resource.ResFlags.Remove(Chore::Resource::VIEW_PROPERTIES);
+                resource.ResFlags.Remove(Chore::Resource::VIEW_GROUPS);
+            }
+        }
+        if(TestMenuOption("View", "Untidy", "[SHIFT + CTRL + T]", ImGuiKey_T, true, true))
+        {
+            // open all graphs and properties
+            for(auto& resource : pChore->_Resources)
+            {
+                resource.ResFlags.Add(Chore::Resource::VIEW_GRAPHS);
+                resource.ResFlags.Add(Chore::Resource::VIEW_PROPERTIES);
+                resource.ResFlags.Add(Chore::Resource::VIEW_GROUPS);
+            }
+        }
+        if(TestMenuOption("View", "Collapse All", "", 0, false, false))
+        {
+            OpenChoreAgents.clear();
         }
         
         // SECTION: PLAYBACK CONTROLLER
@@ -181,13 +346,20 @@ Bool UIResourceEditor<Chore>::RenderEditor()
         ImGui::TextUnformatted(Temp);
         ImGui::PopFont();
 
-        if (PreloadAwaiting)
+        if (PreloadAwaiting || !PreloadingResourceToAgent.empty())
         {
-            const String& langTextLoading = GetLanguageText("misc.loading_chore");
+            const String& langTextLoading = GetLanguageText(PreloadingResourceToAgent.empty() ? "misc.loading_resource" : "misc.loading_chore");
             ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(196, 94, 35, 255));
             ImGui::PushFont(ImGui::GetFont(), 13.0f);
-            ImGui::SetCursorScreenPos(wpos + ImVec2{ textStartLen - ImGui::CalcTextSize(langTextLoading.c_str()).x - 40.0f, CurrentY + 7.0f });
-            ImGui::Text("%s%s", langTextLoading.c_str(), PreloadAnimator.GetEllipses().c_str());
+            ImGui::SetCursorScreenPos(wpos + ImVec2{ textStartLen - ImGui::CalcTextSize(langTextLoading.c_str()).x - 50.0f, CurrentY + 7.0f });
+            if(PreloadingResourceToAgent.empty())
+            {
+                ImGui::Text("%s%s", langTextLoading.c_str(), PreloadAnimator.GetEllipses().c_str());
+            }
+            else
+            {
+                ImGui::Text("%s (%d)", langTextLoading.c_str(), (U32)PreloadingResourceToAgent.size());
+            }
             ImGui::PopFont();
             ImGui::PopStyleColor();
         }
@@ -392,11 +564,17 @@ Bool UIResourceEditor<Chore>::RenderEditor()
         ImRect selectionRect{ { SelectionBox1X, SelectionBox1Y }, { SelectionBox2X, SelectionBox2Y } };
         Bool usedSelectionReclick = false;
         Bool allowReclickNextFrame = false;
+        
+        if(mouseReleasedThisFrame && ScaleMode)
+        {
+            ActiveScaleMode = NONE;
+        }
 
         // Render each agent
+        I32 agentID = 100;
         for(auto& agent: pChore->_Agents)
         {
-
+            ImGui::PushID(agentID++);
             Bool open = OpenChoreAgents.find(agent.Name) != OpenChoreAgents.end();
             ImGui::GetWindowDrawList()->AddRectFilled(wpos + ImVec2{ 0.0f, CurrentY }, wpos + ImVec2{ wsize.x, CurrentY + 20.0f }, IM_COL32(90, 90, 90, 255));
             ImGui::GetWindowDrawList()->AddRect(wpos + ImVec2{ 0.0f, CurrentY }, wpos + ImVec2{ wsize.x, CurrentY + 20.0f }, SelectedAgent == agent.Name ? IM_COL32(40, 40, 140,255) : IM_COL32(10, 10, 10, 255));
@@ -421,6 +599,11 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                 SelectedAgent = agent.Name;
                 anythingClicked = true;
             }
+            // unless we have dynamic menu options
+            /*ImGui::PushID(agent.Name.c_str());
+            if(SelectedAgent == agent.Name)
+                OpenContextMenu(agent.Name.c_str(), wpos + ImVec2{ 0.0f, CurrentY }, wpos + ImVec2{ wsize.x, CurrentY + 20.0f });
+            ImGui::PopID();*/
             CurrentY += 20.f;
             if (open)
             {
@@ -431,6 +614,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                 I32 resourceIndex = 0;
                 for(const auto& resIndex: agent.Resources)
                 {
+                    Ptr<MetaOperationsBucket_ChoreResource> resourceInterface{};
                     ImGui::PushID(runningID++);
                     Chore::Resource& resource = pChore->_Resources[resIndex];
                     Symbol resNameSymbol = resource.Name;
@@ -442,7 +626,17 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                     }
                     else
                     {
-                        if (rcacheIterator == ResourcesCache.end())
+                        if(resource.ResFlags.Test(Chore::Resource::EMBEDDED))
+                        {
+                            resourceInterface = resource.Embed;
+                            bFail = resourceInterface == nullptr;
+                            if(bFail && FailedResources.find(resource.Name) == FailedResources.end())
+                            {
+                                FailedResources.insert(resource.Name);
+                                TTE_LOG("ERROR: Embedded chore resource '%s' for chore '%s' is empty!", resource.Name.c_str(), pChore->_Name.c_str());
+                            }
+                        }
+                        else if (rcacheIterator == ResourcesCache.end())
                         {
                             if (FailedResources.find(resource.Name) != FailedResources.end())
                                 bFail = true;
@@ -483,7 +677,8 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                             }
                         }
                     }
-                    Ptr<MetaOperationsBucket_ChoreResource> resourceInterface = bFail ? nullptr : ResourcesCache[resource.Name].lock();
+                    if(!resourceInterface)
+                        resourceInterface = bFail ? nullptr : ResourcesCache[resource.Name].lock();
                     Vector3 paramColour{ 219.0f / 255.0f, 4.0f / 255.0f, 4.0f / 255.0f };
                     CString resicon = "Chore/Unknown.png";
                     Float resourceLength = 0.001f;
@@ -560,7 +755,12 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                     {
                         resource.ResFlags.Toggle(Chore::Resource::VIEW_GROUPS); // TODO
                     }
-                    // TODO TRIM [T] + SCALE [S] MODE
+                    // TODO TRIM [T] MODE
+                    else if (bResourceSelected && TestMenuOption("resource", "Enter Scale Mode", "[S]", ImGuiKey_S, false, false, true,
+                        ScaleMode ? "Exit Scale Mode" : nullptr))
+                    {
+                        ScaleMode = !ScaleMode;
+                    }
                     else if (bResourceSelected && TestMenuOption("resource", "Create Block", "[INSERT]", ImGuiKey_Insert, false, false, false))
                     {
                         bCreateBlock = true;
@@ -585,8 +785,6 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                         rmResource = resourceIndex;
                     }
                     // dup resource (Ctrld), add style res group, groups
-
-                    // IMPORTANT: VERY IMPORTANT; REMOVE RESOURCE MUST CLOSE ANY DEPENDENT RESOURCE WINDOWS (USE CLOSE EDITOR WITH CHORE PROPERTIES NAME ""xx" CHORE PROPERTIES"
 
                     if(bCreateBlock)
                     {
@@ -656,30 +854,147 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                                 break;
                             }
                         }
-                        Float timeStart = block.Start, timeEnd = block.End;
-                        //  TODO ADD SCALE (OR IS SCALE NON UNIQUE AND DETERMINABLE FROM START+END? IF SO EDIT ALL OF THIS FOR BLOCK!)
-                        Float xStart = TO_SCREENSPACE(block.Start);
-                        Float xEnd = TO_SCREENSPACE(block.End);
+                        Float timeStart = block.Start;
+                        Float timeEnd   = block.Start + (block.End - block.Start) * block.Scale;
+
+                        Float xStart = TO_SCREENSPACE(timeStart);
+                        Float xEnd   = TO_SCREENSPACE(timeEnd);
+
                         if (xEnd < resourceBoxMin.x || xStart > resourceBoxMax.x)
                         {
-                            // out of view
+                            // Out of view
                         }
                         else
                         {
                             xStart = MAX(xStart, resourceBoxMin.x);
-                            xEnd = MIN(xEnd, resourceBoxMax.x);
+                            xEnd   = MIN(xEnd, resourceBoxMax.x);
+
                             ImVec2 blockMin = ImVec2{ xStart, resourceBoxMin.y + 2.0f };
                             ImVec2 blockMax = ImVec2{ xEnd,   resourceBoxMax.y - 2.0f };
-                            ImGui::GetWindowDrawList()->AddRectFilled(blockMin, blockMax, IM_COL32(68, 141, 184, 180), 3.0f);
+
+                            ImGui::GetWindowDrawList()->AddRectFilled(
+                                blockMin, blockMax,
+                                block.Looping ? IM_COL32(199, 26, 138, 255) : IM_COL32(68, 141, 184, 180),
+                                2.0f
+                            );
+
+                            //  FORCE LOGIC FOR LOOPING BLOCKS
+                            if (block.Looping)
+                            {
+                                block.Scale = 1.0f;
+                                Float curLen = block.End - block.Start;
+                                if (curLen < resourceLength)
+                                    block.End = block.Start + resourceLength;
+                            }
+
+                            //  SELECTED BLOCK OUTLINE
                             if (pSelectedBlock)
                             {
-                                ImGui::GetWindowDrawList()->AddRect(blockMin, blockMax, IM_COL32(72, 86, 94, 255), 3.0f, 0, 3.0f);
+                                ImGui::GetWindowDrawList()->AddRect( blockMin, blockMax, IM_COL32(72, 86, 94, 255), 3.0f, 0, 2.0f);
+                            }
+
+                            //  HANDLE DRAWING (LOOPING ALWAYS SHOWS)
+                            Bool showHandles = block.Looping || (pSelectedBlock && ScaleMode);
+
+                            if (showHandles)
+                            {
+                                ImU32 col = block.Scale == 1.0f ? IM_COL32(100, 100, 100, 255) : block.Scale > 1.0f
+                                            ? IM_COL32(217, 69, 11, 255) : IM_COL32(89, 219, 13, 255);
+                                ImGui::GetWindowDrawList()->AddCircleFilled(blockMin + ImVec2(2,2), 4, col);
+                                ImGui::GetWindowDrawList()->AddCircleFilled(blockMax - ImVec2(2,2), 4, col);
+                                ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2{blockMin.x, blockMax.y} + ImVec2(2,-2), 4, col);
+                                ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2{blockMax.x, blockMin.y} + ImVec2(-2,2), 4, col);
+                            }
+
+                            //  INTERACTION LOGIC
+                            if (pSelectedBlock)
+                            {
+                                if (mouseClickedThisFrame)
+                                {
+                                    if (ImGui::IsMouseHoveringRect(blockMin, ImVec2{blockMin.x + 4, blockMax.y}, false))
+                                    {
+                                        ActiveScaleMode = START;
+                                        anythingClicked = true;
+                                    }
+                                    else if (ImGui::IsMouseHoveringRect(ImVec2{blockMax.x - 4, blockMin.y}, blockMax, false))
+                                    {
+                                        ActiveScaleMode = END;
+                                        anythingClicked = true;
+                                    }
+                                }
+
+                                Float deltaTime = (mouseDeltaX / timelineWidth) * (ViewEnd - ViewStart);
+
                                 if (mouseDown)
                                 {
-                                    Float len = block.End - block.Start;
-                                    Float deltaTime = (mouseDeltaX / timelineWidth) * (ViewEnd - ViewStart);
-                                    block.Start = ImClamp(block.Start + deltaTime, 0.0f, pChore->_Length - len);
-                                    block.End = block.Start + len;
+                                    if (block.Looping)
+                                    {
+                                        Float curLen = block.End - block.Start;
+
+                                        if (ActiveScaleMode == START)
+                                        {
+                                            Float newStart = block.Start + deltaTime;
+                                            if (block.End - newStart < resourceLength)
+                                                newStart = block.End - resourceLength;
+
+                                            block.Start = newStart;
+                                        }
+                                        else if (ActiveScaleMode == END)
+                                        {
+                                            Float newEnd = block.End + deltaTime;
+                                            if (newEnd - block.Start < resourceLength)
+                                                newEnd = block.Start + resourceLength;
+
+                                            block.End = newEnd;
+                                        }
+                                        else
+                                        {
+                                            block.Start = ImClamp(block.Start + deltaTime, 0.0f, pChore->_Length - curLen);
+                                            block.End = block.Start + curLen;
+                                        }
+                                    }
+                                    else if (ScaleMode)
+                                    {
+                                        Float baseLen = (block.End - block.Start);
+                                        Float origLen = baseLen * block.Scale;
+
+                                        if (ActiveScaleMode == START)
+                                        {
+                                            Float origEnd = block.Start + origLen;
+
+                                            Float newLength = origLen - deltaTime;
+                                            newLength = ImClamp(
+                                                newLength,
+                                                (20.0f / timelineWidth) * (ViewEnd - ViewStart),
+                                                ViewEnd - ViewStart
+                                            );
+
+                                            Float newStart = origEnd - newLength;
+
+                                            block.Start = ImClamp(newStart, 0.0f, origEnd - 0.001f);
+                                            block.Scale = newLength / baseLen;
+                                            block.End   = block.Start + baseLen;
+                                        }
+                                        else if (ActiveScaleMode == END)
+                                        {
+                                            Float newLength = origLen + deltaTime;
+                                            newLength = ImClamp(
+                                                newLength,
+                                                (20.0f / timelineWidth) * (ViewEnd - ViewStart),
+                                                ViewEnd - ViewStart
+                                            );
+
+                                            block.Scale = newLength / baseLen;
+                                            block.End   = block.Start + baseLen;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Float baseLen = (block.End - block.Start);
+                                        Float scaledLen = baseLen * block.Scale;
+                                        block.Start = ImClamp(block.Start + deltaTime, 0.0f, pChore->_Length - scaledLen);
+                                        block.End = block.Start + baseLen;
+                                    }
                                 }
                             }
                             Bool bNeedSelect = pSelectedBlock == nullptr && SelectionBoxReady && selectionRect.Overlaps(ImRect{ blockMin, blockMax });
@@ -689,23 +1004,26 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                                 anythingClicked = true;
                                 if (SelectionBoxReclickAvail && !usedSelectionReclick)
                                 {
-                                    usedSelectionReclick = true; // reselect in selection box
+                                    usedSelectionReclick = true;
                                 }
                                 else
                                 {
                                     if (pSelectedBlock)
                                     {
-                                        for (auto it = SelectedResourceBlocks.begin(); it != SelectedResourceBlocks.end();)
+                                        if(ImGui::IsKeyDown(ImGuiKey_LeftShift))
                                         {
-                                            if (*it == *pSelectedBlock)
+                                            for (auto it = SelectedResourceBlocks.begin(); it != SelectedResourceBlocks.end();)
                                             {
-                                                it = SelectedResourceBlocks.erase(it);
-                                                pSelectedBlock = nullptr;
-                                                break;
-                                            }
-                                            else
-                                            {
-                                                it++;
+                                                if (*it == *pSelectedBlock)
+                                                {
+                                                    it = SelectedResourceBlocks.erase(it);
+                                                    pSelectedBlock = nullptr;
+                                                    break;
+                                                }
+                                                else
+                                                {
+                                                    it++;
+                                                }
                                             }
                                         }
                                     }
@@ -814,7 +1132,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                             {
                                 animatedValue->SetDisabled(!animatedValue->GetFlags().Test(AnimationValueFlags::DISABLED));
                             }
-                            if (bLastClicked && TestMenuOption("graph", "Add New Key", "", 0, false, false) && fkf)
+                            if (bLastClicked && TestMenuOption("graph", "Add New Key", "[K]", ImGuiKey_K, false, false) && fkf)
                             {
                                 SelectedKeyframeSamples.clear();
                                 Float valueAt{1.0f};
@@ -822,7 +1140,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                                 fkf->ComputeValueKeyframed(&valueAt, CurrentTime, kDefaultContribution, _, true);
                                 fkf->InsertSample(CurrentTime, valueAt);
                             }
-                            if(bLastClicked && TestMenuOption("graph", "Delete Selected Keys", "", 0, false, false, true))
+                            if(bLastClicked && TestMenuOption("graph", "Delete Selected Keys", "[BACKSPACE]", ImGuiKey_Backspace, false, false, true))
                             {
                                 std::vector<I32> deleteIndices;
 
@@ -973,6 +1291,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                     }
                 }
             }
+            ImGui::PopID();
         }
         SelectionBoxReady = false;
         if(!anythingClicked && mouseClickedThisFrame)

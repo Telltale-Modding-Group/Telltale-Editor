@@ -365,20 +365,23 @@ namespace CommandLine
     {
         String inf = GetStringArgumentOrDefault(args, "-in", "");
         String outerr = GetStringArgumentOrDefault(args, "-errorfile", "./ProbeLog.txt");
-        std::set<String> nonMeta{}, failedOpen{}, failed{};
+        Bool bNormalise = GetBoolArgumentOrDefault(args, "-normalise", false);
+        std::set<String> nonMeta{}, failedOpen{}, failed{}, failedNormalise{}, failedNoCommonClass{};
         U32 numOk = 0;
         std::vector<String> infiles = GetInputFiles(inf);
         if(!infiles.size())
             return 1;
         GameSnapshot game = GetSnapshot(args);
         TelltaleEditor* editor = CreateEditorContext(game);
+        Ptr<ResourceRegistry> reg = editor->CreateResourceRegistry(false);
         {
             U32 i = 0;
             Float scale = 100.0f / (Float)infiles.size();
             for(const auto& fileName: infiles)
             {
                 Float percent = (Float)i * scale;
-                if(Meta::FindClassByExtension(FileGetExtension(fileName), 0) == 0)
+                String ext = FileGetExtension(fileName);
+                if(Meta::FindClassByExtension(ext, 0) == 0)
                 {
                     nonMeta.insert(fileName);
                     TTE_LOG("** %.04f%% Not a meta stream: %s", percent, fileName.c_str());
@@ -394,15 +397,40 @@ namespace CommandLine
                     else
                     {
                         Meta::ClassInstance instance = Meta::ReadMetaStream(fileName, stream);
+                        Bool ok = false;
                         if(instance)
+                        {
+                            ok = true;
+                            if(bNormalise)
+                            {
+                                ok = false;
+                                Ptr<Handleable> pResource = CommonClassInfo::GetCommonClassInfoByExtension(ext).ClassAllocator(reg);
+                                if(pResource)
+                                {
+                                    if(InstanceTransformation::PerformNormaliseAsync(pResource, instance, GetThreadLVM()))
+                                    {
+                                        ok = true;
+                                    }
+                                    else
+                                    {
+                                        failedNormalise.find(fileName);
+                                    }
+                                }
+                                else
+                                {
+                                    failedNoCommonClass.insert(fileName);
+                                }
+                            }
+                        }
+                        if(ok)
                         {
                             numOk++;
                             TTE_LOG("** %.04f%% Passed: %s", percent, fileName.c_str());
                         }
                         else
                         {
-                            TTE_LOG("** %.04f%% Failed: %s", percent, fileName.c_str());
                             failed.insert(fileName);
+                            TTE_LOG("** %.04f%% Failed: %s", percent, fileName.c_str());
                         }
                     }
                 }
@@ -421,11 +449,18 @@ namespace CommandLine
                 log << "\n** The following files failed to read successfully:\n\n";
                 for(const auto& f: failed)
                     log << "** " << f << "\n";
+                log << "\n** The following files failed to normalise:\n\n";
+                for(const auto& f: failedNormalise)
+                    log << "** " << f << "\n";
+                log << "\n** The following files failed has no common class to normalise to:\n\n";
+                for(const auto& f: failedNoCommonClass)
+                    log << "** " << f << "\n";
                 DataStreamRef logf = DataStreamManager::GetInstance()->CreateFileStream(outerr);
                 String s = log.str();
                 logf->Write((const U8*)s.c_str(), s.length());
             }
         }
+        reg = {};
         FreeEditorContext();
         return 0;
     }
@@ -509,6 +544,7 @@ namespace CommandLine
                 " mount directory. Any erroring files go to the output error file.", &Executor_LoadAll});
             task.OptionalArguments.push_back({"-in",ArgumentType::STRING, {"-i"}});
             task.RequiredArguments.push_back({"-game",ArgumentType::STRING});
+            task.OptionalArguments.push_back({"-normalise",ArgumentType::BOOL, {"-n"}});
             task.OptionalArguments.push_back({"-platform",ArgumentType::STRING});
             task.OptionalArguments.push_back({"-vendor",ArgumentType::STRING});
             task.OptionalArguments.push_back({"-errorfile",ArgumentType::STRING, {"-ef","-errf"}});

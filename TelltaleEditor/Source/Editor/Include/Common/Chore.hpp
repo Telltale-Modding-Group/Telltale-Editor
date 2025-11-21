@@ -48,6 +48,8 @@ public:
         Flags ResFlags; // see Flag enum
         Meta::ClassInstance Properties; // resource props
         
+        Ptr<MetaOperationsBucket_ChoreResource> Embed; // When embed = true, the embedded resource is here and not an external resource.
+        
         // std::map<String, Float> ResourceGroupInclusion; 
         
         inline Resource(const String& N) : Name(N) {}
@@ -116,12 +118,26 @@ public:
         return nullptr;
     }
     
+    inline const Agent* GetAgent(Symbol name) const
+    {
+        for(const auto& ag: _Agents)
+        {
+            if(name == ag.Name)
+            {
+                return &ag;
+            }
+        }
+        return nullptr;
+    }
+    
     inline virtual Float GetLength() const override
     {
         return _Length;
     }
 
     virtual void GetRenderParameters(Vector3& bgColOut, CString& iconName) const override;
+    
+    virtual void AddToChore(const Ptr<Chore>& pChore, String myName) override;
     
 private:
     

@@ -1,5 +1,6 @@
 #include <Resource/ResourceRegistry.hpp>
 #include <Core/Context.hpp>
+#include <Core/Callbacks.hpp>
 
 #include <filesystem>
 
@@ -2802,6 +2803,11 @@ U32 ResourceRegistry::GetPreloadOffset()
 
 U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles, Bool bOverwrite)
 {
+    return PreloadWithCallback(std::move(resourceHandles), bOverwrite, {}, false, "*");
+}
+
+U32 ResourceRegistry::PreloadWithCallback(std::vector<HandleBase> &&resourceHandles, Bool bOverwrite, Ptr<FunctionBase> pCallback, Bool bPeriodic, String uMask)
+{
     SCOPE_LOCK();
     U32 numBatches = (U32)resourceHandles.size() / STATIC_PRELOAD_BATCH_SIZE;
     U32 remBatchNumResources = (U32)resourceHandles.size() % STATIC_PRELOAD_BATCH_SIZE;
@@ -2809,6 +2815,15 @@ U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles, Bool bO
     _PreloadSize += numBatches;
     if(remBatchNumResources)
         _PreloadSize++;
+    PreloadCallback callback{};
+    callback.Callback = pCallback;
+    if(pCallback)
+    {
+        callback.CalleeThread = std::this_thread::get_id();
+        callback.Resources.reserve(resourceHandles.size());
+        callback.CallbackLockToCalleeThread = bPeriodic ? 1 : 0;
+        callback.UpdateMask = std::move(uMask);
+    }
     for(U32 i = 0; i <= numBatches; i++)
     {
         U32 numResources = i == numBatches ? remBatchNumResources : STATIC_PRELOAD_BATCH_SIZE;
@@ -2824,6 +2839,10 @@ U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles, Bool bO
             HandleBase handle = resourceHandles.back();
             resourceHandles.pop_back();
             pJob->HOI[j]._ResourceName = handle._ResourceName;
+            if(pCallback)
+            {
+                callback.Resources.push_back(handle._ResourceName);
+            }
         }
         
         JobDescriptor J{};
@@ -2836,6 +2855,11 @@ U32 ResourceRegistry::Preload(std::vector<HandleBase> &&resourceHandles, Bool bO
         ref.Handle = JobScheduler::Instance->Post(J);
         ref.PreloadOffset = _PreloadSize; // all the same
         _PreloadJobs.push_back(std::move(ref));
+    }
+    callback.PreloadFence = _PreloadSize;
+    if(pCallback)
+    {
+        _PreloadCallbacks.push_back(std::move(callback));
     }
     return _PreloadSize;
 }
@@ -2856,9 +2880,16 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
         for(U32 i = 0; i < job->NumResources; i++)
         {
             DataStreamRef unsafe = master->LocateResource(job->HOI[i]._ResourceName, nullptr); // need to read to buffer
-            DataStreamRef buffer = DataStreamManager::GetInstance()->CreateBufferStream("", unsafe->GetSize(), 0, 0);
-            DataStreamManager::GetInstance()->Transfer(unsafe, buffer, unsafe->GetSize());
-            Streams[i] = std::move(buffer);
+            if(!unsafe)
+            {
+                TTE_LOG("Could not open data stream for resource %s", SymbolTable::Find(job->HOI[i]._ResourceName).c_str());
+            }
+            else
+            {
+                DataStreamRef buffer = DataStreamManager::GetInstance()->CreateBufferStream("", unsafe->GetSize(), 0, 0);
+                DataStreamManager::GetInstance()->Transfer(unsafe, buffer, unsafe->GetSize());
+                Streams[i] = std::move(buffer);
+            }
         }
         job->Registry->_Guard.unlock();
     }
@@ -2955,6 +2986,7 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
             }
         }
         job->Registry->_PreloadOffset++;
+        job->Registry->_AsyncProcessCallbacksUnlocked(nullptr);
     }
     
     if(nFailed)
@@ -2967,9 +2999,37 @@ Bool _AsyncPerformPreloadBatchJob(const JobThread& thread, void* j, void*)
     return true;
 }
 
-void ResourceRegistry::Update(Float budget)
+void ResourceRegistry::_AsyncProcessCallbacksUnlocked(CString masktest)
+{
+    if(!masktest)
+        masktest = "";
+    
+    SCOPE_LOCK();
+    std::thread::id myt = std::this_thread::get_id();
+    for(auto it = _PreloadCallbacks.begin(); it != _PreloadCallbacks.end();)
+    {
+        if(it->PreloadFence >= _PreloadOffset && (!it->CallbackLockToCalleeThread ||
+                it->CalleeThread == myt) && StringMask::MatchSearchMask(masktest, it->UpdateMask.c_str(), StringMask::MASKMODE_SIMPLE_MATCH))
+        {
+            const std::vector<Symbol>* pResources = &it->Resources;
+            it->Callback->CallErased(&pResources, 0, 0, 0, 0, 0, 0, 0);
+            it = _PreloadCallbacks.erase(it);
+            continue;
+        }
+        it++;
+    }
+}
+
+void ResourceRegistry::Update(Float budget, String uMaskTest)
 {
     U64 start = GetTimeStamp();
+    
+    // CALLBACKS
+    {
+        _AsyncProcessCallbacksUnlocked(uMaskTest.c_str());
+        if(GetTimeStampDifference(start, GetTimeStamp()) >= budget)
+            return;
+    }
     
     // REMOVE UNUSED PRELOAD JOB REFS
     {
@@ -3025,6 +3085,11 @@ void ResourceRegistry::WaitPreload(U32 preloadOffset)
     }
     if(handles.size())
         JobScheduler::Instance->Wait((U32)handles.size(), handles.data());
+    
+    // CALLBACKS
+    {
+        _AsyncProcessCallbacksUnlocked(nullptr);
+    }
 }
 
 void ResourceRegistry::_LocateResourceInternal(Symbol name, String* outName, DataStreamRef* outStream)

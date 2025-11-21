@@ -354,6 +354,9 @@ public:
     
     // Gets the agent properties for the agent. (synonymous with scene properties) 
     Meta::ClassInstance GetAgentProps(const Symbol& Name);
+    
+    // String <=> Symbol
+    String GetAgentNameString(const Symbol& Name);
 
     // Gets the runtime properties for this agent.
     Meta::ClassInstance GetAgentRuntimeProps(const Symbol& Name);

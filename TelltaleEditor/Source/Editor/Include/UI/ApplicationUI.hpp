@@ -109,6 +109,13 @@ public:
     void SetCurrentPopup(Ptr<EditorPopup>, EditorUI& editor);
 
     void QueuePopup(Ptr<EditorPopup> popup, EditorUI& editor);
+    
+    void QueueMetaInstanceSelectionPopup(EditorUI& editor, String title, Ptr<FunctionBase> cb);
+    
+    void QueueResourcePickerPopup(EditorUI& editor, String title, StringMask mask, Ptr<FunctionBase> cb);
+    
+    void QueueMetaInstanceEditPopup(EditorUI& ui, String title, Ptr<FunctionBase> cb, String prompt,
+                                    Meta::ClassInstance val, Meta::ClassInstance cl = {});
 
 private:
 

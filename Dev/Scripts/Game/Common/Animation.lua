@@ -11,6 +11,7 @@ function RegisterProceduralLookAts0(MetaVec3, animatedQuat, anm)
 
     local proc = NewClass("class Procedural_LookAt", 0)
     proc.Serialiser = "SerialiseProceduralLookAt0"
+    proc.Extension = "look"
     proc.Flags = kMetaClassIntrinsic -- none of this is in headers. also only animation is serialised?
     proc.Members[1] = NewMember("Baseclass_Animation", NewProxyClass("class Animation *", "Animation", anm, true))
     proc.Members[2] = NewMember("mHostNode", kMetaClassString)

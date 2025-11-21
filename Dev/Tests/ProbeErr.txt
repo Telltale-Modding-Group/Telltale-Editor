@@ -11,3 +11,9 @@
 
 ** The following files failed to read successfully:
 
+
+** The following files failed to normalise:
+
+
+** The following files failed has no common class to normalise to:
+

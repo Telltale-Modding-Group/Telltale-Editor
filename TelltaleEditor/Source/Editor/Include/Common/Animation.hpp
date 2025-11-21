@@ -743,8 +743,22 @@ public:
     {
         return _Values;
     }
+    
+    inline Bool HasValue(Symbol name) const
+    {
+        for(const auto& val: _Values)
+        {
+            if(Symbol(val->GetName()) == name)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 
     virtual void GetRenderParameters(Vector3& bgColourOut, CString& iconName) const override;
+    
+    virtual void AddToChore(const Ptr<Chore>& pChore, String myName) override;
     
 private:
     

@@ -23,7 +23,13 @@ function NormaliseChore0(instance, state)
     for i = 0, ContainerGetNumElements(arrayResources) - 1 do
         local resource = ContainerGetElement(arrayResources, i)
         local resTab = {}
-        resTab[kCommonChoreResourceKeyName] = MetaGetClassValue(MetaGetMember(resource, "mResName"))
+        local resName = MetaGetClassValue(MetaGetMember(resource, "mResName"))
+        if MetaGetClassValue(MetaGetMember(resource, "mbEmbedded")) then
+            resTab[kCommonChoreResourceKeyEmbed] = MetaGetChild(resource, "Embedded")
+            print("HAS EMBED: " .. resName)
+        end
+        resTab[kCommonChoreResourceKeyName] = resName
+        SymbolTableRegister(resName)
         resTab[kCommonChoreResourceKeyLength] = MetaGetClassValue(MetaGetMember(resource, "mResLength"))
         resTab[kCommonChoreResourceKeyPriority] = MetaGetClassValue(MetaGetMember(resource, "mPriority"))
         resTab[kCommonChoreResourceKeyControlAnimation] = MetaGetMember(resource, "mControlAnimation")

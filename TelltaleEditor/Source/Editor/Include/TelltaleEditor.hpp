@@ -37,6 +37,8 @@ class TelltaleEditor
     
 public:
     
+    static TelltaleEditor* Get();
+    
     ~TelltaleEditor();
     
     void Switch(GameSnapshot snapshot); // switch to new snapshot

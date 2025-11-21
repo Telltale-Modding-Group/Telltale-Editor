@@ -70,5 +70,10 @@ public:
      * Gets the length of this chore resource, MetaOperation_GetLength
      */
     virtual Float GetLength() const = 0;
+    
+    /**
+     Adds this chore resource to a chore. For animations, this can add contribution + time keyframed value graphs
+     */
+    virtual void AddToChore(const Ptr<Chore>& pChore, String myFileName) = 0;
 
 };

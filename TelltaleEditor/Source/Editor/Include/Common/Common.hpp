@@ -11,6 +11,7 @@
 #include <Common/Animation.hpp>
 #include <Common/Skeleton.hpp>
 #include <Common/Chore.hpp>
+#include <Common/Procedural.hpp>
 
 // Use TelltaleEditor::GetCommonClassInfo()
 inline void RegisterCommonClassInfo()
@@ -22,6 +23,7 @@ inline void RegisterCommonClassInfo()
     CommonClassInfo::Make<Skeleton>(CommonClass::SKELETON, "kCommonClassSkeleton");
     CommonClassInfo::Make<Animation>(CommonClass::ANIMATION, "kCommonClassAnimation");
     CommonClassInfo::Make<Chore>(CommonClass::ANIMATION, "kCommonClassChore");
+    CommonClassInfo::Make<Procedural_LookAt>(CommonClass::PROCEDURAL_LOOKAT, "kCommonClassProceduralLookAt");
     CommonClassInfo::RegisterCommonClass(CommonClassInfo{CommonClass::PROPERTY_SET, "kCommonClassPropertySet",
                                          "PropertySet", "Handle<PropertySet>", "prop", nullptr});
 }
@@ -46,6 +48,7 @@ inline LuaFunctionCollection CreateScriptAPI()
     Animation::RegisterScriptAPI(Col);
     Skeleton::RegisterScriptAPI(Col);
     Chore::RegisterScriptAPI(Col);
+    Procedural_LookAt::RegisterScriptAPI(Col);
     
     return Col;
 }

@@ -1,4 +1,5 @@
 #include <Common/Chore.hpp>
+#include <TelltaleEditor.hpp>
 
 class ChoreAPI
 {
@@ -85,6 +86,46 @@ public:
             else if(key == "ViewInclude")
             {
                 resource.ResFlags.Add(Chore::Resource::VIEW_GROUPS);
+            }
+            else if(key == "Embed")
+            {
+                Meta::ClassInstance embed = Meta::AcquireScriptInstance(man, it.ValueIndex());
+                if(embed)
+                {
+                    const Meta::Class& cls = Meta::GetClass(embed.GetClassID());
+                    if(cls.Extension.empty())
+                    {
+                        TTE_LOG("ERROR: Normalisation for chore resource: class '%s' has is not a common class with extension yet", cls.Name.c_str());
+                    }
+                    else
+                    {
+                        Ptr<Handleable> pEmbedResource = CommonClassInfo::GetCommonClassInfoByExtension(cls.Extension).ClassAllocator(c->GetRegistry());
+                        if(pEmbedResource)
+                        {
+                            Ptr<MetaOperationsBucket_ChoreResource> pResource = AbstractMetaOperationsBucket::CreateBucketReference<MetaOperationsBucket_ChoreResource>(pEmbedResource).lock();
+                            if(pResource)
+                            {
+                                InstanceTransformation::PerformNormaliseAsync(pEmbedResource, std::move(embed), man);
+                                resource.Embed = std::move(pResource);
+                                resource.ResFlags.Add(Chore::Resource::EMBEDDED);
+                            }
+                            else
+                            {
+                                TTE_LOG("ERROR: Normalisation for chore resource: embedded resource common class is not a chore "
+                                        "resource operations bucket '%s'", Meta::GetClass(embed.GetClassID()).Name.c_str());
+                            }
+                        }
+                        else
+                        {
+                            TTE_LOG("ERROR: Normalisation for chore resource: embedded resource common class for found or suppored yet '%s'",
+                                    Meta::GetClass(embed.GetClassID()).Name.c_str());
+                        }
+                    }
+                }
+                else
+                {
+                    TTE_LOG("ERROR: Normalisation for chore resource: embedded resource is null");
+                }
             }
             else if(key == "Blocks")
             {
@@ -188,6 +229,11 @@ void Chore::GetRenderParameters(Vector3& bgColOut, CString& iconName) const
     // icon?
 }
 
+void Chore::AddToChore(const Ptr<Chore>& pChore, String myName)
+{
+    ; // TODO EMBED CHORES
+}
+
 void Chore::RegisterScriptAPI(LuaFunctionCollection &Col)
 {
     PUSH_FUNC(Col, "CommonChoreSetName", &ChoreAPI::luaSetName, "nil CommonChoreSetName(state, name)", "Sets the common chore name");
@@ -204,6 +250,7 @@ void Chore::RegisterScriptAPI(LuaFunctionCollection &Col)
     PUSH_GLOBAL_S(Col, "kCommonChoreResourceKeyProperties", "Properties", "Property set for this resource");
     PUSH_GLOBAL_S(Col, "kCommonChoreResourceKeyNoPose", "NoPose", "No pose boolean");
     PUSH_GLOBAL_S(Col, "kCommonChoreResourceKeyEnabled", "Enabled", "Enabled boolean");
+    PUSH_GLOBAL_S(Col, "kCommonChoreResourceKeyEmbed", "Embed", "Meta instance for the embedded resource, if there is one (else external).");
     PUSH_GLOBAL_S(Col, "kCommonChoreResourceKeyAgentResource", "AgentResource", "Is agent resource boolean");
     PUSH_GLOBAL_S(Col, "kCommonChoreResourceKeyViewGraphs", "ViewGraphs", "View graphs on boolean");
     PUSH_GLOBAL_S(Col, "kCommonChoreResourceKeyViewGroups", "ViewGroups", "View groups on boolean");

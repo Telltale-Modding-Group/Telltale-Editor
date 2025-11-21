@@ -3,6 +3,7 @@
 
 #include <UI/ApplicationUI.hpp>
 #include <UI/EditorUI.hpp>
+#include <UI/UIEditors.hpp>
 #include <Renderer/RenderContext.hpp>
 
 #include <backends/imgui_impl_sdl3.h>
@@ -345,6 +346,22 @@ void ApplicationUI::SetWindowSize(I32 width, I32 height)
 }
 
 // =========================================== MAIN APPLICATION LOOP
+
+void ApplicationUI::QueueMetaInstanceSelectionPopup(EditorUI& editor, String title, Ptr<FunctionBase> cb)
+{
+    QueuePopup(TTE_NEW_PTR(MetaClassPickerPopup, MEMORY_TAG_EDITOR_UI, title, cb), editor);
+}
+
+void ApplicationUI::QueueResourcePickerPopup(EditorUI& editor, String title, StringMask mask, Ptr<FunctionBase> cb)
+{
+    QueuePopup(TTE_NEW_PTR(ResourcePickerPopup, MEMORY_TAG_EDITOR_UI, title, mask, cb), editor);
+}
+
+void ApplicationUI::QueueMetaInstanceEditPopup(EditorUI& ui, String title, Ptr<FunctionBase> cb, String prompt,
+                                Meta::ClassInstance val, Meta::ClassInstance cl)
+{
+    QueuePopup(TTE_NEW_PTR(MetaInstanceEditPopup, MEMORY_TAG_EDITOR_UI, ui, title, cb, prompt, val, cl), ui);
+}
 
 void ApplicationUI::QueuePopup(Ptr<EditorPopup> popup, EditorUI& editor)
 {

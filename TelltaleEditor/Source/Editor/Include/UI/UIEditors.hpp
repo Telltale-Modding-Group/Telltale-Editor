@@ -151,6 +151,9 @@ public:
 
 // ======================= COMMON RENDER STATES
 
+template<typename CommonT>
+class UIResourceEditor;
+
 template<typename T>
 struct UIResourceEditorRuntimeData
 {
@@ -165,6 +168,7 @@ template<>
 struct UIResourceEditorRuntimeData<Chore> : MenuOptionInterface
 {
     
+    UIResourceEditor<Chore>* EditorInstance = nullptr;
     Ptr<U8> SubRefFence; // for resource dependent windows
 
     Float CurrentY = 0.0f;
@@ -177,6 +181,14 @@ struct UIResourceEditorRuntimeData<Chore> : MenuOptionInterface
     Bool SelectionBoxReady = false; // was released, select all inside it
     Bool SelectionBoxDragging = false;
     Bool SelectionBoxReclickAvail = false;
+    Bool ScaleMode = false;
+    
+    enum ScalingMode
+    {
+        NONE,
+        START,
+        END
+    } ActiveScaleMode = NONE;
 
     Bool PreloadAwaiting = false;
     Bool PreloadFinished = false;
@@ -214,6 +226,17 @@ struct UIResourceEditorRuntimeData<Chore> : MenuOptionInterface
 
     std::set<Symbol> FailedResources;
     std::map<Symbol, WeakPtr<MetaOperationsBucket_ChoreResource>> ResourcesCache;
+    
+    std::map<String, Symbol> PreloadingResourceToAgent;
+    
+    // CALLBACKS
+    
+    void AddAgentResourceCallback(String animFile);
+    void AddAgentResourcePostLoadCallback(const std::vector<Symbol>* resources);
+    void DoAddAgentResourcePostLoadCallback(String animFile);
+    
+    void AddAgentCallback(Meta::ClassInstance stringName);
+    void DoAddAgent(String agentName);
     
 };
 
@@ -302,6 +325,8 @@ public:
     {
         return FileName;
     }
+    
+    friend class UIResourceEditorRuntimeData<CommonT>;
     
 };
 

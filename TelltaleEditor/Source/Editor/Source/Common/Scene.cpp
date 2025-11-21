@@ -186,6 +186,19 @@ Meta::ClassInstance Scene::GetAgentTransientProps(const Symbol& sym)
     return {};
 }
 
+String Scene::GetAgentNameString(const Symbol & sym)
+{
+    for(auto& agent: _Agents)
+    {
+        if(agent.first == sym)
+        {
+            return agent.second->Name;
+        }
+    }
+    return "";
+}
+
+
 Meta::ClassInstance Scene::GetAgentProps(const Symbol & sym)
 {
     for(auto& agent: _Agents)

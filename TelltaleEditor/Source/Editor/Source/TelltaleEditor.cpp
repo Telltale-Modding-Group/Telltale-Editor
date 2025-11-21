@@ -18,6 +18,11 @@ TelltaleEditor* CreateEditorContext(GameSnapshot s)
     return _MyContext;
 }
 
+TelltaleEditor* TelltaleEditor::Get()
+{
+    return _MyContext;
+}
+
 void FreeEditorContext()
 {
     if (_MyContext)
