@@ -239,8 +239,10 @@ DataStreamRef PlaystationPKG::Find(const Symbol &resourceName, String &outResour
         if(resourceName == Symbol(name))
         {
             outResource = name;
-            return DataStreamManager::GetInstance()->CreateAES128CTRDecryptingStream(
+            DataStreamRef ds = DataStreamManager::GetInstance()->CreateAES128CTRDecryptingStream(
                         _Cached, e.Offset + _InputBaseOffset, _Key, _IV, (U32)e.Size, (U32)e.Offset);
+            TTE_ATTACH_DBG_STR(ds.get(), "PSPKGAES128DecryptingStream:" + name);
+            return ds;
         }
     }
     return {};

@@ -27,6 +27,9 @@ struct FunctionBase
     // Comparison
     virtual Bool Equals(const FunctionBase& rhs) const = 0;
     
+    // If expired (eg weak ptr to method obj)
+    virtual Bool Expired() const = 0;
+    
     virtual U32 GetNumArguments() const = 0;
     
     virtual ~FunctionBase() = default;
@@ -46,11 +49,29 @@ public:
     
     inline void CallErased(void* pArg1, U32 classArg1, void* pArg2, U32 classArg2, void* pArg3, U32 classArg3, void* Arg4, U32 classArg4)
     {
-        Ptr<FunctionBase> fn = _Cbs;
-        while(fn)
+        // Call and purge any expired callbacks
+        Ptr<FunctionBase> fn = _Cbs, prev = {};
+        while (fn)
         {
-            fn->CallErased(pArg1, classArg1, pArg2, classArg2, pArg3, classArg3, Arg4, classArg4);
-            fn = fn->Next;
+            if(fn->Expired())
+            {
+                if(fn == _Cbs)
+                {
+                    fn = _Cbs = fn->Next;
+                }
+                else
+                {
+                    if(prev)
+                        prev->Next = fn->Next;
+                    fn = fn->Next;
+                }
+            }
+            else
+            {
+                prev = fn;
+                fn->CallErased(pArg1, classArg1, pArg2, classArg2, pArg3, classArg3, Arg4, classArg4);
+                fn = fn->Next;
+            }
         }
     }
     
@@ -112,6 +133,8 @@ struct FunctionDummyImpl : FunctionBase
     
     inline virtual U32 GetNumArguments() const override { return 0; }
     
+    inline virtual Bool Expired() const override { return false; }
+    
     inline virtual ~FunctionDummyImpl() {}
     
 };
@@ -148,6 +171,11 @@ struct LuaFunctionImpl : FunctionBase
         {
             man.Pop(1);
         }
+    }
+    
+    inline virtual Bool Expired() const override
+    {
+        return ManagerRef.Expired();
     }
     
     // Set the function by stack index
@@ -302,6 +330,11 @@ public:
         return _MethodObject.lock() == rhs._MethodObject.lock();
     }
     
+    inline virtual Bool Expired() const override
+    {
+        return _MethodObject.expired();
+    }
+    
 };
 
 template<typename Object>
@@ -326,6 +359,11 @@ public:
     inline Bool CompareBase(const MethodImplBase& rhs) const
     {
         return _MethodObject == rhs._MethodObject;
+    }
+    
+    inline virtual Bool Expired() const override
+    {
+        return false; // raw ptr
     }
 
 };

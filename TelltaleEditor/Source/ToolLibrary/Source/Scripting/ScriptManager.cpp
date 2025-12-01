@@ -29,6 +29,7 @@ namespace ScriptManager {
         if(src->GetSize() < 4)
             return src;
         U8* Buffer = TTE_ALLOC(src->GetSize(), MEMORY_TAG_SCRIPTING);
+        TTE_ATTACH_DBG_STR(Buffer, "Decrypted Lua Script");
         TTE_ASSERT(src->Read(Buffer, src->GetSize()), "Could not read in bytes while decrypting lua script");
         
         Bool bCompiled = src->GetSize() > 4 && Buffer[0] == 0x1B && Buffer[1] == 'L' && Buffer[2] == 'u' && Buffer[3] == 'a';
@@ -81,6 +82,7 @@ namespace ScriptManager {
         if(src->GetSize() < 4)
             return src;
         U8* Buffer = TTE_ALLOC(src->GetSize() + 4, MEMORY_TAG_SCRIPTING);
+        TTE_ATTACH_DBG_STR(Buffer, "Encrypted Lua Script");
         TTE_ASSERT(src->Read(Buffer, src->GetSize()), "Could not read in bytes while decrypting lua script");
         
         if(bLenc)

@@ -29,6 +29,7 @@ void GamePack2::_GatherFiles(String folderN, DataStreamRef& cached, Meta::ClassI
         U32 size = pFileInfo[2];
         File f{};
         f.Stream = DataStreamManager::GetInstance()->CreateSubStream(cached, offset, size);
+        TTE_ATTACH_DBG_STR(f.Stream.get(), "GamePack2 SubStream: " + fileName);
         f.Name = folderN + fileName;
         f.FileNameCRC = pFileInfo[0];
         std::replace(f.Name.begin(), f.Name.end(), '\\', '/');

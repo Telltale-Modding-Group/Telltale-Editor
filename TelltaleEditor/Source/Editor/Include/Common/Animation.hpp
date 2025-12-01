@@ -283,8 +283,6 @@ public:
         
     };
     
-    inline KeyframedValue(String name);
-    
     // last argument used for coersion. 0 samples will translate to using minvalue
     inline void ComputeValueKeyframed(void* Value, Float Time,
                                const Float* Contribution, Flags& outSelectedFlags, Bool bEmptyContributes);
@@ -292,9 +290,17 @@ public:
     inline virtual void ComputeValue(void* Value, Ptr<PlaybackController> Controller,
                                               const Float* Contribution) override;
     
-    inline virtual Float GetMaxTime() const override;
-    
-    inline virtual const std::type_info& GetValueType() const override;
+    inline KeyframedValue(String name) : AnimationValueInterface(std::move(name)) {}
+
+    inline const std::type_info& GetValueType() const override
+    {
+        return typeid(T);
+    }
+
+    inline Float GetMaxTime() const override
+    {
+        return _Samples.size() == 0 ? 0.0f : _Samples.back().Time;
+    }
     
     inline std::vector<Sample>& GetSamples()
     {

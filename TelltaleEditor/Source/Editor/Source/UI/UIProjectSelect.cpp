@@ -28,7 +28,7 @@ void UIProjectSelect::Reset()
     _SelectionState = false;
 }
 
-void UIProjectSelect::Render()
+Bool UIProjectSelect::Render()
 {
     {
         int w = 0, h = 0;
@@ -274,6 +274,8 @@ void UIProjectSelect::Render()
     End();
 
     PopStyleColor(1);
+    
+    return false;
 }
 
 void UIProjectSelect::GetWindowSize(U32& w, U32& h)

@@ -74,6 +74,7 @@ void PlatformInputMapper::Initialise(String platform)
     if(!_ActiveMapper)
     {
         _ActiveMapper = TTE_NEW(PlatformInputMapper, MEMORY_TAG_COMMON_INSTANCE);
+        TTE_ATTACH_DBG_STR(_ActiveMapper, "Platform Input Mapper for " + platform);
         _ActiveMapper->_Platform = std::move(platform);
         
         LuaManager& L = GetThreadLVM();

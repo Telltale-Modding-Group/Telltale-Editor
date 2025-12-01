@@ -415,6 +415,7 @@ Ptr<RenderShader> RenderEffectCache::_CreateShader(const ShaderParameterTypes& p
         return nullptr;
     }
     Ptr<RenderShader> pShader = TTE_NEW_PTR(RenderShader, MEMORY_TAG_RENDERER);
+    TTE_ATTACH_DBG_STR(pShader.get(), "RenderShader:" + shaderName);
     SDL_GPUShaderCreateInfo info{};
     info.entrypoint = shtype == RenderShaderType::VERTEX ? RENDER_FX_ENTRY_POINT_VERT : RENDER_FX_ENTRY_POINT_FRAG;
     info.code = (const Uint8*)pShaderBinary;

@@ -27,7 +27,7 @@ static Bool _AsyncScriptExec(const JobThread& thread, void* userA, void* userB)
 {
     String src = std::move(*((String*)userA));
     String name = std::move(*((String*)userB));
-    TTE_FREE((String*)userA); TTE_FREE((String*)userB); // free input arg
+    TTE_DEL((String*)userA); TTE_DEL((String*)userB); // free input arg
     Bool bResult = false;
     
     if((bResult = ScriptManager::LoadChunk(thread.L, name, src)))
@@ -38,7 +38,7 @@ static Bool _AsyncScriptExec(const JobThread& thread, void* userA, void* userB)
     return bResult;
 }
 
-void MenuBar::Render()
+Bool MenuBar::Render()
 {
 
     if (ImGui::BeginMainMenuBar())
@@ -46,9 +46,7 @@ void MenuBar::Render()
         _ImGuiMenuHeight = ImGui::GetWindowSize().y;
         if (ImGui::BeginMenu("Game"))
         {
-            // OPEN PROJECT, RECENT, CHECK FOR UPDATES, REPORT A BUG, OUTPUT, TIMESTEP
-            // USER SETTINGS, CONVERT, LOCALIZATIONS, UPDATE PREFERENCES, PACKAGES, WIZARDS, 
-            // CREATE ARM FILES, .., SAVE GAME, LOAD GAME, QUIT
+            AddMenuOptions("Game");
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("File"))
@@ -62,10 +60,12 @@ void MenuBar::Render()
         }
         if (ImGui::BeginMenu("Editor"))
         {
+            AddMenuOptions("Editor");
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Window"))
         {
+            AddMenuOptions("Window");
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Scripts"))
@@ -106,8 +106,46 @@ void MenuBar::Render()
         // all most file menus just have open XXX, create XXX + recents
         ImGui::EndMainMenuBar();
     }
+    
+    // MENU OPTION: GAME
+    
+    // OPEN PROJECT, RECENT, CHECK FOR UPDATES, REPORT A BUG, OUTPUT, TIMESTEP
+    // USER SETTINGS, CONVERT, LOCALIZATIONS, UPDATE PREFERENCES, PACKAGES, WIZARDS,
+    // CREATE ARM FILES, .., SAVE GAME, LOAD GAME, QUIT
+    
+    if(TestMenuOption("Game", "Switch Project", "", 0, false, false))
+    {
+        GetApplication()._Flags.Add(ApplicationFlag::WANT_SWITCH_PROJECT);
+    }
+    if(TestMenuOption("Game", "Quit", "CTRL + SHIFT +  Q", ImGuiKey_Q, true, true))
+    {
+        GetApplication()._Flags.Add(ApplicationFlag::WANT_QUIT);
+    }
+    if(TestMenuOption("Game", "Dump Tracked Memory", "", 0, false, false))
+    {
+        Memory::DumpTrackedMemory();
+    }
+    
+    // NENU OPTION: WINDOW
+    
+    if(TestMenuOption("Window", "Open Console", "", 0, false, false))
+    {
+        if(!GetApplication()._Flags.Test(ApplicationFlag::CONSOLE_WINDOW_OPEN))
+        {
+            GetApplication().PushWindow(TTE_NEW_PTR(UIConsole, MEMORY_TAG_EDITOR_UI, GetApplication()));
+            GetApplication()._Flags.Add(ApplicationFlag::CONSOLE_WINDOW_OPEN);
+        }
+    }
+    if(TestMenuOption("Window", "Open Memory Tracker", "", 0, false, false))
+    {
+        if(!GetApplication()._Flags.Test(ApplicationFlag::MEMORY_WINDOW_OPEN))
+        {
+            GetApplication().PushWindow(TTE_NEW_PTR(UIMemoryTracker, MEMORY_TAG_EDITOR_UI, GetApplication()));
+            GetApplication()._Flags.Add(ApplicationFlag::MEMORY_WINDOW_OPEN);
+        }
+    }
 
-    // SHORTCUTS
+    // SHORTCUT FOR OPEN
     if (!ImGui::GetIO().WantCaptureKeyboard)
     {
         if (ImGui::GetIO().KeyCtrl && ImGui::IsKeyReleased(ImGuiKey_O))
@@ -164,4 +202,6 @@ void MenuBar::Render()
     ImGui::End();
     ImGui::PopStyleColor(1);
     ImGui::PopStyleVar(2);
+    
+    return false;
 }

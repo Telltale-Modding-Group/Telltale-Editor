@@ -553,9 +553,9 @@ Bool UIResourceEditor<Chore>::RenderEditor()
 
         CurrentY -= ImGui::GetScrollY();
         Float cache = CurrentY;
-        Bool mouseClickedThisFrame = leftClicked && GImGui->OpenPopupStack.empty();
-        Bool mouseReleasedThisFrame = ImGui::IsMouseReleased(ImGuiMouseButton_Left) && GImGui->OpenPopupStack.empty();
-        Bool mouseRightReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Right) && GImGui->OpenPopupStack.empty();
+        Bool mouseClickedThisFrame = leftClicked && GImGui->OpenPopupStack.empty() && ImGui::IsWindowFocused();
+        Bool mouseReleasedThisFrame = ImGui::IsMouseReleased(ImGuiMouseButton_Left) && GImGui->OpenPopupStack.empty()  && ImGui::IsWindowFocused();
+        Bool mouseRightReleased = ImGui::IsMouseReleased(ImGuiMouseButton_Right) && GImGui->OpenPopupStack.empty()  && ImGui::IsWindowFocused();
         Bool mouseDown = ImGui::IsMouseDown(ImGuiMouseButton_Left);
         Float mouseDeltaX = ImGui::GetMousePos().x - LastMouseX;
         Float mouseDeltaY = ImGui::GetMousePos().y - LastMouseY;

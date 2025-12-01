@@ -367,7 +367,7 @@ void UIProjectCreate::_ReleaseJob()
     _GuessStart = 0;
 }
 
-void UIProjectCreate::Render()
+Bool UIProjectCreate::Render()
 {
     {
         int w = 0, h = 0;
@@ -1074,6 +1074,7 @@ void UIProjectCreate::Render()
 
     End();
     PopStyleColor();
+    return false;
 }
 
 void UIProjectCreate::GetWindowSize(U32& w, U32& h)

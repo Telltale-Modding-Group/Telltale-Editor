@@ -49,8 +49,8 @@ public:
         U32 type = (U32)man.ToInteger(6);
         U32 format = man.ToInteger(7);
         
-        Ptr<KeyframedValue<Vector3>> keys = TTE_NEW_PTR(KeyframedValue<Vector3>,
-                                                        MEMORY_TAG_ANIMATION_DATA, std::move(name));
+        Ptr<KeyframedValue<Vector3>> keys = TTE_NEW_PTR(KeyframedValue<Vector3>, MEMORY_TAG_ANIMATION_DATA, std::move(name));
+        TTE_ATTACH_DBG_STR(keys.get(), "Decompressed Keyframed<Vector3> " + name);
         keys->_Flags = flags;
         keys->_Type = (AnimationValueType)type;
         
@@ -109,6 +109,7 @@ public:
         
         Ptr<KeyframedValue<Quaternion>> keys = TTE_NEW_PTR(KeyframedValue<Quaternion>,
                                                         MEMORY_TAG_ANIMATION_DATA, std::move(name));
+        TTE_ATTACH_DBG_STR(keys.get(), "Decompressed Keyframed<Quaternion> " + name);
         keys->_Flags = flags;
         keys->_Type = (AnimationValueType)type;
         
@@ -179,6 +180,7 @@ public:
             Meta::ClassInstanceCollection& samples = Meta::CastToCollection(samplesInst);
             U32 nSamples = samples.GetSize();
             Ptr<KeyframedValue<T>> keyframed = TTE_NEW_PTR(KeyframedValue<T>, MEMORY_TAG_ANIMATION_DATA, std::move(name));
+            TTE_ATTACH_DBG_STR(keyframed.get(), "Keyframed<" + String(typeName) + ">:" + name);
             Extractor(keyframed->_MinValue, minVal);
             Extractor(keyframed->_MaxValue, maxVal);
             keyframed->_Flags = (U32)man.ToInteger(7);

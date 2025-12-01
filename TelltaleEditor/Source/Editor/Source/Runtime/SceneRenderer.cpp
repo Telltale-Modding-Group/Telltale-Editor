@@ -68,6 +68,7 @@ void SceneRenderer::_InitSceneState(SceneState& state, Ptr<Scene> pScene)
     if(!state.DefaultCam)
     {
         state.DefaultCam = TTE_NEW_PTR(Camera, MEMORY_TAG_RENDERER);
+        TTE_ATTACH_DBG_STR(state.DefaultCam.get(), "Default Scene Renderer Camera");
     }
 
     // Push a default view camera bottom of the view stack (so at least always one cam)

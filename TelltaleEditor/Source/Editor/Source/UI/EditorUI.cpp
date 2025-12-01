@@ -209,7 +209,7 @@ void EditorUI::DispatchEditorImmediate(Ptr<UIResourceEditorBase> allocated)
     }
 }
 
-void EditorUI::Render()
+Bool EditorUI::Render()
 {
 
     if(_UpdateTicker.Tick())
@@ -283,6 +283,7 @@ void EditorUI::Render()
         GetApplication()._PendingOpenResourceLocation = "";
     }
 
+    return false;
 }
 
 U32 EditorUIComponent::GetUICondition()
@@ -438,7 +439,7 @@ Bool FileView::_Update(Ptr<ResourceRegistry> pRegistry, I32 overrideIndex)
     return false;
 }
 
-void FileView::Render()
+Bool FileView::Render()
 {
     Ptr<ResourceRegistry> pRegistry = GetApplication().GetRegistry();
     Bool bReset = _Update(pRegistry, -1);
@@ -583,6 +584,7 @@ void FileView::Render()
         }
     }
     ImGui::End();
+    return false;
 }
 
 // ===================================================== OUTLINE VIEW
@@ -658,7 +660,7 @@ Bool OutlineView::_RenderSceneNode(WeakPtr<Node> pNodeWk)
     return false;
 }
 
-void OutlineView::Render()
+Bool OutlineView::Render()
 {
     Float yOff = MAX(0.04f, 40.f / GetMainViewport()->Size.y);
     SetNextWindowViewport(0.0f, yOff, 0, 0, 0.20f, 1.00f - yOff, 100, 300, GetUICondition());
@@ -723,6 +725,7 @@ void OutlineView::Render()
         }
     }
     End();
+    return false;
 }
 
 // ===================================================== OUTLINE VIEW
@@ -1450,7 +1453,7 @@ void InspectorView::_FlushProps()
     }
 }
 
-void InspectorView::Render()
+Bool InspectorView::Render()
 {
     Float yOff = MAX(0.04f, 40.f / GetMainViewport()->Size.y);
     SetNextWindowViewport(0.80f, yOff, 0, 0, 0.20f, 0.70f - yOff, 100, 300, GetUICondition());
@@ -1589,6 +1592,7 @@ void InspectorView::Render()
         }
     }
     End();
+    return false;
 }
 
 // ===================================================== SCENE VIEW
@@ -1807,7 +1811,7 @@ void SceneView::PostRender(void* me, const SceneFrameRenderParams& params, Rende
     }
 }
 
-void SceneView::Render()
+Bool SceneView::Render()
 {
     Float yOff = MAX(0.04f, 40.f / GetMainViewport()->WorkSize.y);
     SetNextWindowViewport(0.20f, yOff, 0, 0, 0.60f, 0.70f - yOff, 300, 200, GetUICondition());
@@ -1906,4 +1910,5 @@ void SceneView::Render()
         }
     }
     End();
+    return false;
 }

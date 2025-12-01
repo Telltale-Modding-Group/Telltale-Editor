@@ -120,6 +120,7 @@ namespace Meta {
 
             localWriter->SetPosition(0); // seek to beginning, then read all bytes.
             U8* compiledBytes = TTE_ALLOC(localWriter->GetSize(), MEMORY_TAG_SCRIPTING);
+            TTE_ATTACH_DBG_STR(compiledBytes, "LuaFunctionBin:" + fn);
 
             if (!localWriter->Read(compiledBytes, localWriter->GetSize()))
             {
@@ -823,6 +824,10 @@ namespace Meta {
             
             // allocate
             U8* pMemory = bNeedsFree ? TTE_ALLOC(sz, MEMORY_TAG_META_TYPE) : Alloc;
+            if(bNeedsFree)
+            {
+                TTE_ATTACH_DBG_STR(pMemory, "Instance:'" + it->second.Name + "':" + SymbolTable::FindOrHashString(name));
+            }
             
             ClassInstance inst = ClassInstance{ClassID, pMemory, [=](U8* pMem){ // use a c++11 lambda so we get a closure.
                 
@@ -2407,6 +2412,7 @@ namespace Meta {
         
         // setup transience block
         _TransienceFence = TTE_NEW_PTR(std::atomic<U32>, MEMORY_TAG_TRANSIENT_FENCE, 0);
+        TTE_ATTACH_DBG_STR(_TransienceFence.get(), "Meta collection transiense fence");
     }
     
     void ClassInstanceCollection::AdvanceTransienceFenceInternal()
@@ -2508,6 +2514,7 @@ namespace Meta {
         // move transience fence
         _TransienceFence = std::move(rhs._TransienceFence);
         rhs._TransienceFence = TTE_NEW_PTR(std::atomic<U32>, MEMORY_TAG_TRANSIENT_FENCE, 0); // rhs still is valid give it a new slot
+        TTE_ATTACH_DBG_STR(rhs._TransienceFence.get(), "Meta collection transiense fence");
     }
     
     ClassInstanceCollection::ClassInstanceCollection(const ClassInstanceCollection& rhs, ParentWeakReference host)
@@ -2523,6 +2530,7 @@ namespace Meta {
         
         // setup transience block
         _TransienceFence = _TransienceFence = TTE_NEW_PTR(std::atomic<U32>, MEMORY_TAG_TRANSIENT_FENCE, 0);
+        TTE_ATTACH_DBG_STR(_TransienceFence.get(), "Meta collection transiense fence");
         // rhs transience fence stays the fence, no update
         
         if(_ColFl & _COL_IS_SARRAY)
@@ -2683,6 +2691,7 @@ namespace Meta {
         U32 newCapacity{};
         TTE_ROUND_UPOW2_U32(newCapacity, cap); // round to upper power of 2 for capacity.
         U8* pNewMemory = TTE_ALLOC(_PairSize * newCapacity, MEMORY_TAG_META_COLLECTION);
+        TTE_ATTACH_DBG_STR(pNewMemory, "Collection Memory: Capacity " + std::to_string(newCapacity));
         
         if(_Size > 0) // is previous size is zero no moving needs to be done
         {

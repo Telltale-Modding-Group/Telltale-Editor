@@ -114,6 +114,7 @@ Bool TTArchive2::SerialiseIn(DataStreamRef& in)
         
         // create sub stream
         inf.Stream = DataStreamManager::GetInstance()->CreateSubStream(in, _inf[i].Offset, (U64)_inf[i].Size);
+        TTE_ATTACH_DBG_STR(inf.Stream.get(), "TTArchive2 SubStream: " + inf.Name);
     }
     
     // free temp buffer

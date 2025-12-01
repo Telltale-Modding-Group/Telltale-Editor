@@ -74,6 +74,7 @@ Bool TTArchive::SerialiseIn(DataStreamRef& in)
         {
             _Files[i].Stream = DataStreamManager::GetInstance()->CreateSubStream(in, (U64)fileDataOff +
                                                                                  (U64)offsets[i].off, (U64)offsets[i].sz);
+            TTE_ATTACH_DBG_STR(_Files[i].Stream.get(), "TTArchive SubStream: " + _Files[i].Name);
         }
         offsets.clear();
         

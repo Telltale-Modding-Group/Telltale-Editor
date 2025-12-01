@@ -26,6 +26,10 @@ struct EditorUI;
 enum class ApplicationFlag
 {
     RUNNING = 1,
+    WANT_QUIT = 2,
+    WANT_SWITCH_PROJECT = 4,
+    CONSOLE_WINDOW_OPEN = 8,
+    MEMORY_WINDOW_OPEN = 16,
 };
 
 void ImGui_ImplSDLGPU3_RenderDrawData(ImDrawData* draw_data, SDL_GPUCommandBuffer* command_buffer,
@@ -116,6 +120,8 @@ public:
     
     void QueueMetaInstanceEditPopup(EditorUI& ui, String title, Ptr<FunctionBase> cb, String prompt,
                                     Meta::ClassInstance val, Meta::ClassInstance cl = {});
+    
+    void PushWindow(Ptr<UIComponent> c);
 
 private:
 
@@ -127,7 +133,8 @@ private:
     };
 
     // UI CLASSES
-    std::vector<Ptr<UIStackable>> _UIStack;
+    std::vector<Ptr<UIStackable>> _UIStack; // only top most is rendered
+    std::vector<Ptr<UIComponent>> _UIWindows;
 
     void _Update();
 
@@ -136,6 +143,10 @@ private:
     void _SetLanguage(const String& language);
 
     void _RenderPopups();
+    
+    void _OnLog(CString str);
+    
+    void _EnsureConsoleBufferAlloc(U32 sz);
 
     enum class _UIRenderFilter
     {
@@ -178,6 +189,11 @@ private:
     Ptr<EditorPopup> _ActivePopup;
     String _PendingOpenResourceLocation; // -file option, user requested file to open on startup
     std::queue<Ptr<EditorPopup>> _QueuedPopups;
+    
+    Ptr<FunctionBase> _ConsolePrivateCallback;
+    U8* _ConsoleBuffer = nullptr;
+    U32 _ConsoleBufferSize = 0;
+    U32 _ConsoleBufferOffset = 0;
 
     // RESOURCE MANAGEMENT
     SDL_Surface* _AppIcon;
@@ -200,7 +216,10 @@ private:
     friend class UIProjectSelect;
     friend class UIProjectCreate;
     friend class EditorUI;
-
+    friend class MenuBar;
+    friend class UIConsole;
+    friend class UIMemoryTracker;
+    
 };
 
 template void ApplicationUI::_PerformUIRenderFiltered<ApplicationUI::_UIRenderFilter::FILTER_NONE, false>(RenderFrame* pFrame);

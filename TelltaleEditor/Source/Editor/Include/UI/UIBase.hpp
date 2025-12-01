@@ -4,6 +4,7 @@
 #include <Scheduler/JobScheduler.hpp>
 
 #include <algorithm>
+#include <set>
 #include <vector>
 
 struct ImVec2;
@@ -92,7 +93,7 @@ public:
 
     void DrawCenteredWrappedText(const String& text, Float maxWidth, Float centerPosX, Float centerPosY, I32 maxLines, Float fontSize);
 
-    virtual void Render() = 0;
+    virtual Bool Render() = 0;
 
     ApplicationUI& GetApplication();
 
@@ -137,7 +138,7 @@ public:
     UIProjectSelect(ApplicationUI& app);
    
     // Returns true when a project is finally loaded or created
-    virtual void Render() override;
+    virtual Bool Render() override;
 
     void GetWindowSize(U32& w, U32& h); // window size for this window
 
@@ -193,7 +194,7 @@ public:
         Reset();
     }
     
-    virtual void Render() override;
+    virtual Bool Render() override;
 
     void GetWindowSize(U32& w, U32& h);
 
@@ -204,4 +205,53 @@ public:
 
     void Reset();
 
+};
+
+// Ideally if a proper engine we would have our own intrusive ref counting system, but is that really needed here.
+class UIConsole : public UIStackable
+{
+    
+    Bool _Autoscroll = true;
+    
+public:
+    
+    UIConsole(ApplicationUI& app);
+    
+    virtual Bool Render() override;
+    
+    virtual ~UIConsole();
+    
+};
+
+class UIMemoryTracker : public UIStackable
+{
+    
+    struct Tracked : Memory::TrackedAllocation
+    {
+        
+        String SourceFull;
+        
+        inline Bool operator<(const Tracked& rhs) const
+        {
+            return Timestamp < rhs.Timestamp;
+        }
+        
+    };
+    
+    std::set<Tracked> _Tracked;
+    U64 _Ts;
+    
+    U64 _AllocTotal = 0;
+    double _AllocAverageSize = 0.0;
+    Float _Pressure = 0.0f;
+    U32 _TagFilter = 999;
+    
+public:
+    
+    UIMemoryTracker(ApplicationUI& app);
+    
+    virtual Bool Render() override;
+    
+    virtual ~UIMemoryTracker();
+    
 };

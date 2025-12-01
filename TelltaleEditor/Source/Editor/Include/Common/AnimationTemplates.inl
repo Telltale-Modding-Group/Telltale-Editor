@@ -298,18 +298,6 @@ inline const AnimationValueTypeDesc& GetAnimationTypeDesc(AnimationValueType typ
 
 // KEYFRAMED<T>
 
-template<typename T> KeyframedValue<T>::KeyframedValue(String name) : AnimationValueInterface(std::move(name)) {}
-
-template<typename T> const std::type_info& KeyframedValue<T>::GetValueType() const
-{
-    return typeid(T);
-}
-
-template<typename T> Float KeyframedValue<T>::GetMaxTime() const
-{
-    return _Samples.size() == 0 ? 0.0f : _Samples.back().Time;
-}
-
 template<typename T> void KeyframedValue<T>::ComputeValue(void* pValue,
                 Ptr<PlaybackController> Controller, const Float* Contribution)
 {

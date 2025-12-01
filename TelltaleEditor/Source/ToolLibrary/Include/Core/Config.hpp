@@ -18,6 +18,9 @@
 
 #ifndef TTE_DISABLE_LOGGING
 
+struct FunctionBase;
+class Symbol;
+
 inline void LogConsole() {}
 
 void LogConsole(CString Msg, ...); // Defined in Context.cpp
@@ -25,6 +28,10 @@ void LogConsole(CString Msg, ...); // Defined in Context.cpp
 void ToggleLoggerCache(Bool bOnOff); // Switch on logging caching. You can call dump log after this and everthing between these calls will be put into the text file.
 
 void DumpLoggerCache(CString file); // Dumps all cached log. Pass in the absolute path
+
+void AttachLoggerCallback(Ptr<FunctionBase> pCallback); // Attachs a callback to run each log. Accepts a ptr to the Cstring NOT String.
+
+void DetachLoggerCallback(Symbol tag);
 
 // In DEBUG, simply log any messages simply to the console. Adds a newline character. This is a workaround so empty VA_ARGS works ok. If changing
 // printf, change assert to.

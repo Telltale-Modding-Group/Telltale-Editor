@@ -118,6 +118,7 @@ Ptr<AnimationMixerBase>& Mover::_SelectMoverMixer(AnimationValueInterface* pAnim
         if(!_RelativeNodeMixer)
         {
             _RelativeNodeMixer = TTE_NEW_PTR(AnimationMixer<Transform>, MEMORY_TAG_ANIMATION_DATA, "Mover Relative Node Mixer");
+            TTE_ATTACH_DBG_STR(_RelativeNodeMixer.get(), "Relative Node Animation Mixer Transform");
         }
         return _RelativeNodeMixer;
     }
@@ -126,6 +127,7 @@ Ptr<AnimationMixerBase>& Mover::_SelectMoverMixer(AnimationValueInterface* pAnim
         if(!_AbsoluteNodeMixer)
         {
             _AbsoluteNodeMixer = TTE_NEW_PTR(AnimationMixer<Transform>, MEMORY_TAG_ANIMATION_DATA, "Mover Absolute Node Mixer");
+            TTE_ATTACH_DBG_STR(_AbsoluteNodeMixer.get(), "Absolute Node Animation Mixer Transform");
         }
         return _AbsoluteNodeMixer;
     }

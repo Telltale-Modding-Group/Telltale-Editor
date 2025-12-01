@@ -102,6 +102,7 @@ RenderNDCScissorRect SceneRuntime::AsyncUpdate(RenderFrame &frame, RenderNDCScis
         {
             // Start a scene (NON TELLTALE SCRIPTING WAY (using scene open / add)
             Ptr<Scene> pScene = TTE_NEW_PTR(Scene, MEMORY_TAG_SCENE_DATA, std::move(*((Scene*)msg.Arguments)));
+            TTE_ATTACH_DBG_STR(pScene.get(), "Runtime Scene " + pScene->Name);
             _AsyncScenes.push_back(std::move(pScene));
             _AsyncScenes.back()->OnAsyncRenderAttach(*this); // on attach. ready to prepare this frame.
             TTE_DEL((Scene*)msg.Arguments); // delete the temp alloc

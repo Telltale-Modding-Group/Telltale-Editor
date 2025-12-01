@@ -1,5 +1,6 @@
 #include <Common/Procedural.hpp>
 #include <Common/Chore.hpp>
+#include <AnimationManager.hpp>
 
 class ProceduralAPI
 {

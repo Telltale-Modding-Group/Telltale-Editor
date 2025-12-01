@@ -1,5 +1,6 @@
 #include <Core/Config.hpp>
 #include <Meta/Meta.hpp>
+#include <Core/Callbacks.hpp>
 
 #include <sstream>
 #include <stdio.h>
@@ -21,6 +22,7 @@ String MakeTypeName(String fullName)
 }
 
 static std::stringstream _ConsoleCache{};
+static Callbacks _ConsoleCallbacks{};
 static Bool _ConsoleCaching = false;
 static char _ConsoleLogTemp[2048]{};
 static std::mutex _ConsoleGuard{};
@@ -29,6 +31,20 @@ void ToggleLoggerCache(Bool bOnOff)
 {
     _ConsoleGuard.lock();
     _ConsoleCaching = bOnOff;
+    _ConsoleGuard.unlock();
+}
+
+void DetachLoggerCallback(Symbol tag)
+{
+    _ConsoleGuard.lock();
+    _ConsoleCallbacks.RemoveCallbacks(tag);
+    _ConsoleGuard.unlock();
+}
+
+void AttachLoggerCallback(Ptr<FunctionBase> pCallback)
+{
+    _ConsoleGuard.lock();
+    _ConsoleCallbacks.PushCallback(std::move(pCallback));
     _ConsoleGuard.unlock();
 }
 
@@ -69,6 +85,10 @@ void LogConsole(CString Msg, ...)
 			if (_ConsoleLogTemp[len - 1] != '\n')
 				_ConsoleCache << '\n';
         }
+        
+        CString pArgument = _ConsoleLogTemp;
+        _ConsoleCallbacks.CallErased(&pArgument, 0, 0, 0, 0, 0, 0, 0);
+        
     }
 	_ConsoleGuard.unlock();
 }

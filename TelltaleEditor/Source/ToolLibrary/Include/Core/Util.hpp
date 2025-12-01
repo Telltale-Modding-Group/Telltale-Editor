@@ -86,6 +86,17 @@ class JobThread;
 
 namespace Memory // All memory helpers
 {
+
+    struct TrackedAllocation
+    {
+        String SrcFile; // src file name
+        String DebugStr;
+        CString ObjName;
+        U64 Timestamp; // MICROS
+        U64 Size; // allocation size
+        U32 SrcLine; // line in src file
+        U32 MemoryTag; // MEMORY_TAG enum
+    };
     
     // 1MB
 #define FAST_BUFFER_SIZE 0x100000
@@ -111,6 +122,12 @@ namespace Memory // All memory helpers
     };
     
     void DumpTrackedMemory(); // if in debug mode, prints all tracked memory allocations.
+
+    void AttachDebugString(void* ptr, const String& info);
+
+    void ViewTrackedMemory(std::vector<TrackedAllocation>& allocs); // get all active tracked allocations
+
+    CString GetMemoryTagString(U32 tag);
     
     U8* _DebugAllocateTracked(U64 _Nbytes, U32 tag, CString filename, U32 number, CString objName);
     void _DebugDeallocateTracked(U8* Ptr);
@@ -132,6 +149,8 @@ __FILE__, (U32) __LINE__, #_Type)) _Type(__VA_ARGS__)
 
 #define TTE_DEL(_Inst) { if(_Inst) { DestroyObject(*_Inst); TTE_FREE((U8*)_Inst); } }
 
+#define TTE_ATTACH_DBG_STR(_MyAlloc, _MyDbgStr) Memory::AttachDebugString(_MyAlloc, _MyDbgStr)
+
 #else
 
 // Release. Dont need to track any allocations.
@@ -144,6 +163,8 @@ __FILE__, (U32) __LINE__, #_Type)) _Type(__VA_ARGS__)
 #define TTE_ALLOC(_NBytes, _MemoryTag) new U8[_NBytes]()
 
 #define TTE_FREE(_ByteArray) delete[] ((U8*)_ByteArray)
+
+#define TTE_ATTACH_DBG_STR(_Al, _Str) ;
 
 #endif
 

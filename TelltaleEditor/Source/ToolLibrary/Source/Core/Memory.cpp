@@ -89,19 +89,32 @@ namespace Memory
     
 #ifdef DEBUG
     
-    struct TrackedAllocation
-    {
-        String SrcFile; // src file name
-        CString ObjName;
-        U64 Timestamp;
-        U64 Size; // allocation size
-        U32 SrcLine; // line in src file
-        U32 MemoryTag; // MEMORY_TAG enum
-    };
-    
     static std::map<U8*, TrackedAllocation> _TrackedAllocs{}; // ptr => info
     static std::mutex _TrackedLock{};
-    
+
+    void AttachDebugString(void* ptr, const String& data)
+    {
+        {
+            std::lock_guard _Lck{_TrackedLock};
+            auto it = _TrackedAllocs.find((U8*)ptr);
+            if(it != _TrackedAllocs.end())
+            {
+                it->second.DebugStr = data;
+            }
+        }
+    }
+
+    void ViewTrackedMemory(std::vector<TrackedAllocation>& allocs)
+    {
+        std::lock_guard _Lck{_TrackedLock};
+        allocs.clear();
+        allocs.reserve(_TrackedAllocs.size());
+        for(const auto& tracked: _TrackedAllocs)
+        {
+            allocs.push_back(tracked.second);
+        }
+    }
+
     U8* _DebugAllocateTracked(U64 _Nbytes, U32 _tag, CString filename, U32 number, CString objName)
     {
         MemoryTag tag = (MemoryTag)_tag;
@@ -110,7 +123,7 @@ namespace Memory
             return nullptr;
         
         TrackedAllocation alloc{};
-        alloc.Timestamp = (U64)std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        alloc.Timestamp = (U64)std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
         alloc.MemoryTag = (U32)tag;
         alloc.SrcLine = number;
         alloc.Size = _Nbytes;
@@ -170,6 +183,11 @@ namespace Memory
         "SceneData",
         "EditorUI"
     };
+
+    CString GetMemoryTagString(U32 tag)
+    {
+        return tag >= sizeof(TAG_NAMES) / sizeof(TAG_NAMES[0]) ? nullptr : TAG_NAMES[tag];
+    }
     
     void DumpTrackedMemory()
     {
@@ -209,6 +227,10 @@ namespace Memory
                     ss << " ";
                 }
                 ss << "]";
+            }
+            if(!it.second.DebugStr.empty())
+            {
+                ss << ", '" << it.second.DebugStr << "'";
             }
             String str = ss.str();
             TTE_LOG(str.c_str());

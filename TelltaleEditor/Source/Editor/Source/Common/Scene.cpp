@@ -84,6 +84,7 @@ void Scene::_SetupAgent(std::map<Symbol, Ptr<SceneAgent>, SceneAgentComparator>:
     // create node
     Ptr<Node> pNode;
     pAgent->AgentNode = pNode = TTE_NEW_PTR(Node, MEMORY_TAG_OBJECT_DATA);
+    TTE_ATTACH_DBG_STR(pNode.get(), Name + "/" + pAgent->Name);
     pNode->LocalTransform = pNode->GlobalTransform = pAgent->InitialTransform;
     pNode->AgentName = pAgent->Name;
     pNode->Name = pAgent->Name;
@@ -538,6 +539,7 @@ void Scene::AddAgent(const String& Name, SceneModuleTypes modules, Meta::ClassIn
 {
     TTE_ASSERT(!ExistsAgent(Name), "Agent %s already exists in %s", Name.c_str(), Name.c_str());
     Ptr<SceneAgent> pAgent = TTE_NEW_PTR(SceneAgent, MEMORY_TAG_SCENE_DATA, Name);
+    TTE_ATTACH_DBG_STR(pAgent.get(), this->Name + "/" + Name);
     auto agentIt = _Agents.insert({Symbol(Name), pAgent});
     auto& agentPtr = agentIt.first->second;
     agentPtr->OwningScene = this;
@@ -894,6 +896,7 @@ static Ptr<Node> _DeepCopyNodeTree(const Ptr<Node> src, Scene* newScene, Ptr<Nod
         return nullptr;
 
     Ptr<Node> copy = TTE_NEW_PTR(Node, MEMORY_TAG_SCENE_DATA);
+    TTE_ATTACH_DBG_STR(copy.get(), newScene->GetName() + "/" + src->AgentName + "/" + copy->Name);
 
     copy->Name = src->Name;
     copy->Fl = src->Fl;
@@ -1005,6 +1008,7 @@ Scene::Scene(const Scene& rhs) : HandleableRegistered(rhs), Name(rhs.Name), _Fla
     for(const auto& agent: rhs._Agents)
     {
         Ptr<SceneAgent> pCopyAgent = TTE_NEW_PTR(SceneAgent, MEMORY_TAG_SCENE_DATA, *agent.second);
+        TTE_ATTACH_DBG_STR(pCopyAgent.get(), "SceneAgent:" + agent.second->Name);
         pCopyAgent->OwningScene = this;
         // module incides OK same
         // copy transient props (theyre transient, but doesnt matter here)

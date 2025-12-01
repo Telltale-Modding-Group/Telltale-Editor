@@ -370,6 +370,7 @@ static U32 luaPropertyAddCallback(LuaManager& man)
     {
         String function = man.ToString(3);
         pCallback->SetFunction(function);
+        TTE_ATTACH_DBG_STR(pCallback.get(), "LuaCallback<" + function + ">:'" + SymbolTable::FindOrHashString(kn) + "'");
     }
     else
     {
@@ -379,6 +380,7 @@ static U32 luaPropertyAddCallback(LuaManager& man)
             return 0;
         }
         pCallback->SetFunction(3);
+        TTE_ATTACH_DBG_STR(pCallback.get(), "LuaCallback:'" + SymbolTable::FindOrHashString(kn) + "'");
     }
     pCallback->Tag = kn;
     PropertySet::AddCallback(prop, kn, std::move(pCallback));
@@ -406,6 +408,7 @@ static U32 luaPropertyAddMultiKeyCallback(LuaManager& man)
         {
             String function = man.ToString(3);
             pCallback->SetFunction(function);
+            TTE_ATTACH_DBG_STR(pCallback.get(), "MultiLuaCallback<" + function + ">:'" + SymbolTable::FindOrHashString(key) + "'");
         }
         else
         {
@@ -415,6 +418,7 @@ static U32 luaPropertyAddMultiKeyCallback(LuaManager& man)
                 return 0;
             }
             pCallback->SetFunction(3);
+            TTE_ATTACH_DBG_STR(pCallback.get(), "MultiLuaCallback:'" + SymbolTable::FindOrHashString(key) + "'");
         }
         pCallback->Tag = key;
         PropertySet::AddCallback(prop, key, std::move(pCallback));

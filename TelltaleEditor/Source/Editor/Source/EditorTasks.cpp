@@ -49,6 +49,7 @@ void MeshNormalisationTask::Finalise(TelltaleEditor& editor)
     
     // move processed new mesh renderable instance to array, ready to be used
     Ptr<Mesh::MeshInstance> localHandle = TTE_NEW_PTR(Mesh::MeshInstance, MEMORY_TAG_COMMON_INSTANCE, std::move(Renderable));
+    TTE_ATTACH_DBG_STR(localHandle.get(), "Mesh Instance " + localHandle->Name);
     Output->GetAgentModule<SceneModuleType::RENDERABLE>(Agent).Renderable.MeshList.push_back(std::move(localHandle));
 }
 

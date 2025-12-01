@@ -88,7 +88,7 @@ public:
 
     EditorUI(ApplicationUI& app);
 
-    virtual void Render() override;
+    virtual Bool Render() override;
 
     friend class MenuBar;
     friend class InspectorView;
@@ -163,7 +163,7 @@ public:
 
     FileView(EditorUI& ui);
 
-    virtual void Render() override;
+    virtual Bool Render() override;
 
 };
 
@@ -177,7 +177,7 @@ public:
 
     OutlineView(EditorUI& ui);
 
-    virtual void Render() override;
+    virtual Bool Render() override;
 
 };
 
@@ -215,7 +215,7 @@ public:
     InspectorView(EditorUI& ui);
     ~InspectorView();
 
-    virtual void Render() override;
+    virtual Bool Render() override;
 
     Bool RenderNode(Float sY);
 
@@ -250,7 +250,7 @@ public:
 
     ~SceneView();
 
-    virtual void Render() override;
+    virtual Bool Render() override;
 
 };
 

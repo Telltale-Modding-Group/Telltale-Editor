@@ -167,6 +167,7 @@ public:
         {
             // 2x float compressed Unorm pair
             auto decompressed = TTE_ALLOC_PTR(8 * numVerts, MEMORY_TAG_RUNTIME_BUFFER);
+            TTE_ATTACH_DBG_STR(decompressed.get(), "Mesh Decompressed Vertices");
             for(U32 i = 0; i < numVerts; i++)
             {
                 const U16& compressedValue = *((U16*)(buf->BufferData.get() + (i<<1)));
@@ -181,6 +182,7 @@ public:
         {
             // 3x float Snorm normal
             auto decompressed = TTE_ALLOC_PTR(12 * numVerts, MEMORY_TAG_RUNTIME_BUFFER);
+            TTE_ATTACH_DBG_STR(decompressed.get(), "Mesh Decompressed Vertices");
             for(U32 i = 0; i < numVerts; i++)
             {
                 const U16& compressedValue = *((U16*)(buf->BufferData.get() + (i<<1)));
@@ -198,6 +200,7 @@ public:
         {
             // 3x float compressed Unorm nomal, approximated z
             auto decompressed = TTE_ALLOC_PTR(12 * numVerts, MEMORY_TAG_RUNTIME_BUFFER);
+            TTE_ATTACH_DBG_STR(decompressed.get(), "Mesh Decompressed Vertices");
             for(U32 i = 0; i < numVerts; i++)
             {
                 const U16& compressedValue = *((U16*)(buf->BufferData.get() + (i<<1)));

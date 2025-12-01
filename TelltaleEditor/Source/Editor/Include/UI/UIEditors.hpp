@@ -305,7 +305,7 @@ public:
         AggregateType(Type::STRONG_META), WeakParent{}, Alive(true) {
     }
 
-    inline virtual void Render() override final
+    inline virtual Bool Render() override final
     {
         if(Alive && ((AggregateType == Type::WEAK_META && WeakParent.expired()) || ((AggregateType == Type::STRONG_META || AggregateType == Type::WEAK_META) && MetaObj.Expired()) || RenderEditor()))
         {
@@ -314,6 +314,7 @@ public:
             MetaObj = {};
             WeakParent = {};
         }
+        return false;
     }
     
     virtual inline Bool IsAlive() const override

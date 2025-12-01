@@ -40,7 +40,8 @@ void JobScheduler::_JobThreadFn(JobScheduler &scheduler, U32 threadIndex)
     myself.FastBufferOffset = 0;
     myself.FastBuffer = TTE_ALLOC(FAST_BUFFER_SIZE, MEMORY_TAG_RUNTIME_BUFFER);
     myself.ThreadNumber = threadIndex;
-    myself.ThreadName = std::string("Worker Thread ") + std::to_string(threadIndex);
+    myself.ThreadName = String("Worker Thread ") + std::to_string(threadIndex);
+    TTE_ATTACH_DBG_STR(myself.FastBuffer, myself.ThreadName + " Fast Buffer Memory");
     myself.L.Initialise(LuaVersion::LUA_5_2_3); // latest
     MyLocalThread = &myself;
     

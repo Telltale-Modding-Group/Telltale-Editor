@@ -154,7 +154,9 @@ Ptr<RegistryDirectory> RegistryDirectory_System::OpenDirectory(const String& nam
     if(fs::is_directory(dirPath))
     {
         // sub directory
-        return TTE_NEW_PTR(RegistryDirectory_System, MEMORY_TAG_RESOURCE_REGISTRY, dirPath.string());
+        Ptr<RegistryDirectory> dir =  TTE_NEW_PTR(RegistryDirectory_System, MEMORY_TAG_RESOURCE_REGISTRY, dirPath.string());
+        TTE_ATTACH_DBG_STR(dir.get(), "SystemDir:"+name);
+        return dir;
     }
     return {};
 }
@@ -1909,6 +1911,7 @@ void ResourceRegistry::MountSystem(const String &id, const String& _fspath, Bool
         fspath += "/";
     
     auto dir = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_System>, MEMORY_TAG_RESOURCE_REGISTRY, id, fspath);
+    TTE_ATTACH_DBG_STR(dir.get(), "ConcreteSystemDir:" + id);
     _Locations.push_back(dir);
     
     if(bUsesResourceSys && !force)
@@ -1944,6 +1947,7 @@ void ResourceRegistry::MountSystem(const String &id, const String& _fspath, Bool
             
             // Create sub directory concrete location and map it from master. Treat like flat filesystem in legacy games.
             auto subDir = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_System>, MEMORY_TAG_RESOURCE_REGISTRY, folderID, physicalPath);
+            TTE_ATTACH_DBG_STR(subDir.get(), "ConcreteSystemSubDir:" + folderID);
             _Locations.push_back(subDir);
             
             // Map it to main
@@ -1984,6 +1988,7 @@ void ResourceRegistry::CreateLogicalLocation(const String &name)
     else
     {
         auto logicalLocation = TTE_NEW_PTR(ResourceLogicalLocation, MEMORY_TAG_RESOURCE_REGISTRY, name);
+        TTE_ATTACH_DBG_STR(logicalLocation.get(), "LogicalLocation:" + name);
         _Locations.push_back(std::move(logicalLocation));
     }
 }
@@ -2029,6 +2034,7 @@ void ResourceRegistry::CreateConcreteDirectoryLocation(const String &_name, cons
     else
     {
         auto concreteLocation = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_System>, MEMORY_TAG_RESOURCE_REGISTRY, name, physPath);
+        TTE_ATTACH_DBG_STR(concreteLocation.get(), "ConcreteSystemDir:" + name);
         _Locations.push_back(std::move(concreteLocation));
     }
 }
@@ -2060,6 +2066,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
         TTE_ASSERT(arc.SerialiseIn(archiveStream), "TTArchive serialise/read fail!");
         lck.lock();
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
+        TTE_ATTACH_DBG_STR(pLoc.get(), "TTArchiveConcreteLocation:" + archiveID);
         _Locations.push_back(std::move(pLoc));
     }
     else if(resourceName == maskTTArch2)
@@ -2069,6 +2076,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
         TTE_ASSERT(arc.SerialiseIn(archiveStream), "TTArchive2 serialise/read fail!");
         lck.lock();
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_TTArchive2>, MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(arc));
+        TTE_ATTACH_DBG_STR(pLoc.get(), "TTArchive2ConcreteLocation:" + archiveID);
         _Locations.push_back(std::move(pLoc));
     }
     else if(StringEndsWith(resourceName, ISO9660::Extension, false))
@@ -2083,6 +2091,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
         lck.lock();
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_ISO9660>, 
                                 MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(iso));
+        TTE_ATTACH_DBG_STR(pLoc.get(), "ISOConcreteLocation:" + archiveID);
         _Locations.push_back(std::move(pLoc));
     }
     else if(StringEndsWith(resourceName, GamePack2::Extension, false))
@@ -2097,6 +2106,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
         lck.lock();
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_GamePack2>, 
                                 MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, std::move(pk2));
+        TTE_ATTACH_DBG_STR(pLoc.get(), "GamePack2ConcreteLocation:" + archiveID);
         _Locations.push_back(std::move(pLoc));
     }
     else if(StringEndsWith(resourceName, PlaystationPKG::Extension, false))
@@ -2111,6 +2121,7 @@ Bool ResourceRegistry::_ImportArchivePack(const String& resourceName, const Stri
         lck.lock();
         auto pLoc = TTE_NEW_PTR(ResourceConcreteLocation<RegistryDirectory_PlaystationPKG>,
                                 MEMORY_TAG_RESOURCE_REGISTRY, archiveID, archivePhysicalPath, pkKey, std::move(pkg));
+        TTE_ATTACH_DBG_STR(pLoc.get(), "PSPKGConcreteLocation:" + archiveID);
         _Locations.push_back(std::move(pLoc));
     }
     else
@@ -3174,7 +3185,7 @@ ResourceRegistry::~ResourceRegistry()
         {
             Handles[i] = JobScheduler::Instance->Post(desc, i);
         }
-        // should we wait?
+        JobScheduler::Instance->Wait(NUM_SCHEDULER_THREADS, Handles);
     }
 }
 

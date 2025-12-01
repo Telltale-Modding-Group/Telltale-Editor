@@ -51,6 +51,7 @@ public:
                 if(!resource.ControlAnimation)
                 {
                     resource.ControlAnimation = TTE_NEW_PTR(Animation, MEMORY_TAG_COMMON_INSTANCE, c->GetRegistry());
+                    TTE_ATTACH_DBG_STR(resource.ControlAnimation.get(), "Chore Resource '" + resource.Name + "' Control Animation");
                 }
                 if(!InstanceTransformation::PerformNormaliseAsync(resource.ControlAnimation, anim, man))
                 {
@@ -286,6 +287,7 @@ Chore::Chore(const Chore& rhs) : HandleableRegistered<Chore>(rhs)
         {
             const Animation& anim = *_Resources[i].ControlAnimation;
             _Resources[i].ControlAnimation = TTE_NEW_PTR(Animation, MEMORY_TAG_COMMON_INSTANCE, anim);
+            TTE_ATTACH_DBG_STR(_Resources[i].ControlAnimation.get(), "Chore Resource '" + _Resources[i].Name + "' Control Animation");
         }
     }
 }

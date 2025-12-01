@@ -962,6 +962,7 @@ Ptr<RenderSampler> RenderContext::_FindSampler(RenderSampler desc)
     SDL_DestroyProperties(info.props);
     desc._Context = this;
     Ptr<RenderSampler> pSampler = TTE_NEW_PTR(RenderSampler, MEMORY_TAG_RENDERER);
+    TTE_ATTACH_DBG_STR(pSampler.get(), "Render Sampler");
     *pSampler = std::move(desc);
     desc._Context = nullptr;
     desc._Handle = nullptr; // sometimes compiler doesnt do move:(
@@ -2055,6 +2056,7 @@ void RenderCommandBuffer::BindPipeline(Ptr<RenderPipelineState>& state)
 Ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes, String N)
 {
     Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
+    TTE_ATTACH_DBG_STR(buffer.get(), "RenderVertexBuffer:" + N);
     buffer->_Context = this;
     buffer->SizeBytes = sizeBytes;
     buffer->Usage = RenderBufferUsage::VERTEX;
@@ -2076,6 +2078,7 @@ Ptr<RenderBuffer> RenderContext::CreateVertexBuffer(U64 sizeBytes, String N)
 Ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes, String N)
 {
     Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
+    TTE_ATTACH_DBG_STR(buffer.get(), "RenderGenericBuffer:" + N);
     buffer->_Context = this;
     buffer->SizeBytes = sizeBytes;
     buffer->Usage = RenderBufferUsage::UNIFORM;
@@ -2097,6 +2100,7 @@ Ptr<RenderBuffer> RenderContext::CreateGenericBuffer(U64 sizeBytes, String N)
 Ptr<RenderBuffer> RenderContext::CreateIndexBuffer(U64 sizeBytes, String N)
 {
     Ptr<RenderBuffer> buffer = TTE_NEW_PTR(RenderBuffer, MEMORY_TAG_RENDERER);
+    TTE_ATTACH_DBG_STR(buffer.get(), "RenderIndexBuffer:" + N);
     buffer->_Context = this;
     buffer->SizeBytes = sizeBytes;
     buffer->Usage = RenderBufferUsage::INDICES;

@@ -488,7 +488,9 @@ DataStreamRef ISO9660::_FindInternal(std::vector<DirectoryRecord>& recs, const S
         if(!rec.Fl.Test(DirectoryRecord::DIRECTORY) && (recName == name || recPath == name))
         {
             o = rec.Name;
-            return DataStreamManager::GetInstance()->CreateSubStream(_CachedInput, 0x800 * rec.LogicalLocator, rec.DataLength);
+            DataStreamRef ds = DataStreamManager::GetInstance()->CreateSubStream(_CachedInput, 0x800 * rec.LogicalLocator, rec.DataLength);
+            TTE_ATTACH_DBG_STR(ds.get(), "ISORecord:" + rec.Name);
+            return ds;
         }
         DataStreamRef ref = _FindInternal(rec.Children, name, cpath + rec.Name + "/", o);
         if(ref)

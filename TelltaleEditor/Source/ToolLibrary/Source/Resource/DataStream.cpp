@@ -302,6 +302,7 @@ DataStreamRef DataStreamManager::CreateFileStream(const ResourceURL &path)
     TTE_ASSERT(path.GetScheme() == ResourceScheme::FILE, "Resource URL must be a file path");
     
     DataStreamFile *pDSFile = TTE_NEW(DataStreamFile, MEMORY_TAG_DATASTREAM, path);
+    TTE_ATTACH_DBG_STR(pDSFile, "File:" + FileGetName(path.GetPath()));
     return DataStreamRef(pDSFile, &DataStreamDeleter);
 }
 
@@ -345,6 +346,7 @@ Ptr<DataStreamMemory> DataStreamManager::CreatePrivateCache(const String &path, 
 {
     // Allocate new instance with correct deleter.
     DataStreamMemory *pDSFile = TTE_NEW(DataStreamMemory, MEMORY_TAG_DATASTREAM, path, (U64)pageSize);
+    TTE_ATTACH_DBG_STR(pDSFile, "PrivateCache:" + path);
     return Ptr<DataStreamMemory>(pDSFile, &DataStreamDeleter);
 }
 

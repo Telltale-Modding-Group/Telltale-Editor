@@ -2072,6 +2072,7 @@ namespace MS
         Meta::BinaryBuffer& buf = *((Meta::BinaryBuffer*)bufInst._GetInternal());
         
         U8* Buffer = TTE_ALLOC(actualSize, MEMORY_TAG_RUNTIME_BUFFER);
+        TTE_ATTACH_DBG_STR(Buffer, "MetaStream binary buffer for stream " + stream.Name);
         buf.BufferSize = (U32)actualSize;
         
         TTE_ASSERT(stream.Read(Buffer, (U64)actualSize), "Binary buffer read fail - size is likely too large.");
@@ -2956,6 +2957,7 @@ namespace TTE
         if(r->GetSize() > 0)
         {
             TTArchive2* pArchive = TTE_NEW(TTArchive2, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->GetArchiveVersion(Context->GetSnapshot()));
+            TTE_ATTACH_DBG_STR(pArchive, "ScriptOwnedTTArchive2:" + FileGetName(path));
             if(!pArchive->SerialiseIn(r))
             {
                 TTE_LOG("Cannot open archive %s: read failed (archive format invalid)", path.c_str());
@@ -2997,6 +2999,7 @@ namespace TTE
         if(r->GetSize() > 0)
         {
             TTArchive* pArchive = TTE_NEW(TTArchive, MEMORY_TAG_SCRIPT_OBJECT, Context->GetActiveGame()->GetArchiveVersion(Context->GetSnapshot()));
+            TTE_ATTACH_DBG_STR(pArchive, "ScriptOwnedTTArchive:"+FileGetName(path));
             if(!pArchive->SerialiseIn(r))
             {
                 TTE_LOG("Cannot open archive %s: read failed (archive format invalid)", path.c_str());
