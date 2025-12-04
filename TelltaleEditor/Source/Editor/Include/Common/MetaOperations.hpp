@@ -53,6 +53,7 @@ public:
 // CHORE RELATED OPERATION BUCKETS
 
 class Chore;
+struct ChoreResource;
 
 /**
  * Meta operations required for a common type to be a chore resource
@@ -67,13 +68,22 @@ public:
     virtual void GetRenderParameters(Vector3& bgColourOut, CString& iconName) const = 0;
 
     /**
-     * Gets the length of this chore resource, MetaOperation_GetLength
+     * Gets the length of this chore resource.
+     * Corresponding operator: MetaOperation_GetLength
      */
     virtual Float GetLength() const = 0;
     
     /**
      Adds this chore resource to a chore. For animations, this can add contribution + time keyframed value graphs
+     Corresponding operator: MetaOperation_AddToChore
      */
-    virtual void AddToChore(const Ptr<Chore>& pChore, String myFileName) = 0;
+    virtual void AddToChore(const Ptr<Chore>& pChore, ChoreResource& resource) = 0;
+
+    /**
+     * Attaches this resource to the given chore at runtime. For procedural look ats for example, this links callbacks between
+     * the chore resource properties and the members of the procedural look at c++ class.
+     * Corresponding operator: MetaOperation_AddToChoreInst
+     */
+    inline virtual void Attach(const Ptr<Chore>& pChore, ChoreResource& resource) {}
 
 };

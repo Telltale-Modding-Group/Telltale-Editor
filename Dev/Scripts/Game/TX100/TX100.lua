@@ -31,6 +31,7 @@ function TX100_GetGameDescriptor()
 	MetaPushGameCapability(texasHoldem, kGameCapSeparateAnimationTransform)
 	MetaPushGameCapability(texasHoldem, kGameCapUsesLenc)
 	MetaPushGameCapability(texasHoldem, kGameCapRawClassNames)
+	MetaPushGameCapability(texasHoldem, kGameCapUninheritedLookAts)
 	MetaPushExecutableHash(texasHoldem, "E64AB49D1EE153E3", "PC", "")
 	-- does not have any encryption, so no encryption keys
 	return texasHoldem

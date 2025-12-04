@@ -3045,11 +3045,11 @@ void ResourceRegistry::Update(Float budget, String uMaskTest)
     // REMOVE UNUSED PRELOAD JOB REFS
     {
         SCOPE_LOCK();
-        for(auto it = _PreloadJobs.cbegin(); it != _PreloadJobs.end();)
+        for(auto it = _PreloadJobs.begin(); it != _PreloadJobs.end();)
         {
             if(it->PreloadOffset <= _PreloadOffset)
             {
-                _PreloadJobs.erase(it);
+                it = _PreloadJobs.erase(it);
             }else ++it;
         }
     }

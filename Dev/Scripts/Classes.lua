@@ -6,6 +6,20 @@ require("ToolLibrary/Game/TX100/TX100.lua")
 require("ToolLibrary/Game/BN100/BN100.lua")
 require("ToolLibrary/Game/CSI/3DOM/CSI3.lua")
 
+function RegisterAll(game_id, platform, vendor)
+    if game_id == "BN100" then
+        return RegisterBone100(vendor, platform)
+    elseif game_id == "CSI3" then
+        return RegisterCSI3(vendor, platform)
+    elseif game_id == "TX100" then
+        return RegisterTX100(vendor) -- Only PC
+    else
+        print("ERROR: This game is not currently supported or unknown: " .. game_id)
+    end
+
+    return false
+end
+
 -- Helper function to create a new class table
 function NewClass(name, index)
     local clazz = {} -- initialise defaults
@@ -55,20 +69,6 @@ function AddFlag(classTable, memberIndex, name, value)
         classTable.Members[memberIndex].FlagInfo = {}
     end
     table.insert(classTable.Members[memberIndex].FlagInfo, { Name = name, Value = value })
-end
-
-function RegisterAll(game_id, platform, vendor)
-    if game_id == "BN100" then
-        return RegisterBone100(vendor, platform)
-    elseif game_id == "CSI3" then
-        return RegisterCSI3(vendor, platform)
-    elseif game_id == "TX100" then
-        return RegisterTX100(vendor)
-    else
-        print("ERROR: This game is not currently supported or unknown: " .. game_id)
-    end
-
-    return false
 end
 
 -- Registers intrinsics common to *All* telltale games

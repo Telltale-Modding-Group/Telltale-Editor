@@ -5,7 +5,7 @@ set(EDITOR_ASSET_DIR "/Assets")
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC") # Specific VS things
     add_compile_options("/MP")
-    set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT TelltaleEditor)
+    set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Editor)
 endif()
 
 if(UNIX) # Setting cmake variables depending on platform

@@ -45,6 +45,11 @@ public:
     
     // Main thread update. 
     void Update();
+
+    /**
+     * Tests if the current snapshot has the given game capability.
+     */
+    Bool TestCapability(GameCapability cap);
     
     /**
      Returns if the context is unaccessible because it is currently busy with a job which required it completely.

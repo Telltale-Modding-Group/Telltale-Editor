@@ -42,8 +42,9 @@ public:
     static constexpr CString Extension = "look";
     
     inline Procedural_LookAt(Ptr<ResourceRegistry> reg) : HandleableRegistered<Procedural_LookAt>(std::move(reg)) {}
-    
-    Procedural_LookAt(const Procedural_LookAt& rhs) = default;
+
+    Procedural_LookAt(const Procedural_LookAt& rhs);
+    Procedural_LookAt(Procedural_LookAt&& rhs);
     
     static void RegisterScriptAPI(LuaFunctionCollection& Col);
     
@@ -51,7 +52,9 @@ public:
     
     virtual void GetRenderParameters(Vector3& bgColourOut, CString& iconName) const override;
     
-    virtual void AddToChore(const Ptr<Chore>& pChore, String myName) override;
+    virtual void AddToChore(const Ptr<Chore>& pChore, ChoreResource& resource) override;
+
+    virtual void Attach(const Ptr<Chore>& pChore, ChoreResource& resource) override;
     
     virtual Float GetLength() const override;
     
@@ -59,19 +62,27 @@ public:
     {
         return CommonClass::PROCEDURAL_LOOKAT;
     }
+
+    void SetHostNode(String node);
+    void SetTargetNode(String node);
+    void SetTargetAgent(String agent);
+    void SetTargetOffset(Vector3 offset);
     
 private:
+
+    Meta::ClassInstance _LookAtProperties;
     
     String _HostNode;
     String _TargetNode;
     String _TargetAgent;
     Flags _Flags;
-    ComputeStage _Stage;
     Vector3 _TargetOffset;
-    AnimOrChore _XAxisChore, _YAxisChore;
-    std::vector<Constraint> _Constaints;
+
+    //AnimOrChore _XAxisChore, _YAxisChore;
+    //std::vector<Constraint> _Constaints;
+    //ComputeStage _Stage;
     
-    Float _MaxAngleIncrement; // LEGACY
+    //Float _MaxAngleIncrement; // LEGACY
     
     friend class ProceduralAPI;
     

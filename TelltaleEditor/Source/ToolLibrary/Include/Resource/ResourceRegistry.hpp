@@ -99,12 +99,12 @@ protected:
     
     Symbol _ResourceName;
     
-    inline HandleBase(Symbol rn) : _ResourceName(rn) {}
-    
     void _SetObject(Ptr<ResourceRegistry>& registry, Symbol name, Bool bUnloadOld, Bool bEnsureLoaded);
     
 public:
     
+    inline HandleBase(Symbol rn) : _ResourceName(rn) {}
+
     HandleBase() = default;
     
     Bool IsLoaded(Ptr<ResourceRegistry>& registry); // return if its currently loaded. Will return false if there is a future load in progress which hasn't been progressed

@@ -16,14 +16,13 @@
 
 -- Calculate the version CRC of a given class in Bone: Out from Boneville and more. 
 -- In the macOS executable for Application1, see function at 0xDE28E.
--- This has a really annoying bug with dialog base but its fixed in this one.
+-- This has a really annoying bug with *base classes* which are declared with pointers!
 function VersionCRC_V0_PointerFix(classTable)
 	local temp = 0
 	if not MetaFlagQuery(classTable.Flags, kMetaClassNonBlocked) then
 		temp = tonumber("0xFFFF")
 	end
 	local hash = MetaHashInt(0, temp)
-
 	if type(classTable.Members) == "table" then 
 		for _,member in pairs(classTable.Members) do
 			if not MetaFlagQuery(member.Flags, kMetaMemberSerialiseDisable) and not MetaFlagQuery(member.Flags, kMetaMemberVersionDisable) then

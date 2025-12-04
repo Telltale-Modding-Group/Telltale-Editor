@@ -76,14 +76,40 @@ void JobScheduler::_JobThreadFn(JobScheduler &scheduler, U32 threadIndex)
 
 JobThreadWaitResult JobScheduler::_JobThreadRunJob(JobScheduler &scheduler, JobThread &myself)
 {
-    // Run the job
-    Bool jbResult = myself.CurrentJob.RunnableFunction(myself, myself.CurrentJob.UserArgA, myself.CurrentJob.UserArgB);
-    JobResult jResult = jbResult ? JOB_RESULT_OK : JOB_RESULT_FAIL;
-    
-    // Check if we need to exit.
-    if (scheduler._WaitJobThread(false, myself /*untouched*/) ==
-        JOB_THREAD_RESULT_CANCEL_EXIT) // (Query, not wait) If we want to cancel jobs, exit quickly now
-        return JOB_THREAD_RESULT_CANCEL_EXIT;
+
+    // Run the job and chains.
+
+    Bool jbResult = true;
+    JobResult jResult = JOB_RESULT_OK;
+
+    JobFunction pRunnable = myself.CurrentJob.RunnableFunction;
+    void* pParamA = myself.CurrentJob.UserArgA;
+    void* pParamB = myself.CurrentJob.UserArgB;
+
+    for(;;)
+    {
+
+        jbResult = pRunnable(myself, pParamA, pParamB);
+        jResult = jbResult ? JOB_RESULT_OK : JOB_RESULT_FAIL;
+
+        // Check if we need to exit.
+        if (scheduler._WaitJobThread(false, myself /*untouched*/) ==
+            JOB_THREAD_RESULT_CANCEL_EXIT) // (Query, not wait) If we want to cancel jobs, exit quickly now
+            return JOB_THREAD_RESULT_CANCEL_EXIT;
+
+        // DECHAIN
+        if (jbResult && !myself._Chained.empty())
+        {
+            auto chained = std::move(myself._Chained.front());
+            myself._Chained.pop_front();
+            pRunnable = chained.AsyncFn;
+            pParamA = chained.A;
+            pParamB = chained.B;
+        }
+        else break;
+
+    }
+    myself._Chained.clear();
     
     // Signal its finished so the user can check.
     scheduler._GetSetCounter(myself.CurrentJob.JobID, jResult);
@@ -769,6 +795,18 @@ std::vector<JobHandle> JobScheduler::EnqueueAll(const JobHandle &hJob, const std
     _EnqueueJobs(hJob._jobID, (JobDescriptor *)jobs.data(), (U32)jobs.size(), handles.data());
     
     return handles; // Moved
+}
+
+void JobScheduler::AsyncChainJob(JobFunction pAsync, void* pParamA, void* pParamB)
+{
+    if(IsRunningFromWorker())
+    {
+        GetCurrentThread()._Chained.push_back(JobThread::ChainedJob{ pAsync, pParamA, pParamB });
+    }
+    else
+    {
+        TTE_ASSERT(false, "AsyncChainJob called from non worker thread");
+    }
 }
 
 JobResult JobScheduler::GetResult(const JobHandle &hJob)

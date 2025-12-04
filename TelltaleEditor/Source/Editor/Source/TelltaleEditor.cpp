@@ -115,8 +115,7 @@ Bool TelltaleEditor::_ProbeTasks(Bool wait, U32 t)
             JobScheduler::Instance->Wait(it->second);
             it->first->Finalise(*this); // finalise on this mean
             TTE_DEL(it->first);
-            _Active.erase(it);
-            continue;
+            it = _Active.erase(it);
             continue;
         }
         JobResult result0 = JobScheduler::Instance->GetResult(it->second);
@@ -130,9 +129,14 @@ Bool TelltaleEditor::_ProbeTasks(Bool wait, U32 t)
         // job is finished so remove it and finalise it
         it->first->Finalise(*this); // finalise on this mean
         TTE_DEL(it->first);
-        _Active.erase(it);
+        it = _Active.erase(it);
     }
     return result;
+}
+
+Bool TelltaleEditor::TestCapability(GameCapability cap)
+{
+    return Meta::GetInternalState().GetActiveGame().Caps[cap];
 }
 
 Bool TelltaleEditor::ContextIsBusy()

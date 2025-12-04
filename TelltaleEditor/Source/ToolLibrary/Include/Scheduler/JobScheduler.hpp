@@ -11,6 +11,7 @@
 #include <queue>
 #include <thread>
 #include <vector>
+#include <deque>
 
 // Number of worker threads
 #define NUM_SCHEDULER_THREADS 8
@@ -189,7 +190,19 @@ struct JobThread
     
     // Lua state for this thread.
     mutable LuaManager L;
-    
+
+private: 
+
+    struct ChainedJob
+    {
+        JobFunction AsyncFn = nullptr;
+        void * A = nullptr, * B = nullptr;
+    };
+
+    std::deque<ChainedJob> _Chained;
+
+    friend class JobScheduler;
+
 };
 
 /// <summary>
@@ -335,6 +348,13 @@ public:
     /// Returns an array of handles for each enqueued job. If the array is empty, this function failed.
     /// </summary>
     std::vector<JobHandle> EnqueueAll(const JobHandle &job, const std::vector<JobDescriptor> &jobs);
+
+    /// <summary>
+    /// Chains a job to run after this one. This, unlike Enqueue, is only able to be called from a worker thread inside a job. You can chain as many
+    /// jobs as you like, to run after this one without affecting any job counters which are incremented after all chains are completely (chains can chain even more!).
+    /// This does nothing if not run from a worker thread. If any previous job fails in the chain or the original job, the chain will stop and no more will run.
+    /// </summary> 
+    void AsyncChainJob(JobFunction pAsync, void* pParamA, void* pParamB);
     
     /// <summary>
     /// Gets the result of the given job. Returns RESULT_NONE if the job is invalid or hasn't finished yet. RESULT_RUNNING if running or is scheduled to run.

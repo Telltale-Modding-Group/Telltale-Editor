@@ -1,4 +1,4 @@
--- Taken from the executables. This is an in-executable script used to assemble resources.
+-- Taken from the executables. This is an in-executable script used to assemble resources, written by Telltale Games
 
 _resourceRegistry = {}                                        
 

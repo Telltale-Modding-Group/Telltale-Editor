@@ -204,7 +204,7 @@ struct UIResourceEditorRuntimeData<Chore> : MenuOptionInterface
 
     std::set<Symbol> OpenChoreAgents;
     String SelectedAgent;
-    Symbol SelectedResource;
+    I32 SelectedResourceIndex = -1;
 
     struct SelectedBlock
     {

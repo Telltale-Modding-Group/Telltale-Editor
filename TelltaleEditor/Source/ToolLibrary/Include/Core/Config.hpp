@@ -256,6 +256,18 @@ public:
     }
     
     inline HandleableRegistered(Ptr<ResourceRegistry> reg); // used for force instantiate the coersion functions.
+
+protected:
+
+    inline Ptr<T> GetReference()
+    {
+        return std::static_pointer_cast<T, Handleable>(shared_from_this());
+    }
+
+    inline WeakPtr<T> GetWeakReference()
+    {
+        return std::static_pointer_cast<T, Handleable>(shared_from_this());
+    }
     
 };
 

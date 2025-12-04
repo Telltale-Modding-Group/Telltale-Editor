@@ -230,7 +230,7 @@ void Chore::GetRenderParameters(Vector3& bgColOut, CString& iconName) const
     // icon?
 }
 
-void Chore::AddToChore(const Ptr<Chore>& pChore, String myName)
+void Chore::AddToChore(const Ptr<Chore>& pChore, ChoreResource& resource)
 {
     ; // TODO EMBED CHORES
 }
@@ -267,9 +267,67 @@ void Chore::RegisterScriptAPI(LuaFunctionCollection &Col)
                   "Table of indices (values, keys ignored) or meta collection of 32-bit integers.");
 }
 
+Bool Chore::_DoLoadDependentResourcesAsync()
+{
+    for(auto& res: _Resources)
+    {
+        if(res.ResFlags.Test(Chore::Resource::EMBEDDED))
+        {
+            if (res.Embed)
+            {
+                res.Embed->Attach(std::static_pointer_cast<Chore, Handleable>(shared_from_this()), res);
+            }
+            else
+            {
+                TTE_LOG("WARNING: Embedded chore resource is empty but is specified: %s", res.Name.c_str());
+            }
+        }
+        else
+        {
+            // warnings here can be quiet, UI chore does them anyway
+            HandleBase hBase{};
+            hBase.SetObject(res.Name);
+            Ptr<Handleable> pHandle = hBase.GetBlindObject(GetRegistry(), true);
+            if(pHandle)
+            {
+                WeakPtr<MetaOperationsBucket_ChoreResource> pChoreBucket = AbstractMetaOperationsBucket::CreateBucketReference<MetaOperationsBucket_ChoreResource>(pHandle);
+                if(!pChoreBucket.expired())
+                {
+                    pChoreBucket.lock()->Attach(std::static_pointer_cast<Chore, Handleable>(shared_from_this()), res);
+                }
+            }
+        }
+    }
+    return true;
+}
+
+Bool Chore::_LoadDependentResourcesAsync(const JobThread&, void* a, void*)
+{
+    Chore* pMyself = (Chore*)a;
+    return pMyself->_DoLoadDependentResourcesAsync();
+}
+
 void Chore::FinaliseNormalisationAsync()
 {
-    
+    // attach all resources!
+    if(_Resources.size() > 1 && JobScheduler::Instance && JobScheduler::IsRunningFromWorker())
+    {
+        // Queue myself 
+        JobScheduler::Instance->AsyncChainJob(_LoadDependentResourcesAsync, this, 0);
+    }
+    else
+    {
+        // Do it here, 1 resource or non worker anyway
+        _DoLoadDependentResourcesAsync();
+    }
+}
+
+Chore::Chore(Chore&& rhs) : HandleableRegistered<Chore>(rhs)
+{
+    _Agents = std::move(rhs._Agents);
+    _Resources = std::move(rhs._Resources);
+    // reattach resources to this
+    _DoLoadDependentResourcesAsync();
 }
 
 Chore::Chore(const Chore& rhs) : HandleableRegistered<Chore>(rhs)
@@ -290,6 +348,8 @@ Chore::Chore(const Chore& rhs) : HandleableRegistered<Chore>(rhs)
             TTE_ATTACH_DBG_STR(_Resources[i].ControlAnimation.get(), "Chore Resource '" + _Resources[i].Name + "' Control Animation");
         }
     }
+    // leave all resources attached to the NEW chore
+    _DoLoadDependentResourcesAsync();
 }
 
 Chore::Chore(Ptr<ResourceRegistry> reg) : HandleableRegistered<Chore>(reg)
@@ -322,31 +382,50 @@ void Chore::RemoveAgent(const String &agentName)
     }
 }
 
-void Chore::RemoveResource(const String &name)
+void Chore::_DoRemoveResource(I32 removedIndex)
 {
-    auto it = std::find_if(_Resources.begin(), _Resources.end(), [&](const Resource &r) { return r.Name == name; });
-
-    if (it != _Resources.end())
+    auto it = _Resources.begin();
+    std::advance(it, removedIndex);
+    _Resources.erase(it);
+    for (auto& agent : _Agents)
     {
-        I32 removedIndex = (I32)std::distance(_Resources.begin(), it);
-        _Resources.erase(it);
-        for (auto &agent : _Agents)
+        for (auto rit = agent.Resources.begin(); rit != agent.Resources.end();)
         {
-            for (auto rit = agent.Resources.begin(); rit != agent.Resources.end();)
+            if (*rit == removedIndex)
             {
-                if (*rit == removedIndex)
-                {
-                    rit = agent.Resources.erase(rit);
-                }
-                else
-                {
-                    if ((*rit) > static_cast<int>(removedIndex))
-                    {
-                        --(*rit);
-                    }
-                    rit++;
-                }
+                rit = agent.Resources.erase(rit);
             }
+            else
+            {
+                if ((*rit) > static_cast<int>(removedIndex))
+                {
+                    --(*rit);
+                }
+                rit++;
+            }
+        }
+    }
+}
+
+void Chore::RemoveResource(const String& ag, const String &name)
+{
+    const Agent* pAgent = GetAgent(ag);
+    if(pAgent)
+    {
+        auto it = _Resources.end();
+        for(const auto& res: pAgent->Resources)
+        {
+            if(_Resources[res].Name == name)
+            {
+                it = _Resources.begin();
+                std::advance(it, res);
+                break;
+            }
+        }
+        if (it != _Resources.end())
+        {
+            I32 removedIndex = (I32)std::distance(_Resources.begin(), it);
+            _DoRemoveResource(removedIndex);
         }
     }
 }

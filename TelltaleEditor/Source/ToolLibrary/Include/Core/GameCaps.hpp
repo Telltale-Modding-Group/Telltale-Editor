@@ -18,6 +18,8 @@ enum class GameCapability
     SCRIPT_ENCRYPTION_DISABLED,
     // Type names are not 'tool', ie they have 'class ' etc.
     RAW_TYPE_NAMES,
+    // Procedural Look at properties don't inherit from the module prop
+    UNINHERITED_LOOK_ATS,
     
     NUM,
 };
@@ -38,5 +40,6 @@ constexpr GameCapDesc GameCapDescs[] =
     {"kGameCapUsesLenc", GameCapability::USES_LENC},
     {"kGameCapNoScriptEncryption", GameCapability::USES_LENC},
     {"kGameCapRawClassNames", GameCapability::RAW_TYPE_NAMES},
+    {"kGameCapUninheritedLookAts", GameCapability::UNINHERITED_LOOK_ATS},
     {"", GameCapability::NONE},
 };

@@ -239,16 +239,15 @@ void Animation::FinaliseNormalisationAsync()
 
 }
 
-void Animation::AddToChore(const Ptr<Chore>& pChore, String myName)
+void Animation::AddToChore(const Ptr<Chore>& pChore, ChoreResource& resource)
 {
-    Chore::Resource* pResource = const_cast<Chore::Resource*>(pChore->GetResource(myName));
-    if(!pResource->ControlAnimation->HasValue("time"))
+    if(!resource.ControlAnimation->HasValue("time"))
     {
-        pResource->ControlAnimation->GetAnimatedValues().push_back(TTE_NEW_PTR(KeyframedValue<Float>, MEMORY_TAG_ANIMATION_DATA, "time"));
+        resource.ControlAnimation->GetAnimatedValues().push_back(TTE_NEW_PTR(KeyframedValue<Float>, MEMORY_TAG_ANIMATION_DATA, "time"));
     }
-    if(!pResource->ControlAnimation->HasValue("contribution"))
+    if(!resource.ControlAnimation->HasValue("contribution"))
     {
-        pResource->ControlAnimation->GetAnimatedValues().push_back(TTE_NEW_PTR(KeyframedValue<Float>, MEMORY_TAG_ANIMATION_DATA, "contribution"));
+        resource.ControlAnimation->GetAnimatedValues().push_back(TTE_NEW_PTR(KeyframedValue<Float>, MEMORY_TAG_ANIMATION_DATA, "contribution"));
     }
 }
 

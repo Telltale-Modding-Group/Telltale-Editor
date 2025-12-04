@@ -111,6 +111,7 @@ misc.loading_chore = "Please wait, loading referenced chore resources"
 misc.loading_resource = "Loading new agent resources"
 misc.chore_resource_error = "This chore agent already has this resource!"
 misc.chore_agent_error = "This agent is already part of the chore!"
+misc.procedural_error = "There is already a procedural look at for this agent!"
 
 # MODULES
 mod.select = "Select Module"

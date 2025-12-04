@@ -439,30 +439,34 @@ void ApplicationUI::_Update()
         pStackable->Render();
     }
     
-    const void* beginCache = &*_UIWindows.cbegin();
-    U32 nWin = (U32)_UIWindows.size();
-    for(auto it = _UIWindows.begin(); it != _UIWindows.end();)
+    if (!_UIWindows.empty())
     {
-        Bool bClose = (*it)->Render();
-        if(_UIWindows.size() != nWin || beginCache != &*_UIWindows.cbegin())
+        const void* beginCache = _UIWindows.data();
+        U32 nWin = (U32)_UIWindows.size();
+
+        for (auto it = _UIWindows.begin(); it != _UIWindows.end(); )
         {
-            TTE_ASSERT(false, "Cannot push windows while rendering windows, use state.");
-            break;
-        }
-        else
-        {
-            if(bClose)
+            Bool bClose = (*it)->Render();
+
+            if (_UIWindows.data() != beginCache || _UIWindows.size() != nWin)
+            {
+                TTE_ASSERT(false, "Cannot push windows while rendering windows, use state.");
+                break;
+            }
+
+            if (bClose)
             {
                 it = _UIWindows.erase(it);
                 nWin--;
-                beginCache = &*_UIWindows.cbegin();
+                beginCache = _UIWindows.data();
             }
             else
             {
-                it++;
+                ++it;
             }
         }
     }
+
 
     ImGui::PopFont();
 }

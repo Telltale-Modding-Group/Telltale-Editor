@@ -382,6 +382,25 @@ struct _MethodImplBaseSelector<Ptr<Object>>
 
 #define CALLBACK_TEST_CHECKED(PtrObj) _MethodImplBaseSelector<std::decay<decltype(PtrObj)>::type>::_MyChecked
 
+template <typename T>
+struct _MethodFnTraits;
+
+//  R (Cls::*)(Arg)
+template <typename Cls, typename Arg, typename R>
+struct _MethodFnTraits<R(Cls::*)(Arg)> 
+{
+    using _Clz = Cls;
+    using _ArgT = Arg;
+};
+
+// R (Cls::*)(Arg) const
+template <typename Cls, typename Arg, typename R>
+struct _MethodFnTraits<R(Cls::*)(Arg) const> 
+{
+    using _Clz = Cls;
+    using _ArgT = Arg;
+};
+
 template<typename Object, Bool Checked, typename Arg1 = Placeholder, typename Arg2 = Placeholder, typename Arg3 = Placeholder, typename Arg4 = Placeholder>
 struct MethodImpl;
 

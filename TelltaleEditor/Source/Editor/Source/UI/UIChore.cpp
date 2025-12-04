@@ -40,22 +40,53 @@ void UIResourceEditorRuntimeData<Chore>::DoAddAgentResourcePostLoadCallback(Stri
     Chore* pChore = EditorInstance->GetCommonObject().get();
     Chore::Agent* pAgent = const_cast<Chore::Agent*>(pChore->GetAgent(SelectedAgent));
     Ptr<ResourceRegistry> reg = EditorInstance->GetApplication().GetRegistry();
-    WeakPtr<MetaOperationsBucket_ChoreResource> pRes = AbstractMetaOperationsBucket::CreateBucketReference<MetaOperationsBucket_ChoreResource>(reg, animFile, true);
-    if(pRes.lock())
+    if(animFile == "look")
     {
-        // new resource
-        Chore::Resource& res = pChore->EmplaceResource(animFile);
+        Ptr<Procedural_LookAt> pLookAt = TTE_NEW_PTR(Procedural_LookAt, MEMORY_TAG_COMMON_INSTANCE, reg);
+        TTE_ATTACH_DBG_STR(pLookAt.get(), "Chore Agent " + pChore->GetName() + "/" + pAgent->Name + " Look At");
+        // add procedural look at embed
+        Chore::Resource& res = pChore->EmplaceResource("Procedural Look At");
         res.Priority = 1;
+        res.Embed = pLookAt;
         res.ResFlags.Add(Chore::Resource::ENABLED);
         res.ResFlags.Add(Chore::Resource::VIEW_GRAPHS);
+        res.ResFlags.Add(Chore::Resource::EMBEDDED);
         res.Properties = TelltaleEditor::Get()->CreatePropertySet();
+        if(!TelltaleEditor::Get()->TestCapability(GameCapability::UNINHERITED_LOOK_ATS))
+        {
+            // inherited look ats
+            if(!reg->ResourceExists(kProceduralLookAtPropName))
+            {
+                TTE_LOG("WARNING: When creating procedural look at for %s, the module property set doesn't exist in the resource system: %s", 
+                    pAgent->Name.c_str(), kProceduralLookAtPropName.c_str());
+            }
+            PropertySet::AddParent(res.Properties, kProceduralLookAtPropNameSymbol, reg);
+        }
         res.ControlAnimation = TTE_NEW_PTR(Animation, MEMORY_TAG_COMMON_INSTANCE, reg);
-        pRes.lock()->AddToChore(EditorInstance->GetCommonObject(), animFile);
+        pLookAt->AddToChore(EditorInstance->GetCommonObject(), res);
+        pLookAt->Attach(EditorInstance->GetCommonObject(), res);
         pAgent->Resources.push_back((I32)pChore->GetResources().size() - 1);
     }
     else
     {
-        TTE_LOG("ERROR: Cannot add '%s' to '%s' as a chore resource, failed to load it!", animFile.c_str(), EditorInstance->FileName.c_str());
+        WeakPtr<MetaOperationsBucket_ChoreResource> pRes = AbstractMetaOperationsBucket::CreateBucketReference<MetaOperationsBucket_ChoreResource>(reg, animFile, true);
+        if (pRes.lock())
+        {
+            // new resource
+            Chore::Resource& res = pChore->EmplaceResource(animFile);
+            res.Priority = 1;
+            res.ResFlags.Add(Chore::Resource::ENABLED);
+            res.ResFlags.Add(Chore::Resource::VIEW_GRAPHS);
+            res.Properties = TelltaleEditor::Get()->CreatePropertySet();
+            res.ControlAnimation = TTE_NEW_PTR(Animation, MEMORY_TAG_COMMON_INSTANCE, reg);
+            pRes.lock()->AddToChore(EditorInstance->GetCommonObject(), res);
+            pRes.lock()->Attach(EditorInstance->GetCommonObject(), res);
+            pAgent->Resources.push_back((I32)pChore->GetResources().size() - 1);
+        }
+        else
+        {
+            TTE_LOG("ERROR: Cannot add '%s' to '%s' as a chore resource, failed to load it!", animFile.c_str(), EditorInstance->FileName.c_str());
+        }
     }
 }
 
@@ -246,12 +277,38 @@ Bool UIResourceEditor<Chore>::RenderEditor()
             }*/
             if(!SelectedAgent.empty() && ImGui::BeginMenu(SelectedAgent.c_str()))
             {
-                // agent options: add aud file, add vox file, add language resource, add prodc anim >, add other resource
                 if(ImGui::MenuItem("Add Animation"))
                 {
                     GetApplication().QueueResourcePickerPopup(_EditorUI, "Choose Animation", "*.anm",
-                                    ALLOCATE_METHOD_CALLBACK_1(this, AddAgentResourceCallback,UIResourceEditorRuntimeData<Chore>, String));
+                                    ALLOCATE_METHOD_CALLBACK_1(this, AddAgentResourceCallback, UIResourceEditorRuntimeData<Chore>, String));
                 }
+                // AUD, VOX, LANGUAGE RESOURCES
+                if (ImGui::BeginMenu("Add Procedural Animation"))
+                {
+                    if(ImGui::MenuItem("Look At"))
+                    {
+                        Bool exist = false;
+                        // Ill keep these here in case. but you can have multiple look ats (obviously, might want to lookat different characters at different times from this same one)
+                        /*const Chore::Agent* agent = pChore->GetAgent(SelectedAgent);
+                        for(const auto& res: agent->Resources)
+                        {
+                            auto pRes = pChore->GetConcreteResource(agent->Name, pChore->GetResources()[res].Name);
+                            if(pRes && std::dynamic_pointer_cast<Procedural_LookAt>(pRes))
+                            {
+                                exist = true;
+                                PlatformMessageBoxAndWait("Error", GetApplication().GetLanguageText("misc.procedural_error"));
+                                break;
+                            }
+                        }*/
+                        if(!exist)
+                        {
+                            DoAddAgentResourcePostLoadCallback("look");
+                        }
+                    }
+                    // TODO EYES
+                    ImGui::EndMenu();
+                }
+                // OTHER RESOURCE
                 ImGui::EndMenu();
             }
             ImGui::EndMenuBar();
@@ -267,6 +324,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
         {
             SelectedKeyframeSamples.clear();
             SelectedResourceBlocks.clear();
+            SelectedResourceIndex = -1;
         }
         if(TestMenuOption("View", "Tidy", "[CTRL + T]", ImGuiKey_T, false, true))
         {
@@ -596,6 +654,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
             }
             if(leftClicked && ImGui::IsMouseHoveringRect(wpos + ImVec2{ 0.0f, CurrentY }, wpos + ImVec2{ wsize.x, CurrentY + 20.0f }, false))
             {
+                SelectedResourceIndex = -1;
                 SelectedAgent = agent.Name;
                 anythingClicked = true;
             }
@@ -623,10 +682,11 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                     if(PreloadAwaiting)
                     {
                         bFail = true;
-                    }
+                    } 
                     else
                     {
-                        if(resource.ResFlags.Test(Chore::Resource::EMBEDDED))
+                        Bool bEmbed = resource.ResFlags.Test(Chore::Resource::EMBEDDED);
+                        if(bEmbed)
                         {
                             resourceInterface = resource.Embed;
                             bFail = resourceInterface == nullptr;
@@ -634,6 +694,10 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                             {
                                 FailedResources.insert(resource.Name);
                                 TTE_LOG("ERROR: Embedded chore resource '%s' for chore '%s' is empty!", resource.Name.c_str(), pChore->_Name.c_str());
+                            }
+                            else if(resourceInterface != nullptr && rcacheIterator == ResourcesCache.end())
+                            {
+                                ResourcesCache[resource.Name] = resourceInterface;
                             }
                         }
                         else if (rcacheIterator == ResourcesCache.end())
@@ -656,11 +720,11 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                                 }
                             }
                         }
-                        if (!bFail)
+                        if (!bFail && !bEmbed)
                         {
                             if (rcacheIterator == ResourcesCache.end())
                                 rcacheIterator = ResourcesCache.find(resource.Name);
-                            if (rcacheIterator->second.expired())
+                            if (rcacheIterator == ResourcesCache.end() || rcacheIterator->second.expired())
                             {
                                 WeakPtr<MetaOperationsBucket_ChoreResource> pResource =
                                     AbstractMetaOperationsBucket::CreateBucketReference<MetaOperationsBucket_ChoreResource>(GetApplication().GetRegistry(), resource.Name, false);
@@ -671,7 +735,8 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                                 else
                                 {
                                     bFail = true;
-                                    ResourcesCache.erase(rcacheIterator);
+                                    if(rcacheIterator != ResourcesCache.end())
+                                        ResourcesCache.erase(rcacheIterator);
                                     TTE_LOG("WARNING: Chore resource '%s' was unloaded and could not be reloaded! Disabling this resource...", resource.Name.c_str(), pChore->_Name.c_str());
                                 }
                             }
@@ -688,7 +753,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                         resourceLength = resourceInterface->GetLength();
                     }
                     const Float RES_HEIGHT = 30.0F;
-                    Bool bResourceSelected = SelectedResource == resNameSymbol && SelectedAgent == agent.Name;
+                    Bool bResourceSelected = SelectedResourceIndex == resIndex && SelectedAgent == agent.Name;
                     ImGui::GetWindowDrawList()->AddRectFilled(wpos + ImVec2{ 0.0f, CurrentY }, wpos + ImVec2{ wsize.x, CurrentY + RES_HEIGHT + 2.0f }, IM_COL32(205, 212, 201,255));
                     ImVec2 resourceBoxMin = wpos + ImVec2{ 6.0f, CurrentY };
                     ImVec2 resourceBoxMax = wpos + ImVec2{ wsize.x - 6.0f, CurrentY + RES_HEIGHT };
@@ -698,7 +763,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                     if(ImGui::IsMouseHoveringRect(resourceBoxMin, resourceBoxMax, false) && (mouseClickedThisFrame || mouseRightReleased))
                     {
                         SelectedAgent = agent.Name;
-                        SelectedResource = resNameSymbol;
+                        SelectedResourceIndex = resIndex;
                         anythingClicked = true;
                         bResourceSelected = true;
                     }
@@ -783,6 +848,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                     else if (bResourceSelected && TestMenuOption("resource", "Remove this resource", "[CTRL + X]", ImGuiKey_X, false, true, true))
                     {
                         rmResource = resourceIndex;
+                        SelectedResourceIndex = -1;
                     }
                     // dup resource (Ctrld), add style res group, groups
 
@@ -813,29 +879,25 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                                 pContribution = std::dynamic_pointer_cast<KeyframedValue<Float>>(val);
                             }
                         }
-                        if (!pTime)
+                        if (pTime)
                         {
-                            pTime = TTE_NEW_PTR(KeyframedValue<Float>, MEMORY_TAG_ANIMATION_DATA, "time");
-                            resource.ControlAnimation->GetAnimatedValues().push_back(pTime);
+                            pTime->InsertSample(newBlock.Start, 0.0f);
+                            pTime->InsertSample(newBlock.End, 1.0f);
                         }
-                        if (!pContribution)
+                        if(pContribution)
                         {
-                            pContribution = TTE_NEW_PTR(KeyframedValue<Float>, MEMORY_TAG_ANIMATION_DATA, "contribution");
-                            resource.ControlAnimation->GetAnimatedValues().push_back(pContribution);
-                        }
-                        pTime->InsertSample(newBlock.Start, 0.0f);
-                        pTime->InsertSample(newBlock.End, 1.0f);
-                        if(bCreateFades)
-                        {
-                            pContribution->InsertSample(newBlock.Start, 0.0f);
-                            pContribution->InsertSample(newBlock.Start + resourceLength * 0.1f, 1.0f);
-                            pContribution->InsertSample(newBlock.Start + resourceLength * 0.9f, 1.0f);
-                            pContribution->InsertSample(newBlock.End, 0.0f);
-                        }
-                        else
-                        {
-                            pContribution->InsertSample(newBlock.Start, 1.0f);
-                            pContribution->InsertSample(newBlock.End, 1.0f);
+                            if (bCreateFades)
+                            {
+                                pContribution->InsertSample(newBlock.Start, 0.0f);
+                                pContribution->InsertSample(newBlock.Start + resourceLength * 0.1f, 1.0f);
+                                pContribution->InsertSample(newBlock.Start + resourceLength * 0.9f, 1.0f);
+                                pContribution->InsertSample(newBlock.End, 0.0f);
+                            }
+                            else
+                            {
+                                pContribution->InsertSample(newBlock.Start, 1.0f);
+                                pContribution->InsertSample(newBlock.End, 1.0f);
+                            }
                         }
                         SelectedKeyframeSamples.clear(); // memory changed!
                     }
@@ -1287,7 +1349,7 @@ Bool UIResourceEditor<Chore>::RenderEditor()
                     if(!bHasRef)
                     {
                         // remove actual resource
-                        pChore->RemoveResource(pChore->_Resources[concreteResourceIndex].Name);
+                        pChore->_DoRemoveResource(concreteResourceIndex);
                     }
                 }
             }

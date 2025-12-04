@@ -764,7 +764,7 @@ public:
 
     virtual void GetRenderParameters(Vector3& bgColourOut, CString& iconName) const override;
     
-    virtual void AddToChore(const Ptr<Chore>& pChore, String myName) override;
+    virtual void AddToChore(const Ptr<Chore>& pChore, ChoreResource& resource) override;
     
 private:
     

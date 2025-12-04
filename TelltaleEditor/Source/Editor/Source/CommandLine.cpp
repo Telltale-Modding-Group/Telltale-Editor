@@ -172,7 +172,15 @@ namespace CommandLine
         String out = GetStringArgumentOrDefault(args, "-out", "./Out/");
         if(!StringEndsWith(out, "/"))
             out += "/";
-        std::filesystem::create_directories(out);
+        try
+        {
+            std::filesystem::create_directories(out);
+        }
+        catch(...)
+        {
+            TTE_LOG("** The output directory '%s' does not exist on your local machine!", out.c_str());
+            return 1;
+        }
         Bool bFlat = HasArgument(args, "-flat");
         String filter = GetStringArgumentOrDefault(args, "-filter", "*");
         GameSnapshot game = GetSnapshot(args);
@@ -194,6 +202,7 @@ namespace CommandLine
             editor->EnqueueResourceLocationExtractTask(registry, "<Data>/", out, filter, !bFlat, &Executor_Extract_CallbackAsync);
             editor->Wait();
             TTE_LOG("\n** Successfully extracted files from resource location");
+            registry = {};
             FreeEditorContext();
         }
         return 0;
@@ -413,7 +422,7 @@ namespace CommandLine
                                     }
                                     else
                                     {
-                                        failedNormalise.find(fileName);
+                                        failedNormalise.insert(fileName);
                                     }
                                 }
                                 else

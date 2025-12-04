@@ -26,7 +26,6 @@ function NormaliseChore0(instance, state)
         local resName = MetaGetClassValue(MetaGetMember(resource, "mResName"))
         if MetaGetClassValue(MetaGetMember(resource, "mbEmbedded")) then
             resTab[kCommonChoreResourceKeyEmbed] = MetaGetChild(resource, "Embedded")
-            print("HAS EMBED: " .. resName)
         end
         resTab[kCommonChoreResourceKeyName] = resName
         SymbolTableRegister(resName)
@@ -37,6 +36,9 @@ function NormaliseChore0(instance, state)
         resTab[kCommonChoreResourceKeyNoPose] = MetaGetClassValue(MetaGetMember(resource, "mbNoPose"))
         resTab[kCommonChoreResourceKeyEnabled] = MetaGetClassValue(MetaGetMember(resource, "mbEnabled"))
         resTab[kCommonChoreResourceKeyAgentResource] = MetaGetClassValue(MetaGetMember(resource, "mbIsAgentResource"))
+        if resTab[kCommonChoreResourceKeyAgentResource] then
+            print(resName .. " is an agent resource")
+        end
         resTab[kCommonChoreResourceKeyViewGraphs] = MetaGetClassValue(MetaGetMember(resource, "mbViewGraphs"))
         resTab[kCommonChoreResourceKeyViewGroups] = MetaGetClassValue(MetaGetMember(resource, "mbViewResourceGroups"))
         resTab[kCommonChoreResourceKeyViewProperties] = MetaGetClassValue(MetaGetMember(resource, "mbViewProperties"))

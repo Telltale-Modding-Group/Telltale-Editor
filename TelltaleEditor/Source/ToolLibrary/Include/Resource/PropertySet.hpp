@@ -122,6 +122,16 @@ public:
      Optional tracking reference to delete all callbacks with that reference. Tracking reference 0 is untrackable (ie clear callbacks with 0 will clear all, not just ones with the ref = 0)
      */
     static void AddCallback(Meta::ClassInstance prop, Symbol property, Ptr<FunctionBase> pCallback, U32 trackingRef = 0);
+
+    /**
+     * See AddCallback. This version is a helper for common 1 argument method callbacks for a class.
+     */
+    template <typename MemFn, typename ClsObj>
+    static void AddMethodCallbackT(Meta::ClassInstance prop, Symbol property, ClsObj obj, MemFn memFn, U32 trackRef = 0)
+    {
+        using _MyTraits = _MethodFnTraits<MemFn>; using C = typename _MyTraits::_Clz; using A = typename _MyTraits::_ArgT;
+        AddCallback(prop, property, TTE_NEW_PTR(Method<C MACRO_COMMA CALLBACK_TEST_CHECKED(obj) MACRO_COMMA A>, MEMORY_TAG_CALLBACK, obj, memFn), trackRef);
+    }
     
     /**
      Returns if the given property key exists in the property set. Optionally state wether to search all parent properties too.

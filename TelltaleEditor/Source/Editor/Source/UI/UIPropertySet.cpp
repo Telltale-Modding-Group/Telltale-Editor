@@ -160,6 +160,7 @@ PropGlobalAction UIPropertySet::_RenderProp(Float& currentY, Float indentX, CStr
             PropertySet::PromoteKeyToLocal(_AgentProperties, actionKey, GetApplication().GetRegistry());
         }
     }
+    PropertySet::CallAllCallbacks(prop, GetApplication().GetRegistry()); // call callbacks to update
     ImGui::PopID();
     return action;
 }
